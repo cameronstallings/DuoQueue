@@ -1,0 +1,85 @@
+# Supabase CLI project config — used by `supabase start` / `supabase db reset` for local dev.
+# See https://supabase.com/docs/guides/local-development/cli/config for the full reference.
+
+project_id = "duoqueue"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed/seed.sql"]
+
+[studio]
+enabled = true
+port = 54323
+
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+file_size_limit = "10MiB"
+
+[storage.buckets.profile-photos]
+public = false
+file_size_limit = "5MiB"
+allowed_mime_types = ["image/png", "image/jpeg", "image/webp"]
+
+[auth]
+enabled = true
+site_url = "duoqueue://"
+additional_redirect_urls = ["duoqueue://auth-callback"]
+jwt_expiry = 3600
+enable_signup = true
+minimum_password_length = 8
+
+# NOTE: confirmations are off for Phase 1 so sign-up returns an active session immediately
+# (the age-gate DOB write and onboarding wizard need auth.uid() right after signUp()).
+# Revisit before a production launch — e.g. switch to Supabase's OTP-based email
+# verification, which doesn't require the immediate-session flow to change.
+[auth.email]
+enable_signup = true
+enable_confirmations = false
+double_confirm_changes = true
+
+[auth.external.apple]
+enabled = false
+client_id = "env(APPLE_CLIENT_ID)"
+secret = "env(APPLE_CLIENT_SECRET)"
+
+[auth.external.google]
+enabled = false
+client_id = "env(GOOGLE_CLIENT_ID)"
+secret = "env(GOOGLE_CLIENT_SECRET)"
+
+[edge_runtime]
+enabled = true
+policy = "oneshot"
+
+[functions.perform-swipe]
+verify_jwt = true
+
+[functions.send-message]
+verify_jwt = true
+
+[functions.report-user]
+verify_jwt = true
+
+[functions.delete-account]
+verify_jwt = true
+
+[functions.moderate-photo]
+verify_jwt = false
+
+[functions.revenuecat-webhook]
+verify_jwt = false

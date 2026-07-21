@@ -1,0 +1,27 @@
+{
+  "name": "duoqueue",
+  "private": true,
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "mobile": "pnpm --filter @duoqueue/mobile start",
+    "typecheck": "pnpm -r run typecheck",
+    "lint": "pnpm -r run lint",
+    "seed:profiles": "tsx scripts/generate-fake-profiles.ts",
+    "seed:build-sql": "tsx scripts/build-seed-sql.ts"
+  },
+  "dependencies": {
+    "@duoqueue/shared-types": "workspace:*",
+    "@supabase/supabase-js": "^2.45.4",
+    "@faker-js/faker": "^9.0.3",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.4",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

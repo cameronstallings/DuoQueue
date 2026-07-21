@@ -1,0 +1,43 @@
+export const spacing = {
+  xs: 4,
+  sm: 8,
+  md: 16,
+  lg: 24,
+  xl: 32,
+  xxl: 48,
+} as const;
+
+export const radius = {
+  sm: 8,
+  md: 12,
+  lg: 20,
+  pill: 999,
+} as const;
+
+const palette = {
+  brand: "#7C4DFF",
+  brandDark: "#5E35B1",
+  danger: "#E5484D",
+  success: "#30A46C",
+  warning: "#F5A623",
+};
+
+export const lightColors = {
+  ...palette,
+  background: "#FFFFFF",
+  surface: "#F5F5F7",
+  border: "#E4E4E7",
+  text: "#17171A",
+  textMuted: "#6B6B72",
+} as const;
+
+export const darkColors = {
+  ...palette,
+  background: "#111113",
+  surface: "#1C1C1F",
+  border: "#2C2C30",
+  text: "#F4F4F5",
+  textMuted: "#A1A1AA",
+} as const;
+
+export type ThemeColors = typeof lightColors;
