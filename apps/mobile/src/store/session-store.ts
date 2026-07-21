@@ -3,6 +3,7 @@ import type { ProfileRow } from "@duoqueue/shared-types";
 import { create } from "zustand";
 
 import { supabase } from "@/lib/supabase";
+import { registerForPushNotifications } from "@/lib/notifications";
 import { configurePurchases, logOutPurchases } from "@/lib/revenuecat";
 
 export type SessionStatus = "loading" | "signed_out" | "signed_in";
@@ -25,6 +26,11 @@ async function loadProfile(userId: string): Promise<ProfileRow | null> {
   return data as ProfileRow;
 }
 
+function onSignedIn(userId: string): void {
+  configurePurchases(userId);
+  void registerForPushNotifications(userId);
+}
+
 export const useSessionStore = create<SessionState>((set, get) => ({
   status: "loading",
   session: null,
@@ -38,7 +44,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     if (session) {
       const profile = await loadProfile(session.user.id);
       set({ session, profile, status: "signed_in" });
-      configurePurchases(session.user.id);
+      onSignedIn(session.user.id);
     } else {
       set({ session: null, profile: null, status: "signed_out" });
     }
@@ -46,7 +52,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     supabase.auth.onAuthStateChange((_event, nextSession) => {
       if (nextSession) {
         set({ session: nextSession, status: "signed_in" });
-        configurePurchases(nextSession.user.id);
+        onSignedIn(nextSession.user.id);
         void get().refreshProfile();
       } else {
         set({ session: null, profile: null, status: "signed_out" });
@@ -62,8 +68,18 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   },
 
   signOut: async () => {
-    await supabase.auth.signOut();
-    await logOutPurchases();
+    // Reset local state even if the server-side calls fail (e.g. after account
+    // deletion, the user no longer exists server-side to sign out).
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.warn("supabase.auth.signOut failed:", err);
+    }
+    try {
+      await logOutPurchases();
+    } catch (err) {
+      console.warn("logOutPurchases failed:", err);
+    }
     set({ session: null, profile: null, status: "signed_out" });
   },
 }));

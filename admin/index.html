@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DuoQueue Moderation</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f5f5f7;
+    --surface: #ffffff;
+    --border: #e4e4e7;
+    --text: #17171a;
+    --muted: #6b6b72;
+    --brand: #7c4dff;
+    --danger: #e5484d;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111113;
+      --surface: #1c1c1f;
+      --border: #2c2c30;
+      --text: #f4f4f5;
+      --muted: #a1a1aa;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  #app { max-width: 960px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 16px;
+  }
+  input, select, textarea, button {
+    font: inherit;
+    color: inherit;
+  }
+  input, textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  button {
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: none;
+    background: var(--brand);
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button.secondary { background: var(--border); color: var(--text); }
+  button.danger { background: var(--danger); }
+  button:disabled { opacity: 0.5; cursor: default; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+  .status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--border);
+  }
+  .status-open { background: var(--danger); color: #fff; }
+  .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .filters { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+  #error { color: var(--danger); font-size: 13px; margin-top: 8px; }
+  .convo { background: var(--bg); border-radius: 8px; padding: 8px; margin-top: 8px; max-height: 240px; overflow-y: auto; }
+  .convo-msg { padding: 4px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+  // Fill these in for your project (Project Settings -> API). The anon key is safe to
+  // ship client-side — every query here still goes through RLS, gated by
+  // profiles.is_admin (see supabase/migrations/0006_moderation_and_notifications.sql).
+  const SUPABASE_URL = "https://YOUR-PROJECT-REF.supabase.co";
+  const SUPABASE_ANON_KEY = "YOUR-ANON-KEY";
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const app = document.getElementById("app");
+
+  const REASON_LABELS = {
+    harassment: "Harassment",
+    spam: "Spam",
+    inappropriate_content: "Inappropriate content",
+    underage: "Underage",
+    other: "Other",
+  };
+
+  function escapeHtml(value) {
+    const div = document.createElement("div");
+    div.textContent = value ?? "";
+    return div.innerHTML;
+  }
+
+  async function render() {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session) {
+      renderLogin();
+      return;
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("is_admin, display_name")
+      .eq("id", session.user.id)
+      .single();
+
+    if (profileError || !profile?.is_admin) {
+      renderNotAuthorized();
+      return;
+    }
+
+    await renderDashboard(profile.display_name);
+  }
+
+  function renderLogin() {
+    app.innerHTML = `
+      <h1>DuoQueue Moderation</h1>
+      <p class="muted">Sign in with an admin account.</p>
+      <div class="card" style="max-width:360px">
+        <input id="email" type="email" placeholder="Email" autocomplete="username" />
+        <input id="password" type="password" placeholder="Password" autocomplete="current-password" />
+        <button id="signin">Sign in</button>
+        <div id="error"></div>
+      </div>
+    `;
+    document.getElementById("signin").addEventListener("click", async () => {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const errorEl = document.getElementById("error");
+      errorEl.textContent = "";
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        errorEl.textContent = error.message;
+        return;
+      }
+      await render();
+    });
+  }
+
+  function renderNotAuthorized() {
+    app.innerHTML = `
+      <h1>DuoQueue Moderation</h1>
+      <div class="card">
+        <p>This account isn't an admin. Ask an operator to set <code>profiles.is_admin = true</code> for your account.</p>
+        <button class="secondary" id="signout">Sign out</button>
+      </div>
+    `;
+    document.getElementById("signout").addEventListener("click", async () => {
+      await supabase.auth.signOut();
+      await render();
+    });
+  }
+
+  async function fetchReports(statusFilter) {
+    let query = supabase
+      .from("reports")
+      .select("id, reason, details, status, created_at, match_id, reporter_id, reported_id")
+      .order("created_at", { ascending: false });
+    if (statusFilter !== "all") query = query.eq("status", statusFilter);
+
+    const { data: reports, error } = await query;
+    if (error) throw error;
+    if (!reports || reports.length === 0) return [];
+
+    const profileIds = [...new Set(reports.flatMap((r) => [r.reporter_id, r.reported_id]))];
+    const { data: profiles, error: profilesError } = await supabase
+      .from("profiles")
+      .select("id, display_name")
+      .in("id", profileIds);
+    if (profilesError) throw profilesError;
+
+    const nameById = new Map((profiles ?? []).map((p) => [p.id, p.display_name]));
+    return reports.map((r) => ({
+      ...r,
+      reporterName: nameById.get(r.reporter_id) ?? r.reporter_id,
+      reportedName: nameById.get(r.reported_id) ?? r.reported_id,
+    }));
+  }
+
+  async function updateReportStatus(reportId, status) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const { error } = await supabase
+      .from("reports")
+      .update({ status, reviewed_by: session.user.id, reviewed_at: new Date().toISOString() })
+      .eq("id", reportId);
+    if (error) alert(error.message);
+  }
+
+  async function loadConversation(containerEl, matchId) {
+    containerEl.innerHTML = "Loading...";
+    const { data: messages, error } = await supabase
+      .from("messages")
+      .select("sender_id, content, created_at")
+      .eq("match_id", matchId)
+      .order("created_at")
+      .limit(100);
+    if (error) {
+      containerEl.textContent = error.message;
+      return;
+    }
+    containerEl.innerHTML = (messages ?? [])
+      .map(
+        (m) =>
+          `<div class="convo-msg"><strong>${escapeHtml(m.sender_id.slice(0, 8))}</strong>: ${escapeHtml(m.content)}</div>`,
+      )
+      .join("") || "<em>No messages in this conversation.</em>";
+  }
+
+  async function renderDashboard(adminName) {
+    app.innerHTML = `
+      <h1>DuoQueue Moderation</h1>
+      <p class="muted">Signed in as ${escapeHtml(adminName)}</p>
+      <div class="card">
+        <div class="filters">
+          <label for="status-filter">Status:</label>
+          <select id="status-filter">
+            <option value="open">Open</option>
+            <option value="reviewed">Reviewed</option>
+            <option value="actioned">Actioned</option>
+            <option value="dismissed">Dismissed</option>
+            <option value="all">All</option>
+          </select>
+          <button class="secondary" id="refresh">Refresh</button>
+          <button class="secondary" id="signout" style="margin-left:auto">Sign out</button>
+        </div>
+        <div id="reports-table">Loading...</div>
+      </div>
+    `;
+
+    document.getElementById("signout").addEventListener("click", async () => {
+      await supabase.auth.signOut();
+      await render();
+    });
+    document.getElementById("status-filter").addEventListener("change", loadReports);
+    document.getElementById("refresh").addEventListener("click", loadReports);
+
+    async function loadReports() {
+      const statusFilter = document.getElementById("status-filter").value;
+      const tableEl = document.getElementById("reports-table");
+      tableEl.textContent = "Loading...";
+      try {
+        const reports = await fetchReports(statusFilter);
+        if (reports.length === 0) {
+          tableEl.innerHTML = "<p class='muted'>No reports in this view.</p>";
+          return;
+        }
+        tableEl.innerHTML = `
+          <table>
+            <thead>
+              <tr><th>When</th><th>Reason</th><th>Reporter</th><th>Reported</th><th>Details</th><th>Status</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+              ${reports
+                .map(
+                  (r) => `
+                <tr data-id="${r.id}">
+                  <td>${new Date(r.created_at).toLocaleString()}</td>
+                  <td>${REASON_LABELS[r.reason] ?? r.reason}</td>
+                  <td>${escapeHtml(r.reporterName)}</td>
+                  <td>${escapeHtml(r.reportedName)}</td>
+                  <td>${escapeHtml(r.details ?? "")}</td>
+                  <td><span class="status-badge ${r.status === "open" ? "status-open" : ""}">${r.status}</span></td>
+                  <td>
+                    <div class="actions">
+                      <button class="secondary review-btn">Reviewed</button>
+                      <button class="secondary action-btn">Actioned</button>
+                      <button class="secondary dismiss-btn">Dismissed</button>
+                      ${r.match_id ? `<button class="secondary convo-btn">View chat</button>` : ""}
+                    </div>
+                    <div class="convo" style="display:none"></div>
+                  </td>
+                </tr>
+              `,
+                )
+                .join("")}
+            </tbody>
+          </table>
+        `;
+
+        tableEl.querySelectorAll("tr[data-id]").forEach((row) => {
+          const reportId = row.dataset.id;
+          const report = reports.find((r) => r.id === reportId);
+
+          row.querySelector(".review-btn").addEventListener("click", async () => {
+            await updateReportStatus(reportId, "reviewed");
+            await loadReports();
+          });
+          row.querySelector(".action-btn").addEventListener("click", async () => {
+            await updateReportStatus(reportId, "actioned");
+            await loadReports();
+          });
+          row.querySelector(".dismiss-btn").addEventListener("click", async () => {
+            await updateReportStatus(reportId, "dismissed");
+            await loadReports();
+          });
+          const convoBtn = row.querySelector(".convo-btn");
+          if (convoBtn) {
+            convoBtn.addEventListener("click", async () => {
+              const convoEl = row.querySelector(".convo");
+              const isHidden = convoEl.style.display === "none";
+              convoEl.style.display = isHidden ? "block" : "none";
+              if (isHidden) await loadConversation(convoEl, report.match_id);
+            });
+          }
+        });
+      } catch (err) {
+        tableEl.innerHTML = `<p style="color:var(--danger)">${escapeHtml(err.message ?? String(err))}</p>`;
+      }
+    }
+
+    await loadReports();
+  }
+
+  render();
+</script>
+</body>
+</html>

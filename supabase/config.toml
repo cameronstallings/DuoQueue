@@ -66,20 +66,22 @@ secret = "env(GOOGLE_CLIENT_SECRET)"
 enabled = true
 policy = "oneshot"
 
-[functions.perform-swipe]
-verify_jwt = true
-
 [functions.send-message]
 verify_jwt = true
 
-[functions.report-user]
+[functions.moderate-photo]
 verify_jwt = true
 
 [functions.delete-account]
 verify_jwt = true
 
-[functions.moderate-photo]
+# External/internal callers authenticate with their own shared secret instead of a
+# Supabase-issued JWT, so the gateway-level JWT check must be off for these two.
+[functions.revenuecat-webhook]
 verify_jwt = false
 
-[functions.revenuecat-webhook]
+[functions.send-push-notification]
+verify_jwt = false
+
+[functions.daily-swipes-refreshed]
 verify_jwt = false

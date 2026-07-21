@@ -9,7 +9,8 @@ subscriptions).
 
 ## Status
 
-This repo currently implements **Phases 1-4**:
+This repo currently implements **Phases 1-5** (Phase 6 — polish: animations, empty
+states, loading skeletons, dark-mode pass — is the only phase left):
 
 - Phase 1: project scaffolding, the full Postgres schema (all tables/RLS, ahead of the
   phases that consume them), Supabase Auth (email + Apple/Google) with an 18+ age gate,
@@ -32,9 +33,13 @@ This repo currently implements **Phases 1-4**:
   purchase/renewal/cancellation/refund/billing-issue events, "who swiped right on you"
   (`get_admirers`, premium-gated, with a free teaser count via `get_admirers_count`), and
   a daily Super Ping (`send_super_ping`, premium + 1/day, reuses the swipe/match logic).
-
-The moderation queue, settings, push notifications, and account deletion land in later
-phases.
+- Phase 5: push notifications (new match, new message, Super Ping, daily swipes
+  refreshed) driven by Postgres triggers + `pg_net` calling `send-push-notification`, a
+  per-category notification settings screen, photo moderation (`moderate-photo` — a
+  pluggable NSFW-check interface with an always-approve stub; wire in a real provider
+  before production) with `moderation_status` now unwritable by clients, account
+  deletion (`delete-account` — wipes Storage then cascades through every table via FKs),
+  and a standalone admin moderation web page (`admin/index.html`) for triaging reports.
 
 ## Repo layout
 
@@ -44,15 +49,20 @@ apps/mobile/         Expo app (TypeScript, expo-router)
                        admirers, match/[matchId], paywall
   src/
     components/       shared UI (Button, TextField, ChipSelect, ScreenContainer)
-    features/         feature-sliced logic (auth, onboarding, matching, swipe, chat, premium)
-    lib/               supabase client, revenuecat config, react-query client, storage helper
+    features/         feature-sliced logic (auth, onboarding, matching, swipe, chat,
+                       premium, settings)
+    lib/               supabase client, revenuecat config, push notifications,
+                       react-query client, storage helper
     store/             zustand stores (session, onboarding wizard)
     theme/             color tokens, light/dark
 packages/shared-types/ DB row types, enums, and zod schemas shared by app + scripts
+admin/index.html      standalone moderation queue web page (vanilla JS, no build step)
 supabase/
-  migrations/          SQL migrations (schema + RLS, storage, matching + chat RPCs)
-  functions/            Edge Functions (send-message, revenuecat-webhook now;
-                        moderate-photo, delete-account in later phases)
+  migrations/          SQL migrations (schema + RLS, storage, matching/chat/premium/
+                       moderation RPCs and notification triggers)
+  functions/            Edge Functions — send-message, revenuecat-webhook,
+                        send-push-notification, moderate-photo, delete-account,
+                        daily-swipes-refreshed
   seed/                games.json / shows.json catalogs + generated seed.sql
 scripts/
   generate-fake-profiles.ts   seeds ~50 fake profiles for local testing
@@ -85,19 +95,36 @@ pnpm install
      (0001, 0002, ...), into the SQL Editor.
 3. Seed the game/show catalogs: run `supabase/seed/seed.sql` the same way (or it runs
    automatically on `supabase db reset` for local dev, per `supabase/config.toml`).
-4. Deploy the Edge Functions: `supabase functions deploy send-message` and
-   `supabase functions deploy revenuecat-webhook` (repeat per function as later phases
-   add them). Both need no extra secrets beyond the project's own
-   `SUPABASE_URL`/`SUPABASE_ANON_KEY`/`SUPABASE_SERVICE_ROLE_KEY`, which Supabase injects
-   automatically — except `revenuecat-webhook`, which also needs
-   `REVENUECAT_WEBHOOK_AUTH_TOKEN` set via `supabase secrets set` (see step 3 below).
-5. In **Authentication → Providers**, enable **Apple** and **Google**, and add their
+4. Deploy the Edge Functions: `supabase functions deploy <name>` for each of
+   `send-message`, `revenuecat-webhook`, `moderate-photo`, `delete-account`,
+   `send-push-notification`, and `daily-swipes-refreshed`. All of them get
+   `SUPABASE_URL`/`SUPABASE_ANON_KEY`/`SUPABASE_SERVICE_ROLE_KEY` injected automatically.
+   `revenuecat-webhook` additionally needs `REVENUECAT_WEBHOOK_AUTH_TOKEN` (step 3
+   below), and `send-push-notification`/`daily-swipes-refreshed` need
+   `INTERNAL_TRIGGER_AUTH_TOKEN` — set both with `supabase secrets set KEY=value`.
+5. Enable push + swipe-refresh notifications: insert your project's own values into
+   `app_config` (no client can read this table — service-role/trigger-only, see
+   0006_moderation_and_notifications.sql) via the SQL Editor:
+   ```sql
+   insert into public.app_config (key, value) values
+     ('edge_function_base_url', 'https://<project-ref>.supabase.co/functions/v1'),
+     ('internal_trigger_token', '<same value as INTERNAL_TRIGGER_AUTH_TOKEN>');
+   ```
+   Then set up something to call `daily-swipes-refreshed` hourly with
+   `Authorization: Bearer <INTERNAL_TRIGGER_AUTH_TOKEN>` — a Supabase Cron Trigger
+   (Dashboard → Edge Functions → your function → Cron) or any external scheduler works.
+   New-match/new-message/Super-Ping pushes need no scheduler; they fire immediately via
+   DB triggers.
+6. Make yourself an admin (for the moderation page at `admin/index.html`):
+   `update public.profiles set is_admin = true where id = '<your-user-id>';`
+7. In **Authentication → Providers**, enable **Apple** and **Google**, and add their
    client IDs/secrets. Email/password is enabled by default; this project intentionally
    ships with **email confirmations off** for Phase 1 so sign-up returns an active
    session immediately (needed for the age-gate DOB write and onboarding wizard) — see
    the note in `supabase/config.toml`. Revisit before a production launch.
-6. Copy your project's URL and anon key (Project Settings → API) into `.env` (step 4
-   below).
+8. Copy your project's URL and anon key (Project Settings → API) into `.env` (step 4
+   below), and into the placeholders at the top of `admin/index.html` if you'll use the
+   moderation page.
 
 ### Regenerating the game/show seed data
 
@@ -162,9 +189,12 @@ cd apps/mobile && pnpm start
 
 Scan the QR code with Expo Go, or press `i` / `a` for a simulator. Native-module
 features that don't work in Expo Go (Apple Sign-In, in production; Google Sign-In needs
-real OAuth client IDs) require a [development build](https://docs.expo.dev/develop/development-builds/introduction/)
+real OAuth client IDs; push notifications, which also need a real EAS project via
+`eas init` before a token can be issued at all) require a
+[development build](https://docs.expo.dev/develop/development-builds/introduction/)
 — `npx expo prebuild` + `eas build --profile development` — once you're testing those
-end-to-end.
+end-to-end. Push notifications also require a physical device (no simulator/emulator
+support).
 
 ## 6. Seed ~50 fake profiles
 
@@ -233,3 +263,20 @@ pnpm lint        # eslint across all workspace packages
   powers both the paywall teaser and the real feature. `get_admirers_count()` is a
   separate, ungated function that only ever returns a number, never profile data, so the
   free-tier teaser count can't be used to leak who liked you.
+- `profile_media.moderation_status` has no client write path at all (a blanket UPDATE
+  grant in 0001_init.sql was narrowed to `(storage_path, "position")` in
+  0006_moderation_and_notifications.sql once photo moderation existed) — only the
+  `moderate-photo` Edge Function, using the service role, can flip a photo from
+  `pending` to `approved`/`rejected`. Its actual NSFW check
+  (`supabase/functions/moderate-photo/provider.ts`) is a stub that always approves —
+  wire in a real provider before a production launch; the admin moderation queue is the
+  manual-review backstop either way.
+- `app_config` and `swipe_refresh_notifications` have no grants to `authenticated`/`anon`
+  at all (not even RLS — there's no privilege to query them via the API); they're
+  read/written only by `SECURITY DEFINER` functions running as the table owner, same
+  pattern as `daily_swipe_counters`.
+- The admin moderation page (`admin/index.html`) is a plain static file — no auth beyond
+  a normal Supabase sign-in gated by `profiles.is_admin`, checked via the same RLS the
+  database itself enforces (`reports_select_admin`, `profiles_select_admin`,
+  `messages_select_admin` in 0006). There's no self-service way to become an admin; it's
+  a manual `update profiles set is_admin = true` by an operator.

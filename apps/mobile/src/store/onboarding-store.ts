@@ -119,10 +119,18 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
           .upload(storagePath, base64js.toByteArray(base64).buffer, { contentType, upsert: true });
         if (uploadError) throw uploadError;
 
-        const { error: mediaError } = await supabase
+        const { data: mediaRow, error: mediaError } = await supabase
           .from("profile_media")
-          .insert({ profile_id: profileId, storage_path: storagePath, position });
+          .insert({ profile_id: profileId, storage_path: storagePath, position })
+          .select("id")
+          .single();
         if (mediaError) throw mediaError;
+
+        // Best-effort, non-blocking: a failed moderation check just leaves the photo
+        // "pending" (invisible to other users) rather than failing onboarding.
+        supabase.functions.invoke("moderate-photo", { body: { mediaId: mediaRow.id } }).catch((err: unknown) => {
+          console.warn("moderate-photo invocation failed:", err);
+        });
       }
 
       const tablesToReplace: { table: string; rows: Record<string, unknown>[] }[] = [
