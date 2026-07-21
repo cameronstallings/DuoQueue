@@ -9,26 +9,37 @@ subscriptions).
 
 ## Status
 
-This repo currently implements **Phase 1**: project scaffolding, the full Postgres
-schema (all tables/RLS, ahead of the phases that consume them), Supabase Auth (email +
-Apple/Google) with an 18+ age gate, and the profile setup wizard. Swiping/matching,
-chat, premium enforcement, and moderation land in later phases — see `app/(tabs)`,
-`app/chat`, and `app/paywall.tsx` for the placeholder screens they'll replace.
+This repo currently implements **Phase 1 + Phase 2**:
+
+- Phase 1: project scaffolding, the full Postgres schema (all tables/RLS, ahead of the
+  phases that consume them), Supabase Auth (email + Apple/Google) with an 18+ age gate,
+  and the profile setup wizard.
+- Phase 2: the swipe deck (gesture-driven card stack + like/pass buttons), the matching
+  algorithm (`get_deck` RPC — ranks by shared games, shared shows, region, shared
+  languages, compatible skill level), server-enforced swipe quota and mutual-like match
+  creation (`perform_swipe` RPC), and the filters screen (basic filters for everyone;
+  advanced filters gated server-side behind premium status, with a paywall prompt when a
+  free user taps one).
+
+Chat, Discord sharing, unmatch/block/report, RevenueCat billing, and moderation land in
+later phases — see `app/chat/[matchId].tsx` and `app/paywall.tsx` for the placeholder
+screens they'll replace.
 
 ## Repo layout
 
 ```
 apps/mobile/         Expo app (TypeScript, expo-router)
-  app/                file-based routes: (auth), (onboarding), (tabs), chat, paywall
+  app/                file-based routes: (auth), (onboarding), (tabs), chat, filters,
+                       match/[matchId], paywall
   src/
     components/       shared UI (Button, TextField, ChipSelect, ScreenContainer)
-    features/         feature-sliced logic (auth, onboarding)
+    features/         feature-sliced logic (auth, onboarding, matching, swipe)
     lib/               supabase client, react-query client
     store/             zustand stores (session, onboarding wizard)
     theme/             color tokens, light/dark
 packages/shared-types/ DB row types, enums, and zod schemas shared by app + scripts
 supabase/
-  migrations/          SQL migrations (schema + RLS, storage bucket + policies)
+  migrations/          SQL migrations (schema + RLS, storage, matching RPCs)
   functions/            Edge Functions (Phase 3+)
   seed/                games.json / shows.json catalogs + generated seed.sql
 scripts/
@@ -164,3 +175,9 @@ pnpm lint        # eslint across all workspace packages
 - Blocking someone automatically unmatches you (trigger on `blocks`), which in turn
   revokes any shared Discord card (trigger on `matches.unmatched_at`) — enforced in the
   database, not just the client.
+- `perform_swipe` and `get_deck` (`supabase/migrations/0003_matching.sql`) are the only
+  way to swipe or fetch candidates — the daily free-tier quota (25/day, reset at the
+  user's local midnight via their stored `timezone`) and the premium-only advanced
+  filters (specific game / platform / skill level / playstyle) are both checked inside
+  the RPC via an `is_premium()` helper, not left to the client to self-report. A free
+  user who sends the advanced filter params anyway has them silently ignored server-side.
