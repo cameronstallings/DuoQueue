@@ -3,11 +3,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { DeckCandidate, Platform, SkillLevel } from "@duoqueue/shared-types";
 
 import { supabase } from "@/lib/supabase";
+import { signPhotoUrls } from "@/lib/storage";
 
 import type { DeckCard } from "./types";
 
 const DECK_PAGE_SIZE = 20;
-const PHOTO_SIGNED_URL_TTL_SECONDS = 60 * 60;
 
 interface PublicProfileMediaRow {
   profile_id: string;
@@ -36,20 +36,6 @@ interface PublicProfileLanguageRow {
 interface PublicProfilePlaystyleRow {
   profile_id: string;
   tag: string;
-}
-
-async function signPhotoUrls(paths: string[]): Promise<Map<string, string>> {
-  if (paths.length === 0) return new Map();
-  const { data, error } = await supabase.storage
-    .from("profile-photos")
-    .createSignedUrls(paths, PHOTO_SIGNED_URL_TTL_SECONDS);
-  if (error) throw error;
-
-  const map = new Map<string, string>();
-  for (const entry of data) {
-    if (entry.signedUrl && entry.path) map.set(entry.path, entry.signedUrl);
-  }
-  return map;
 }
 
 async function fetchDeckCards(): Promise<DeckCard[]> {

@@ -9,7 +9,7 @@ subscriptions).
 
 ## Status
 
-This repo currently implements **Phase 1 + Phase 2**:
+This repo currently implements **Phases 1-3**:
 
 - Phase 1: project scaffolding, the full Postgres schema (all tables/RLS, ahead of the
   phases that consume them), Supabase Auth (email + Apple/Google) with an 18+ age gate,
@@ -20,10 +20,15 @@ This repo currently implements **Phase 1 + Phase 2**:
   creation (`perform_swipe` RPC), and the filters screen (basic filters for everyone;
   advanced filters gated server-side behind premium status, with a paywall prompt when a
   free user taps one).
+- Phase 3: real-time 1:1 chat (Supabase Realtime, typing indicators, read receipts,
+  text-only), the `send-message` Edge Function (profanity/abuse filter applied before
+  delivery, server-enforced free-tier 5-active-conversation cap), consent-gated Discord
+  sharing (`get_shared_discord_username` — the *only* way to read someone else's Discord
+  username, and only after they've explicitly shared it in that match), and
+  unmatch/block/report.
 
-Chat, Discord sharing, unmatch/block/report, RevenueCat billing, and moderation land in
-later phases — see `app/chat/[matchId].tsx` and `app/paywall.tsx` for the placeholder
-screens they'll replace.
+RevenueCat billing and the moderation queue/settings/account-deletion land in later
+phases — see `app/paywall.tsx` for the placeholder screen it'll replace.
 
 ## Repo layout
 
@@ -33,14 +38,15 @@ apps/mobile/         Expo app (TypeScript, expo-router)
                        match/[matchId], paywall
   src/
     components/       shared UI (Button, TextField, ChipSelect, ScreenContainer)
-    features/         feature-sliced logic (auth, onboarding, matching, swipe)
-    lib/               supabase client, react-query client
+    features/         feature-sliced logic (auth, onboarding, matching, swipe, chat)
+    lib/               supabase client, react-query client, storage signed-URL helper
     store/             zustand stores (session, onboarding wizard)
     theme/             color tokens, light/dark
 packages/shared-types/ DB row types, enums, and zod schemas shared by app + scripts
 supabase/
-  migrations/          SQL migrations (schema + RLS, storage, matching RPCs)
-  functions/            Edge Functions (Phase 3+)
+  migrations/          SQL migrations (schema + RLS, storage, matching + chat RPCs)
+  functions/            Edge Functions (send-message now; revenuecat-webhook,
+                        moderate-photo, delete-account in later phases)
   seed/                games.json / shows.json catalogs + generated seed.sql
 scripts/
   generate-fake-profiles.ts   seeds ~50 fake profiles for local testing
@@ -69,16 +75,20 @@ pnpm install
 2. Apply the schema. Against a hosted project, either:
    - Link and push with the CLI: `supabase link --project-ref <ref>` then
      `supabase db push`, or
-   - Paste the contents of `supabase/migrations/0001_init.sql` and
-     `supabase/migrations/0002_storage.sql`, in order, into the SQL Editor.
+   - Paste the contents of each file in `supabase/migrations/`, in filename order
+     (0001, 0002, ...), into the SQL Editor.
 3. Seed the game/show catalogs: run `supabase/seed/seed.sql` the same way (or it runs
    automatically on `supabase db reset` for local dev, per `supabase/config.toml`).
-4. In **Authentication → Providers**, enable **Apple** and **Google**, and add their
+4. Deploy the Edge Functions: `supabase functions deploy send-message` (repeat per
+   function as later phases add them). `send-message` needs no extra secrets beyond the
+   project's own `SUPABASE_URL`/`SUPABASE_ANON_KEY`/`SUPABASE_SERVICE_ROLE_KEY`, which
+   Supabase injects into every function automatically.
+5. In **Authentication → Providers**, enable **Apple** and **Google**, and add their
    client IDs/secrets. Email/password is enabled by default; this project intentionally
    ships with **email confirmations off** for Phase 1 so sign-up returns an active
    session immediately (needed for the age-gate DOB write and onboarding wizard) — see
    the note in `supabase/config.toml`. Revisit before a production launch.
-5. Copy your project's URL and anon key (Project Settings → API) into `.env` (step 4
+6. Copy your project's URL and anon key (Project Settings → API) into `.env` (step 4
    below).
 
 ### Regenerating the game/show seed data
@@ -181,3 +191,13 @@ pnpm lint        # eslint across all workspace packages
   filters (specific game / platform / skill level / playstyle) are both checked inside
   the RPC via an `is_premium()` helper, not left to the client to self-report. A free
   user who sends the advanced filter params anyway has them silently ignored server-side.
+- Messages have no client INSERT grant at all (`supabase/migrations/0004_chat.sql`) —
+  every send goes through the `send-message` Edge Function, which re-validates match
+  participation, applies the profanity/abuse filter, and checks
+  `is_conversation_unlocked()` (the free-tier 5-concurrent-conversation cap, ranked by
+  most recent activity) before writing with the service role. Read receipts use a
+  column-level grant (`grant update (read_at) on messages`) so a client can mark
+  messages read without ever being able to touch `content` or `sender_id`.
+- A Discord username is never exposed in bulk or via any view — the *only* read path is
+  `get_shared_discord_username(match_id, shared_by)`, which re-checks a non-revoked
+  share exists for that exact match before returning anything, every call.
