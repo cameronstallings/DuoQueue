@@ -5,10 +5,11 @@ import { useTheme } from "@/theme/useTheme";
 interface LikePassButtonsProps {
   onLike: () => void;
   onPass: () => void;
+  onSuperPing?: () => void;
   disabled?: boolean;
 }
 
-export function LikePassButtons({ onLike, onPass, disabled }: LikePassButtonsProps) {
+export function LikePassButtons({ onLike, onPass, onSuperPing, disabled }: LikePassButtonsProps) {
   const { colors, spacing } = useTheme();
 
   return (
@@ -16,7 +17,8 @@ export function LikePassButtons({ onLike, onPass, disabled }: LikePassButtonsPro
       style={{
         flexDirection: "row",
         justifyContent: "center",
-        gap: spacing.xl,
+        alignItems: "center",
+        gap: spacing.lg,
         paddingVertical: spacing.md,
       }}
     >
@@ -29,6 +31,19 @@ export function LikePassButtons({ onLike, onPass, disabled }: LikePassButtonsPro
       >
         <Text style={[styles.icon, { color: colors.danger }]}>✕</Text>
       </Pressable>
+
+      {onSuperPing && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Super Ping"
+          onPress={onSuperPing}
+          disabled={disabled}
+          style={[styles.smallButton, { backgroundColor: colors.surface, borderColor: colors.brand, opacity: disabled ? 0.5 : 1 }]}
+        >
+          <Text style={[styles.smallIcon, { color: colors.brand }]}>★</Text>
+        </Pressable>
+      )}
+
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Like"
@@ -51,8 +66,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  smallButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   icon: {
     fontSize: 28,
+    fontWeight: "700",
+  },
+  smallIcon: {
+    fontSize: 20,
     fontWeight: "700",
   },
 });

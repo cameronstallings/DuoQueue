@@ -9,7 +9,7 @@ subscriptions).
 
 ## Status
 
-This repo currently implements **Phases 1-3**:
+This repo currently implements **Phases 1-4**:
 
 - Phase 1: project scaffolding, the full Postgres schema (all tables/RLS, ahead of the
   phases that consume them), Supabase Auth (email + Apple/Google) with an 18+ age gate,
@@ -26,26 +26,32 @@ This repo currently implements **Phases 1-3**:
   sharing (`get_shared_discord_username` — the *only* way to read someone else's Discord
   username, and only after they've explicitly shared it in that match), and
   unmatch/block/report.
+- Phase 4: RevenueCat subscriptions end to end — a real paywall (Monthly + Annual side
+  by side, trial badge, computed savings, "Continue with Free" always visible, restore
+  purchases), the `revenuecat-webhook` Edge Function keeping `subscriptions` in sync with
+  purchase/renewal/cancellation/refund/billing-issue events, "who swiped right on you"
+  (`get_admirers`, premium-gated, with a free teaser count via `get_admirers_count`), and
+  a daily Super Ping (`send_super_ping`, premium + 1/day, reuses the swipe/match logic).
 
-RevenueCat billing and the moderation queue/settings/account-deletion land in later
-phases — see `app/paywall.tsx` for the placeholder screen it'll replace.
+The moderation queue, settings, push notifications, and account deletion land in later
+phases.
 
 ## Repo layout
 
 ```
 apps/mobile/         Expo app (TypeScript, expo-router)
   app/                file-based routes: (auth), (onboarding), (tabs), chat, filters,
-                       match/[matchId], paywall
+                       admirers, match/[matchId], paywall
   src/
     components/       shared UI (Button, TextField, ChipSelect, ScreenContainer)
-    features/         feature-sliced logic (auth, onboarding, matching, swipe, chat)
-    lib/               supabase client, react-query client, storage signed-URL helper
+    features/         feature-sliced logic (auth, onboarding, matching, swipe, chat, premium)
+    lib/               supabase client, revenuecat config, react-query client, storage helper
     store/             zustand stores (session, onboarding wizard)
     theme/             color tokens, light/dark
 packages/shared-types/ DB row types, enums, and zod schemas shared by app + scripts
 supabase/
   migrations/          SQL migrations (schema + RLS, storage, matching + chat RPCs)
-  functions/            Edge Functions (send-message now; revenuecat-webhook,
+  functions/            Edge Functions (send-message, revenuecat-webhook now;
                         moderate-photo, delete-account in later phases)
   seed/                games.json / shows.json catalogs + generated seed.sql
 scripts/
@@ -79,10 +85,12 @@ pnpm install
      (0001, 0002, ...), into the SQL Editor.
 3. Seed the game/show catalogs: run `supabase/seed/seed.sql` the same way (or it runs
    automatically on `supabase db reset` for local dev, per `supabase/config.toml`).
-4. Deploy the Edge Functions: `supabase functions deploy send-message` (repeat per
-   function as later phases add them). `send-message` needs no extra secrets beyond the
-   project's own `SUPABASE_URL`/`SUPABASE_ANON_KEY`/`SUPABASE_SERVICE_ROLE_KEY`, which
-   Supabase injects into every function automatically.
+4. Deploy the Edge Functions: `supabase functions deploy send-message` and
+   `supabase functions deploy revenuecat-webhook` (repeat per function as later phases
+   add them). Both need no extra secrets beyond the project's own
+   `SUPABASE_URL`/`SUPABASE_ANON_KEY`/`SUPABASE_SERVICE_ROLE_KEY`, which Supabase injects
+   automatically — except `revenuecat-webhook`, which also needs
+   `REVENUECAT_WEBHOOK_AUTH_TOKEN` set via `supabase secrets set` (see step 3 below).
 5. In **Authentication → Providers**, enable **Apple** and **Google**, and add their
    client IDs/secrets. Email/password is enabled by default; this project intentionally
    ships with **email confirmations off** for Phase 1 so sign-up returns an active
@@ -101,18 +109,29 @@ actually loads:
 pnpm seed:build-sql
 ```
 
-## 3. RevenueCat setup (Phase 4)
-
-Not wired up yet (lands with the premium/paywall phase), but to get ahead of it:
+## 3. RevenueCat setup
 
 1. Create a RevenueCat project, add your iOS and Android apps.
-2. In App Store Connect / Google Play Console, create the subscription products:
+2. In App Store Connect / Google Play Console, create the subscription products and an
+   entitlement (named `premium`) attached to both:
    - Monthly: `duoqueue_plus_monthly` — $7.99/month, 7-day free trial
    - Annual: `duoqueue_plus_annual` — $47.99/year
+   In RevenueCat, add both as packages (`$rc_monthly` / `$rc_annual`) in your default
+   Offering — the app reads `offering.monthly` / `offering.annual`, and shows whatever
+   price/trial RevenueCat returns rather than hardcoding them.
 3. Copy the RevenueCat public SDK keys into `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` /
-   `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY`.
-4. Point a RevenueCat webhook at the (future) `revenuecat-webhook` Edge Function once
-   it's deployed, using `REVENUECAT_WEBHOOK_AUTH_TOKEN` to authenticate it.
+   `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY`. The app calls `Purchases.configure` with the
+   signed-in Supabase user's id as the RevenueCat `app_user_id` (see
+   `src/lib/revenuecat.ts`), so the webhook can write straight to
+   `subscriptions.profile_id` with no separate id-mapping step.
+4. In RevenueCat, add a Webhook (Project Settings → Integrations → Webhooks) pointing at
+   your deployed `revenuecat-webhook` function URL
+   (`https://<project-ref>.supabase.co/functions/v1/revenuecat-webhook`). Set an
+   `Authorization: Bearer <token>` header there, and set that same token as
+   `REVENUECAT_WEBHOOK_AUTH_TOKEN` via `supabase secrets set
+   REVENUECAT_WEBHOOK_AUTH_TOKEN=<token>` before deploying the function.
+5. Testing purchases requires a sandbox tester (iOS) or license tester (Android) account
+   — this can't be exercised in a simulator/emulator without one.
 
 ## 4. Environment variables
 
@@ -201,3 +220,16 @@ pnpm lint        # eslint across all workspace packages
 - A Discord username is never exposed in bulk or via any view — the *only* read path is
   `get_shared_discord_username(match_id, shared_by)`, which re-checks a non-revoked
   share exists for that exact match before returning anything, every call.
+- `subscriptions` is written only by the `revenuecat-webhook` Edge Function (service
+  role) — the client SDK's local purchase state is used for immediate UI feedback after
+  a purchase, but every server-side premium check (`is_premium()`, used by `get_deck`,
+  `perform_swipe`, `send-message`, `send_super_ping`, `get_admirers`) reads the
+  `subscriptions` table, never anything the client asserts about itself. There's a brief
+  eventual-consistency window right after a purchase (until the webhook lands) where
+  server-enforced limits may not yet reflect a just-completed purchase; this is a known,
+  accepted RevenueCat+Postgres integration tradeoff, not a bug.
+- `get_admirers` (who swiped right on you) returns real profile rows only for premium
+  callers — a free caller gets zero rows back, not an error, so the same query safely
+  powers both the paywall teaser and the real feature. `get_admirers_count()` is a
+  separate, ungated function that only ever returns a number, never profile data, so the
+  free-tier teaser count can't be used to leak who liked you.

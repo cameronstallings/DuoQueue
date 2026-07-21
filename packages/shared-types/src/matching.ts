@@ -26,6 +26,17 @@ export interface SwipeQuota {
   is_premium: boolean;
 }
 
+/** Row shape returned by the `get_admirers` RPC (premium-only — see 0005_premium.sql). */
+export interface Admirer {
+  profile_id: string;
+  display_name: string;
+  age: number;
+  gender: Gender;
+  region: Region;
+  bio: string | null;
+  liked_at: string;
+}
+
 export interface PreferencesInput {
   minAge: number;
   maxAge: number;

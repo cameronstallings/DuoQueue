@@ -2,6 +2,12 @@ import { useRef } from "react";
 import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 
+import { useAdmirersCount } from "@/features/matching/useAdmirers";
+import {
+  SuperPingLimitReachedError,
+  SuperPingRequiresPremiumError,
+  useSuperPing,
+} from "@/features/matching/useSuperPing";
 import { LikePassButtons } from "@/features/swipe/LikePassButtons";
 import { SwipeDeck, type SwipeDeckHandle } from "@/features/swipe/SwipeDeck";
 import type { DeckCard, SwipeDirection } from "@/features/swipe/types";
@@ -14,7 +20,9 @@ export default function DeckScreen() {
   const { colors, spacing } = useTheme();
   const { cards, isLoading, popTop, refetch } = useDeck();
   const swipeAction = useSwipeAction();
+  const superPing = useSuperPing();
   const { data: quota } = useSwipeQuota();
+  const { data: admirersCount } = useAdmirersCount();
   const deckRef = useRef<SwipeDeckHandle>(null);
 
   async function handleSwiped(card: DeckCard, direction: SwipeDirection) {
@@ -44,6 +52,26 @@ export default function DeckScreen() {
     }
   }
 
+  async function handleSuperPing() {
+    const top = cards[0];
+    if (!top) return;
+    try {
+      await superPing.mutateAsync(top.profile_id);
+      deckRef.current?.like();
+    } catch (err) {
+      if (err instanceof SuperPingRequiresPremiumError) {
+        Alert.alert("DuoQueue+ feature", err.message, [
+          { text: "Not now" },
+          { text: "Upgrade", onPress: () => router.push("/paywall") },
+        ]);
+      } else if (err instanceof SuperPingLimitReachedError) {
+        Alert.alert("Super Ping used", err.message);
+      } else {
+        Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
+      }
+    }
+  }
+
   const quotaLabel = quota?.is_premium
     ? "Unlimited swipes"
     : quota
@@ -62,9 +90,16 @@ export default function DeckScreen() {
         }}
       >
         <Text style={{ fontSize: 22, fontWeight: "700", color: colors.text }}>Deck</Text>
-        <Pressable onPress={() => router.push("/filters")}>
-          <Text style={{ color: colors.brand, fontWeight: "600" }}>Filters</Text>
-        </Pressable>
+        <View style={{ flexDirection: "row", gap: spacing.lg }}>
+          <Pressable onPress={() => router.push("/admirers")}>
+            <Text style={{ color: colors.brand, fontWeight: "600" }}>
+              Likes{admirersCount ? ` (${admirersCount})` : ""}
+            </Text>
+          </Pressable>
+          <Pressable onPress={() => router.push("/filters")}>
+            <Text style={{ color: colors.brand, fontWeight: "600" }}>Filters</Text>
+          </Pressable>
+        </View>
       </View>
       {quotaLabel ? (
         <Text style={{ color: colors.textMuted, paddingHorizontal: spacing.lg, paddingTop: spacing.xs }}>
@@ -98,6 +133,7 @@ export default function DeckScreen() {
         disabled={cards.length === 0}
         onPass={() => deckRef.current?.pass()}
         onLike={() => deckRef.current?.like()}
+        onSuperPing={() => void handleSuperPing()}
       />
     </View>
   );
