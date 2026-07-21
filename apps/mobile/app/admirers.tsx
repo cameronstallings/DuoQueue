@@ -3,6 +3,7 @@ import { router } from "expo-router";
 
 import { Button } from "@/components/Button";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { Skeleton } from "@/components/Skeleton";
 import { usePremiumStatus } from "@/features/matching/usePremiumStatus";
 import { useAdmirers, useAdmirersCount, type AdmirerListItem } from "@/features/matching/useAdmirers";
 import { useSwipeAction } from "@/features/swipe/useSwipeAction";
@@ -64,11 +65,34 @@ function AdmirerRow({ item }: { item: AdmirerListItem }) {
   );
 }
 
+function AdmirerRowSkeleton() {
+  const { colors, radius, spacing } = useTheme();
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: spacing.md,
+        padding: spacing.md,
+        backgroundColor: colors.surface,
+        borderRadius: radius.md,
+        marginBottom: spacing.sm,
+      }}
+    >
+      <Skeleton width={56} height={56} borderRadius={28} />
+      <View style={{ flex: 1, gap: spacing.xs }}>
+        <Skeleton width="40%" height={14} />
+        <Skeleton width="70%" height={12} />
+      </View>
+    </View>
+  );
+}
+
 export default function AdmirersScreen() {
-  const { colors } = useTheme();
+  const { colors, spacing } = useTheme();
   const { isPremium, isLoading: premiumLoading } = usePremiumStatus();
   const { data: count } = useAdmirersCount();
-  const { data: admirers, isLoading } = useAdmirers(isPremium);
+  const { data: admirers, isLoading, error, refetch } = useAdmirers(isPremium);
 
   if (premiumLoading) {
     return (
@@ -96,7 +120,16 @@ export default function AdmirersScreen() {
     <ScreenContainer>
       <Text style={{ fontSize: 26, fontWeight: "700", color: colors.text }}>Who liked you</Text>
       {isLoading ? (
-        <ActivityIndicator color={colors.brand} />
+        <View>
+          {[0, 1, 2].map((i) => (
+            <AdmirerRowSkeleton key={i} />
+          ))}
+        </View>
+      ) : error ? (
+        <View style={{ gap: spacing.sm }}>
+          <Text style={{ color: colors.textMuted }}>Couldn&apos;t load your admirers.</Text>
+          <Button label="Try again" variant="ghost" onPress={() => void refetch()} />
+        </View>
       ) : !admirers || admirers.length === 0 ? (
         <Text style={{ color: colors.textMuted }}>No admirers yet — keep your profile fresh!</Text>
       ) : (

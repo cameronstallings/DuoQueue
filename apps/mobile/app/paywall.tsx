@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
+import { Alert, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import type { PurchasesPackage } from "react-native-purchases";
 
 import { Button } from "@/components/Button";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { Skeleton } from "@/components/Skeleton";
 import { usePremiumStatus } from "@/features/matching/usePremiumStatus";
 import { useOfferings, usePurchasePackage, useRestorePurchases } from "@/features/premium/useOfferings";
 import { useTheme } from "@/theme/useTheme";
@@ -125,7 +126,10 @@ export default function PaywallScreen() {
       </Text>
 
       {isLoading ? (
-        <ActivityIndicator color={colors.brand} />
+        <View style={{ flexDirection: "row", gap: spacing.md }}>
+          <Skeleton height={140} borderRadius={12} style={{ flex: 1 }} />
+          <Skeleton height={140} borderRadius={12} style={{ flex: 1 }} />
+        </View>
       ) : error || (!monthly && !annual) ? (
         <Text style={{ color: colors.textMuted }}>
           Plans aren&apos;t available right now. Check your connection and try again shortly.

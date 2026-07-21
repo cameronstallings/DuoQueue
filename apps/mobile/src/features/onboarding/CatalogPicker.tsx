@@ -41,7 +41,17 @@ export function CatalogPicker({ table, placeholder, profileId, selectedIds, onSe
     <View style={{ gap: spacing.sm }}>
       <TextField label={placeholder} value={query} onChangeText={setQuery} autoCapitalize="words" />
 
+      {trimmed.length <= 1 && (
+        <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+          Type at least 2 characters to search — or add your own if it&apos;s not listed.
+        </Text>
+      )}
+
       {isLoading && <ActivityIndicator color={colors.brand} />}
+
+      {trimmed.length > 1 && !isLoading && (results ?? []).length === 0 && (
+        <Text style={{ color: colors.textMuted, fontSize: 12 }}>No matches — add it as a custom entry below.</Text>
+      )}
 
       {(results ?? [])
         .filter((item) => !selectedIds.includes(item.id))

@@ -9,8 +9,7 @@ subscriptions).
 
 ## Status
 
-This repo currently implements **Phases 1-5** (Phase 6 — polish: animations, empty
-states, loading skeletons, dark-mode pass — is the only phase left):
+This repo implements the **full build plan, Phases 1-6**:
 
 - Phase 1: project scaffolding, the full Postgres schema (all tables/RLS, ahead of the
   phases that consume them), Supabase Auth (email + Apple/Google) with an 18+ age gate,
@@ -40,6 +39,13 @@ states, loading skeletons, dark-mode pass — is the only phase left):
   before production) with `moderation_status` now unwritable by clients, account
   deletion (`delete-account` — wipes Storage then cascades through every table via FKs),
   and a standalone admin moderation web page (`admin/index.html`) for triaging reports.
+- Phase 6: polish — pulsing loading-skeleton placeholders (deck, matches, chat,
+  admirers, paywall) in place of bare spinners, visible error states with retry on every
+  major data-fetching screen, an offline banner backed by real network detection
+  (`@react-native-community/netinfo`, wired into react-query's online manager so queries
+  pause/resume with connectivity), a theme-aware status bar, entrance animations on the
+  match celebration screen, and empty/no-results states for the chat thread and the
+  onboarding game/show search.
 
 ## Repo layout
 
@@ -48,7 +54,8 @@ apps/mobile/         Expo app (TypeScript, expo-router)
   app/                file-based routes: (auth), (onboarding), (tabs), chat, filters,
                        admirers, match/[matchId], paywall
   src/
-    components/       shared UI (Button, TextField, ChipSelect, ScreenContainer)
+    components/       shared UI (Button, TextField, ChipSelect, ScreenContainer,
+                       Skeleton, OfflineBanner)
     features/         feature-sliced logic (auth, onboarding, matching, swipe, chat,
                        premium, settings)
     lib/               supabase client, revenuecat config, push notifications,
@@ -280,3 +287,28 @@ pnpm lint        # eslint across all workspace packages
   database itself enforces (`reports_select_admin`, `profiles_select_admin`,
   `messages_select_admin` in 0006). There's no self-service way to become an admin; it's
   a manual `update profiles set is_admin = true` by an operator.
+
+## Before a production launch
+
+Things this repo deliberately leaves as clearly-marked stubs or manual setup steps,
+rather than faking:
+
+- **Photo moderation** (`supabase/functions/moderate-photo/provider.ts`) always
+  approves. Wire in a real NSFW-detection provider — the pipeline around it (client
+  upload → this function → `moderation_status`, unwritable by clients) doesn't change.
+- **Push notifications** need `eas init` for a real EAS project id, a physical device to
+  test on, and someone to actually schedule `daily-swipes-refreshed` (a Supabase Cron
+  Trigger or any external scheduler) — see README setup step 5.
+- **RevenueCat / in-app purchases** need real App Store Connect / Play Console products,
+  a RevenueCat project wired to them, and a sandbox/license tester account — purchases
+  can't be exercised in a simulator.
+- **Apple / Google sign-in** need real provider credentials configured in Supabase Auth
+  and (for Apple) a real Apple Developer account; neither works in Expo Go.
+- **Email confirmations are off** (see the note in `supabase/config.toml`) so sign-up
+  can write the age-gate DOB and run onboarding immediately. Revisit this — e.g. switch
+  to Supabase's OTP-based verification — before a public launch.
+- **Account deletion cascades reports filed against the deleted user, not just their own
+  data.** That's the literal reading of "fully removes personal data," but a production
+  trust & safety process might prefer retaining anonymized report records to prevent a
+  report-then-delete evasion pattern — worth a deliberate product decision, not an
+  oversight.

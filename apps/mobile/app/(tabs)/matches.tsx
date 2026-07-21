@@ -1,6 +1,7 @@
-import { ActivityIndicator, FlatList, Image, Pressable, Text, View } from "react-native";
+import { FlatList, Image, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 
+import { Skeleton } from "@/components/Skeleton";
 import { useMatches, type MatchListItem } from "@/features/chat/useMatches";
 import { useTheme } from "@/theme/useTheme";
 
@@ -86,9 +87,22 @@ function MatchRow({ item }: { item: MatchListItem }) {
   );
 }
 
+function MatchRowSkeleton() {
+  const { spacing } = useTheme();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.lg }}>
+      <Skeleton width={56} height={56} borderRadius={28} />
+      <View style={{ flex: 1, gap: spacing.xs }}>
+        <Skeleton width="50%" height={14} />
+        <Skeleton width="80%" height={12} />
+      </View>
+    </View>
+  );
+}
+
 export default function MatchesScreen() {
   const { colors, spacing } = useTheme();
-  const { data: matches, isLoading } = useMatches();
+  const { data: matches, isLoading, error, refetch } = useMatches();
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -97,8 +111,18 @@ export default function MatchesScreen() {
       </Text>
 
       {isLoading ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <ActivityIndicator color={colors.brand} />
+        <View>
+          {[0, 1, 2, 3, 4].map((i) => (
+            <MatchRowSkeleton key={i} />
+          ))}
+        </View>
+      ) : error ? (
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.sm, padding: spacing.lg }}>
+          <Text style={{ fontSize: 18, fontWeight: "600", color: colors.text }}>Couldn&apos;t load matches</Text>
+          <Text style={{ color: colors.textMuted, textAlign: "center" }}>Check your connection and try again.</Text>
+          <Pressable onPress={() => void refetch()}>
+            <Text style={{ color: colors.brand, fontWeight: "600" }}>Try again</Text>
+          </Pressable>
         </View>
       ) : !matches || matches.length === 0 ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.sm, padding: spacing.lg }}>

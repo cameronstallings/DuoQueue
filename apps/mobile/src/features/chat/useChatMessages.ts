@@ -125,5 +125,6 @@ export function useChatMessages(matchId: string) {
     error: query.error,
     hasUnread,
     markAsRead,
+    refetch: query.refetch,
   };
 }

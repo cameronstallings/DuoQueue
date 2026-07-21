@@ -16,6 +16,7 @@ import { router, Stack, useLocalSearchParams } from "expo-router";
 import { REPORT_REASONS, type ReportReason } from "@duoqueue/shared-types";
 
 import { ChipSelect } from "@/components/ChipSelect";
+import { Skeleton } from "@/components/Skeleton";
 import { useChatMessages } from "@/features/chat/useChatMessages";
 import { useDiscordShare, useSharedDiscordUsername } from "@/features/chat/useDiscordShare";
 import { useBlockUser, useReportUser, useUnmatch } from "@/features/chat/useMatchActions";
@@ -146,7 +147,7 @@ export default function ChatScreen() {
   const { data: matches } = useMatches();
   const matchInfo = matches?.find((m) => m.match_id === matchId);
 
-  const { timeline, isLoading, markAsRead } = useChatMessages(matchId);
+  const { timeline, isLoading, error, markAsRead, refetch } = useChatMessages(matchId);
   const sendMessage = useSendMessage(matchId);
   const { otherIsTyping, notifyTyping } = useTypingIndicator(matchId);
   const discordShare = useDiscordShare(matchId);
@@ -245,16 +246,35 @@ export default function ChatScreen() {
       />
 
       {isLoading ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <ActivityIndicator color={colors.brand} />
+        <View style={{ padding: spacing.md, gap: spacing.sm }}>
+          <Skeleton width="60%" height={36} borderRadius={16} style={{ alignSelf: "flex-start" }} />
+          <Skeleton width="45%" height={36} borderRadius={16} style={{ alignSelf: "flex-end" }} />
+          <Skeleton width="70%" height={36} borderRadius={16} style={{ alignSelf: "flex-start" }} />
+        </View>
+      ) : error ? (
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.sm }}>
+          <Text style={{ color: colors.text, fontWeight: "600" }}>Couldn&apos;t load this conversation</Text>
+          <Pressable onPress={() => void refetch()}>
+            <Text style={{ color: colors.brand, fontWeight: "600" }}>Try again</Text>
+          </Pressable>
         </View>
       ) : (
         <FlatList
           ref={listRef}
           data={timeline}
           keyExtractor={(item) => (item.kind === "message" ? item.message.id : item.share.id)}
-          contentContainerStyle={{ padding: spacing.md, gap: spacing.xs }}
+          contentContainerStyle={{ padding: spacing.md, gap: spacing.xs, flexGrow: 1 }}
           onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
+          ListEmptyComponent={
+            <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.xs }}>
+              <Text style={{ fontWeight: "600", color: colors.text }}>
+                Say hi to {matchInfo?.other_display_name ?? "your match"}!
+              </Text>
+              <Text style={{ color: colors.textMuted, textAlign: "center" }}>
+                You matched — break the ice with a message about a game you both play.
+              </Text>
+            </View>
+          }
           renderItem={({ item }: { item: ChatTimelineItem }) => {
             if (item.kind === "discord_share") {
               if (item.share.revoked) return null;

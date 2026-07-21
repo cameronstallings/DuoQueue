@@ -1,10 +1,13 @@
 import { useEffect } from "react";
 import { ActivityIndicator, AppState, View } from "react-native";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Stack } from "expo-router";
 
+import { OfflineBanner } from "@/components/OfflineBanner";
+import { configureNetworkAwareQueries } from "@/lib/network";
 import { queryClient } from "@/lib/query-client";
 import { supabase } from "@/lib/supabase";
 import { useSessionStore } from "@/store/session-store";
@@ -20,6 +23,8 @@ AppState.addEventListener("change", (state) => {
     supabase.auth.stopAutoRefresh();
   }
 });
+
+configureNetworkAwareQueries();
 
 function LoadingScreen() {
   const { colors } = useTheme();
@@ -44,6 +49,8 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
         <SafeAreaProvider>
+          <StatusBar style="auto" />
+          <OfflineBanner />
           {status === "loading" ? (
             <LoadingScreen />
           ) : (

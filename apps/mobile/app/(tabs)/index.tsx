@@ -1,7 +1,8 @@
 import { useRef } from "react";
-import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
+import { Alert, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 
+import { Skeleton } from "@/components/Skeleton";
 import { useAdmirersCount } from "@/features/matching/useAdmirers";
 import {
   SuperPingLimitReachedError,
@@ -18,7 +19,7 @@ import { useTheme } from "@/theme/useTheme";
 
 export default function DeckScreen() {
   const { colors, spacing } = useTheme();
-  const { cards, isLoading, popTop, refetch } = useDeck();
+  const { cards, isLoading, error, popTop, refetch } = useDeck();
   const swipeAction = useSwipeAction();
   const superPing = useSuperPing();
   const { data: quota } = useSwipeQuota();
@@ -109,8 +110,18 @@ export default function DeckScreen() {
 
       <View style={{ flex: 1, margin: spacing.lg }}>
         {isLoading ? (
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-            <ActivityIndicator color={colors.brand} size="large" />
+          <Skeleton style={{ flex: 1, borderRadius: 20 }} />
+        ) : error ? (
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.md }}>
+            <Text style={{ fontSize: 18, fontWeight: "600", color: colors.text }}>
+              Couldn&apos;t load your deck
+            </Text>
+            <Text style={{ color: colors.textMuted, textAlign: "center" }}>
+              Check your connection and try again.
+            </Text>
+            <Pressable onPress={() => void refetch()}>
+              <Text style={{ color: colors.brand, fontWeight: "600" }}>Try again</Text>
+            </Pressable>
           </View>
         ) : cards.length === 0 ? (
           <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.md }}>
