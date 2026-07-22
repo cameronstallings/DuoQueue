@@ -41,7 +41,7 @@ function LoadingScreen() {
 export default function RootLayout() {
   const status = useSessionStore((s) => s.status);
   const initialize = useSessionStore((s) => s.initialize);
-  const { scheme } = useTheme();
+  const { colors, scheme } = useTheme();
 
   useEffect(() => {
     void initialize();
@@ -57,7 +57,7 @@ export default function RootLayout() {
           {status === "loading" ? (
             <LoadingScreen />
           ) : (
-            <Stack screenOptions={{ headerShown: false }}>
+            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
               <Stack.Screen name="(auth)" />
               <Stack.Screen name="(onboarding)" />
               <Stack.Screen name="(tabs)" />
