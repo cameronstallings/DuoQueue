@@ -110,7 +110,7 @@ export default function MatchesScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Text
         style={{
-          fontSize: 22,
+          fontSize: 28,
           fontWeight: "700",
           color: colors.text,
           paddingTop: insets.top + spacing.lg,

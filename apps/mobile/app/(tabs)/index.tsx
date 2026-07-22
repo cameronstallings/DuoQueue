@@ -92,7 +92,7 @@ export default function DeckScreen() {
           paddingTop: insets.top + spacing.lg,
         }}
       >
-        <Text style={{ fontSize: 22, fontWeight: "700", color: colors.text }}>Deck</Text>
+        <Text style={{ fontSize: 28, fontWeight: "700", color: colors.text }}>Deck</Text>
         <View style={{ flexDirection: "row", gap: spacing.lg }}>
           <Pressable onPress={() => router.push("/admirers")}>
             <Text style={{ color: colors.brand, fontWeight: "600" }}>

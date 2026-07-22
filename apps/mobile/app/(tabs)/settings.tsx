@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { ActivityIndicator, Alert, Switch, Text, View } from "react-native";
+import { ActivityIndicator, Alert, StyleSheet, Switch, Text, View } from "react-native";
 import { router } from "expo-router";
 import type { NotificationSettingsRow } from "@duoqueue/shared-types";
 
 import { Button } from "@/components/Button";
+import { Card } from "@/components/Card";
 import { ChipSelect } from "@/components/ChipSelect";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { SectionLabel } from "@/components/SectionLabel";
 import { useDeleteAccount } from "@/features/settings/useDeleteAccount";
 import { useNotificationSettings } from "@/features/settings/useNotificationSettings";
 import { useSessionStore } from "@/store/session-store";
@@ -46,7 +48,7 @@ function NotificationRow({
         paddingVertical: spacing.sm,
       }}
     >
-      <Text style={{ color: colors.text }}>{CATEGORY_LABELS[category]}</Text>
+      <Text style={{ color: colors.text, fontSize: 15 }}>{CATEGORY_LABELS[category]}</Text>
       <Switch
         value={settings[category]}
         onValueChange={(value) => onToggle(category, value)}
@@ -54,6 +56,11 @@ function NotificationRow({
       />
     </View>
   );
+}
+
+function Divider() {
+  const { colors } = useTheme();
+  return <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />;
 }
 
 export default function SettingsScreen() {
@@ -106,36 +113,57 @@ export default function SettingsScreen() {
     }
   }
 
+  const categories = ["new_match", "new_message", "super_ping", "daily_swipes_refreshed"] as const;
+
   return (
     <ScreenContainer>
-      <Text style={{ fontSize: 24, fontWeight: "700", color: colors.text }}>Settings</Text>
+      <Text style={{ fontSize: 28, fontWeight: "700", color: colors.text }}>Settings</Text>
 
-      <Text style={{ fontWeight: "700", color: colors.text, marginTop: spacing.sm }}>Appearance</Text>
-      <ChipSelect
-        options={APPEARANCE_OPTIONS}
-        selected={[themePreference]}
-        onToggle={(value) => setThemePreference(value)}
-      />
+      <View style={{ marginTop: spacing.md }}>
+        <SectionLabel>Appearance</SectionLabel>
+        <Card>
+          <ChipSelect
+            options={APPEARANCE_OPTIONS}
+            selected={[themePreference]}
+            onToggle={(value) => setThemePreference(value)}
+          />
+        </Card>
+      </View>
 
-      <Text style={{ fontWeight: "700", color: colors.text, marginTop: spacing.sm }}>Notifications</Text>
-      {isLoading || !settings ? (
-        <ActivityIndicator color={colors.brand} />
-      ) : (
-        (["new_match", "new_message", "super_ping", "daily_swipes_refreshed"] as const).map((category) => (
-          <NotificationRow key={category} category={category} settings={settings} onToggle={handleToggle} />
-        ))
-      )}
+      <View style={{ marginTop: spacing.md }}>
+        <SectionLabel>Notifications</SectionLabel>
+        <Card>
+          {isLoading || !settings ? (
+            <ActivityIndicator color={colors.brand} />
+          ) : (
+            categories.map((category, i) => (
+              <View key={category}>
+                {i > 0 && <Divider />}
+                <NotificationRow category={category} settings={settings} onToggle={handleToggle} />
+              </View>
+            ))
+          )}
+        </Card>
+      </View>
 
-      <Button label="Sign out" variant="secondary" onPress={() => void signOut()} />
+      <View style={{ marginTop: spacing.md }}>
+        <Button label="Sign out" variant="secondary" onPress={() => void signOut()} />
+      </View>
 
-      <View style={{ marginTop: spacing.xl, gap: spacing.sm }}>
-        <Text style={{ fontWeight: "700", color: colors.danger }}>Danger zone</Text>
-        <Button
-          label={deleting ? "Deleting..." : "Delete account"}
-          variant="ghost"
-          onPress={handleDeleteAccount}
-          loading={deleting}
-        />
+      <View style={{ marginTop: spacing.xl }}>
+        <SectionLabel>Danger zone</SectionLabel>
+        <Card style={{ borderWidth: 1, borderColor: colors.danger, backgroundColor: "transparent", gap: spacing.sm }}>
+          <Text style={{ color: colors.textMuted, fontSize: 13 }}>
+            Deleting your account permanently removes your profile, photos, matches, and messages. This cannot be
+            undone.
+          </Text>
+          <Button
+            label={deleting ? "Deleting..." : "Delete account"}
+            variant="ghost"
+            onPress={handleDeleteAccount}
+            loading={deleting}
+          />
+        </Card>
       </View>
     </ScreenContainer>
   );
