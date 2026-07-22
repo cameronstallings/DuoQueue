@@ -6,15 +6,27 @@ import { supabase } from "@/lib/supabase";
 
 WebBrowser.maybeCompleteAuthSession();
 
+const IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+const ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
+const WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+const IS_CONFIGURED = Boolean(IOS_CLIENT_ID && ANDROID_CLIENT_ID && WEB_CLIENT_ID);
+
+if (!IS_CONFIGURED) {
+  console.warn("Google sign-in isn't configured (EXPO_PUBLIC_GOOGLE_*_CLIENT_ID) — the Google button will stay disabled.");
+}
+
 /** Requires EXPO_PUBLIC_GOOGLE_*_CLIENT_ID to be set — see .env.example. */
 export function useGoogleSignIn() {
   const [error, setError] = useState<string | null>(null);
   const [signingIn, setSigningIn] = useState(false);
 
+  // expo-auth-session throws if its platform client id is undefined, so unconfigured
+  // platforms get a placeholder here — `request` is nulled out below instead, which the
+  // sign-in screen already uses to keep the "Continue with Google" button disabled.
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    iosClientId: IOS_CLIENT_ID ?? "unconfigured",
+    androidClientId: ANDROID_CLIENT_ID ?? "unconfigured",
+    webClientId: WEB_CLIENT_ID ?? "unconfigured",
   });
 
   useEffect(() => {
@@ -44,5 +56,5 @@ export function useGoogleSignIn() {
     };
   }, [response]);
 
-  return { request, promptAsync, signingIn, error };
+  return { request: IS_CONFIGURED ? request : null, promptAsync, signingIn, error };
 }

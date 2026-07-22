@@ -3,11 +3,10 @@ import { router } from "expo-router";
 import { LANGUAGE_CODES } from "@duoqueue/shared-types";
 
 import { ChipSelect } from "@/components/ChipSelect";
+import { LANGUAGE_LABELS } from "@/features/onboarding/language-labels";
 import { nextStepPath } from "@/features/onboarding/steps";
 import { WizardStep } from "@/features/onboarding/WizardStep";
 import { useOnboardingStore } from "@/store/onboarding-store";
-
-const languageNames = new Intl.DisplayNames(["en"], { type: "language" });
 
 export default function LanguagesStep() {
   const { languages, toggleLanguage } = useOnboardingStore();
@@ -33,7 +32,7 @@ export default function LanguagesStep() {
       <ChipSelect
         options={LANGUAGE_CODES.map((code) => ({
           value: code,
-          label: languageNames.of(code) ?? code.toUpperCase(),
+          label: LANGUAGE_LABELS[code],
         }))}
         selected={languages}
         onToggle={toggleLanguage}

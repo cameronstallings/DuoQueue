@@ -16,6 +16,7 @@ import {
   type Region,
   type SkillLevel,
 } from "@duoqueue/shared-types";
+import { LANGUAGE_LABELS } from "@/features/onboarding/language-labels";
 
 import { Button } from "@/components/Button";
 import { ChipSelect } from "@/components/ChipSelect";
@@ -74,8 +75,6 @@ const PLAYSTYLE_LABELS: Record<PlaystyleTag, string> = {
   team_player: "Team player",
   solo_queue: "Solo queue",
 };
-
-const languageNames = new Intl.DisplayNames(["en"], { type: "language" });
 
 function toggleSingle<T>(current: T | null, value: T, setter: (value: T | null) => void) {
   setter(current === value ? null : value);
@@ -187,7 +186,7 @@ export default function FiltersScreen() {
 
       <Text style={{ fontWeight: "700", color: colors.text }}>Required language</Text>
       <ChipSelect
-        options={LANGUAGE_CODES.map((code) => ({ value: code, label: languageNames.of(code) ?? code }))}
+        options={LANGUAGE_CODES.map((code) => ({ value: code, label: LANGUAGE_LABELS[code] }))}
         selected={language ? [language] : []}
         onToggle={(value) => toggleSingle(language, value, setLanguage)}
       />
