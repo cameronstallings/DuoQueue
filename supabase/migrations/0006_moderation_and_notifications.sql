@@ -49,6 +49,8 @@ create table public.app_config (
   value text not null
 );
 
+alter table public.app_config enable row level security;
+
 -- =========================================================================
 -- Push notification triggers: fire-and-forget HTTP calls (via pg_net) to the
 -- send-push-notification Edge Function, which does the actual notification-
@@ -167,6 +169,8 @@ create table public.swipe_refresh_notifications (
   profile_id uuid primary key references public.profiles (id) on delete cascade,
   last_notified_day date not null
 );
+
+alter table public.swipe_refresh_notifications enable row level security;
 
 create or replace function public.get_profiles_needing_swipe_refresh_notification()
 returns table (profile_id uuid)
