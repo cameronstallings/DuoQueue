@@ -1,5 +1,6 @@
 import { FlatList, Image, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Skeleton } from "@/components/Skeleton";
 import { useMatches, type MatchListItem } from "@/features/chat/useMatches";
@@ -102,11 +103,21 @@ function MatchRowSkeleton() {
 
 export default function MatchesScreen() {
   const { colors, spacing } = useTheme();
+  const insets = useSafeAreaInsets();
   const { data: matches, isLoading, error, refetch } = useMatches();
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Text style={{ fontSize: 22, fontWeight: "700", color: colors.text, padding: spacing.lg }}>
+      <Text
+        style={{
+          fontSize: 22,
+          fontWeight: "700",
+          color: colors.text,
+          paddingTop: insets.top + spacing.lg,
+          paddingHorizontal: spacing.lg,
+          paddingBottom: spacing.lg,
+        }}
+      >
         Matches
       </Text>
 

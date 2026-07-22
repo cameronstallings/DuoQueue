@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Skeleton } from "@/components/Skeleton";
 import { useAdmirersCount } from "@/features/matching/useAdmirers";
@@ -19,6 +20,7 @@ import { useTheme } from "@/theme/useTheme";
 
 export default function DeckScreen() {
   const { colors, spacing } = useTheme();
+  const insets = useSafeAreaInsets();
   const { cards, isLoading, error, popTop, refetch } = useDeck();
   const swipeAction = useSwipeAction();
   const superPing = useSuperPing();
@@ -87,7 +89,7 @@ export default function DeckScreen() {
           justifyContent: "space-between",
           alignItems: "center",
           paddingHorizontal: spacing.lg,
-          paddingTop: spacing.lg,
+          paddingTop: insets.top + spacing.lg,
         }}
       >
         <Text style={{ fontSize: 22, fontWeight: "700", color: colors.text }}>Deck</Text>
