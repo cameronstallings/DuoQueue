@@ -116,7 +116,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
 
         const { error: uploadError } = await supabase.storage
           .from("profile-photos")
-          .upload(storagePath, base64js.toByteArray(base64).buffer, { contentType, upsert: true });
+          .upload(storagePath, base64js.toByteArray(base64), { contentType, upsert: true });
         if (uploadError) throw uploadError;
 
         const { data: mediaRow, error: mediaError } = await supabase

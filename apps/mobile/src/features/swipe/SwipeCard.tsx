@@ -187,11 +187,11 @@ const REGION_LABELS: Record<string, string> = {
 
 const styles = StyleSheet.create({
   card: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
     overflow: "hidden",
   },
   photo: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
   },
   dotsRow: {
     position: "absolute",
