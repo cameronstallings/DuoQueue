@@ -20,9 +20,9 @@ export function TextField({ label, error, style, ...inputProps }: TextFieldProps
           styles.input,
           {
             backgroundColor: colors.surface,
-            borderColor: error ? colors.danger : colors.border,
+            borderColor: error ? colors.danger : colors.surface,
             color: colors.text,
-            borderRadius: radius.sm,
+            borderRadius: radius.md,
           },
           style,
         ]}

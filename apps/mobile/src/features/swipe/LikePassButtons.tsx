@@ -10,7 +10,7 @@ interface LikePassButtonsProps {
 }
 
 export function LikePassButtons({ onLike, onPass, onSuperPing, disabled }: LikePassButtonsProps) {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, shadow } = useTheme();
 
   return (
     <View
@@ -27,7 +27,15 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, disabled }: LikeP
         accessibilityLabel="Pass"
         onPress={onPass}
         disabled={disabled}
-        style={[styles.button, { backgroundColor: colors.surface, borderColor: colors.danger, opacity: disabled ? 0.5 : 1 }]}
+        style={({ pressed }) => [
+          styles.button,
+          shadow,
+          {
+            backgroundColor: colors.surface,
+            opacity: disabled ? 0.5 : 1,
+            transform: [{ scale: pressed && !disabled ? 0.92 : 1 }],
+          },
+        ]}
       >
         <Text style={[styles.icon, { color: colors.danger }]}>✕</Text>
       </Pressable>
@@ -38,7 +46,15 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, disabled }: LikeP
           accessibilityLabel="Super Ping"
           onPress={onSuperPing}
           disabled={disabled}
-          style={[styles.smallButton, { backgroundColor: colors.surface, borderColor: colors.brand, opacity: disabled ? 0.5 : 1 }]}
+          style={({ pressed }) => [
+            styles.smallButton,
+            shadow,
+            {
+              backgroundColor: colors.surface,
+              opacity: disabled ? 0.5 : 1,
+              transform: [{ scale: pressed && !disabled ? 0.92 : 1 }],
+            },
+          ]}
         >
           <Text style={[styles.smallIcon, { color: colors.brand }]}>★</Text>
         </Pressable>
@@ -49,7 +65,15 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, disabled }: LikeP
         accessibilityLabel="Like"
         onPress={onLike}
         disabled={disabled}
-        style={[styles.button, { backgroundColor: colors.surface, borderColor: colors.success, opacity: disabled ? 0.5 : 1 }]}
+        style={({ pressed }) => [
+          styles.button,
+          shadow,
+          {
+            backgroundColor: colors.surface,
+            opacity: disabled ? 0.5 : 1,
+            transform: [{ scale: pressed && !disabled ? 0.92 : 1 }],
+          },
+        ]}
       >
         <Text style={[styles.icon, { color: colors.success }]}>♥</Text>
       </Pressable>
@@ -62,7 +86,6 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    borderWidth: 2,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -70,16 +93,15 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    borderWidth: 2,
     alignItems: "center",
     justifyContent: "center",
   },
   icon: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: "700",
   },
   smallIcon: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "700",
   },
 });

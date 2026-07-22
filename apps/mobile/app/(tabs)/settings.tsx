@@ -4,11 +4,19 @@ import { router } from "expo-router";
 import type { NotificationSettingsRow } from "@duoqueue/shared-types";
 
 import { Button } from "@/components/Button";
+import { ChipSelect } from "@/components/ChipSelect";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { useDeleteAccount } from "@/features/settings/useDeleteAccount";
 import { useNotificationSettings } from "@/features/settings/useNotificationSettings";
 import { useSessionStore } from "@/store/session-store";
+import { type ThemePreference, useThemeStore } from "@/store/theme-store";
 import { useTheme } from "@/theme/useTheme";
+
+const APPEARANCE_OPTIONS: { value: ThemePreference; label: string }[] = [
+  { value: "system", label: "System" },
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+];
 
 type NotificationCategory = "new_match" | "new_message" | "super_ping" | "daily_swipes_refreshed";
 
@@ -50,6 +58,8 @@ function NotificationRow({
 
 export default function SettingsScreen() {
   const { colors, spacing } = useTheme();
+  const themePreference = useThemeStore((s) => s.preference);
+  const setThemePreference = useThemeStore((s) => s.setPreference);
   const signOut = useSessionStore((s) => s.signOut);
   const { settings, isLoading, update } = useNotificationSettings();
   const deleteAccount = useDeleteAccount();
@@ -99,6 +109,13 @@ export default function SettingsScreen() {
   return (
     <ScreenContainer>
       <Text style={{ fontSize: 24, fontWeight: "700", color: colors.text }}>Settings</Text>
+
+      <Text style={{ fontWeight: "700", color: colors.text, marginTop: spacing.sm }}>Appearance</Text>
+      <ChipSelect
+        options={APPEARANCE_OPTIONS}
+        selected={[themePreference]}
+        onToggle={(value) => setThemePreference(value)}
+      />
 
       <Text style={{ fontWeight: "700", color: colors.text, marginTop: spacing.sm }}>Notifications</Text>
       {isLoading || !settings ? (

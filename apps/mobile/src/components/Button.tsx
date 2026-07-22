@@ -11,7 +11,7 @@ interface ButtonProps {
 }
 
 export function Button({ label, onPress, loading, disabled, variant = "primary" }: ButtonProps) {
-  const { colors, radius, spacing } = useTheme();
+  const { colors, radius, spacing, shadow } = useTheme();
   const isDisabled = disabled || loading;
 
   const background =
@@ -27,11 +27,13 @@ export function Button({ label, onPress, loading, disabled, variant = "primary" 
         styles.base,
         {
           backgroundColor: background,
-          borderRadius: radius.md,
+          borderRadius: radius.pill,
           paddingVertical: spacing.md,
           opacity: isDisabled ? 0.6 : pressed ? 0.85 : 1,
+          transform: [{ scale: pressed && !isDisabled ? 0.98 : 1 }],
           borderWidth: variant === "ghost" ? 1 : 0,
           borderColor: colors.border,
+          ...(variant === "primary" ? shadow : null),
         },
       ]}
     >

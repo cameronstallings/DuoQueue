@@ -41,3 +41,14 @@ export const darkColors = {
 } as const;
 
 export type ThemeColors = typeof lightColors;
+
+/** Soft card elevation, tuned per-scheme since shadows barely read on a dark background. */
+export function shadow(scheme: "light" | "dark") {
+  return {
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: scheme === "light" ? 6 : 3 },
+    shadowOpacity: scheme === "light" ? 0.08 : 0.4,
+    shadowRadius: scheme === "light" ? 16 : 8,
+    elevation: scheme === "light" ? 4 : 2,
+  } as const;
+}

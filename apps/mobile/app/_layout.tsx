@@ -11,6 +11,7 @@ import { configureNetworkAwareQueries } from "@/lib/network";
 import { queryClient } from "@/lib/query-client";
 import { supabase } from "@/lib/supabase";
 import { useSessionStore } from "@/store/session-store";
+import { loadThemePreference } from "@/store/theme-store";
 import { useTheme } from "@/theme/useTheme";
 
 // Supabase's token auto-refresh timer only ticks while the JS runtime is active;
@@ -43,6 +44,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     void initialize();
+    void loadThemePreference();
   }, [initialize]);
 
   return (
