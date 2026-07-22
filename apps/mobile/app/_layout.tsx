@@ -41,6 +41,7 @@ function LoadingScreen() {
 export default function RootLayout() {
   const status = useSessionStore((s) => s.status);
   const initialize = useSessionStore((s) => s.initialize);
+  const { scheme } = useTheme();
 
   useEffect(() => {
     void initialize();
@@ -51,7 +52,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
         <SafeAreaProvider>
-          <StatusBar style="auto" />
+          <StatusBar style={scheme === "dark" ? "light" : "dark"} />
           <OfflineBanner />
           {status === "loading" ? (
             <LoadingScreen />
