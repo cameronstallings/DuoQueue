@@ -65,6 +65,7 @@ export default function RootLayout() {
               <Stack.Screen name="filters" options={{ presentation: "modal" }} />
               <Stack.Screen name="paywall" options={{ presentation: "modal" }} />
               <Stack.Screen name="admirers" options={{ presentation: "modal" }} />
+              <Stack.Screen name="block-list" options={{ presentation: "modal" }} />
               <Stack.Screen name="match/[matchId]" options={{ presentation: "modal" }} />
             </Stack>
           )}

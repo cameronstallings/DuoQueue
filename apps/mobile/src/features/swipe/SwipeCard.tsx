@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   interpolate,
@@ -9,7 +10,10 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
+import type { ReportReason } from "@duoqueue/shared-types";
 
+import { ReportModal } from "@/components/ReportModal";
+import { useBlockUser, useReportUser } from "@/features/chat/useMatchActions";
 import { useTheme } from "@/theme/useTheme";
 
 import { SkillBadge } from "./SkillBadge";
@@ -33,9 +37,44 @@ interface SwipeCardProps {
 export function SwipeCard({ card, isTop, onSwiped, externalTrigger }: SwipeCardProps) {
   const { colors, radius, spacing } = useTheme();
   const [photoIndex, setPhotoIndex] = useState(0);
+  const [reportVisible, setReportVisible] = useState(false);
+  const blockUser = useBlockUser();
+  const reportUser = useReportUser();
 
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
+
+  function handleMenu() {
+    Alert.alert(card.display_name, undefined, [
+      { text: "Report", onPress: () => setReportVisible(true) },
+      {
+        text: "Block",
+        style: "destructive",
+        onPress: () => {
+          Alert.alert("Block this user?", "They will be removed from your deck.", [
+            { text: "Cancel", style: "cancel" },
+            { text: "Block", style: "destructive", onPress: () => blockUser.mutate(card.profile_id) },
+          ]);
+        },
+      },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  }
+
+  function handleReportSubmit(reason: ReportReason, details: string) {
+    reportUser.mutate(
+      { reportedId: card.profile_id, reason, details: details || undefined },
+      {
+        onSuccess: () => {
+          setReportVisible(false);
+          Alert.alert("Report submitted", "Thanks — our team will review this.");
+        },
+        onError: (err) => {
+          Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
+        },
+      },
+    );
+  }
 
   function complete(direction: SwipeDirection) {
     onSwiped(direction);
@@ -95,81 +134,96 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger }: SwipeCardP
   const photo = card.photoUrls[photoIndex] ?? card.photoUrls[0];
 
   return (
-    <GestureDetector gesture={pan}>
-      <Animated.View style={[styles.card, { borderRadius: radius.lg, backgroundColor: colors.surface }, cardStyle]}>
-        {photo ? (
-          <Image source={{ uri: photo }} style={styles.photo} resizeMode="cover" />
-        ) : (
-          <View style={[styles.photo, { alignItems: "center", justifyContent: "center" }]}>
-            <Text style={{ color: colors.textMuted }}>No photo</Text>
+    <>
+      <GestureDetector gesture={pan}>
+        <Animated.View style={[styles.card, { borderRadius: radius.lg, backgroundColor: colors.surface }, cardStyle]}>
+          {photo ? (
+            <Image source={{ uri: photo }} style={styles.photo} resizeMode="cover" />
+          ) : (
+            <View style={[styles.photo, { alignItems: "center", justifyContent: "center" }]}>
+              <Text style={{ color: colors.textMuted }}>No photo</Text>
+            </View>
+          )}
+
+          {card.photoUrls.length > 1 && (
+            <>
+              <View style={styles.dotsRow}>
+                {card.photoUrls.map((_, i) => (
+                  <View
+                    key={i}
+                    style={[styles.dot, { backgroundColor: i === photoIndex ? "#fff" : "rgba(255,255,255,0.4)" }]}
+                  />
+                ))}
+              </View>
+              <Pressable
+                style={styles.tapZoneLeft}
+                onPress={() => setPhotoIndex((i) => Math.max(0, i - 1))}
+              />
+              <Pressable
+                style={styles.tapZoneRight}
+                onPress={() => setPhotoIndex((i) => Math.min(card.photoUrls.length - 1, i + 1))}
+              />
+            </>
+          )}
+
+          {isTop && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Report or block"
+              onPress={handleMenu}
+              style={styles.menuButton}
+            >
+              <Ionicons name="ellipsis-horizontal" size={20} color="#fff" />
+            </Pressable>
+          )}
+
+          <Animated.View style={[styles.stamp, styles.likeStamp, likeStampStyle]}>
+            <Text style={[styles.stampText, { color: colors.info, borderColor: colors.info }]}>LIKE</Text>
+          </Animated.View>
+          <Animated.View style={[styles.stamp, styles.passStamp, passStampStyle]}>
+            <Text style={[styles.stampText, { color: colors.danger, borderColor: colors.danger }]}>PASS</Text>
+          </Animated.View>
+
+          <View style={[styles.infoOverlay, { padding: spacing.md, gap: spacing.xs }]}>
+            <Text style={styles.name}>
+              {card.display_name}, {card.age}
+            </Text>
+            <Text style={styles.subtext}>
+              {REGION_LABELS[card.region] ?? card.region}
+              {card.languages.length > 0 ? ` · ${card.languages.join(", ").toUpperCase()}` : ""}
+            </Text>
+
+            {card.topGames.length > 0 && (
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
+                {card.topGames.map((g) => (
+                  <SkillBadge key={g.name} gameName={g.name} skillLevel={g.skillLevel} />
+                ))}
+              </View>
+            )}
+
+            {card.topShows.length > 0 && (
+              <Text style={styles.subtext} numberOfLines={1}>
+                Watching: {card.topShows.join(", ")}
+              </Text>
+            )}
+
+            {card.playstyles.length > 0 && (
+              <Text style={styles.subtext} numberOfLines={1}>
+                {card.playstyles.join(" · ")}
+              </Text>
+            )}
+
+            {card.bio ? (
+              <Text style={styles.bio} numberOfLines={3}>
+                {card.bio}
+              </Text>
+            ) : null}
           </View>
-        )}
-
-        {card.photoUrls.length > 1 && (
-          <>
-            <View style={styles.dotsRow}>
-              {card.photoUrls.map((_, i) => (
-                <View
-                  key={i}
-                  style={[styles.dot, { backgroundColor: i === photoIndex ? "#fff" : "rgba(255,255,255,0.4)" }]}
-                />
-              ))}
-            </View>
-            <Pressable
-              style={styles.tapZoneLeft}
-              onPress={() => setPhotoIndex((i) => Math.max(0, i - 1))}
-            />
-            <Pressable
-              style={styles.tapZoneRight}
-              onPress={() => setPhotoIndex((i) => Math.min(card.photoUrls.length - 1, i + 1))}
-            />
-          </>
-        )}
-
-        <Animated.View style={[styles.stamp, styles.likeStamp, likeStampStyle]}>
-          <Text style={[styles.stampText, { color: colors.info, borderColor: colors.info }]}>LIKE</Text>
         </Animated.View>
-        <Animated.View style={[styles.stamp, styles.passStamp, passStampStyle]}>
-          <Text style={[styles.stampText, { color: colors.danger, borderColor: colors.danger }]}>PASS</Text>
-        </Animated.View>
+      </GestureDetector>
 
-        <View style={[styles.infoOverlay, { padding: spacing.md, gap: spacing.xs }]}>
-          <Text style={styles.name}>
-            {card.display_name}, {card.age}
-          </Text>
-          <Text style={styles.subtext}>
-            {REGION_LABELS[card.region] ?? card.region}
-            {card.languages.length > 0 ? ` · ${card.languages.join(", ").toUpperCase()}` : ""}
-          </Text>
-
-          {card.topGames.length > 0 && (
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
-              {card.topGames.map((g) => (
-                <SkillBadge key={g.name} gameName={g.name} skillLevel={g.skillLevel} />
-              ))}
-            </View>
-          )}
-
-          {card.topShows.length > 0 && (
-            <Text style={styles.subtext} numberOfLines={1}>
-              Watching: {card.topShows.join(", ")}
-            </Text>
-          )}
-
-          {card.playstyles.length > 0 && (
-            <Text style={styles.subtext} numberOfLines={1}>
-              {card.playstyles.join(" · ")}
-            </Text>
-          )}
-
-          {card.bio ? (
-            <Text style={styles.bio} numberOfLines={3}>
-              {card.bio}
-            </Text>
-          ) : null}
-        </View>
-      </Animated.View>
-    </GestureDetector>
+      <ReportModal visible={reportVisible} onClose={() => setReportVisible(false)} onSubmit={handleReportSubmit} />
+    </>
   );
 }
 
@@ -219,6 +273,17 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 120,
     width: "35%",
+  },
+  menuButton: {
+    position: "absolute",
+    top: 16,
+    right: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.35)",
   },
   infoOverlay: {
     position: "absolute",

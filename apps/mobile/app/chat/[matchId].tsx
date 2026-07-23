@@ -13,9 +13,9 @@ import {
 } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import { REPORT_REASONS, type ReportReason } from "@duoqueue/shared-types";
+import type { ReportReason } from "@duoqueue/shared-types";
 
-import { ChipSelect } from "@/components/ChipSelect";
+import { ReportModal } from "@/components/ReportModal";
 import { Skeleton } from "@/components/Skeleton";
 import { useChatMessages } from "@/features/chat/useChatMessages";
 import { useDiscordShare, useSharedDiscordUsername } from "@/features/chat/useDiscordShare";
@@ -26,14 +26,6 @@ import { useTypingIndicator } from "@/features/chat/useTypingIndicator";
 import type { ChatTimelineItem } from "@/features/chat/types";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
-
-const REPORT_REASON_LABELS: Record<ReportReason, string> = {
-  harassment: "Harassment",
-  spam: "Spam",
-  inappropriate_content: "Inappropriate content",
-  underage: "Underage",
-  other: "Other",
-};
 
 function DiscordShareBubble({
   matchId,
@@ -83,60 +75,6 @@ function DiscordShareBubble({
         <Text style={{ color: colors.textMuted, fontSize: 12, textAlign: "center" }}>No longer available</Text>
       )}
     </View>
-  );
-}
-
-function ReportModal({
-  visible,
-  onClose,
-  onSubmit,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  onSubmit: (reason: ReportReason, details: string) => void;
-}) {
-  const { colors, spacing } = useTheme();
-  const [reason, setReason] = useState<ReportReason | null>(null);
-  const [details, setDetails] = useState("");
-
-  return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.4)" }}>
-        <View style={{ backgroundColor: colors.background, padding: spacing.lg, gap: spacing.md, borderTopLeftRadius: 20, borderTopRightRadius: 20 }}>
-          <Text style={{ fontSize: 18, fontWeight: "700", color: colors.text }}>Report this user</Text>
-          <ChipSelect
-            options={REPORT_REASONS.map((value) => ({ value, label: REPORT_REASON_LABELS[value] }))}
-            selected={reason ? [reason] : []}
-            onToggle={setReason}
-          />
-          <TextInput
-            placeholder="Additional details (optional)"
-            placeholderTextColor={colors.textMuted}
-            value={details}
-            onChangeText={setDetails}
-            multiline
-            style={{
-              borderWidth: 1,
-              borderColor: colors.border,
-              borderRadius: 8,
-              padding: spacing.sm,
-              color: colors.text,
-              minHeight: 80,
-            }}
-          />
-          <Pressable
-            disabled={!reason}
-            onPress={() => reason && onSubmit(reason, details)}
-            style={{ backgroundColor: colors.danger, opacity: reason ? 1 : 0.5, padding: spacing.md, borderRadius: 12, alignItems: "center" }}
-          >
-            <Text style={{ color: "#fff", fontWeight: "700" }}>Submit report</Text>
-          </Pressable>
-          <Pressable onPress={onClose} style={{ padding: spacing.sm, alignItems: "center" }}>
-            <Text style={{ color: colors.textMuted }}>Cancel</Text>
-          </Pressable>
-        </View>
-      </View>
-    </Modal>
   );
 }
 

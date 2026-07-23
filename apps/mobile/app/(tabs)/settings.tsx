@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ActivityIndicator, Alert, StyleSheet, Switch, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Switch, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import type { NotificationSettingsRow } from "@duoqueue/shared-types";
 
@@ -61,6 +62,24 @@ function NotificationRow({
 function Divider() {
   const { colors } = useTheme();
   return <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />;
+}
+
+function NavRow({ label, onPress }: { label: string; onPress: () => void }) {
+  const { colors, spacing } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      style={{
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        paddingVertical: spacing.sm,
+      }}
+    >
+      <Text style={{ color: colors.text, fontSize: 15 }}>{label}</Text>
+      <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+    </Pressable>
+  );
 }
 
 export default function SettingsScreen() {
@@ -143,6 +162,13 @@ export default function SettingsScreen() {
               </View>
             ))
           )}
+        </Card>
+      </View>
+
+      <View style={{ marginTop: spacing.md }}>
+        <SectionLabel>Safety</SectionLabel>
+        <Card>
+          <NavRow label="Block List" onPress={() => router.push("/block-list")} />
         </Card>
       </View>
 
