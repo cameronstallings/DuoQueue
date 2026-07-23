@@ -19,6 +19,12 @@ export interface SwipeResult {
   match_id: string | null;
 }
 
+/** Row shape returned by the `get_consumable_credits` RPC (see 0013_boosts_and_roses.sql). */
+export interface ConsumableCredits {
+  boosts: number;
+  roses: number;
+}
+
 /** Row shape returned by the `get_swipe_quota` RPC. `swipes_limit` is null when unlimited (premium). */
 export interface SwipeQuota {
   swipes_used: number;

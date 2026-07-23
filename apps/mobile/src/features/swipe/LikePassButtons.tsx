@@ -7,10 +7,11 @@ interface LikePassButtonsProps {
   onLike: () => void;
   onPass: () => void;
   onSuperPing?: () => void;
+  onSendRose?: () => void;
   disabled?: boolean;
 }
 
-export function LikePassButtons({ onLike, onPass, onSuperPing, disabled }: LikePassButtonsProps) {
+export function LikePassButtons({ onLike, onPass, onSuperPing, onSendRose, disabled }: LikePassButtonsProps) {
   const { colors, spacing, shadow } = useTheme();
 
   return (
@@ -78,6 +79,26 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, disabled }: LikeP
       >
         <Ionicons name="flash" size={28} color={colors.info} />
       </Pressable>
+
+      {onSendRose && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Send a Rose"
+          onPress={onSendRose}
+          disabled={disabled}
+          style={({ pressed }) => [
+            styles.smallButton,
+            shadow,
+            {
+              backgroundColor: colors.surface,
+              opacity: disabled ? 0.5 : 1,
+              transform: [{ scale: pressed && !disabled ? 0.92 : 1 }],
+            },
+          ]}
+        >
+          <Ionicons name="rose" size={20} color={colors.brand} />
+        </Pressable>
+      )}
     </View>
   );
 }

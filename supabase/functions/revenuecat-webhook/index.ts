@@ -5,7 +5,7 @@
 // REVENUECAT_WEBHOOK_AUTH_TOKEN as a secret on this function with the same value.
 import { createClient } from "@supabase/supabase-js";
 
-import { mapEventToStatus, mapStore, type RevenueCatEvent } from "./mapping.ts";
+import { CONSUMABLE_GRANTS, mapEventToStatus, mapStore, type RevenueCatEvent } from "./mapping.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -38,9 +38,36 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Invalid payload" }, 400);
   }
 
+  const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  const consumableGrant = CONSUMABLE_GRANTS[event.product_id];
+  if (consumableGrant) {
+    // Boost/Roses aren't subscriptions — grant credits instead of touching
+    // `subscriptions`. Guard against RevenueCat's at-least-once webhook delivery
+    // double-granting credits on a retried event.
+    const { error: dedupeError } = await serviceClient
+      .from("processed_webhook_events")
+      .insert({ event_id: event.id });
+    if (dedupeError) {
+      if (dedupeError.code === "23505") {
+        return jsonResponse({ ok: true, duplicate: true }, 200);
+      }
+      return jsonResponse({ error: dedupeError.message }, 500);
+    }
+
+    const { error: grantError } = await serviceClient.rpc("grant_consumable_credits", {
+      p_profile_id: event.app_user_id,
+      p_boosts: consumableGrant.boosts ?? 0,
+      p_roses: consumableGrant.roses ?? 0,
+    });
+    if (grantError) {
+      return jsonResponse({ error: grantError.message }, 500);
+    }
+    return jsonResponse({ ok: true }, 200);
+  }
+
   const { status, willRenew, isTrial } = mapEventToStatus(event);
 
-  const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   const { error } = await serviceClient.from("subscriptions").upsert({
     profile_id: event.app_user_id,
     revenuecat_app_user_id: event.app_user_id,

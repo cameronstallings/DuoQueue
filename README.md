@@ -157,18 +157,26 @@ pnpm seed:build-sql
    `.monthly` / `.threeMonth` / `.sixMonth`, shows whatever price/trial RevenueCat returns
    rather than hardcoding them, and computes each tier's "Save X%" badge from
    `pricePerWeek` relative to the weekly plan.
-3. Copy the RevenueCat public SDK keys into `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` /
+3. Also create two non-subscription (consumable) products, in the same `default`
+   Offering as custom packages so `offering.availablePackages` includes them:
+   - `duoqueue_boost_1` — one Boost (30 minutes near the top of other people's decks)
+   - `duoqueue_roses_3` — three Roses (an extra-visible like sent to someone specific)
+   These do **not** get the `premium` entitlement — the webhook (see step 5) detects
+   their product ids via `CONSUMABLE_GRANTS` in
+   `supabase/functions/revenuecat-webhook/mapping.ts` and grants credits instead of
+   touching `subscriptions`. Update that map if you rename or add consumable products.
+4. Copy the RevenueCat public SDK keys into `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` /
    `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY`. The app calls `Purchases.configure` with the
    signed-in Supabase user's id as the RevenueCat `app_user_id` (see
    `src/lib/revenuecat.ts`), so the webhook can write straight to
    `subscriptions.profile_id` with no separate id-mapping step.
-4. In RevenueCat, add a Webhook (Project Settings → Integrations → Webhooks) pointing at
+5. In RevenueCat, add a Webhook (Project Settings → Integrations → Webhooks) pointing at
    your deployed `revenuecat-webhook` function URL
    (`https://<project-ref>.supabase.co/functions/v1/revenuecat-webhook`). Set an
    `Authorization: Bearer <token>` header there, and set that same token as
    `REVENUECAT_WEBHOOK_AUTH_TOKEN` via `supabase secrets set
    REVENUECAT_WEBHOOK_AUTH_TOKEN=<token>` before deploying the function.
-5. Testing purchases requires a sandbox tester (iOS) or license tester (Android) account
+6. Testing purchases requires a sandbox tester (iOS) or license tester (Android) account
    — this can't be exercised in a simulator/emulator without one.
 
 ## 4. Environment variables

@@ -4,6 +4,8 @@ import type { PurchasesPackage } from "react-native-purchases";
 
 import { isPurchasesConfigured } from "@/lib/revenuecat";
 
+import { CONSUMABLE_CREDITS_QUERY_KEY } from "./useConsumables";
+
 // See src/lib/revenuecat.ts: react-native-purchases can't be imported at module scope
 // without crashing inside Expo Go, so it's required lazily here too.
 function loadPurchases(): typeof PurchasesType {
@@ -47,6 +49,7 @@ export function usePurchasePackage() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["subscription"] });
+      void queryClient.invalidateQueries({ queryKey: CONSUMABLE_CREDITS_QUERY_KEY });
     },
   });
 }

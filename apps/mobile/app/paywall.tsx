@@ -1,14 +1,21 @@
 import { useState } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import type { PurchasesPackage } from "react-native-purchases";
 
 import { Button } from "@/components/Button";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { Skeleton } from "@/components/Skeleton";
 import { usePremiumStatus } from "@/features/matching/usePremiumStatus";
+import { useConsumableCredits } from "@/features/premium/useConsumables";
 import { useOfferings, usePurchasePackage, useRestorePurchases } from "@/features/premium/useOfferings";
 import { useTheme } from "@/theme/useTheme";
+
+// Consumable (non-subscription) store product identifiers — see README's RevenueCat
+// setup section for the matching App Store Connect / Play Console product config.
+const BOOST_PRODUCT_ID = "duoqueue_boost_1";
+const ROSES_PRODUCT_ID = "duoqueue_roses_3";
 
 function PlanRow({
   pkg,
@@ -70,6 +77,55 @@ function PlanRow({
   );
 }
 
+function ConsumableRow({
+  icon,
+  iconColor,
+  title,
+  description,
+  count,
+  pkg,
+  onBuy,
+  buying,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  iconColor: string;
+  title: string;
+  description: string;
+  count: number;
+  pkg: PurchasesPackage | null;
+  onBuy: () => void;
+  buying: boolean;
+}) {
+  const { colors, radius, spacing } = useTheme();
+
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: spacing.md,
+        borderWidth: 1,
+        borderColor: colors.border,
+        borderRadius: radius.md,
+        padding: spacing.md,
+      }}
+    >
+      <Ionicons name={icon} size={24} color={iconColor} />
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={{ fontWeight: "700", color: colors.text }}>
+          {title} · {count} left
+        </Text>
+        <Text style={{ color: colors.textMuted, fontSize: 12 }}>{description}</Text>
+      </View>
+      <Pressable onPress={onBuy} disabled={!pkg || buying}>
+        <Text style={{ color: colors.brand, fontWeight: "700", opacity: !pkg || buying ? 0.5 : 1 }}>
+          {pkg ? pkg.product.priceString : "N/A"}
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
 function savingsVsWeekly(pkg: PurchasesPackage, weeklyPricePerWeek: number | null): number | null {
   if (!weeklyPricePerWeek || weeklyPricePerWeek <= 0) return null;
   const pricePerWeek = pkg.product.pricePerWeek;
@@ -84,6 +140,7 @@ export default function PaywallScreen() {
   const { data: offering, isLoading, error } = useOfferings();
   const purchase = usePurchasePackage();
   const restore = useRestorePurchases();
+  const { data: credits } = useConsumableCredits();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -96,6 +153,19 @@ export default function PaywallScreen() {
   const selectedPackage = tiers.find((p) => p.identifier === selectedId) ?? defaultPackage;
 
   const weeklyBaseline = weekly?.product.pricePerWeek ?? null;
+
+  const boostPkg = offering?.availablePackages.find((p) => p.product.identifier === BOOST_PRODUCT_ID) ?? null;
+  const rosesPkg = offering?.availablePackages.find((p) => p.product.identifier === ROSES_PRODUCT_ID) ?? null;
+
+  async function handleBuyConsumable(pkg: PurchasesPackage | null) {
+    if (!pkg) return;
+    try {
+      await purchase.mutateAsync(pkg);
+      Alert.alert("Purchase complete", "Your credits will appear shortly.");
+    } catch (err) {
+      Alert.alert("Purchase failed", err instanceof Error ? err.message : "Please try again.");
+    }
+  }
 
   async function handleSubscribe() {
     if (!selectedPackage) return;
@@ -117,6 +187,32 @@ export default function PaywallScreen() {
     }
   }
 
+  const consumableSection = (
+    <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
+      <Text style={{ fontSize: 16, fontWeight: "700", color: colors.text }}>Boosts & Roses</Text>
+      <ConsumableRow
+        icon="rocket"
+        iconColor={colors.brand}
+        title="Boost"
+        description="30 minutes near the top of other people's decks"
+        count={credits?.boosts ?? 0}
+        pkg={boostPkg}
+        onBuy={() => void handleBuyConsumable(boostPkg)}
+        buying={purchase.isPending}
+      />
+      <ConsumableRow
+        icon="rose"
+        iconColor={colors.brand}
+        title="Rose"
+        description="An extra-visible like for someone specific"
+        count={credits?.roses ?? 0}
+        pkg={rosesPkg}
+        onBuy={() => void handleBuyConsumable(rosesPkg)}
+        buying={purchase.isPending}
+      />
+    </View>
+  );
+
   if (isPremium) {
     return (
       <ScreenContainer>
@@ -125,6 +221,7 @@ export default function PaywallScreen() {
           Unlimited swipes, unlimited conversations, advanced filters, admirers, and a daily Super Ping are
           all unlocked.
         </Text>
+        {consumableSection}
         <Button label="Done" onPress={() => router.back()} />
       </ScreenContainer>
     );
@@ -223,6 +320,8 @@ export default function PaywallScreen() {
           />
         </>
       )}
+
+      {consumableSection}
 
       <Button label="Restore purchases" variant="ghost" onPress={() => void handleRestore()} loading={restore.isPending} />
 
