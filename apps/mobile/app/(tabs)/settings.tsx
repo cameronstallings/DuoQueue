@@ -171,6 +171,8 @@ export default function SettingsScreen() {
           <NavRow label="Safety Center" onPress={() => router.push("/safety")} />
           <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />
           <NavRow label="Block List" onPress={() => router.push("/block-list")} />
+          <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />
+          <NavRow label="Hidden Words" onPress={() => router.push("/hidden-words")} />
         </Card>
       </View>
 

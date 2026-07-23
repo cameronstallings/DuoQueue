@@ -24,8 +24,49 @@ import { useMatches } from "@/features/chat/useMatches";
 import { useSendMessage, ConversationLockedError } from "@/features/chat/useSendMessage";
 import { useTypingIndicator } from "@/features/chat/useTypingIndicator";
 import type { ChatTimelineItem } from "@/features/chat/types";
+import { containsHiddenWord, useHiddenWords } from "@/features/settings/useHiddenWords";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
+
+function MessageBubble({
+  content,
+  isMine,
+  readAt,
+  hiddenWords,
+}: {
+  content: string;
+  isMine: boolean;
+  readAt: string | null;
+  hiddenWords: string[];
+}) {
+  const { colors, spacing } = useTheme();
+  const [revealed, setRevealed] = useState(false);
+  const isHidden = !isMine && !revealed && containsHiddenWord(content, hiddenWords);
+
+  return (
+    <Pressable
+      disabled={!isHidden}
+      onPress={() => setRevealed(true)}
+      style={{
+        alignSelf: isMine ? "flex-end" : "flex-start",
+        backgroundColor: isMine ? colors.brand : colors.surface,
+        borderRadius: 16,
+        paddingVertical: spacing.sm,
+        paddingHorizontal: spacing.md,
+        maxWidth: "80%",
+      }}
+    >
+      <Text style={{ color: isMine ? "#fff" : isHidden ? colors.textMuted : colors.text, fontStyle: isHidden ? "italic" : "normal" }}>
+        {isHidden ? "Message hidden — tap to reveal" : content}
+      </Text>
+      {isMine && (
+        <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 10, textAlign: "right", marginTop: 2 }}>
+          {readAt ? "Read" : "Sent"}
+        </Text>
+      )}
+    </Pressable>
+  );
+}
 
 function DiscordShareBubble({
   matchId,
@@ -88,6 +129,7 @@ export default function ChatScreen() {
   const { timeline, isLoading, error, markAsRead, refetch } = useChatMessages(matchId);
   const sendMessage = useSendMessage(matchId);
   const { otherIsTyping, notifyTyping } = useTypingIndicator(matchId);
+  const { data: hiddenWords } = useHiddenWords();
   const discordShare = useDiscordShare(matchId);
   const unmatch = useUnmatch();
   const blockUser = useBlockUser();
@@ -220,23 +262,12 @@ export default function ChatScreen() {
             }
             const isMine = item.message.sender_id === myId;
             return (
-              <View
-                style={{
-                  alignSelf: isMine ? "flex-end" : "flex-start",
-                  backgroundColor: isMine ? colors.brand : colors.surface,
-                  borderRadius: 16,
-                  paddingVertical: spacing.sm,
-                  paddingHorizontal: spacing.md,
-                  maxWidth: "80%",
-                }}
-              >
-                <Text style={{ color: isMine ? "#fff" : colors.text }}>{item.message.content}</Text>
-                {isMine && (
-                  <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 10, textAlign: "right", marginTop: 2 }}>
-                    {item.message.read_at ? "Read" : "Sent"}
-                  </Text>
-                )}
-              </View>
+              <MessageBubble
+                content={item.message.content}
+                isMine={isMine}
+                readAt={item.message.read_at}
+                hiddenWords={hiddenWords ?? []}
+              />
             );
           }}
         />
