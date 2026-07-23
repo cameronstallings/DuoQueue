@@ -6,6 +6,8 @@ import { GENDERS, PLATFORMS, PLAYSTYLE_TAGS, REGIONS, SKILL_LEVELS } from "./enu
 
 export const BIO_MAX_LENGTH = 300;
 export const MAX_PROFILE_PHOTOS = 6;
+export const PROMPT_ANSWER_MAX_LENGTH = 150;
+export const PROMPT_COUNT = 3;
 export const MIN_AGE = 15;
 /** Users below this age are matched only with other under-18 users — see
  * same_age_band()/is_minor() in the matching migrations. */
@@ -31,6 +33,11 @@ export const displayNameSchema = z
   .max(30, "Display name must be 30 characters or fewer.");
 
 export const bioSchema = z.string().trim().max(BIO_MAX_LENGTH).optional().default("");
+
+export const promptAnswerSchema = z.object({
+  promptId: z.string().uuid(),
+  answer: z.string().trim().min(1, "Answer can't be empty.").max(PROMPT_ANSWER_MAX_LENGTH),
+});
 
 export const discordUsernameSchema = z
   .string()
@@ -75,6 +82,7 @@ export const onboardingProfileSchema = z.object({
   favoriteShows: z.array(profileShowInputSchema).max(20).default([]),
   playstyles: z.array(playstyleTagSchema).max(6).default([]),
   bio: bioSchema,
+  prompts: z.array(promptAnswerSchema).length(PROMPT_COUNT, `Answer exactly ${PROMPT_COUNT} prompts.`),
   discordUsername: discordUsernameSchema,
   photoPaths: z.array(z.string()).min(1, "Add at least one photo.").max(MAX_PROFILE_PHOTOS),
 });

@@ -37,6 +37,12 @@ interface PublicProfilePlaystyleRow {
   profile_id: string;
   tag: string;
 }
+interface PublicProfilePromptRow {
+  profile_id: string;
+  position: number;
+  question: string;
+  answer: string;
+}
 
 async function fetchDeckCards(): Promise<DeckCard[]> {
   const { data: candidates, error: deckError } = await supabase.rpc("get_deck", {
@@ -48,15 +54,16 @@ async function fetchDeckCards(): Promise<DeckCard[]> {
 
   const ids = rows.map((c) => c.profile_id);
 
-  const [mediaRes, gamesRes, showsRes, platformsRes, languagesRes, playstylesRes] = await Promise.all([
+  const [mediaRes, gamesRes, showsRes, platformsRes, languagesRes, playstylesRes, promptsRes] = await Promise.all([
     supabase.from("public_profile_media").select("*").in("profile_id", ids).order("position"),
     supabase.from("public_profile_games").select("*").in("profile_id", ids).order("priority"),
     supabase.from("public_profile_shows").select("*").in("profile_id", ids).order("priority"),
     supabase.from("public_profile_platforms").select("*").in("profile_id", ids),
     supabase.from("public_profile_languages").select("*").in("profile_id", ids),
     supabase.from("public_profile_playstyles").select("*").in("profile_id", ids),
+    supabase.from("public_profile_prompts").select("*").in("profile_id", ids).order("position"),
   ]);
-  for (const res of [mediaRes, gamesRes, showsRes, platformsRes, languagesRes, playstylesRes]) {
+  for (const res of [mediaRes, gamesRes, showsRes, platformsRes, languagesRes, playstylesRes, promptsRes]) {
     if (res.error) throw res.error;
   }
 
@@ -66,6 +73,7 @@ async function fetchDeckCards(): Promise<DeckCard[]> {
   const platforms = (platformsRes.data ?? []) as PublicProfilePlatformRow[];
   const languages = (languagesRes.data ?? []) as PublicProfileLanguageRow[];
   const playstyles = (playstylesRes.data ?? []) as PublicProfilePlaystyleRow[];
+  const prompts = (promptsRes.data ?? []) as PublicProfilePromptRow[];
 
   const signedUrls = await signPhotoUrls(media.map((m) => m.storage_path));
 
@@ -85,11 +93,17 @@ async function fetchDeckCards(): Promise<DeckCard[]> {
       .slice(0, 3)
       .map((s) => s.show_name);
 
+    const cardPrompts = prompts
+      .filter((p) => p.profile_id === candidate.profile_id)
+      .sort((a, b) => a.position - b.position)
+      .map((p) => ({ question: p.question, answer: p.answer }));
+
     return {
       ...candidate,
       photoUrls,
       topGames,
       topShows,
+      prompts: cardPrompts,
       platforms: platforms.filter((p) => p.profile_id === candidate.profile_id).map((p) => p.platform),
       languages: languages
         .filter((l) => l.profile_id === candidate.profile_id)

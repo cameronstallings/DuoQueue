@@ -213,11 +213,16 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger }: SwipeCardP
               </Text>
             )}
 
-            {card.bio ? (
-              <Text style={styles.bio} numberOfLines={3}>
-                {card.bio}
-              </Text>
-            ) : null}
+            {card.prompts.map((prompt) => (
+              <View key={prompt.question} style={{ marginTop: 2 }}>
+                <Text style={styles.promptQuestion} numberOfLines={1}>
+                  {prompt.question}
+                </Text>
+                <Text style={styles.promptAnswer} numberOfLines={2}>
+                  {prompt.answer}
+                </Text>
+              </View>
+            ))}
           </View>
         </Animated.View>
       </GestureDetector>
@@ -301,9 +306,16 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.85)",
     fontSize: 14,
   },
-  bio: {
+  promptAnswer: {
     color: "rgba(255,255,255,0.9)",
     fontSize: 13,
+  },
+  promptQuestion: {
+    color: "rgba(255,255,255,0.65)",
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
   },
   stamp: {
     position: "absolute",

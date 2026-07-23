@@ -2,7 +2,7 @@ import * as base64js from "base64-js";
 import * as FileSystem from "expo-file-system/legacy";
 import { create } from "zustand";
 import type { Gender, LanguageCode, Platform, PlaystyleTag, Region, SkillLevel } from "@duoqueue/shared-types";
-import { BIO_MAX_LENGTH } from "@duoqueue/shared-types";
+import { PROMPT_COUNT } from "@duoqueue/shared-types";
 
 import { supabase } from "@/lib/supabase";
 
@@ -18,6 +18,12 @@ export interface SelectedShow {
   name: string;
 }
 
+export interface SelectedPrompt {
+  promptId: string;
+  question: string;
+  answer: string;
+}
+
 interface OnboardingState {
   displayName: string;
   photoUris: string[];
@@ -28,7 +34,7 @@ interface OnboardingState {
   games: SelectedGame[];
   shows: SelectedShow[];
   playstyles: PlaystyleTag[];
-  bio: string;
+  prompts: (SelectedPrompt | null)[];
   discordUsername: string;
   submitting: boolean;
   submitError: string | null;
@@ -46,7 +52,9 @@ interface OnboardingState {
   updateGameRank: (gameId: string, rankText: string) => void;
   addShow: (show: { showId: string; name: string }) => void;
   removeShow: (showId: string) => void;
-  setBio: (value: string) => void;
+  setPromptAt: (index: number, prompt: { promptId: string; question: string }) => void;
+  setPromptAnswerAt: (index: number, answer: string) => void;
+  clearPromptAt: (index: number) => void;
   setDiscordUsername: (value: string) => void;
   submit: () => Promise<void>;
 }
@@ -65,7 +73,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
   games: [],
   shows: [],
   playstyles: [],
-  bio: "",
+  prompts: Array.from({ length: PROMPT_COUNT }, () => null),
   discordUsername: "",
   submitting: false,
   submitError: null,
@@ -94,7 +102,15 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
     set((s) => (s.shows.some((sh) => sh.showId === show.showId) ? s : { shows: [...s.shows, show] })),
   removeShow: (showId) => set((s) => ({ shows: s.shows.filter((sh) => sh.showId !== showId) })),
 
-  setBio: (value) => set({ bio: value.slice(0, BIO_MAX_LENGTH) }),
+  setPromptAt: (index, prompt) =>
+    set((s) => ({
+      prompts: s.prompts.map((p, i) => (i === index ? { ...prompt, answer: "" } : p)),
+    })),
+  setPromptAnswerAt: (index, answer) =>
+    set((s) => ({
+      prompts: s.prompts.map((p, i) => (i === index && p ? { ...p, answer } : p)),
+    })),
+  clearPromptAt: (index) => set((s) => ({ prompts: s.prompts.map((p, i) => (i === index ? null : p)) })),
   setDiscordUsername: (value) => set({ discordUsername: value }),
 
   submit: async () => {
@@ -160,6 +176,12 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
           table: "profile_shows",
           rows: state.shows.map((s, i) => ({ profile_id: profileId, show_id: s.showId, priority: i })),
         },
+        {
+          table: "profile_prompts",
+          rows: state.prompts.flatMap((p, i) =>
+            p ? [{ profile_id: profileId, prompt_id: p.promptId, answer: p.answer, position: i }] : [],
+          ),
+        },
       ];
 
       for (const { table, rows } of tablesToReplace) {
@@ -177,7 +199,6 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
           display_name: state.displayName,
           gender: state.gender,
           region: state.region,
-          bio: state.bio || null,
           discord_username: state.discordUsername || null,
           onboarding_completed: true,
         })

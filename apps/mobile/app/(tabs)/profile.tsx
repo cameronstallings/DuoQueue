@@ -5,6 +5,7 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { SectionLabel } from "@/components/SectionLabel";
 import { Skeleton } from "@/components/Skeleton";
 import { useOwnPhotos } from "@/features/profile/useOwnPhotos";
+import { useOwnPrompts } from "@/features/profile/useOwnPrompts";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
@@ -12,6 +13,7 @@ export default function ProfileScreen() {
   const { colors, radius, spacing, shadow } = useTheme();
   const profile = useSessionStore((s) => s.profile);
   const { data: photos, isLoading, isError } = useOwnPhotos(profile?.id);
+  const { data: prompts, isLoading: promptsLoading } = useOwnPrompts(profile?.id);
 
   return (
     <ScreenContainer>
@@ -47,11 +49,25 @@ export default function ProfileScreen() {
       </View>
 
       <View style={{ marginTop: spacing.md }}>
-        <SectionLabel>About</SectionLabel>
-        <Card style={{ gap: spacing.sm }}>
-          <Text style={{ color: colors.text }}>{profile?.bio}</Text>
+        <SectionLabel>Prompts</SectionLabel>
+        {promptsLoading ? (
+          <Skeleton height={80} borderRadius={radius.lg} />
+        ) : (
+          (prompts ?? []).map((prompt) => (
+            <Card key={prompt.position} style={{ gap: spacing.xs, marginBottom: spacing.sm }}>
+              <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: "700", textTransform: "uppercase" }}>
+                {prompt.question}
+              </Text>
+              <Text style={{ color: colors.text }}>{prompt.answer}</Text>
+            </Card>
+          ))
+        )}
+      </View>
+
+      <View style={{ marginTop: spacing.sm }}>
+        <Card>
           <Text style={{ color: colors.textMuted, fontSize: 13 }}>
-            Profile editing and premium (&quot;who swiped right on you&quot;) land in later phases.
+            Prompt editing and premium (&quot;who swiped right on you&quot;) land in later phases.
           </Text>
         </Card>
       </View>

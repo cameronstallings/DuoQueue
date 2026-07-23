@@ -7,7 +7,7 @@ export const ONBOARDING_STEPS = [
   "games",
   "shows",
   "playstyles",
-  "bio",
+  "prompts",
   "discord",
 ] as const;
 
