@@ -5,6 +5,7 @@ import { router } from "expo-router";
 import {
   GENDERS,
   LANGUAGE_CODES,
+  MIN_AGE,
   PLATFORMS,
   PLAYSTYLE_TAGS,
   REGIONS,
@@ -86,7 +87,7 @@ export default function FiltersScreen() {
   const { preferences, isLoading, save } = usePreferences();
   const { isPremium } = usePremiumStatus();
 
-  const [minAge, setMinAge] = useState("18");
+  const [minAge, setMinAge] = useState(String(MIN_AGE));
   const [maxAge, setMaxAge] = useState("99");
   const [genders, setGenders] = useState<Gender[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
@@ -128,8 +129,8 @@ export default function FiltersScreen() {
   async function handleSave() {
     const min = Number.parseInt(minAge, 10);
     const max = Number.parseInt(maxAge, 10);
-    if (!Number.isFinite(min) || !Number.isFinite(max) || min < 18 || max < min) {
-      setError("Enter a valid age range (min 18, max ≥ min).");
+    if (!Number.isFinite(min) || !Number.isFinite(max) || min < MIN_AGE || max < min) {
+      setError(`Enter a valid age range (min ${MIN_AGE}, max ≥ min).`);
       return;
     }
     setError(null);

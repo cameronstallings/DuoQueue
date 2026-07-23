@@ -6,9 +6,12 @@ import { GENDERS, PLATFORMS, PLAYSTYLE_TAGS, REGIONS, SKILL_LEVELS } from "./enu
 
 export const BIO_MAX_LENGTH = 300;
 export const MAX_PROFILE_PHOTOS = 6;
-export const MIN_AGE = 18;
+export const MIN_AGE = 15;
+/** Users below this age are matched only with other under-18 users — see
+ * same_age_band()/is_minor() in the matching migrations. */
+export const ADULT_AGE = 18;
 
-function isAtLeast18(dob: string): boolean {
+function meetsMinAge(dob: string): boolean {
   const birthDate = new Date(dob);
   if (Number.isNaN(birthDate.getTime())) return false;
   const cutoff = new Date();
@@ -19,7 +22,7 @@ function isAtLeast18(dob: string): boolean {
 export const dobSchema = z
   .string()
   .refine((val) => !Number.isNaN(new Date(val).getTime()), { message: "Enter a valid date." })
-  .refine(isAtLeast18, { message: "You must be 18 or older to use DuoQueue." });
+  .refine(meetsMinAge, { message: `You must be ${MIN_AGE} or older to use DuoQueue.` });
 
 export const displayNameSchema = z
   .string()
