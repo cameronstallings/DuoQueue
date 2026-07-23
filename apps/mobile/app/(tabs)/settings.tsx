@@ -11,6 +11,7 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { SectionLabel } from "@/components/SectionLabel";
 import { useDeleteAccount } from "@/features/settings/useDeleteAccount";
 import { useNotificationSettings } from "@/features/settings/useNotificationSettings";
+import { usePrivacyToggles } from "@/features/settings/usePrivacyToggles";
 import { useSessionStore } from "@/store/session-store";
 import { type ThemePreference, useThemeStore } from "@/store/theme-store";
 import { useTheme } from "@/theme/useTheme";
@@ -88,6 +89,7 @@ export default function SettingsScreen() {
   const setThemePreference = useThemeStore((s) => s.setPreference);
   const signOut = useSessionStore((s) => s.signOut);
   const { settings, isLoading, update } = useNotificationSettings();
+  const { profile, setIsActive, setHideLastActive } = usePrivacyToggles();
   const deleteAccount = useDeleteAccount();
   const [deleting, setDeleting] = useState(false);
 
@@ -162,6 +164,46 @@ export default function SettingsScreen() {
               </View>
             ))
           )}
+        </Card>
+      </View>
+
+      <View style={{ marginTop: spacing.md }}>
+        <SectionLabel>Privacy</SectionLabel>
+        <Card>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+            <View style={{ flex: 1, marginRight: spacing.sm }}>
+              <Text style={{ color: colors.text, fontSize: 15 }}>Pause my profile</Text>
+              <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+                Hide yourself from other people&apos;s decks and Standouts.
+              </Text>
+            </View>
+            <Switch
+              value={!(profile?.is_active ?? true)}
+              onValueChange={(value) => setIsActive.mutate(!value)}
+              trackColor={{ true: colors.brand }}
+            />
+          </View>
+          <Divider />
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              paddingTop: spacing.sm,
+            }}
+          >
+            <View style={{ flex: 1, marginRight: spacing.sm }}>
+              <Text style={{ color: colors.text, fontSize: 15 }}>Hide last-active status</Text>
+              <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+                Don&apos;t show others when you were last active.
+              </Text>
+            </View>
+            <Switch
+              value={profile?.hide_last_active ?? false}
+              onValueChange={(value) => setHideLastActive.mutate(value)}
+              trackColor={{ true: colors.brand }}
+            />
+          </View>
         </Card>
       </View>
 

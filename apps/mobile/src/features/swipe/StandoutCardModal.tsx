@@ -77,6 +77,14 @@ export function StandoutCardModal({ card, onClose, onResolved }: StandoutCardMod
             <Text style={{ fontSize: 24, fontWeight: "700", color: colors.text }}>
               {card.display_name}, {card.age}
             </Text>
+            {card.isRecentlyActive && (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <View
+                  style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.success }}
+                />
+                <Text style={{ color: colors.textMuted, fontSize: 13, fontWeight: "600" }}>Active recently</Text>
+              </View>
+            )}
 
             {card.topGames.length > 0 && (
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>

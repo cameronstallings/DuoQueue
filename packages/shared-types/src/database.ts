@@ -31,6 +31,7 @@ export interface ProfileRow {
   discord_username: string | null;
   onboarding_completed: boolean;
   is_active: boolean;
+  hide_last_active: boolean;
   last_active_at: string | null;
   created_at: string;
   updated_at: string;

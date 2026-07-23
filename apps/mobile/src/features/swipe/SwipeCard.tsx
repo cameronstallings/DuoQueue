@@ -185,9 +185,13 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger }: SwipeCardP
           </Animated.View>
 
           <View style={[styles.infoOverlay, { padding: spacing.md, gap: spacing.xs }]}>
-            <Text style={styles.name}>
-              {card.display_name}, {card.age}
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Text style={styles.name}>
+                {card.display_name}, {card.age}
+              </Text>
+              {card.isRecentlyActive && <View style={[styles.activeDot, { backgroundColor: colors.success }]} />}
+            </View>
+            {card.isRecentlyActive && <Text style={styles.activeLabel}>Active recently</Text>}
             <Text style={styles.subtext}>
               {REGION_LABELS[card.region] ?? card.region}
               {card.languages.length > 0 ? ` · ${card.languages.join(", ").toUpperCase()}` : ""}
@@ -305,6 +309,16 @@ const styles = StyleSheet.create({
   subtext: {
     color: "rgba(255,255,255,0.85)",
     fontSize: 14,
+  },
+  activeDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  activeLabel: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 12,
+    fontWeight: "600",
   },
   promptAnswer: {
     color: "rgba(255,255,255,0.9)",

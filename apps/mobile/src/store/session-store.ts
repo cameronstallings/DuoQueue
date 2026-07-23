@@ -29,6 +29,13 @@ async function loadProfile(userId: string): Promise<ProfileRow | null> {
 function onSignedIn(userId: string): void {
   configurePurchases(userId);
   void registerForPushNotifications(userId);
+  void supabase
+    .from("profiles")
+    .update({ last_active_at: new Date().toISOString() })
+    .eq("id", userId)
+    .then(({ error }) => {
+      if (error) console.warn("Failed to update last_active_at:", error.message);
+    });
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({

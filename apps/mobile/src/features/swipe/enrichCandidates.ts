@@ -39,6 +39,10 @@ interface PublicProfilePromptRow {
   question: string;
   answer: string;
 }
+interface PublicProfileActivityRow {
+  profile_id: string;
+  is_recently_active: boolean;
+}
 
 /** Fetches the shared per-profile detail (photos/games/shows/prompts/etc.) for a set of
  * candidate rows and joins them client-side — used by both the main deck and Standouts,
@@ -47,16 +51,18 @@ export async function enrichCandidates(rows: DeckCandidate[]): Promise<DeckCard[
   if (rows.length === 0) return [];
   const ids = rows.map((c) => c.profile_id);
 
-  const [mediaRes, gamesRes, showsRes, platformsRes, languagesRes, playstylesRes, promptsRes] = await Promise.all([
-    supabase.from("public_profile_media").select("*").in("profile_id", ids).order("position"),
-    supabase.from("public_profile_games").select("*").in("profile_id", ids).order("priority"),
-    supabase.from("public_profile_shows").select("*").in("profile_id", ids).order("priority"),
-    supabase.from("public_profile_platforms").select("*").in("profile_id", ids),
-    supabase.from("public_profile_languages").select("*").in("profile_id", ids),
-    supabase.from("public_profile_playstyles").select("*").in("profile_id", ids),
-    supabase.from("public_profile_prompts").select("*").in("profile_id", ids).order("position"),
-  ]);
-  for (const res of [mediaRes, gamesRes, showsRes, platformsRes, languagesRes, playstylesRes, promptsRes]) {
+  const [mediaRes, gamesRes, showsRes, platformsRes, languagesRes, playstylesRes, promptsRes, activityRes] =
+    await Promise.all([
+      supabase.from("public_profile_media").select("*").in("profile_id", ids).order("position"),
+      supabase.from("public_profile_games").select("*").in("profile_id", ids).order("priority"),
+      supabase.from("public_profile_shows").select("*").in("profile_id", ids).order("priority"),
+      supabase.from("public_profile_platforms").select("*").in("profile_id", ids),
+      supabase.from("public_profile_languages").select("*").in("profile_id", ids),
+      supabase.from("public_profile_playstyles").select("*").in("profile_id", ids),
+      supabase.from("public_profile_prompts").select("*").in("profile_id", ids).order("position"),
+      supabase.from("public_profile_activity").select("*").in("profile_id", ids),
+    ]);
+  for (const res of [mediaRes, gamesRes, showsRes, platformsRes, languagesRes, playstylesRes, promptsRes, activityRes]) {
     if (res.error) throw res.error;
   }
 
@@ -67,6 +73,7 @@ export async function enrichCandidates(rows: DeckCandidate[]): Promise<DeckCard[
   const languages = (languagesRes.data ?? []) as PublicProfileLanguageRow[];
   const playstyles = (playstylesRes.data ?? []) as PublicProfilePlaystyleRow[];
   const prompts = (promptsRes.data ?? []) as PublicProfilePromptRow[];
+  const activity = (activityRes.data ?? []) as PublicProfileActivityRow[];
 
   const signedUrls = await signPhotoUrls(media.map((m) => m.storage_path));
 
@@ -102,6 +109,7 @@ export async function enrichCandidates(rows: DeckCandidate[]): Promise<DeckCard[
         .filter((l) => l.profile_id === candidate.profile_id)
         .map((l) => l.language_code),
       playstyles: playstyles.filter((p) => p.profile_id === candidate.profile_id).map((p) => p.tag),
+      isRecentlyActive: activity.find((a) => a.profile_id === candidate.profile_id)?.is_recently_active ?? false,
     };
   });
 }

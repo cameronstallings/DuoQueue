@@ -18,6 +18,7 @@ export interface DeckCard extends DeckCandidate {
   platforms: Platform[];
   playstyles: string[];
   prompts: DeckCardPrompt[];
+  isRecentlyActive: boolean;
 }
 
 export type SwipeDirection = "like" | "pass";
