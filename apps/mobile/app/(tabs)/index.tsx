@@ -11,6 +11,7 @@ import {
   useSuperPing,
 } from "@/features/matching/useSuperPing";
 import { LikePassButtons } from "@/features/swipe/LikePassButtons";
+import { StandoutsRow } from "@/features/swipe/StandoutsRow";
 import { SwipeDeck, type SwipeDeckHandle } from "@/features/swipe/SwipeDeck";
 import type { DeckCard, SwipeDirection } from "@/features/swipe/types";
 import { useDeck } from "@/features/swipe/useDeck";
@@ -109,6 +110,10 @@ export default function DeckScreen() {
           {quotaLabel}
         </Text>
       ) : null}
+
+      <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm }}>
+        <StandoutsRow />
+      </View>
 
       <View style={{ flex: 1, margin: spacing.lg }}>
         {isLoading ? (
