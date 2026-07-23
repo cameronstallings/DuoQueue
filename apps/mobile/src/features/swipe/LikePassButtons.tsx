@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { Pressable, StyleSheet, View } from "react-native";
 
 import { useTheme } from "@/theme/useTheme";
 
@@ -37,7 +38,7 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, disabled }: LikeP
           },
         ]}
       >
-        <Text style={[styles.icon, { color: colors.danger }]}>✕</Text>
+        <Ionicons name="close" size={30} color={colors.danger} />
       </Pressable>
 
       {onSuperPing && (
@@ -56,7 +57,7 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, disabled }: LikeP
             },
           ]}
         >
-          <Text style={[styles.smallIcon, { color: colors.brand }]}>★</Text>
+          <Ionicons name="diamond" size={20} color={colors.success} />
         </Pressable>
       )}
 
@@ -75,7 +76,7 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, disabled }: LikeP
           },
         ]}
       >
-        <Text style={[styles.icon, { color: colors.success }]}>♥</Text>
+        <Ionicons name="flash" size={28} color={colors.info} />
       </Pressable>
     </View>
   );
@@ -95,13 +96,5 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
-  },
-  icon: {
-    fontSize: 26,
-    fontWeight: "700",
-  },
-  smallIcon: {
-    fontSize: 18,
-    fontWeight: "700",
   },
 });

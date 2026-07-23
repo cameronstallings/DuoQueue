@@ -127,7 +127,7 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger }: SwipeCardP
         )}
 
         <Animated.View style={[styles.stamp, styles.likeStamp, likeStampStyle]}>
-          <Text style={[styles.stampText, { color: colors.success, borderColor: colors.success }]}>LIKE</Text>
+          <Text style={[styles.stampText, { color: colors.info, borderColor: colors.info }]}>LIKE</Text>
         </Animated.View>
         <Animated.View style={[styles.stamp, styles.passStamp, passStampStyle]}>
           <Text style={[styles.stampText, { color: colors.danger, borderColor: colors.danger }]}>PASS</Text>

@@ -20,6 +20,7 @@ const palette = {
   danger: "#E5484D",
   success: "#30A46C",
   warning: "#F5A623",
+  info: "#2F80ED",
 };
 
 export const lightColors = {
