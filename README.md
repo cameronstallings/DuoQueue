@@ -147,12 +147,16 @@ pnpm seed:build-sql
 
 1. Create a RevenueCat project, add your iOS and Android apps.
 2. In App Store Connect / Google Play Console, create the subscription products and an
-   entitlement (named `premium`) attached to both:
+   entitlement (named `premium`) attached to all four:
+   - Weekly: `duoqueue_plus_weekly` — $4.99/week
    - Monthly: `duoqueue_plus_monthly` — $7.99/month, 7-day free trial
-   - Annual: `duoqueue_plus_annual` — $47.99/year
-   In RevenueCat, add both as packages (`$rc_monthly` / `$rc_annual`) in your default
-   Offering — the app reads `offering.monthly` / `offering.annual`, and shows whatever
-   price/trial RevenueCat returns rather than hardcoding them.
+   - 3 Months: `duoqueue_plus_3mo` — $17.99/3 months
+   - 6 Months: `duoqueue_plus_6mo` — $29.99/6 months
+   In RevenueCat, add all four as packages (`$rc_weekly` / `$rc_monthly` / `$rc_three_month`
+   / `$rc_six_month`) in your default Offering — the app reads `offering.weekly` /
+   `.monthly` / `.threeMonth` / `.sixMonth`, shows whatever price/trial RevenueCat returns
+   rather than hardcoding them, and computes each tier's "Save X%" badge from
+   `pricePerWeek` relative to the weekly plan.
 3. Copy the RevenueCat public SDK keys into `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` /
    `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY`. The app calls `Purchases.configure` with the
    signed-in Supabase user's id as the RevenueCat `app_user_id` (see

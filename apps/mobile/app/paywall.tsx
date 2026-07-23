@@ -10,7 +10,7 @@ import { usePremiumStatus } from "@/features/matching/usePremiumStatus";
 import { useOfferings, usePurchasePackage, useRestorePurchases } from "@/features/premium/useOfferings";
 import { useTheme } from "@/theme/useTheme";
 
-function PlanCard({
+function PlanRow({
   pkg,
   title,
   selected,
@@ -31,39 +31,51 @@ function PlanCard({
     <Pressable
       onPress={onSelect}
       style={{
-        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
         borderWidth: 2,
         borderColor: selected ? colors.brand : colors.border,
         borderRadius: radius.md,
         padding: spacing.md,
-        gap: spacing.xs,
         backgroundColor: selected ? colors.surface : "transparent",
       }}
     >
-      {badge ? (
-        <Text
-          style={{
-            alignSelf: "flex-start",
-            color: "#fff",
-            backgroundColor: colors.brand,
-            fontSize: 11,
-            fontWeight: "700",
-            paddingHorizontal: 8,
-            paddingVertical: 2,
-            borderRadius: radius.pill,
-          }}
-        >
-          {badge}
-        </Text>
-      ) : null}
-      <Text style={{ fontWeight: "700", fontSize: 16, color: colors.text }}>{title}</Text>
-      <Text style={{ fontSize: 22, fontWeight: "800", color: colors.text }}>{pkg.product.priceString}</Text>
-      {subCaption ? <Text style={{ color: colors.textMuted, fontSize: 12 }}>{subCaption}</Text> : null}
-      {pkg.product.introPrice ? (
-        <Text style={{ color: colors.success, fontSize: 12, fontWeight: "600" }}>Free trial included</Text>
-      ) : null}
+      <View style={{ gap: 2, flex: 1 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+          <Text style={{ fontWeight: "700", fontSize: 16, color: colors.text }}>{title}</Text>
+          {badge ? (
+            <Text
+              style={{
+                color: "#fff",
+                backgroundColor: colors.brand,
+                fontSize: 11,
+                fontWeight: "700",
+                paddingHorizontal: 8,
+                paddingVertical: 2,
+                borderRadius: radius.pill,
+              }}
+            >
+              {badge}
+            </Text>
+          ) : null}
+        </View>
+        {subCaption ? <Text style={{ color: colors.textMuted, fontSize: 12 }}>{subCaption}</Text> : null}
+        {pkg.product.introPrice ? (
+          <Text style={{ color: colors.success, fontSize: 12, fontWeight: "600" }}>Free trial included</Text>
+        ) : null}
+      </View>
+      <Text style={{ fontSize: 20, fontWeight: "800", color: colors.text }}>{pkg.product.priceString}</Text>
     </Pressable>
   );
+}
+
+function savingsVsWeekly(pkg: PurchasesPackage, weeklyPricePerWeek: number | null): number | null {
+  if (!weeklyPricePerWeek || weeklyPricePerWeek <= 0) return null;
+  const pricePerWeek = pkg.product.pricePerWeek;
+  if (!pricePerWeek) return null;
+  const pct = Math.round((1 - pricePerWeek / weeklyPricePerWeek) * 100);
+  return pct > 0 ? pct : null;
 }
 
 export default function PaywallScreen() {
@@ -75,14 +87,15 @@ export default function PaywallScreen() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  const weekly = offering?.weekly ?? null;
   const monthly = offering?.monthly ?? null;
-  const annual = offering?.annual ?? null;
-  const selectedPackage = [monthly, annual].find((p) => p?.identifier === selectedId) ?? monthly ?? annual;
+  const threeMonth = offering?.threeMonth ?? null;
+  const sixMonth = offering?.sixMonth ?? null;
+  const tiers = [weekly, monthly, threeMonth, sixMonth].filter((p): p is PurchasesPackage => !!p);
+  const defaultPackage = monthly ?? tiers[0] ?? null;
+  const selectedPackage = tiers.find((p) => p.identifier === selectedId) ?? defaultPackage;
 
-  const savingsPct =
-    monthly && annual && monthly.product.price > 0 && annual.product.pricePerMonth
-      ? Math.round((1 - annual.product.pricePerMonth / monthly.product.price) * 100)
-      : null;
+  const weeklyBaseline = weekly?.product.pricePerWeek ?? null;
 
   async function handleSubscribe() {
     if (!selectedPackage) return;
@@ -126,38 +139,78 @@ export default function PaywallScreen() {
       </Text>
 
       {isLoading ? (
-        <View style={{ flexDirection: "row", gap: spacing.md }}>
-          <Skeleton height={140} borderRadius={12} style={{ flex: 1 }} />
-          <Skeleton height={140} borderRadius={12} style={{ flex: 1 }} />
+        <View style={{ gap: spacing.sm }}>
+          <Skeleton height={64} borderRadius={12} />
+          <Skeleton height={64} borderRadius={12} />
+          <Skeleton height={64} borderRadius={12} />
+          <Skeleton height={64} borderRadius={12} />
         </View>
-      ) : error || (!monthly && !annual) ? (
+      ) : error || tiers.length === 0 ? (
         <Text style={{ color: colors.textMuted }}>
           Plans aren&apos;t available right now. Check your connection and try again shortly.
         </Text>
       ) : (
         <>
-          <View style={{ flexDirection: "row", gap: spacing.md }}>
+          <View style={{ gap: spacing.sm }}>
+            {weekly && (
+              <PlanRow
+                pkg={weekly}
+                title="Weekly"
+                subCaption="billed every week"
+                selected={(selectedId ?? defaultPackage?.identifier) === weekly.identifier}
+                onSelect={() => setSelectedId(weekly.identifier)}
+              />
+            )}
             {monthly && (
-              <PlanCard
+              <PlanRow
                 pkg={monthly}
                 title="Monthly"
-                subCaption="billed monthly"
-                selected={(selectedId ?? monthly.identifier) === monthly.identifier}
+                subCaption={
+                  monthly.product.pricePerWeekString ? `${monthly.product.pricePerWeekString}/wk` : "billed monthly"
+                }
+                badge={
+                  savingsVsWeekly(monthly, weeklyBaseline)
+                    ? `Save ${savingsVsWeekly(monthly, weeklyBaseline)}%`
+                    : undefined
+                }
+                selected={(selectedId ?? defaultPackage?.identifier) === monthly.identifier}
                 onSelect={() => setSelectedId(monthly.identifier)}
               />
             )}
-            {annual && (
-              <PlanCard
-                pkg={annual}
-                title="Annual"
+            {threeMonth && (
+              <PlanRow
+                pkg={threeMonth}
+                title="3 Months"
                 subCaption={
-                  annual.product.pricePerMonth
-                    ? `~$${annual.product.pricePerMonth.toFixed(2)}/mo`
-                    : "billed yearly"
+                  threeMonth.product.pricePerWeekString
+                    ? `${threeMonth.product.pricePerWeekString}/wk`
+                    : "billed every 3 months"
                 }
-                badge={savingsPct && savingsPct > 0 ? `Save ${savingsPct}%` : undefined}
-                selected={selectedId === annual.identifier}
-                onSelect={() => setSelectedId(annual.identifier)}
+                badge={
+                  savingsVsWeekly(threeMonth, weeklyBaseline)
+                    ? `Save ${savingsVsWeekly(threeMonth, weeklyBaseline)}%`
+                    : undefined
+                }
+                selected={selectedId === threeMonth.identifier}
+                onSelect={() => setSelectedId(threeMonth.identifier)}
+              />
+            )}
+            {sixMonth && (
+              <PlanRow
+                pkg={sixMonth}
+                title="6 Months"
+                subCaption={
+                  sixMonth.product.pricePerWeekString
+                    ? `${sixMonth.product.pricePerWeekString}/wk`
+                    : "billed every 6 months"
+                }
+                badge={
+                  savingsVsWeekly(sixMonth, weeklyBaseline)
+                    ? `Save ${savingsVsWeekly(sixMonth, weeklyBaseline)}%`
+                    : undefined
+                }
+                selected={selectedId === sixMonth.identifier}
+                onSelect={() => setSelectedId(sixMonth.identifier)}
               />
             )}
           </View>
