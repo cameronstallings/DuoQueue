@@ -73,7 +73,7 @@ function NavRow({ label, onPress }: { label: string; onPress: () => void }) {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        paddingVertical: spacing.sm,
+        padding: spacing.md,
       }}
     >
       <Text style={{ color: colors.text, fontSize: 15 }}>{label}</Text>
@@ -167,7 +167,9 @@ export default function SettingsScreen() {
 
       <View style={{ marginTop: spacing.md }}>
         <SectionLabel>Safety</SectionLabel>
-        <Card>
+        <Card style={{ padding: 0 }}>
+          <NavRow label="Safety Center" onPress={() => router.push("/safety")} />
+          <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />
           <NavRow label="Block List" onPress={() => router.push("/block-list")} />
         </Card>
       </View>
