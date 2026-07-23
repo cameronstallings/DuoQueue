@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { ActivityIndicator, Switch, Text, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import {
@@ -96,6 +96,8 @@ export default function FiltersScreen() {
   const [platform, setPlatform] = useState<Platform | null>(null);
   const [skillLevel, setSkillLevel] = useState<SkillLevel | null>(null);
   const [playstyle, setPlaystyle] = useState<PlaystyleTag | null>(null);
+  const [filterShow, setFilterShow] = useState<{ id: string; name: string } | null>(null);
+  const [recentlyActive, setRecentlyActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Seed the editable local state once preferences load — a render-time sync (not an
@@ -112,6 +114,7 @@ export default function FiltersScreen() {
     setPlatform(preferences.filter_platform);
     setSkillLevel(preferences.filter_skill_level);
     setPlaystyle(preferences.filter_playstyle as PlaystyleTag | null);
+    setRecentlyActive(preferences.filter_recently_active);
   }
 
   const filterGameId = preferences?.filter_game_id ?? null;
@@ -124,6 +127,18 @@ export default function FiltersScreen() {
       return data;
     },
     enabled: !!filterGameId && !filterGame,
+  });
+
+  const filterShowId = preferences?.filter_show_id ?? null;
+  useQuery({
+    queryKey: ["show-name", filterShowId],
+    queryFn: async () => {
+      if (!filterShowId) return null;
+      const { data } = await supabase.from("shows").select("id, name").eq("id", filterShowId).maybeSingle();
+      if (data) setFilterShow(data);
+      return data;
+    },
+    enabled: !!filterShowId && !filterShow,
   });
 
   async function handleSave() {
@@ -145,6 +160,8 @@ export default function FiltersScreen() {
       filter_platform: isPremium ? platform : (preferences?.filter_platform ?? null),
       filter_skill_level: isPremium ? skillLevel : (preferences?.filter_skill_level ?? null),
       filter_playstyle: isPremium ? playstyle : (preferences?.filter_playstyle ?? null),
+      filter_show_id: isPremium ? (filterShow?.id ?? null) : (preferences?.filter_show_id ?? null),
+      filter_recently_active: isPremium ? recentlyActive : (preferences?.filter_recently_active ?? false),
     });
     router.back();
   }
@@ -197,7 +214,8 @@ export default function FiltersScreen() {
         {!isPremium ? (
           <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: spacing.md, gap: spacing.sm }}>
             <Text style={{ color: colors.textMuted }}>
-              Filtering by specific game, platform, skill level, and playstyle is a DuoQueue+ feature.
+              Filtering by specific game or show, platform, skill level, playstyle, and recent activity is a
+              DuoQueue+ feature.
             </Text>
             <Button label="Unlock DuoQueue+" onPress={() => router.push("/paywall")} />
           </View>
@@ -235,6 +253,23 @@ export default function FiltersScreen() {
               selected={playstyle ? [playstyle] : []}
               onToggle={(value) => toggleSingle(playstyle, value, setPlaystyle)}
             />
+
+            <Text style={{ color: colors.textMuted }}>Specific show, anime, or movie</Text>
+            <CatalogPicker
+              table="shows"
+              placeholder="Search shows"
+              profileId={session.user.id}
+              selectedIds={filterShow ? [filterShow.id] : []}
+              onSelect={(item) => setFilterShow(item)}
+            />
+            {filterShow && (
+              <Button label={`Clear "${filterShow.name}"`} variant="ghost" onPress={() => setFilterShow(null)} />
+            )}
+
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+              <Text style={{ color: colors.textMuted }}>Recently active only</Text>
+              <Switch value={recentlyActive} onValueChange={setRecentlyActive} trackColor={{ true: colors.brand }} />
+            </View>
           </>
         )}
       </View>

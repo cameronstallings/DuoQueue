@@ -119,6 +119,8 @@ export interface PreferencesRow {
   filter_platform: Platform | null;
   filter_skill_level: SkillLevel | null;
   filter_playstyle: string | null;
+  filter_show_id: string | null;
+  filter_recently_active: boolean;
   updated_at: string;
 }
 
