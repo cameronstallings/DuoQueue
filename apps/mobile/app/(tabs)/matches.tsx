@@ -1,10 +1,39 @@
-import { FlatList, Image, Pressable, Text, View } from "react-native";
+import { SectionList, Image, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Skeleton } from "@/components/Skeleton";
+import { SectionLabel } from "@/components/SectionLabel";
 import { useMatches, type MatchListItem } from "@/features/chat/useMatches";
+import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
+
+interface MatchSection {
+  title: string;
+  data: MatchListItem[];
+}
+
+function groupMatches(matches: MatchListItem[], myId: string | undefined): MatchSection[] {
+  const newMatches: MatchListItem[] = [];
+  const yourTurn: MatchListItem[] = [];
+  const theirTurn: MatchListItem[] = [];
+
+  for (const item of matches) {
+    if (!item.last_message_sender_id) {
+      newMatches.push(item);
+    } else if (item.last_message_sender_id !== myId) {
+      yourTurn.push(item);
+    } else {
+      theirTurn.push(item);
+    }
+  }
+
+  return [
+    { title: "New matches", data: newMatches },
+    { title: "Your turn", data: yourTurn },
+    { title: "Their turn", data: theirTurn },
+  ].filter((section) => section.data.length > 0);
+}
 
 function timeAgo(iso: string | null): string {
   if (!iso) return "";
@@ -104,7 +133,9 @@ function MatchRowSkeleton() {
 export default function MatchesScreen() {
   const { colors, spacing } = useTheme();
   const insets = useSafeAreaInsets();
+  const profile = useSessionStore((s) => s.profile);
   const { data: matches, isLoading, error, refetch } = useMatches();
+  const sections = matches ? groupMatches(matches, profile?.id) : [];
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -143,10 +174,23 @@ export default function MatchesScreen() {
           </Text>
         </View>
       ) : (
-        <FlatList
-          data={matches}
+        <SectionList
+          sections={sections}
           keyExtractor={(item) => item.match_id}
           renderItem={({ item }) => <MatchRow item={item} />}
+          renderSectionHeader={({ section }) => (
+            <View
+              style={{
+                backgroundColor: colors.background,
+                paddingHorizontal: spacing.lg,
+                paddingTop: spacing.md,
+                paddingBottom: spacing.xs,
+              }}
+            >
+              <SectionLabel>{`${section.title} (${section.data.length})`}</SectionLabel>
+            </View>
+          )}
+          stickySectionHeadersEnabled={false}
         />
       )}
     </View>
