@@ -159,8 +159,8 @@ pnpm seed:build-sql
    `pricePerWeek` relative to the weekly plan.
 3. Also create two non-subscription (consumable) products, in the same `default`
    Offering as custom packages so `offering.availablePackages` includes them:
-   - `duoqueue_boost_1` — one Boost (30 minutes near the top of other people's decks)
-   - `duoqueue_roses_3` — three Roses (an extra-visible like sent to someone specific)
+   - `duoqueue_boost_1` — one Power-Up (30 minutes near the top of other people's decks)
+   - `duoqueue_roses_3` — three Legendary Likes (an extra-visible like sent to someone specific)
    These do **not** get the `premium` entitlement — the webhook (see step 5) detects
    their product ids via `CONSUMABLE_GRANTS` in
    `supabase/functions/revenuecat-webhook/mapping.ts` and grants credits instead of

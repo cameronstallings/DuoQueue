@@ -90,12 +90,12 @@ export default function DeckScreen() {
   async function handleActivateBoost() {
     try {
       await activateBoost.mutateAsync();
-      Alert.alert("Boost activated", "You'll be shown near the top of other people's decks for 30 minutes.");
+      Alert.alert("Power-Up activated", "You'll be shown near the top of other people's decks for 30 minutes.");
     } catch (err) {
       if (err instanceof NoBoostCreditsError) {
-        Alert.alert("Out of Boosts", "Get a Boost to jump to the top of the deck for 30 minutes.", [
+        Alert.alert("Out of Power-Ups", "Get a Power-Up to jump to the top of the deck for 30 minutes.", [
           { text: "Not now" },
-          { text: "Get Boosts", onPress: () => router.push("/paywall") },
+          { text: "Get Power-Ups", onPress: () => router.push("/paywall") },
         ]);
       } else {
         Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
@@ -117,9 +117,9 @@ export default function DeckScreen() {
       }
     } catch (err) {
       if (err instanceof NoRoseCreditsError) {
-        Alert.alert("Out of Roses", "Get Roses to send an extra-visible like.", [
+        Alert.alert("Out of Legendary Likes", "Get a Legendary Like to send an extra-visible like.", [
           { text: "Not now" },
-          { text: "Get Roses", onPress: () => router.push("/paywall") },
+          { text: "Get Legendary Likes", onPress: () => router.push("/paywall") },
         ]);
       } else {
         Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
@@ -148,7 +148,7 @@ export default function DeckScreen() {
         <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.lg }}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Activate Boost"
+            accessibilityLabel="Activate Power-Up"
             onPress={() => void handleActivateBoost()}
             style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
           >

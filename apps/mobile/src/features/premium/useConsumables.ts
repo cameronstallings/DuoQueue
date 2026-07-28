@@ -19,14 +19,14 @@ export function useConsumableCredits() {
 
 export class NoBoostCreditsError extends Error {
   constructor() {
-    super("You're out of Boosts.");
+    super("You're out of Power-Ups.");
     this.name = "NoBoostCreditsError";
   }
 }
 
 export class NoRoseCreditsError extends Error {
   constructor() {
-    super("You're out of Roses.");
+    super("You're out of Legendary Likes.");
     this.name = "NoRoseCreditsError";
   }
 }
@@ -42,7 +42,7 @@ export function useActivateBoost() {
         throw error;
       }
       const [result] = (data ?? []) as { expires_at: string }[];
-      if (!result) throw new Error("Boost activation failed.");
+      if (!result) throw new Error("Power-Up activation failed.");
       return result.expires_at;
     },
     onSuccess: () => {

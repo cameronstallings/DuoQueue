@@ -189,11 +189,11 @@ export default function PaywallScreen() {
 
   const consumableSection = (
     <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
-      <Text style={{ fontSize: 16, fontWeight: "700", color: colors.text }}>Boosts & Roses</Text>
+      <Text style={{ fontSize: 16, fontWeight: "700", color: colors.text }}>Power-Ups & Legendary Likes</Text>
       <ConsumableRow
         icon="rocket"
         iconColor={colors.brand}
-        title="Boost"
+        title="Power-Up"
         description="30 minutes near the top of other people's decks"
         count={credits?.boosts ?? 0}
         pkg={boostPkg}
@@ -201,9 +201,9 @@ export default function PaywallScreen() {
         buying={purchase.isPending}
       />
       <ConsumableRow
-        icon="rose"
-        iconColor={colors.brand}
-        title="Rose"
+        icon="star"
+        iconColor={colors.warning}
+        title="Legendary Like"
         description="An extra-visible like for someone specific"
         count={credits?.roses ?? 0}
         pkg={rosesPkg}

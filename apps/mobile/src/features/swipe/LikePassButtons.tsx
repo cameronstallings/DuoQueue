@@ -83,7 +83,7 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, onSendRose, disab
       {onSendRose && (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Send a Rose"
+          accessibilityLabel="Send a Legendary Like"
           onPress={onSendRose}
           disabled={disabled}
           style={({ pressed }) => [
@@ -96,7 +96,7 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, onSendRose, disab
             },
           ]}
         >
-          <Ionicons name="rose" size={20} color={colors.brand} />
+          <Ionicons name="star" size={20} color={colors.warning} />
         </Pressable>
       )}
     </View>

@@ -1,17 +1,29 @@
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Redirect, Tabs } from "expo-router";
 
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
 const TAB_CONFIG = {
-  index: { title: "Deck", active: "flame", inactive: "flame-outline" },
-  matches: { title: "Matches", active: "chatbubble-ellipses", inactive: "chatbubble-ellipses-outline" },
-  profile: { title: "Profile", active: "person-circle", inactive: "person-circle-outline" },
-  settings: { title: "Settings", active: "settings", inactive: "settings-outline" },
+  index: { title: "Deck", family: "ionicons", active: "flame", inactive: "flame-outline" },
+  matches: {
+    title: "Matches",
+    family: "material-community",
+    active: "treasure-chest",
+    inactive: "treasure-chest-outline",
+  },
+  profile: { title: "Profile", family: "ionicons", active: "person-circle", inactive: "person-circle-outline" },
+  settings: { title: "Settings", family: "ionicons", active: "settings", inactive: "settings-outline" },
 } as const satisfies Record<
   string,
-  { title: string; active: keyof typeof Ionicons.glyphMap; inactive: keyof typeof Ionicons.glyphMap }
+  (
+    | { family: "ionicons"; active: keyof typeof Ionicons.glyphMap; inactive: keyof typeof Ionicons.glyphMap }
+    | {
+        family: "material-community";
+        active: keyof typeof MaterialCommunityIcons.glyphMap;
+        inactive: keyof typeof MaterialCommunityIcons.glyphMap;
+      }
+  ) & { title: string }
 >;
 
 export default function TabsLayout() {
@@ -39,9 +51,12 @@ export default function TabsLayout() {
             name={name}
             options={{
               title: config.title,
-              tabBarIcon: ({ focused, color, size }) => (
-                <Ionicons name={focused ? config.active : config.inactive} color={color} size={size} />
-              ),
+              tabBarIcon: ({ focused, color, size }) =>
+                config.family === "material-community" ? (
+                  <MaterialCommunityIcons name={focused ? config.active : config.inactive} color={color} size={size} />
+                ) : (
+                  <Ionicons name={focused ? config.active : config.inactive} color={color} size={size} />
+                ),
             }}
           />
         ),

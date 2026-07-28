@@ -12,10 +12,11 @@ export interface RevenueCatEvent {
 export type SubscriptionStatus = "active" | "trialing" | "expired" | "cancelled" | "refunded" | "grace_period";
 export type SubscriptionStore = "app_store" | "play_store";
 
-/** Non-subscription consumable products (Boost / Roses) — must match the identifiers
- * used client-side in app/paywall.tsx and configured in App Store Connect / Play
- * Console (see README's RevenueCat setup section). Grants credits instead of
- * upserting `subscriptions` when a purchase event's product_id matches one of these. */
+/** Non-subscription consumable products (Power-Up / Legendary Like — internal field
+ * names stay `boosts`/`roses`) — must match the identifiers used client-side in
+ * app/paywall.tsx and configured in App Store Connect / Play Console (see README's
+ * RevenueCat setup section). Grants credits instead of upserting `subscriptions`
+ * when a purchase event's product_id matches one of these. */
 export const CONSUMABLE_GRANTS: Record<string, { boosts?: number; roses?: number }> = {
   duoqueue_boost_1: { boosts: 1 },
   duoqueue_roses_3: { roses: 3 },
