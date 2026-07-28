@@ -1,9 +1,8 @@
-import * as base64js from "base64-js";
-import * as FileSystem from "expo-file-system/legacy";
 import { create } from "zustand";
 import type { Gender, LanguageCode, Platform, PlaystyleTag, Region, SkillLevel } from "@duoqueue/shared-types";
 import { PROMPT_COUNT } from "@duoqueue/shared-types";
 
+import { uploadProfilePhoto } from "@/features/profile/usePhotoUpload";
 import { supabase } from "@/lib/supabase";
 
 export interface SelectedGame {
@@ -26,7 +25,8 @@ export interface SelectedPrompt {
 
 interface OnboardingState {
   displayName: string;
-  photoUris: string[];
+  profilePhotoUri: string | null;
+  headerPhotoUri: string | null;
   gender: Gender | null;
   region: Region | null;
   languages: LanguageCode[];
@@ -40,7 +40,8 @@ interface OnboardingState {
   submitError: string | null;
 
   setDisplayName: (value: string) => void;
-  setPhotoUris: (uris: string[]) => void;
+  setProfilePhotoUri: (uri: string | null) => void;
+  setHeaderPhotoUri: (uri: string | null) => void;
   setGender: (value: Gender) => void;
   setRegion: (value: Region) => void;
   toggleLanguage: (value: LanguageCode) => void;
@@ -65,7 +66,8 @@ function toggleInArray<T>(list: T[], value: T): T[] {
 
 export const useOnboardingStore = create<OnboardingState>((set, get) => ({
   displayName: "",
-  photoUris: [],
+  profilePhotoUri: null,
+  headerPhotoUri: null,
   gender: null,
   region: null,
   languages: [],
@@ -79,7 +81,8 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
   submitError: null,
 
   setDisplayName: (value) => set({ displayName: value }),
-  setPhotoUris: (uris) => set({ photoUris: uris }),
+  setProfilePhotoUri: (uri) => set({ profilePhotoUri: uri }),
+  setHeaderPhotoUri: (uri) => set({ headerPhotoUri: uri }),
   setGender: (value) => set({ gender: value }),
   setRegion: (value) => set({ region: value }),
   toggleLanguage: (value) => set((s) => ({ languages: toggleInArray(s.languages, value) })),
@@ -124,30 +127,8 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
       if (!user) throw new Error("No signed-in user.");
       const profileId = user.id;
 
-      for (const [position, uri] of state.photoUris.entries()) {
-        const extension = uri.split(".").pop()?.toLowerCase() ?? "jpg";
-        const storagePath = `${profileId}/${Date.now()}-${position}.${extension}`;
-        const base64 = await FileSystem.readAsStringAsync(uri, { encoding: "base64" });
-        const contentType = extension === "png" ? "image/png" : extension === "webp" ? "image/webp" : "image/jpeg";
-
-        const { error: uploadError } = await supabase.storage
-          .from("profile-photos")
-          .upload(storagePath, base64js.toByteArray(base64), { contentType, upsert: true });
-        if (uploadError) throw uploadError;
-
-        const { data: mediaRow, error: mediaError } = await supabase
-          .from("profile_media")
-          .insert({ profile_id: profileId, storage_path: storagePath, position })
-          .select("id")
-          .single();
-        if (mediaError) throw mediaError;
-
-        // Best-effort, non-blocking: a failed moderation check just leaves the photo
-        // "pending" (invisible to other users) rather than failing onboarding.
-        supabase.functions.invoke("moderate-photo", { body: { mediaId: mediaRow.id } }).catch((err: unknown) => {
-          console.warn("moderate-photo invocation failed:", err);
-        });
-      }
+      if (state.profilePhotoUri) await uploadProfilePhoto(profileId, state.profilePhotoUri, "profile");
+      if (state.headerPhotoUri) await uploadProfilePhoto(profileId, state.headerPhotoUri, "header");
 
       const tablesToReplace: { table: string; rows: Record<string, unknown>[] }[] = [
         {

@@ -36,7 +36,6 @@ interface SwipeCardProps {
 
 export function SwipeCard({ card, isTop, onSwiped, externalTrigger }: SwipeCardProps) {
   const { colors, radius, spacing } = useTheme();
-  const [photoIndex, setPhotoIndex] = useState(0);
   const [reportVisible, setReportVisible] = useState(false);
   const blockUser = useBlockUser();
   const reportUser = useReportUser();
@@ -131,39 +130,16 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger }: SwipeCardP
     opacity: interpolate(translateX.value, [-SWIPE_THRESHOLD, -20], [1, 0]),
   }));
 
-  const photo = card.photoUrls[photoIndex] ?? card.photoUrls[0];
-
   return (
     <>
       <GestureDetector gesture={pan}>
         <Animated.View style={[styles.card, { borderRadius: radius.lg, backgroundColor: colors.surface }, cardStyle]}>
-          {photo ? (
-            <Image source={{ uri: photo }} style={styles.photo} resizeMode="cover" />
+          {card.headerPhotoUrl ? (
+            <Image source={{ uri: card.headerPhotoUrl }} style={styles.photo} resizeMode="cover" />
           ) : (
             <View style={[styles.photo, { alignItems: "center", justifyContent: "center" }]}>
               <Text style={{ color: colors.textMuted }}>No photo</Text>
             </View>
-          )}
-
-          {card.photoUrls.length > 1 && (
-            <>
-              <View style={styles.dotsRow}>
-                {card.photoUrls.map((_, i) => (
-                  <View
-                    key={i}
-                    style={[styles.dot, { backgroundColor: i === photoIndex ? "#fff" : "rgba(255,255,255,0.4)" }]}
-                  />
-                ))}
-              </View>
-              <Pressable
-                style={styles.tapZoneLeft}
-                onPress={() => setPhotoIndex((i) => Math.max(0, i - 1))}
-              />
-              <Pressable
-                style={styles.tapZoneRight}
-                onPress={() => setPhotoIndex((i) => Math.min(card.photoUrls.length - 1, i + 1))}
-              />
-            </>
           )}
 
           {isTop && (
@@ -185,13 +161,22 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger }: SwipeCardP
           </Animated.View>
 
           <View style={[styles.infoOverlay, { padding: spacing.md, gap: spacing.xs }]}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Text style={styles.name}>
-                {card.display_name}, {card.age}
-              </Text>
-              {card.isRecentlyActive && <View style={[styles.activeDot, { backgroundColor: colors.success }]} />}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+              {card.profilePhotoUrl ? (
+                <Image source={{ uri: card.profilePhotoUrl }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatar, { backgroundColor: "rgba(255,255,255,0.2)" }]} />
+              )}
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Text style={styles.name}>
+                    {card.display_name}, {card.age}
+                  </Text>
+                  {card.isRecentlyActive && <View style={[styles.activeDot, { backgroundColor: colors.success }]} />}
+                </View>
+                {card.isRecentlyActive && <Text style={styles.activeLabel}>Active recently</Text>}
+              </View>
             </View>
-            {card.isRecentlyActive && <Text style={styles.activeLabel}>Active recently</Text>}
             <Text style={styles.subtext}>
               {REGION_LABELS[card.region] ?? card.region}
               {card.languages.length > 0 ? ` · ${card.languages.join(", ").toUpperCase()}` : ""}
@@ -256,32 +241,12 @@ const styles = StyleSheet.create({
   photo: {
     ...StyleSheet.absoluteFillObject,
   },
-  dotsRow: {
-    position: "absolute",
-    top: 10,
-    left: 10,
-    right: 10,
-    flexDirection: "row",
-    gap: 4,
-  },
-  dot: {
-    flex: 1,
-    height: 3,
-    borderRadius: 2,
-  },
-  tapZoneLeft: {
-    position: "absolute",
-    left: 0,
-    top: 0,
-    bottom: 120,
-    width: "35%",
-  },
-  tapZoneRight: {
-    position: "absolute",
-    right: 0,
-    top: 0,
-    bottom: 120,
-    width: "35%",
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: "#fff",
   },
   menuButton: {
     position: "absolute",

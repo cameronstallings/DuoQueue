@@ -38,8 +38,8 @@ export function StandoutsRow() {
                     ...shadow,
                   }}
                 >
-                  {card.photoUrls[0] ? (
-                    <Image source={{ uri: card.photoUrls[0] }} style={{ width: "100%", height: "100%" }} />
+                  {card.profilePhotoUrl ? (
+                    <Image source={{ uri: card.profilePhotoUrl }} style={{ width: "100%", height: "100%" }} />
                   ) : null}
                 </View>
                 <Text numberOfLines={1} style={{ color: colors.text, fontSize: 12, fontWeight: "600" }}>

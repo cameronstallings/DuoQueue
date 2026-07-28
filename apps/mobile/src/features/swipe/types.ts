@@ -11,7 +11,8 @@ export interface DeckCardPrompt {
 }
 
 export interface DeckCard extends DeckCandidate {
-  photoUrls: string[];
+  profilePhotoUrl: string | null;
+  headerPhotoUrl: string | null;
   topGames: DeckCardGame[];
   topShows: string[];
   languages: string[];

@@ -32,7 +32,7 @@ export function StandoutCardModal({ card, onClose, onResolved }: StandoutCardMod
           params: {
             matchId: result.match_id,
             name: target.display_name,
-            photo: target.photoUrls[0] ?? "",
+            photo: target.profilePhotoUrl ?? "",
           },
         });
       }
@@ -50,8 +50,8 @@ export function StandoutCardModal({ card, onClose, onResolved }: StandoutCardMod
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         <ScrollView contentContainerStyle={{ paddingBottom: spacing.xl }}>
           <View style={{ width: "100%", aspectRatio: 0.85, backgroundColor: colors.surface }}>
-            {card.photoUrls[0] ? (
-              <Image source={{ uri: card.photoUrls[0] }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+            {card.headerPhotoUrl ? (
+              <Image source={{ uri: card.headerPhotoUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
             ) : null}
             <Pressable
               accessibilityRole="button"
@@ -74,9 +74,17 @@ export function StandoutCardModal({ card, onClose, onResolved }: StandoutCardMod
           </View>
 
           <View style={{ padding: spacing.lg, gap: spacing.sm }}>
-            <Text style={{ fontSize: 24, fontWeight: "700", color: colors.text }}>
-              {card.display_name}, {card.age}
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+              {card.profilePhotoUrl ? (
+                <Image
+                  source={{ uri: card.profilePhotoUrl }}
+                  style={{ width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: colors.background }}
+                />
+              ) : null}
+              <Text style={{ fontSize: 24, fontWeight: "700", color: colors.text }}>
+                {card.display_name}, {card.age}
+              </Text>
+            </View>
             {card.isRecentlyActive && (
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                 <View

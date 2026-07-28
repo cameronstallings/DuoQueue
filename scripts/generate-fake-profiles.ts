@@ -101,11 +101,10 @@ async function createFakeProfile(games: { id: string }[], shows: { id: string }[
   const chosenShows = sample(shows, 5);
   const showRows = chosenShows.map((show, i) => ({ profile_id: profileId, show_id: show.id, priority: i }));
 
-  const photoCount = faker.number.int({ min: 1, max: 6 });
-  const mediaRows = Array.from({ length: photoCount }, (_, position) => ({
+  const mediaRows = (["profile", "header"] as const).map((photo_role) => ({
     profile_id: profileId,
-    storage_path: `seed/${profileId}/${position}.jpg`,
-    position,
+    storage_path: `seed/${profileId}/${photo_role}.jpg`,
+    photo_role,
     moderation_status: "approved" as const,
   }));
 

@@ -19,6 +19,9 @@ export type Region = (typeof REGIONS)[number];
 export const PLATFORMS = ["pc", "playstation", "xbox", "switch", "mobile"] as const;
 export type Platform = (typeof PLATFORMS)[number];
 
+export const PHOTO_ROLES = ["profile", "header"] as const;
+export type PhotoRole = (typeof PHOTO_ROLES)[number];
+
 export const SKILL_LEVELS = ["casual", "intermediate", "competitive", "ranked_grinder"] as const;
 export type SkillLevel = (typeof SKILL_LEVELS)[number];
 

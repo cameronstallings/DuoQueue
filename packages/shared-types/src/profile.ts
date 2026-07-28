@@ -5,7 +5,6 @@ import { GENDERS, PLATFORMS, PLAYSTYLE_TAGS, REGIONS, SKILL_LEVELS } from "./enu
  * and (eventually) Edge Function input validation, so both sides agree on the rules. */
 
 export const BIO_MAX_LENGTH = 300;
-export const MAX_PROFILE_PHOTOS = 6;
 export const PROMPT_ANSWER_MAX_LENGTH = 150;
 export const PROMPT_COUNT = 3;
 export const MIN_AGE = 15;
@@ -84,7 +83,8 @@ export const onboardingProfileSchema = z.object({
   bio: bioSchema,
   prompts: z.array(promptAnswerSchema).length(PROMPT_COUNT, `Answer exactly ${PROMPT_COUNT} prompts.`),
   discordUsername: discordUsernameSchema,
-  photoPaths: z.array(z.string()).min(1, "Add at least one photo.").max(MAX_PROFILE_PHOTOS),
+  profilePhotoPath: z.string().min(1, "Add a profile picture."),
+  headerPhotoPath: z.string().min(1, "Add a header picture."),
 });
 
 export type OnboardingProfileInput = z.infer<typeof onboardingProfileSchema>;

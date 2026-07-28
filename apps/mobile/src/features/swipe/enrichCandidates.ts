@@ -1,4 +1,4 @@
-import type { DeckCandidate, Platform, SkillLevel } from "@duoqueue/shared-types";
+import type { DeckCandidate, PhotoRole, Platform, SkillLevel } from "@duoqueue/shared-types";
 
 import { supabase } from "@/lib/supabase";
 import { signPhotoUrls } from "@/lib/storage";
@@ -8,7 +8,7 @@ import type { DeckCard } from "./types";
 interface PublicProfileMediaRow {
   profile_id: string;
   storage_path: string;
-  position: number;
+  photo_role: PhotoRole;
 }
 interface PublicProfileGameRow {
   profile_id: string;
@@ -53,7 +53,7 @@ export async function enrichCandidates(rows: DeckCandidate[]): Promise<DeckCard[
 
   const [mediaRes, gamesRes, showsRes, platformsRes, languagesRes, playstylesRes, promptsRes, activityRes] =
     await Promise.all([
-      supabase.from("public_profile_media").select("*").in("profile_id", ids).order("position"),
+      supabase.from("public_profile_media").select("*").in("profile_id", ids),
       supabase.from("public_profile_games").select("*").in("profile_id", ids).order("priority"),
       supabase.from("public_profile_shows").select("*").in("profile_id", ids).order("priority"),
       supabase.from("public_profile_platforms").select("*").in("profile_id", ids),
@@ -78,10 +78,9 @@ export async function enrichCandidates(rows: DeckCandidate[]): Promise<DeckCard[
   const signedUrls = await signPhotoUrls(media.map((m) => m.storage_path));
 
   return rows.map((candidate) => {
-    const photoUrls = media
-      .filter((m) => m.profile_id === candidate.profile_id)
-      .map((m) => signedUrls.get(m.storage_path))
-      .filter((url): url is string => !!url);
+    const ownMedia = media.filter((m) => m.profile_id === candidate.profile_id);
+    const profilePhotoUrl = ownMedia.find((m) => m.photo_role === "profile");
+    const headerPhotoUrl = ownMedia.find((m) => m.photo_role === "header");
 
     const topGames = games
       .filter((g) => g.profile_id === candidate.profile_id)
@@ -100,7 +99,8 @@ export async function enrichCandidates(rows: DeckCandidate[]): Promise<DeckCard[
 
     return {
       ...candidate,
-      photoUrls,
+      profilePhotoUrl: profilePhotoUrl ? (signedUrls.get(profilePhotoUrl.storage_path) ?? null) : null,
+      headerPhotoUrl: headerPhotoUrl ? (signedUrls.get(headerPhotoUrl.storage_path) ?? null) : null,
       topGames,
       topShows,
       prompts: cardPrompts,

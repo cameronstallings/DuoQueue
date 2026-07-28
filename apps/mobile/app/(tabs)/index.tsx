@@ -50,7 +50,7 @@ export default function DeckScreen() {
           params: {
             matchId: result.match_id,
             name: card.display_name,
-            photo: card.photoUrls[0] ?? "",
+            photo: card.profilePhotoUrl ?? "",
           },
         });
       }
@@ -112,7 +112,7 @@ export default function DeckScreen() {
       if (result.matched && result.match_id) {
         router.push({
           pathname: "/match/[matchId]",
-          params: { matchId: result.match_id, name: top.display_name, photo: top.photoUrls[0] ?? "" },
+          params: { matchId: result.match_id, name: top.display_name, photo: top.profilePhotoUrl ?? "" },
         });
       }
     } catch (err) {

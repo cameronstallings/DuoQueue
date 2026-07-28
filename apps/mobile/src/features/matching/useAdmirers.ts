@@ -31,21 +31,16 @@ export function useAdmirers(enabled: boolean) {
       const ids = rows.map((r) => r.profile_id);
       const { data: media, error: mediaError } = await supabase
         .from("public_profile_media")
-        .select("profile_id, storage_path, position")
+        .select("profile_id, storage_path, photo_role")
         .in("profile_id", ids)
-        .order("position");
+        .eq("photo_role", "profile");
       if (mediaError) throw mediaError;
 
-      const firstPhotoByProfile = new Map<string, string>();
-      for (const m of media ?? []) {
-        if (!firstPhotoByProfile.has(m.profile_id as string)) {
-          firstPhotoByProfile.set(m.profile_id as string, m.storage_path as string);
-        }
-      }
-      const signedUrls = await signPhotoUrls([...firstPhotoByProfile.values()]);
+      const profilePhotoByProfile = new Map((media ?? []).map((m) => [m.profile_id as string, m.storage_path as string]));
+      const signedUrls = await signPhotoUrls([...profilePhotoByProfile.values()]);
 
       return rows.map((row) => {
-        const path = firstPhotoByProfile.get(row.profile_id);
+        const path = profilePhotoByProfile.get(row.profile_id);
         return { ...row, photoUrl: path ? (signedUrls.get(path) ?? null) : null };
       });
     },
