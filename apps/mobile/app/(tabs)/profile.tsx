@@ -1,4 +1,5 @@
-import { Image, Text, View } from "react-native";
+import { Image, Pressable, Text, View } from "react-native";
+import { router } from "expo-router";
 
 import { Card } from "@/components/Card";
 import { ScreenContainer } from "@/components/ScreenContainer";
@@ -49,7 +50,14 @@ export default function ProfileScreen() {
       </View>
 
       <View style={{ marginTop: spacing.md }}>
-        <SectionLabel>Prompts</SectionLabel>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          <SectionLabel>Prompts</SectionLabel>
+          <Pressable onPress={() => router.push("/edit-prompts")}>
+            <Text style={{ color: colors.brand, fontWeight: "600", fontSize: 13, marginBottom: spacing.xs }}>
+              Edit
+            </Text>
+          </Pressable>
+        </View>
         {promptsLoading ? (
           <Skeleton height={80} borderRadius={radius.lg} />
         ) : (
@@ -64,13 +72,6 @@ export default function ProfileScreen() {
         )}
       </View>
 
-      <View style={{ marginTop: spacing.sm }}>
-        <Card>
-          <Text style={{ color: colors.textMuted, fontSize: 13 }}>
-            Prompt editing and premium (&quot;who swiped right on you&quot;) land in later phases.
-          </Text>
-        </Card>
-      </View>
     </ScreenContainer>
   );
 }

@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 
 export interface OwnPrompt {
   position: number;
+  promptId: string;
   question: string;
   answer: string;
 }
@@ -32,6 +33,7 @@ export function useOwnPrompts(profileId: string | undefined) {
       const questionById = new Map((catalog ?? []).map((p) => [p.id as string, p.question as string]));
       return rows.map((r) => ({
         position: r.position as number,
+        promptId: r.prompt_id as string,
         answer: r.answer as string,
         question: questionById.get(r.prompt_id as string) ?? "",
       }));

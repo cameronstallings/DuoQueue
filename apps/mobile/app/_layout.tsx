@@ -69,6 +69,7 @@ export default function RootLayout() {
               <Stack.Screen name="hidden-words" options={{ presentation: "modal" }} />
               <Stack.Screen name="safety/index" options={{ presentation: "modal" }} />
               <Stack.Screen name="safety/[topic]" />
+              <Stack.Screen name="edit-prompts" options={{ presentation: "modal" }} />
               <Stack.Screen name="match/[matchId]" options={{ presentation: "modal" }} />
             </Stack>
           )}
