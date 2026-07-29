@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from "react-native";
-import { router, Stack } from "expo-router";
+import { router } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PROMPT_ANSWER_MAX_LENGTH, PROMPT_COUNT } from "@duoqueue/shared-types";
 
 import { Button } from "@/components/Button";
@@ -15,6 +16,7 @@ import { useTheme } from "@/theme/useTheme";
 
 export default function EditPromptsScreen() {
   const { colors, spacing, type } = useTheme();
+  const insets = useSafeAreaInsets();
   const profile = useSessionStore((s) => s.profile);
   const { data: existing, isLoading: loadingExisting } = useOwnPrompts(profile?.id);
   const { data: catalog, isLoading: loadingCatalog } = usePromptCatalog();
@@ -59,8 +61,8 @@ export default function EditPromptsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Stack.Screen options={{ headerShown: true, title: "Edit Prompts" }} />
-      <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingTop: insets.top + spacing.lg, gap: spacing.md }}>
+        <Text style={{ ...type.screenTitle, color: colors.text }}>Edit Prompts</Text>
         {slots === null || loadingCatalog ? (
           <ActivityIndicator color={colors.brand} />
         ) : (
@@ -116,7 +118,7 @@ export default function EditPromptsScreen() {
             right: 0,
             bottom: 0,
             backgroundColor: colors.background,
-            paddingTop: spacing.lg,
+            paddingTop: insets.top + spacing.lg,
             paddingHorizontal: spacing.lg,
           }}
         >
