@@ -18,6 +18,13 @@ import {
   type SkillLevel,
 } from "@duoqueue/shared-types";
 import { LANGUAGE_LABELS } from "@/features/onboarding/language-labels";
+import {
+  GENDER_LABELS,
+  PLATFORM_LABELS,
+  PLAYSTYLE_LABELS,
+  REGION_LABELS,
+  SKILL_LABELS,
+} from "@/features/onboarding/profile-labels";
 
 import { Button } from "@/components/Button";
 import { ChipSelect } from "@/components/ChipSelect";
@@ -29,53 +36,6 @@ import { usePreferences } from "@/features/matching/usePreferences";
 import { supabase } from "@/lib/supabase";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
-
-const GENDER_LABELS: Record<Gender, string> = {
-  male: "Male",
-  female: "Female",
-  non_binary: "Non-binary",
-  prefer_not_to_say: "Prefer not to say",
-};
-
-const REGION_LABELS: Record<Region, string> = {
-  na_east: "NA East",
-  na_west: "NA West",
-  sa: "South America",
-  eu: "Europe",
-  mena: "MENA",
-  africa: "Africa",
-  asia: "Asia",
-  sea: "SEA",
-  oce: "Oceania",
-};
-
-const PLATFORM_LABELS: Record<Platform, string> = {
-  pc: "PC",
-  playstation: "PlayStation",
-  xbox: "Xbox",
-  switch: "Switch",
-  mobile: "Mobile",
-};
-
-const SKILL_LABELS: Record<SkillLevel, string> = {
-  casual: "Casual",
-  intermediate: "Intermediate",
-  competitive: "Competitive",
-  ranked_grinder: "Ranked Grinder",
-};
-
-const PLAYSTYLE_LABELS: Record<PlaystyleTag, string> = {
-  chill: "Chill",
-  competitive: "Competitive",
-  mic_required: "Mic required",
-  no_mic: "No mic",
-  late_night: "Late night",
-  weekend_warrior: "Weekend warrior",
-  casual_coop: "Casual co-op",
-  grinder: "Grinder",
-  team_player: "Team player",
-  solo_queue: "Solo queue",
-};
 
 function toggleSingle<T>(current: T | null, value: T, setter: (value: T | null) => void) {
   setter(current === value ? null : value);

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { ActivityIndicator, Image, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
@@ -5,14 +6,60 @@ import { Ionicons } from "@expo/vector-icons";
 import type { PhotoRole } from "@duoqueue/shared-types";
 
 import { Card } from "@/components/Card";
+import { InfoChip } from "@/components/InfoChip";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { SectionLabel } from "@/components/SectionLabel";
 import { Skeleton } from "@/components/Skeleton";
+import { PLATFORM_LABELS, PLAYSTYLE_LABELS, REGION_LABELS, SKILL_LABELS } from "@/features/onboarding/profile-labels";
+import { useOwnProfileDetails } from "@/features/profile/useOwnProfileDetails";
 import { useOwnProfilePhotos } from "@/features/profile/useOwnProfilePhotos";
 import { useOwnPrompts } from "@/features/profile/useOwnPrompts";
 import { useUpdatePhoto } from "@/features/profile/usePhotoUpload";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
+
+function calculateAge(dob: string): number {
+  const birthDate = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) age--;
+  return age;
+}
+
+function DetailSection({
+  label,
+  icon,
+  isLoading,
+  isEmpty,
+  emptyText,
+  children,
+}: {
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  isLoading: boolean;
+  isEmpty: boolean;
+  emptyText: string;
+  children: ReactNode;
+}) {
+  const { colors, radius, spacing } = useTheme();
+
+  return (
+    <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
+        <Ionicons name={icon} size={14} color={colors.textMuted} />
+        <SectionLabel>{label}</SectionLabel>
+      </View>
+      {isLoading ? (
+        <Skeleton height={36} borderRadius={radius.pill} />
+      ) : isEmpty ? (
+        <Text style={{ color: colors.textMuted, fontSize: 13 }}>{emptyText}</Text>
+      ) : (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>{children}</View>
+      )}
+    </View>
+  );
+}
 
 function PhotoTile({
   label,
@@ -81,6 +128,7 @@ export default function ProfileScreen() {
   const profile = useSessionStore((s) => s.profile);
   const { data: photos, isLoading } = useOwnProfilePhotos(profile?.id);
   const { data: prompts, isLoading: promptsLoading } = useOwnPrompts(profile?.id);
+  const { data: details, isLoading: detailsLoading } = useOwnProfileDetails(profile?.id);
   const updatePhoto = useUpdatePhoto(profile?.id);
 
   async function handlePick(role: PhotoRole) {
@@ -101,6 +149,11 @@ export default function ProfileScreen() {
   return (
     <ScreenContainer>
       <Text style={{ fontSize: 28, fontWeight: "700", color: colors.text }}>{profile?.display_name}</Text>
+      {profile?.dob && (
+        <Text style={{ color: colors.textMuted, fontSize: 14, marginTop: 2 }}>
+          {calculateAge(profile.dob)} · {REGION_LABELS[profile.region] ?? profile.region}
+        </Text>
+      )}
 
       <View style={{ marginTop: spacing.sm, gap: spacing.md }}>
         <SectionLabel>Photos</SectionLabel>
@@ -132,6 +185,54 @@ export default function ProfileScreen() {
           </View>
         )}
       </View>
+
+      <DetailSection
+        label="Games"
+        icon="game-controller"
+        isLoading={detailsLoading}
+        isEmpty={!detailsLoading && (details?.games.length ?? 0) === 0}
+        emptyText="No games added yet."
+      >
+        {(details?.games ?? []).map((game) => (
+          <InfoChip key={game.name} label={game.name} sublabel={SKILL_LABELS[game.skillLevel]} icon="game-controller" />
+        ))}
+      </DetailSection>
+
+      <DetailSection
+        label="Shows & Movies"
+        icon="tv"
+        isLoading={detailsLoading}
+        isEmpty={!detailsLoading && (details?.shows.length ?? 0) === 0}
+        emptyText="No shows added yet."
+      >
+        {(details?.shows ?? []).map((show) => (
+          <InfoChip key={show} label={show} icon="tv" />
+        ))}
+      </DetailSection>
+
+      <DetailSection
+        label="Platforms"
+        icon="hardware-chip"
+        isLoading={detailsLoading}
+        isEmpty={!detailsLoading && (details?.platforms.length ?? 0) === 0}
+        emptyText="No platforms added yet."
+      >
+        {(details?.platforms ?? []).map((platform) => (
+          <InfoChip key={platform} label={PLATFORM_LABELS[platform]} icon="hardware-chip" />
+        ))}
+      </DetailSection>
+
+      <DetailSection
+        label="Playstyle"
+        icon="people"
+        isLoading={detailsLoading}
+        isEmpty={!detailsLoading && (details?.playstyles.length ?? 0) === 0}
+        emptyText="No playstyle tags added yet."
+      >
+        {(details?.playstyles ?? []).map((tag) => (
+          <InfoChip key={tag} label={PLAYSTYLE_LABELS[tag]} icon="people" />
+        ))}
+      </DetailSection>
 
       <View style={{ marginTop: spacing.md }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>

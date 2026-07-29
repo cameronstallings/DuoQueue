@@ -14,6 +14,7 @@ import type { ReportReason } from "@duoqueue/shared-types";
 
 import { ReportModal } from "@/components/ReportModal";
 import { useBlockUser, useReportUser } from "@/features/chat/useMatchActions";
+import { REGION_LABELS } from "@/features/onboarding/profile-labels";
 import { useTheme } from "@/theme/useTheme";
 
 import { SkillBadge } from "./SkillBadge";
@@ -220,18 +221,6 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger }: SwipeCardP
     </>
   );
 }
-
-const REGION_LABELS: Record<string, string> = {
-  na_east: "NA East",
-  na_west: "NA West",
-  sa: "South America",
-  eu: "Europe",
-  mena: "MENA",
-  africa: "Africa",
-  asia: "Asia",
-  sea: "SEA",
-  oce: "Oceania",
-};
 
 const styles = StyleSheet.create({
   card: {
