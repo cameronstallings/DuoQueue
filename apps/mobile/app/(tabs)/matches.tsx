@@ -1,4 +1,4 @@
-import { SectionList, Image, Pressable, Text, View } from "react-native";
+import { RefreshControl, SectionList, Image, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -132,18 +132,17 @@ function MatchRowSkeleton() {
 }
 
 export default function MatchesScreen() {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, type } = useTheme();
   const insets = useSafeAreaInsets();
   const profile = useSessionStore((s) => s.profile);
-  const { data: matches, isLoading, error, refetch } = useMatches();
+  const { data: matches, isLoading, isFetching, error, refetch } = useMatches();
   const sections = matches ? groupMatches(matches, profile?.id) : [];
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Text
         style={{
-          fontSize: 28,
-          fontWeight: "700",
+          ...type.screenTitle,
           color: colors.text,
           paddingTop: insets.top + spacing.lg,
           paddingHorizontal: spacing.lg,
@@ -191,6 +190,9 @@ export default function MatchesScreen() {
             </View>
           )}
           stickySectionHeadersEnabled={false}
+          refreshControl={
+            <RefreshControl refreshing={isFetching} onRefresh={() => void refetch()} tintColor={colors.brand} />
+          }
         />
       )}
     </View>

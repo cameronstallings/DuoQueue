@@ -10,7 +10,13 @@ import { Card } from "@/components/Card";
 import { InfoChip } from "@/components/InfoChip";
 import { SectionLabel } from "@/components/SectionLabel";
 import { Skeleton } from "@/components/Skeleton";
-import { PLATFORM_LABELS, PLAYSTYLE_LABELS, REGION_LABELS, SKILL_LABELS } from "@/features/onboarding/profile-labels";
+import {
+  PLATFORM_ICONS,
+  PLATFORM_LABELS,
+  PLAYSTYLE_LABELS,
+  REGION_LABELS,
+  SKILL_LABELS,
+} from "@/features/onboarding/profile-labels";
 import { ProfileCompleteness } from "@/features/profile/ProfileCompleteness";
 import { useOwnProfileDetails } from "@/features/profile/useOwnProfileDetails";
 import { useOwnProfilePhotos } from "@/features/profile/useOwnProfilePhotos";
@@ -240,7 +246,12 @@ export default function ProfileScreen() {
             emptyText="No platforms added yet."
           >
             {(details?.platforms ?? []).map((platform) => (
-              <InfoChip key={platform} label={PLATFORM_LABELS[platform]} icon="hardware-chip" />
+              <InfoChip
+                key={platform}
+                label={PLATFORM_LABELS[platform]}
+                icon={PLATFORM_ICONS[platform]}
+                iconFamily="material-community"
+              />
             ))}
           </DetailSection>
 

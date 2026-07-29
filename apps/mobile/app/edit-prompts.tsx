@@ -10,10 +10,11 @@ import { usePromptCatalog } from "@/features/onboarding/usePromptCatalog";
 import { useOwnPrompts } from "@/features/profile/useOwnPrompts";
 import { type PromptSlot, useSavePrompts } from "@/features/profile/useSavePrompts";
 import { useSessionStore } from "@/store/session-store";
+import { useToastStore } from "@/store/toast-store";
 import { useTheme } from "@/theme/useTheme";
 
 export default function EditPromptsScreen() {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, type } = useTheme();
   const profile = useSessionStore((s) => s.profile);
   const { data: existing, isLoading: loadingExisting } = useOwnPrompts(profile?.id);
   const { data: catalog, isLoading: loadingCatalog } = usePromptCatalog();
@@ -49,6 +50,7 @@ export default function EditPromptsScreen() {
     if (!slots) return;
     try {
       await save.mutateAsync(slots);
+      useToastStore.getState().showToast("Prompts saved");
       router.back();
     } catch (err) {
       Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
@@ -67,7 +69,7 @@ export default function EditPromptsScreen() {
             marginBottom: spacing.md,
           }}
         >
-          <Text style={{ fontSize: 20, fontWeight: "700", color: colors.text }}>Select a prompt</Text>
+          <Text style={{ ...type.title, color: colors.text }}>Select a prompt</Text>
           <Pressable onPress={() => setPickerIndex(null)}>
             <Text style={{ color: colors.brand, fontWeight: "600" }}>Cancel</Text>
           </Pressable>

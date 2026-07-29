@@ -7,7 +7,7 @@ import { SAFETY_TOPICS } from "@/features/safety/content";
 import { useTheme } from "@/theme/useTheme";
 
 export default function SafetyTopicScreen() {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, type } = useTheme();
   const { topic: topicKey } = useLocalSearchParams<{ topic: string }>();
   const topic = SAFETY_TOPICS.find((t) => t.key === topicKey);
 
@@ -22,7 +22,7 @@ export default function SafetyTopicScreen() {
   return (
     <ScreenContainer>
       <Stack.Screen options={{ headerShown: true, title: topic.title }} />
-      <Text style={{ fontSize: 24, fontWeight: "700", color: colors.text }}>{topic.title}</Text>
+      <Text style={{ ...type.screenTitle, color: colors.text }}>{topic.title}</Text>
       <Text style={{ color: colors.textMuted, marginBottom: spacing.sm }}>{topic.summary}</Text>
 
       {topic.sections.map((section) => (

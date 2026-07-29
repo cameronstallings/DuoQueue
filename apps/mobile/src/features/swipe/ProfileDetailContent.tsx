@@ -1,6 +1,7 @@
 import { Image, Pressable, ScrollView, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
+import { PresenceAvatar } from "@/components/PresenceAvatar";
 import { REGION_LABELS } from "@/features/onboarding/profile-labels";
 import { useTheme } from "@/theme/useTheme";
 
@@ -47,23 +48,18 @@ export function ProfileDetailContent({ card, onClose }: ProfileDetailContentProp
 
       <View style={{ padding: spacing.lg, gap: spacing.sm }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
-          {card.profilePhotoUrl ? (
-            <Image
-              source={{ uri: card.profilePhotoUrl }}
-              style={{ width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: colors.background }}
-            />
-          ) : null}
+          <PresenceAvatar
+            uri={card.profilePhotoUrl}
+            size={48}
+            isActive={card.isRecentlyActive}
+            backdropColor={colors.background}
+            borderColor={colors.background}
+            borderWidth={2}
+          />
           <Text style={{ fontSize: 24, fontWeight: "700", color: colors.text }}>
             {card.display_name}, {card.age}
           </Text>
         </View>
-
-        {card.isRecentlyActive && (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.success }} />
-            <Text style={{ color: colors.textMuted, fontSize: 13, fontWeight: "600" }}>Active recently</Text>
-          </View>
-        )}
 
         <Text style={{ color: colors.textMuted, fontSize: 14 }}>
           {REGION_LABELS[card.region] ?? card.region}

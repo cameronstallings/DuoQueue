@@ -12,7 +12,7 @@ import { useOnboardingStore } from "@/store/onboarding-store";
 import { useTheme } from "@/theme/useTheme";
 
 export default function PromptsStep() {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, type } = useTheme();
   const { prompts, setPromptAt, setPromptAnswerAt, clearPromptAt } = useOnboardingStore();
   const { data: catalog, isLoading } = usePromptCatalog();
   const [pickerIndex, setPickerIndex] = useState<number | null>(null);
@@ -65,7 +65,7 @@ export default function PromptsStep() {
       <Modal visible={pickerIndex !== null} animationType="slide" onRequestClose={() => setPickerIndex(null)}>
         <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: 60, paddingHorizontal: spacing.lg }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.md }}>
-            <Text style={{ fontSize: 20, fontWeight: "700", color: colors.text }}>Select a prompt</Text>
+            <Text style={{ ...type.title, color: colors.text }}>Select a prompt</Text>
             <Pressable onPress={() => setPickerIndex(null)}>
               <Text style={{ color: colors.brand, fontWeight: "600" }}>Cancel</Text>
             </Pressable>

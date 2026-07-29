@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { PhotoRole } from "@duoqueue/shared-types";
 
 import { supabase } from "@/lib/supabase";
+import { useToastStore } from "@/store/toast-store";
 
 /** Uploads a local image URI to Storage and upserts the profile_media row for the given
  * role (profile/header) — shared by onboarding and the Profile tab's tap-to-replace
@@ -46,6 +47,7 @@ export function useUpdatePhoto(profileId: string | undefined) {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["own-profile-photos", profileId] });
+      useToastStore.getState().showToast("Photo updated");
     },
   });
 }

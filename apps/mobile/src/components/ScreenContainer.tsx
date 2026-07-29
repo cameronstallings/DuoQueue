@@ -1,10 +1,15 @@
-import type { PropsWithChildren } from "react";
+import type { PropsWithChildren, ReactElement } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from "react-native";
+import type { RefreshControlProps } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useTheme } from "@/theme/useTheme";
 
-export function ScreenContainer({ children }: PropsWithChildren) {
+interface ScreenContainerProps extends PropsWithChildren {
+  refreshControl?: ReactElement<RefreshControlProps>;
+}
+
+export function ScreenContainer({ children, refreshControl }: ScreenContainerProps) {
   const { colors, spacing } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -19,6 +24,7 @@ export function ScreenContainer({ children }: PropsWithChildren) {
           { paddingTop: insets.top + spacing.lg, paddingBottom: insets.bottom + spacing.lg, paddingHorizontal: spacing.lg },
         ]}
         keyboardShouldPersistTaps="handled"
+        refreshControl={refreshControl}
       >
         <View style={{ gap: spacing.md }}>{children}</View>
       </ScrollView>

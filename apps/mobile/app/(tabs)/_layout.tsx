@@ -34,7 +34,7 @@ const TAB_CONFIG = {
 export default function TabsLayout() {
   const status = useSessionStore((s) => s.status);
   const profile = useSessionStore((s) => s.profile);
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
 
   if (status === "signed_out") return <Redirect href="/(auth)/sign-in" />;
   if (!profile?.onboarding_completed) return <Redirect href="/(onboarding)/display-name" />;
@@ -45,7 +45,15 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: colors.brand,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: { backgroundColor: colors.background, borderTopColor: colors.border },
+        tabBarStyle: {
+          backgroundColor: colors.background,
+          borderTopWidth: 0,
+          shadowColor: "#000000",
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: scheme === "light" ? 0.08 : 0.3,
+          shadowRadius: 8,
+          elevation: 8,
+        },
         sceneStyle: { backgroundColor: colors.background },
       }}
     >

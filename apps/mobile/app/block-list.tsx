@@ -1,4 +1,4 @@
-import { Alert, FlatList, Text, View } from "react-native";
+import { Alert, FlatList, RefreshControl, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
 import { ScreenContainer } from "@/components/ScreenContainer";
@@ -54,12 +54,16 @@ function BlockedRowSkeleton() {
 }
 
 export default function BlockListScreen() {
-  const { colors, spacing } = useTheme();
-  const { data: blocked, isLoading, error, refetch } = useBlockedUsers();
+  const { colors, spacing, type } = useTheme();
+  const { data: blocked, isLoading, isFetching, error, refetch } = useBlockedUsers();
 
   return (
-    <ScreenContainer>
-      <Text style={{ fontSize: 26, fontWeight: "700", color: colors.text }}>Block List</Text>
+    <ScreenContainer
+      refreshControl={
+        <RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => void refetch()} tintColor={colors.brand} />
+      }
+    >
+      <Text style={{ ...type.screenTitle, color: colors.text }}>Block List</Text>
       <Text style={{ color: colors.textMuted, marginBottom: spacing.sm }}>
         People you&apos;ve blocked. Unblocking lets them appear in your deck again — they won&apos;t be notified
         either way.

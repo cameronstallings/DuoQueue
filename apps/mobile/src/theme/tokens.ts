@@ -7,6 +7,15 @@ export const spacing = {
   xxl: 48,
 } as const;
 
+export const type = {
+  screenTitle: { fontSize: 28, fontWeight: "700" },
+  title: { fontSize: 20, fontWeight: "700" },
+  bodyStrong: { fontSize: 15, fontWeight: "700" },
+  body: { fontSize: 15, fontWeight: "400" },
+  caption: { fontSize: 13, fontWeight: "500" },
+  micro: { fontSize: 11, fontWeight: "700" },
+} as const;
+
 export const radius = {
   sm: 8,
   md: 12,

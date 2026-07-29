@@ -42,7 +42,7 @@ function toggleSingle<T>(current: T | null, value: T, setter: (value: T | null) 
 }
 
 export default function FiltersScreen() {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, type } = useTheme();
   const session = useSessionStore((s) => s.session);
   const { preferences, isLoading, save } = usePreferences();
   const { isPremium } = usePremiumStatus();
@@ -136,7 +136,7 @@ export default function FiltersScreen() {
 
   return (
     <ScreenContainer>
-      <Text style={{ fontSize: 26, fontWeight: "700", color: colors.text }}>Filters</Text>
+      <Text style={{ ...type.screenTitle, color: colors.text }}>Filters</Text>
 
       <Text style={{ fontWeight: "700", color: colors.text }}>Age range</Text>
       <View style={{ flexDirection: "row", gap: spacing.md }}>

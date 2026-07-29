@@ -1,3 +1,5 @@
+import type { ComponentProps } from "react";
+import type { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { Gender, Platform, PlaystyleTag, Region, SkillLevel } from "@duoqueue/shared-types";
 
 /** Static display-label maps for enum values shown across filters, swipe cards, and the
@@ -28,6 +30,16 @@ export const PLATFORM_LABELS: Record<Platform, string> = {
   xbox: "Xbox",
   switch: "Switch",
   mobile: "Mobile",
+};
+
+/** Brand-recognizable glyphs (Discord/Steam-style platform iconography) instead of the
+ * generic chip icon every platform previously shared. */
+export const PLATFORM_ICONS: Record<Platform, ComponentProps<typeof MaterialCommunityIcons>["name"]> = {
+  pc: "desktop-tower-monitor",
+  playstation: "sony-playstation",
+  xbox: "microsoft-xbox",
+  switch: "nintendo-switch",
+  mobile: "cellphone",
 };
 
 export const SKILL_LABELS: Record<SkillLevel, string> = {

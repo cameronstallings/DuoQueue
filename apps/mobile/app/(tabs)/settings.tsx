@@ -14,6 +14,7 @@ import { useNotificationSettings } from "@/features/settings/useNotificationSett
 import { usePrivacyToggles } from "@/features/settings/usePrivacyToggles";
 import { hapticSelection } from "@/lib/haptics";
 import { useSessionStore } from "@/store/session-store";
+import { useToastStore } from "@/store/toast-store";
 import { type ThemePreference, useThemeStore } from "@/store/theme-store";
 import { useTheme } from "@/theme/useTheme";
 
@@ -88,7 +89,7 @@ function NavRow({ label, onPress }: { label: string; onPress: () => void }) {
 }
 
 export default function SettingsScreen() {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, type } = useTheme();
   const themePreference = useThemeStore((s) => s.preference);
   const setThemePreference = useThemeStore((s) => s.setPreference);
   const signOut = useSessionStore((s) => s.signOut);
@@ -142,7 +143,7 @@ export default function SettingsScreen() {
 
   return (
     <ScreenContainer>
-      <Text style={{ fontSize: 28, fontWeight: "700", color: colors.text }}>Settings</Text>
+      <Text style={{ ...type.screenTitle, color: colors.text }}>Settings</Text>
 
       <View style={{ marginTop: spacing.md }}>
         <SectionLabel>Appearance</SectionLabel>
@@ -189,6 +190,7 @@ export default function SettingsScreen() {
               onValueChange={(value) => {
                 hapticSelection();
                 setIsActive.mutate(!value);
+                useToastStore.getState().showToast(value ? "Profile paused" : "Profile active again");
               }}
               trackColor={{ true: colors.brand }}
             />
@@ -213,6 +215,7 @@ export default function SettingsScreen() {
               onValueChange={(value) => {
                 hapticSelection();
                 setHideLastActive.mutate(value);
+                useToastStore.getState().showToast("Settings saved");
               }}
               trackColor={{ true: colors.brand }}
             />

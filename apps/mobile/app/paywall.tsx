@@ -135,7 +135,7 @@ function savingsVsWeekly(pkg: PurchasesPackage, weeklyPricePerWeek: number | nul
 }
 
 export default function PaywallScreen() {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, type } = useTheme();
   const { isPremium } = usePremiumStatus();
   const { data: offering, isLoading, error } = useOfferings();
   const purchase = usePurchasePackage();
@@ -216,7 +216,7 @@ export default function PaywallScreen() {
   if (isPremium) {
     return (
       <ScreenContainer>
-        <Text style={{ fontSize: 24, fontWeight: "700", color: colors.text }}>You&apos;re on DuoQueue+</Text>
+        <Text style={{ ...type.screenTitle, color: colors.text }}>You&apos;re on DuoQueue+</Text>
         <Text style={{ color: colors.textMuted }}>
           Unlimited swipes, unlimited conversations, advanced filters, admirers, and a daily Super Ping are
           all unlocked.
@@ -229,7 +229,7 @@ export default function PaywallScreen() {
 
   return (
     <ScreenContainer>
-      <Text style={{ fontSize: 26, fontWeight: "700", color: colors.text }}>DuoQueue+</Text>
+      <Text style={{ ...type.screenTitle, color: colors.text }}>DuoQueue+</Text>
       <Text style={{ color: colors.textMuted, marginBottom: spacing.sm }}>
         Unlimited swipes, unlimited conversations, advanced filters, see who liked you, and a daily Super
         Ping.

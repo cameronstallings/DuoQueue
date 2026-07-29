@@ -7,6 +7,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Stack } from "expo-router";
 
 import { OfflineBanner } from "@/components/OfflineBanner";
+import { Toast } from "@/components/Toast";
 import { configureNetworkAwareQueries } from "@/lib/network";
 import { queryClient } from "@/lib/query-client";
 import { supabase } from "@/lib/supabase";
@@ -74,6 +75,7 @@ export default function RootLayout() {
               <Stack.Screen name="match/[matchId]" options={{ presentation: "modal" }} />
             </Stack>
           )}
+          <Toast />
         </SafeAreaProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>

@@ -1,4 +1,4 @@
-import { ActivityIndicator, Alert, FlatList, Image, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Image, Pressable, RefreshControl, Text, View } from "react-native";
 import { router } from "expo-router";
 
 import { Button } from "@/components/Button";
@@ -90,10 +90,10 @@ function AdmirerRowSkeleton() {
 }
 
 export default function AdmirersScreen() {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, type } = useTheme();
   const { isPremium, isLoading: premiumLoading } = usePremiumStatus();
   const { data: count } = useAdmirersCount();
-  const { data: admirers, isLoading, error, refetch } = useAdmirers(isPremium);
+  const { data: admirers, isLoading, isFetching, error, refetch } = useAdmirers(isPremium);
 
   if (premiumLoading) {
     return (
@@ -106,7 +106,7 @@ export default function AdmirersScreen() {
   if (!isPremium) {
     return (
       <ScreenContainer>
-        <Text style={{ fontSize: 26, fontWeight: "700", color: colors.text }}>Who liked you</Text>
+        <Text style={{ ...type.screenTitle, color: colors.text }}>Who liked you</Text>
         <Text style={{ color: colors.textMuted }}>
           {count && count > 0
             ? `${count} ${count === 1 ? "person has" : "people have"} already swiped right on you.`
@@ -118,8 +118,12 @@ export default function AdmirersScreen() {
   }
 
   return (
-    <ScreenContainer>
-      <Text style={{ fontSize: 26, fontWeight: "700", color: colors.text }}>Who liked you</Text>
+    <ScreenContainer
+      refreshControl={
+        <RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => void refetch()} tintColor={colors.brand} />
+      }
+    >
+      <Text style={{ ...type.screenTitle, color: colors.text }}>Who liked you</Text>
       {isLoading ? (
         <View>
           {[0, 1, 2].map((i) => (

@@ -30,7 +30,7 @@ import { hapticLight, hapticSuccess } from "@/lib/haptics";
 import { useTheme } from "@/theme/useTheme";
 
 export default function DeckScreen() {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, type } = useTheme();
   const insets = useSafeAreaInsets();
   const { cards, isLoading, error, popTop, refetch } = useDeck();
   const swipeAction = useSwipeAction();
@@ -149,7 +149,7 @@ export default function DeckScreen() {
           paddingTop: insets.top + spacing.lg,
         }}
       >
-        <Text style={{ fontSize: 28, fontWeight: "700", color: colors.text }}>Deck</Text>
+        <Text style={{ ...type.screenTitle, color: colors.text }}>Deck</Text>
         <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.lg }}>
           <Pressable
             accessibilityRole="button"
