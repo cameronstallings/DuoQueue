@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { router, Stack } from "expo-router";
 import { PROMPT_ANSWER_MAX_LENGTH, PROMPT_COUNT } from "@duoqueue/shared-types";
@@ -23,15 +23,15 @@ export default function EditPromptsScreen() {
   const [slots, setSlots] = useState<(PromptSlot | null)[] | null>(null);
   const [pickerIndex, setPickerIndex] = useState<number | null>(null);
 
-  // Seed local editable state once the saved prompts arrive — render-time sync, guarded
-  // so it only fires once (same pattern as the onboarding preferences screens).
-  if (slots === null && !loadingExisting) {
+  // Seed local editable state once the saved prompts arrive.
+  useEffect(() => {
+    if (slots !== null || loadingExisting) return;
     const seeded: (PromptSlot | null)[] = Array.from({ length: PROMPT_COUNT }, () => null);
     for (const p of existing ?? []) {
       if (p.position < PROMPT_COUNT) seeded[p.position] = { promptId: p.promptId, question: p.question, answer: p.answer };
     }
     setSlots(seeded);
-  }
+  }, [slots, loadingExisting, existing]);
 
   const chosenIds = new Set((slots ?? []).filter((s) => !!s).map((s) => s!.promptId));
   const allAnswered = (slots ?? []).every((s) => s && s.answer.trim().length > 0);
@@ -55,52 +55,6 @@ export default function EditPromptsScreen() {
     } catch (err) {
       Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
     }
-  }
-
-  if (pickerIndex !== null) {
-    return (
-      <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: 60, paddingHorizontal: spacing.lg }}>
-        <Stack.Screen options={{ headerShown: false }} />
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: spacing.md,
-          }}
-        >
-          <Text style={{ ...type.title, color: colors.text }}>Select a prompt</Text>
-          <Pressable onPress={() => setPickerIndex(null)}>
-            <Text style={{ color: colors.brand, fontWeight: "600" }}>Cancel</Text>
-          </Pressable>
-        </View>
-
-        {loadingCatalog ? (
-          <ActivityIndicator color={colors.brand} />
-        ) : (
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {(catalog ?? [])
-              .filter((item) => !chosenIds.has(item.id))
-              .map((item) => (
-                <Pressable
-                  key={item.id}
-                  onPress={() => {
-                    setPromptAt(pickerIndex, { promptId: item.id, question: item.question });
-                    setPickerIndex(null);
-                  }}
-                  style={{
-                    paddingVertical: spacing.md,
-                    borderBottomWidth: 1,
-                    borderBottomColor: colors.border,
-                  }}
-                >
-                  <Text style={{ color: colors.text, fontSize: 15 }}>{item.question}</Text>
-                </Pressable>
-              ))}
-          </ScrollView>
-        )}
-      </View>
-    );
   }
 
   return (
@@ -152,6 +106,60 @@ export default function EditPromptsScreen() {
         />
         <Button label="Cancel" variant="ghost" onPress={() => router.back()} />
       </ScrollView>
+
+      {pickerIndex !== null && (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: colors.background,
+            paddingTop: spacing.lg,
+            paddingHorizontal: spacing.lg,
+          }}
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: spacing.md,
+            }}
+          >
+            <Text style={{ ...type.title, color: colors.text }}>Select a prompt</Text>
+            <Pressable onPress={() => setPickerIndex(null)}>
+              <Text style={{ color: colors.brand, fontWeight: "600" }}>Cancel</Text>
+            </Pressable>
+          </View>
+
+          {loadingCatalog ? (
+            <ActivityIndicator color={colors.brand} />
+          ) : (
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {(catalog ?? [])
+                .filter((item) => !chosenIds.has(item.id))
+                .map((item) => (
+                  <Pressable
+                    key={item.id}
+                    onPress={() => {
+                      setPromptAt(pickerIndex, { promptId: item.id, question: item.question });
+                      setPickerIndex(null);
+                    }}
+                    style={{
+                      paddingVertical: spacing.md,
+                      borderBottomWidth: 1,
+                      borderBottomColor: colors.border,
+                    }}
+                  >
+                    <Text style={{ color: colors.text, fontSize: 15 }}>{item.question}</Text>
+                  </Pressable>
+                ))}
+            </ScrollView>
+          )}
+        </View>
+      )}
     </View>
   );
 }
