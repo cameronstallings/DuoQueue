@@ -7,9 +7,11 @@ import { GENDERS, PLATFORMS, PLAYSTYLE_TAGS, REGIONS, SKILL_LEVELS } from "./enu
 export const BIO_MAX_LENGTH = 300;
 export const PROMPT_ANSWER_MAX_LENGTH = 150;
 export const PROMPT_COUNT = 3;
-export const MIN_AGE = 15;
-/** Users below this age are matched only with other under-18 users — see
- * same_age_band()/is_minor() in the matching migrations. */
+export const MIN_AGE = 18;
+/** Kept equal to MIN_AGE for now — the app is 18+ only. If a lower age band is
+ * reintroduced later, this is the boundary same_age_band()/is_minor() in the matching
+ * migrations use to keep minors and adults in separate pools (currently dormant since
+ * MIN_AGE means is_minor() can never be true). */
 export const ADULT_AGE = 18;
 
 function meetsMinAge(dob: string): boolean {
