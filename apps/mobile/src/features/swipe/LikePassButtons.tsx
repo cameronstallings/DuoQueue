@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, View } from "react-native";
 
+import { hapticLight } from "@/lib/haptics";
 import { useTheme } from "@/theme/useTheme";
 
 interface LikePassButtonsProps {
@@ -13,6 +14,13 @@ interface LikePassButtonsProps {
 
 export function LikePassButtons({ onLike, onPass, onSuperPing, onSendRose, disabled }: LikePassButtonsProps) {
   const { colors, spacing, shadow } = useTheme();
+
+  function withHaptic(fn: () => void) {
+    return () => {
+      hapticLight();
+      fn();
+    };
+  }
 
   return (
     <View
@@ -27,7 +35,7 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, onSendRose, disab
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Pass"
-        onPress={onPass}
+        onPress={withHaptic(onPass)}
         disabled={disabled}
         style={({ pressed }) => [
           styles.button,
@@ -46,7 +54,7 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, onSendRose, disab
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Super Ping"
-          onPress={onSuperPing}
+          onPress={withHaptic(onSuperPing)}
           disabled={disabled}
           style={({ pressed }) => [
             styles.smallButton,
@@ -65,7 +73,7 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, onSendRose, disab
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Like"
-        onPress={onLike}
+        onPress={withHaptic(onLike)}
         disabled={disabled}
         style={({ pressed }) => [
           styles.button,
@@ -84,7 +92,7 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, onSendRose, disab
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Send a Legendary Like"
-          onPress={onSendRose}
+          onPress={withHaptic(onSendRose)}
           disabled={disabled}
           style={({ pressed }) => [
             styles.smallButton,

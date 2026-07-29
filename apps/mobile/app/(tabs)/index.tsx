@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
+import { EmptyState } from "@/components/EmptyState";
 import { Skeleton } from "@/components/Skeleton";
 import { useAdmirersCount } from "@/features/matching/useAdmirers";
 import {
@@ -25,6 +26,7 @@ import type { DeckCard, SwipeDirection } from "@/features/swipe/types";
 import { useDeck } from "@/features/swipe/useDeck";
 import { SwipeLimitReachedError, useSwipeAction } from "@/features/swipe/useSwipeAction";
 import { useSwipeQuota } from "@/features/swipe/useSwipeQuota";
+import { hapticLight, hapticSuccess } from "@/lib/haptics";
 import { useTheme } from "@/theme/useTheme";
 
 export default function DeckScreen() {
@@ -45,6 +47,7 @@ export default function DeckScreen() {
     try {
       const result = await swipeAction.mutateAsync({ targetId: card.profile_id, direction });
       if (result.matched && result.match_id) {
+        hapticSuccess();
         router.push({
           pathname: "/match/[matchId]",
           params: {
@@ -88,6 +91,7 @@ export default function DeckScreen() {
   }
 
   async function handleActivateBoost() {
+    hapticLight();
     try {
       await activateBoost.mutateAsync();
       Alert.alert("Power-Up activated", "You'll be shown near the top of other people's decks for 30 minutes.");
@@ -110,6 +114,7 @@ export default function DeckScreen() {
       const result = await sendRose.mutateAsync(top.profile_id);
       popTop();
       if (result.matched && result.match_id) {
+        hapticSuccess();
         router.push({
           pathname: "/match/[matchId]",
           params: { matchId: result.match_id, name: top.display_name, photo: top.profilePhotoUrl ?? "" },
@@ -179,29 +184,21 @@ export default function DeckScreen() {
         {isLoading ? (
           <Skeleton style={{ flex: 1, borderRadius: 20 }} />
         ) : error ? (
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.md }}>
-            <Text style={{ fontSize: 18, fontWeight: "600", color: colors.text }}>
-              Couldn&apos;t load your deck
-            </Text>
-            <Text style={{ color: colors.textMuted, textAlign: "center" }}>
-              Check your connection and try again.
-            </Text>
-            <Pressable onPress={() => void refetch()}>
-              <Text style={{ color: colors.brand, fontWeight: "600" }}>Try again</Text>
-            </Pressable>
-          </View>
+          <EmptyState
+            icon="cloud-offline"
+            title="Couldn't load your deck"
+            subtitle="Check your connection and try again."
+            actionLabel="Try again"
+            onAction={() => void refetch()}
+          />
         ) : cards.length === 0 ? (
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.md }}>
-            <Text style={{ fontSize: 18, fontWeight: "600", color: colors.text }}>
-              No more profiles right now
-            </Text>
-            <Text style={{ color: colors.textMuted, textAlign: "center" }}>
-              Check back later, or adjust your filters to see more people.
-            </Text>
-            <Pressable onPress={() => void refetch()}>
-              <Text style={{ color: colors.brand, fontWeight: "600" }}>Refresh</Text>
-            </Pressable>
-          </View>
+          <EmptyState
+            icon="game-controller"
+            title="No more profiles right now"
+            subtitle="Check back later, or adjust your filters to see more people."
+            actionLabel="Refresh"
+            onAction={() => void refetch()}
+          />
         ) : (
           <SwipeDeck ref={deckRef} cards={cards} onSwiped={(card, direction) => void handleSwiped(card, direction)} />
         )}

@@ -60,6 +60,7 @@ export default function RootLayout() {
             <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
               <Stack.Screen name="(auth)" />
               <Stack.Screen name="(onboarding)" />
+              <Stack.Screen name="welcome" />
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="chat/[matchId]" options={{ headerShown: true, title: "Chat" }} />
               <Stack.Screen name="filters" options={{ presentation: "modal" }} />

@@ -1,17 +1,16 @@
 import { useState } from "react";
 import { Text } from "react-native";
+import { router } from "expo-router";
 import { discordUsernameSchema } from "@duoqueue/shared-types";
 
 import { TextField } from "@/components/TextField";
 import { WizardStep } from "@/features/onboarding/WizardStep";
 import { useOnboardingStore } from "@/store/onboarding-store";
-import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
 export default function DiscordStep() {
   const { colors } = useTheme();
   const { discordUsername, setDiscordUsername, submit, submitting } = useOnboardingStore();
-  const refreshProfile = useSessionStore((s) => s.refreshProfile);
   const [error, setError] = useState<string | null>(null);
 
   async function handleFinish() {
@@ -25,7 +24,10 @@ export default function DiscordStep() {
     setError(null);
     try {
       await submit();
-      await refreshProfile();
+      // Refreshing the session profile happens on the welcome screen instead of here —
+      // (onboarding)/_layout.tsx redirects away the instant onboarding_completed flips
+      // true, which would skip this celebratory screen entirely if we refreshed now.
+      router.replace("/welcome");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     }

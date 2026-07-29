@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Alert, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -15,8 +15,10 @@ import type { ReportReason } from "@duoqueue/shared-types";
 import { ReportModal } from "@/components/ReportModal";
 import { useBlockUser, useReportUser } from "@/features/chat/useMatchActions";
 import { REGION_LABELS } from "@/features/onboarding/profile-labels";
+import { hapticLight } from "@/lib/haptics";
 import { useTheme } from "@/theme/useTheme";
 
+import { ProfileDetailContent } from "./ProfileDetailContent";
 import { SkillBadge } from "./SkillBadge";
 import type { DeckCard, SwipeDirection } from "./types";
 
@@ -38,11 +40,13 @@ interface SwipeCardProps {
 export function SwipeCard({ card, isTop, onSwiped, externalTrigger }: SwipeCardProps) {
   const { colors, radius, spacing } = useTheme();
   const [reportVisible, setReportVisible] = useState(false);
+  const [detailVisible, setDetailVisible] = useState(false);
   const blockUser = useBlockUser();
   const reportUser = useReportUser();
 
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
+  const hasCrossedThreshold = useSharedValue(false);
 
   function handleMenu() {
     Alert.alert(card.display_name, undefined, [
@@ -99,8 +103,15 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger }: SwipeCardP
     .onUpdate((event) => {
       translateX.value = event.translationX;
       translateY.value = event.translationY;
+
+      const crossed = Math.abs(event.translationX) > SWIPE_THRESHOLD;
+      if (crossed !== hasCrossedThreshold.value) {
+        hasCrossedThreshold.value = crossed;
+        if (crossed) runOnJS(hapticLight)();
+      }
     })
     .onEnd((event) => {
+      hasCrossedThreshold.value = false;
       if (Math.abs(event.translationX) > SWIPE_THRESHOLD) {
         const direction: SwipeDirection = event.translationX > 0 ? "like" : "pass";
         const targetX = direction === "like" ? OFFSCREEN_DISTANCE : -OFFSCREEN_DISTANCE;
@@ -183,41 +194,43 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger }: SwipeCardP
               {card.languages.length > 0 ? ` · ${card.languages.join(", ").toUpperCase()}` : ""}
             </Text>
 
-            {card.topGames.length > 0 && (
+            {card.topGames[0] && (
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
-                {card.topGames.map((g) => (
-                  <SkillBadge key={g.name} gameName={g.name} skillLevel={g.skillLevel} />
-                ))}
+                <SkillBadge gameName={card.topGames[0].name} skillLevel={card.topGames[0].skillLevel} />
               </View>
             )}
 
-            {card.topShows.length > 0 && (
-              <Text style={styles.subtext} numberOfLines={1}>
-                Watching: {card.topShows.join(", ")}
-              </Text>
-            )}
-
-            {card.playstyles.length > 0 && (
-              <Text style={styles.subtext} numberOfLines={1}>
-                {card.playstyles.join(" · ")}
-              </Text>
-            )}
-
-            {card.prompts.map((prompt) => (
-              <View key={prompt.question} style={{ marginTop: 2 }}>
+            {card.prompts[0] && (
+              <View style={{ marginTop: 2 }}>
                 <Text style={styles.promptQuestion} numberOfLines={1}>
-                  {prompt.question}
+                  {card.prompts[0].question}
                 </Text>
                 <Text style={styles.promptAnswer} numberOfLines={2}>
-                  {prompt.answer}
+                  {card.prompts[0].answer}
                 </Text>
               </View>
-            ))}
+            )}
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="See full profile"
+              onPress={() => setDetailVisible(true)}
+              style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, marginTop: 4 }}
+            >
+              <Text style={styles.seeMoreText}>See full profile</Text>
+              <Ionicons name="chevron-up" size={14} color="rgba(255,255,255,0.85)" />
+            </Pressable>
           </View>
         </Animated.View>
       </GestureDetector>
 
       <ReportModal visible={reportVisible} onClose={() => setReportVisible(false)} onSubmit={handleReportSubmit} />
+
+      <Modal visible={detailVisible} animationType="slide" onRequestClose={() => setDetailVisible(false)}>
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
+          <ProfileDetailContent card={card} onClose={() => setDetailVisible(false)} />
+        </View>
+      </Modal>
     </>
   );
 }
@@ -284,6 +297,11 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 0.4,
+  },
+  seeMoreText: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 12,
+    fontWeight: "600",
   },
   stamp: {
     position: "absolute",

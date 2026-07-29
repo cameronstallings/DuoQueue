@@ -12,6 +12,7 @@ import { SectionLabel } from "@/components/SectionLabel";
 import { useDeleteAccount } from "@/features/settings/useDeleteAccount";
 import { useNotificationSettings } from "@/features/settings/useNotificationSettings";
 import { usePrivacyToggles } from "@/features/settings/usePrivacyToggles";
+import { hapticSelection } from "@/lib/haptics";
 import { useSessionStore } from "@/store/session-store";
 import { type ThemePreference, useThemeStore } from "@/store/theme-store";
 import { useTheme } from "@/theme/useTheme";
@@ -53,7 +54,10 @@ function NotificationRow({
       <Text style={{ color: colors.text, fontSize: 15 }}>{CATEGORY_LABELS[category]}</Text>
       <Switch
         value={settings[category]}
-        onValueChange={(value) => onToggle(category, value)}
+        onValueChange={(value) => {
+          hapticSelection();
+          onToggle(category, value);
+        }}
         trackColor={{ true: colors.brand }}
       />
     </View>
@@ -146,7 +150,10 @@ export default function SettingsScreen() {
           <ChipSelect
             options={APPEARANCE_OPTIONS}
             selected={[themePreference]}
-            onToggle={(value) => setThemePreference(value)}
+            onToggle={(value) => {
+              hapticSelection();
+              setThemePreference(value);
+            }}
           />
         </Card>
       </View>
@@ -179,7 +186,10 @@ export default function SettingsScreen() {
             </View>
             <Switch
               value={!(profile?.is_active ?? true)}
-              onValueChange={(value) => setIsActive.mutate(!value)}
+              onValueChange={(value) => {
+                hapticSelection();
+                setIsActive.mutate(!value);
+              }}
               trackColor={{ true: colors.brand }}
             />
           </View>
@@ -200,7 +210,10 @@ export default function SettingsScreen() {
             </View>
             <Switch
               value={profile?.hide_last_active ?? false}
-              onValueChange={(value) => setHideLastActive.mutate(value)}
+              onValueChange={(value) => {
+                hapticSelection();
+                setHideLastActive.mutate(value);
+              }}
               trackColor={{ true: colors.brand }}
             />
           </View>

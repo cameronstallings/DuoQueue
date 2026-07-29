@@ -2,6 +2,7 @@ import { SectionList, Image, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { EmptyState } from "@/components/EmptyState";
 import { Skeleton } from "@/components/Skeleton";
 import { SectionLabel } from "@/components/SectionLabel";
 import { useMatches, type MatchListItem } from "@/features/chat/useMatches";
@@ -159,20 +160,19 @@ export default function MatchesScreen() {
           ))}
         </View>
       ) : error ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.sm, padding: spacing.lg }}>
-          <Text style={{ fontSize: 18, fontWeight: "600", color: colors.text }}>Couldn&apos;t load matches</Text>
-          <Text style={{ color: colors.textMuted, textAlign: "center" }}>Check your connection and try again.</Text>
-          <Pressable onPress={() => void refetch()}>
-            <Text style={{ color: colors.brand, fontWeight: "600" }}>Try again</Text>
-          </Pressable>
-        </View>
+        <EmptyState
+          icon="cloud-offline"
+          title="Couldn't load matches"
+          subtitle="Check your connection and try again."
+          actionLabel="Try again"
+          onAction={() => void refetch()}
+        />
       ) : !matches || matches.length === 0 ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.sm, padding: spacing.lg }}>
-          <Text style={{ fontSize: 18, fontWeight: "600", color: colors.text }}>No matches yet</Text>
-          <Text style={{ color: colors.textMuted, textAlign: "center" }}>
-            Keep swiping in the Deck tab — mutual likes show up here.
-          </Text>
-        </View>
+        <EmptyState
+          icon="heart"
+          title="No matches yet"
+          subtitle="Keep swiping in the Deck tab — mutual likes show up here."
+        />
       ) : (
         <SectionList
           sections={sections}

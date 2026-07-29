@@ -3,7 +3,7 @@ import { ActivityIndicator, Image, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
-import type { PhotoRole } from "@duoqueue/shared-types";
+import { PROMPT_COUNT, type PhotoRole } from "@duoqueue/shared-types";
 
 import { Card } from "@/components/Card";
 import { InfoChip } from "@/components/InfoChip";
@@ -11,6 +11,7 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { SectionLabel } from "@/components/SectionLabel";
 import { Skeleton } from "@/components/Skeleton";
 import { PLATFORM_LABELS, PLAYSTYLE_LABELS, REGION_LABELS, SKILL_LABELS } from "@/features/onboarding/profile-labels";
+import { ProfileCompleteness } from "@/features/profile/ProfileCompleteness";
 import { useOwnProfileDetails } from "@/features/profile/useOwnProfileDetails";
 import { useOwnProfilePhotos } from "@/features/profile/useOwnProfilePhotos";
 import { useOwnPrompts } from "@/features/profile/useOwnPrompts";
@@ -146,6 +147,8 @@ export default function ProfileScreen() {
     if (asset) updatePhoto.mutate({ uri: asset.uri, role });
   }
 
+  const detailsReady = !isLoading && !promptsLoading && !detailsLoading;
+
   return (
     <ScreenContainer>
       <Text style={{ fontSize: 28, fontWeight: "700", color: colors.text }}>{profile?.display_name}</Text>
@@ -153,6 +156,19 @@ export default function ProfileScreen() {
         <Text style={{ color: colors.textMuted, fontSize: 14, marginTop: 2 }}>
           {calculateAge(profile.dob)} · {REGION_LABELS[profile.region] ?? profile.region}
         </Text>
+      )}
+      {detailsReady && (
+        <ProfileCompleteness
+          items={[
+            { label: "a profile picture", done: !!photos?.profileUrl },
+            { label: "a header picture", done: !!photos?.headerUrl },
+            { label: "a game", done: (details?.games.length ?? 0) > 0 },
+            { label: "a show", done: (details?.shows.length ?? 0) > 0 },
+            { label: "a platform", done: (details?.platforms.length ?? 0) > 0 },
+            { label: "a playstyle", done: (details?.playstyles.length ?? 0) > 0 },
+            { label: "your prompts", done: (prompts?.length ?? 0) >= PROMPT_COUNT },
+          ]}
+        />
       )}
 
       <View style={{ marginTop: spacing.sm, gap: spacing.md }}>

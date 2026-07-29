@@ -2,6 +2,7 @@ import { ActivityIndicator, Alert, FlatList, Image, Pressable, Text, View } from
 import { router } from "expo-router";
 
 import { Button } from "@/components/Button";
+import { EmptyState } from "@/components/EmptyState";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { Skeleton } from "@/components/Skeleton";
 import { usePremiumStatus } from "@/features/matching/usePremiumStatus";
@@ -131,7 +132,11 @@ export default function AdmirersScreen() {
           <Button label="Try again" variant="ghost" onPress={() => void refetch()} />
         </View>
       ) : !admirers || admirers.length === 0 ? (
-        <Text style={{ color: colors.textMuted }}>No admirers yet — keep your profile fresh!</Text>
+        <EmptyState
+          icon="sparkles"
+          title="No admirers yet"
+          subtitle="Keep your profile fresh — new likes will show up here."
+        />
       ) : (
         <FlatList
           data={admirers}
