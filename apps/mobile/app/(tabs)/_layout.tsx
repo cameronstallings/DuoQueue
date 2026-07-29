@@ -5,7 +5,12 @@ import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
 const TAB_CONFIG = {
-  index: { title: "Deck", family: "ionicons", active: "flame", inactive: "flame-outline" },
+  index: {
+    title: "Deck",
+    family: "material-community",
+    active: "cards-playing",
+    inactive: "cards-playing-outline",
+  },
   matches: {
     title: "Matches",
     family: "material-community",
