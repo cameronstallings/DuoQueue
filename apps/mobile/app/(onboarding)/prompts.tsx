@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ActivityIndicator, Modal, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { router } from "expo-router";
 import { PROMPT_ANSWER_MAX_LENGTH } from "@duoqueue/shared-types";
 
@@ -74,24 +74,27 @@ export default function PromptsStep() {
           {isLoading ? (
             <ActivityIndicator color={colors.brand} />
           ) : (
-            (catalog ?? [])
-              .filter((item) => !chosenIds.has(item.id))
-              .map((item) => (
-                <Pressable
-                  key={item.id}
-                  onPress={() => {
-                    if (pickerIndex !== null) setPromptAt(pickerIndex, { promptId: item.id, question: item.question });
-                    setPickerIndex(null);
-                  }}
-                  style={{
-                    paddingVertical: spacing.md,
-                    borderBottomWidth: 1,
-                    borderBottomColor: colors.border,
-                  }}
-                >
-                  <Text style={{ color: colors.text, fontSize: 15 }}>{item.question}</Text>
-                </Pressable>
-              ))
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {(catalog ?? [])
+                .filter((item) => !chosenIds.has(item.id))
+                .map((item) => (
+                  <Pressable
+                    key={item.id}
+                    onPress={() => {
+                      if (pickerIndex !== null)
+                        setPromptAt(pickerIndex, { promptId: item.id, question: item.question });
+                      setPickerIndex(null);
+                    }}
+                    style={{
+                      paddingVertical: spacing.md,
+                      borderBottomWidth: 1,
+                      borderBottomColor: colors.border,
+                    }}
+                  >
+                    <Text style={{ color: colors.text, fontSize: 15 }}>{item.question}</Text>
+                  </Pressable>
+                ))}
+            </ScrollView>
           )}
         </View>
       </Modal>
