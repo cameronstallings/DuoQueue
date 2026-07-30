@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import * as AppleAuthentication from "expo-apple-authentication";
 
 import { Button } from "@/components/Button";
+import { Logo } from "@/components/Logo";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { TextField } from "@/components/TextField";
 import { signInWithApple } from "@/features/auth/appleSignIn";
@@ -39,6 +40,7 @@ export default function SignIn() {
 
   return (
     <ScreenContainer>
+      <Logo width={56} />
       <Text style={{ fontSize: 28, fontWeight: "700", color: colors.text }}>Welcome back</Text>
       <Text style={{ color: colors.textMuted, marginBottom: spacing.md }}>
         Sign in to find your next gaming duo.

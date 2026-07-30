@@ -4,6 +4,7 @@ import * as Localization from "expo-localization";
 import { router, useLocalSearchParams } from "expo-router";
 
 import { Button } from "@/components/Button";
+import { Logo } from "@/components/Logo";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { TextField } from "@/components/TextField";
 import { supabase } from "@/lib/supabase";
@@ -63,6 +64,7 @@ export default function SignUp() {
 
   return (
     <ScreenContainer>
+      <Logo width={56} />
       <Text style={{ fontSize: 28, fontWeight: "700", color: colors.text }}>Create your account</Text>
       <Text style={{ color: colors.textMuted, marginBottom: spacing.md }}>
         Next you&apos;ll set up your profile — games, shows, and how you like to play.

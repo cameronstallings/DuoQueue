@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { ActivityIndicator, AppState, View } from "react-native";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { StatusBar } from "expo-status-bar";
+import * as SplashScreen from "expo-splash-screen";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Stack } from "expo-router";
@@ -28,6 +29,11 @@ AppState.addEventListener("change", (state) => {
 
 configureNetworkAwareQueries();
 
+// Keep the native splash up until the JS root has mounted and taken over
+// rendering (the LoadingScreen below shares the splash's background color,
+// so the handoff reads as one continuous screen rather than a flash).
+void SplashScreen.preventAutoHideAsync();
+
 function LoadingScreen() {
   const { colors } = useTheme();
   return (
@@ -47,6 +53,7 @@ export default function RootLayout() {
   useEffect(() => {
     void initialize();
     void loadThemePreference();
+    void SplashScreen.hideAsync();
   }, [initialize]);
 
   return (

@@ -19,7 +19,7 @@
     "android": {
       "package": "com.duoqueue.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#7C4DFF",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -46,8 +46,21 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/icon.png",
+          "icon": "./assets/android-icon-foreground.png",
           "color": "#7C4DFF"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180,
+          "resizeMode": "contain",
+          "backgroundColor": "#F6F6F9",
+          "dark": {
+            "image": "./assets/splash-icon.png",
+            "backgroundColor": "#0E0E12"
+          }
         }
       ]
     ],

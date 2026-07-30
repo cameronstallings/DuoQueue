@@ -5,6 +5,7 @@ import { router } from "expo-router";
 import { dobSchema, MIN_AGE } from "@duoqueue/shared-types";
 
 import { Button } from "@/components/Button";
+import { Logo } from "@/components/Logo";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { useTheme } from "@/theme/useTheme";
 
@@ -29,6 +30,7 @@ export default function AgeGate() {
 
   return (
     <ScreenContainer>
+      <Logo width={56} />
       <Text style={{ fontSize: 28, fontWeight: "700", color: colors.text }}>Confirm your age</Text>
       <Text style={{ color: colors.textMuted, marginBottom: spacing.md }}>
         DuoQueue is for players {MIN_AGE} and older. Your date of birth is kept private — only your age
