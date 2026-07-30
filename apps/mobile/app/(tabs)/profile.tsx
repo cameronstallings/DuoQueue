@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
-import { ActivityIndicator, Image, Pressable, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Image, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 import { PROMPT_COUNT, type PhotoRole } from "@duoqueue/shared-types";
 
 import { Card } from "@/components/Card";
@@ -64,6 +65,7 @@ function DetailSection({
   isLoading,
   isEmpty,
   emptyText,
+  onEdit,
   children,
 }: {
   label: string;
@@ -71,15 +73,21 @@ function DetailSection({
   isLoading: boolean;
   isEmpty: boolean;
   emptyText: string;
+  onEdit: () => void;
   children: ReactNode;
 }) {
   const { colors, radius, spacing } = useTheme();
 
   return (
     <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
-        <Ionicons name={icon} size={14} color={colors.textMuted} />
-        <SectionLabel>{label}</SectionLabel>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
+          <Ionicons name={icon} size={14} color={colors.textMuted} />
+          <SectionLabel>{label}</SectionLabel>
+        </View>
+        <Pressable onPress={onEdit}>
+          <Text style={{ color: colors.brand, fontWeight: "600", fontSize: 13 }}>Edit</Text>
+        </Pressable>
       </View>
       {isLoading ? (
         <Skeleton height={36} borderRadius={radius.pill} />
@@ -120,9 +128,21 @@ export default function ProfileScreen() {
   const uploadingProfile = updatePhoto.isPending && updatePhoto.variables?.role === "profile";
   const uploadingHeader = updatePhoto.isPending && updatePhoto.variables?.role === "header";
 
+  const scrollY = useSharedValue(0);
+  const scrollHandler = useAnimatedScrollHandler((event) => {
+    scrollY.value = event.contentOffset.y;
+  });
+  const backdropStyle = useAnimatedStyle(() => ({
+    opacity: Math.min(Math.max(scrollY.value / 80, 0), 1),
+  }));
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}>
+      <Animated.ScrollView
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
+        contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}
+      >
         {isLoading ? (
           <Skeleton width="100%" height={150 + insets.top} borderRadius={0} />
         ) : (
@@ -131,11 +151,21 @@ export default function ProfileScreen() {
             accessibilityLabel="Change header picture"
             onPress={() => void handlePick("header")}
             disabled={updatePhoto.isPending}
-            style={{ width: "100%", aspectRatio: BANNER_ASPECT, backgroundColor: colors.surface, paddingTop: insets.top }}
+            style={{
+              width: "100%",
+              aspectRatio: BANNER_ASPECT,
+              backgroundColor: colors.surface,
+              paddingTop: insets.top,
+              overflow: "hidden",
+            }}
           >
             {photos?.headerUrl && (
               <>
-                <Image source={{ uri: photos.headerUrl }} style={{ width: "100%", height: "100%", position: "absolute" }} resizeMode="cover" />
+                <Image
+                  source={{ uri: photos.headerUrl }}
+                  style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+                  resizeMode="cover"
+                />
                 <LinearGradient
                   colors={["rgba(0,0,0,0.45)", "rgba(0,0,0,0)"]}
                   pointerEvents="none"
@@ -223,6 +253,7 @@ export default function ProfileScreen() {
             isLoading={detailsLoading}
             isEmpty={!detailsLoading && (details?.games.length ?? 0) === 0}
             emptyText="No games added yet."
+            onEdit={() => router.push("/edit-details")}
           >
             {(details?.games ?? []).map((game) => (
               <InfoChip
@@ -240,6 +271,7 @@ export default function ProfileScreen() {
             isLoading={detailsLoading}
             isEmpty={!detailsLoading && (details?.shows.length ?? 0) === 0}
             emptyText="No shows added yet."
+            onEdit={() => router.push("/edit-details")}
           >
             {(details?.shows ?? []).map((show) => (
               <InfoChip key={show} label={show} icon="tv" />
@@ -252,6 +284,7 @@ export default function ProfileScreen() {
             isLoading={detailsLoading}
             isEmpty={!detailsLoading && (details?.platforms.length ?? 0) === 0}
             emptyText="No platforms added yet."
+            onEdit={() => router.push("/edit-details")}
           >
             {(details?.platforms ?? []).map((platform) => (
               <InfoChip
@@ -269,13 +302,24 @@ export default function ProfileScreen() {
             isLoading={detailsLoading}
             isEmpty={!detailsLoading && (details?.playstyles.length ?? 0) === 0}
             emptyText="No playstyle tags added yet."
+            onEdit={() => router.push("/edit-details")}
           >
             {(details?.playstyles ?? []).map((tag) => (
               <InfoChip key={tag} label={PLAYSTYLE_LABELS[tag]} icon="people" />
             ))}
           </DetailSection>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
+
+      {/* Fixed, non-scrolling backdrop that fades in as the banner scrolls out of view, so
+          the status bar sits on the photo at the top but on a solid backing everywhere else. */}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          { position: "absolute", top: 0, left: 0, right: 0, height: insets.top, backgroundColor: colors.background },
+          backdropStyle,
+        ]}
+      />
     </View>
   );
 }

@@ -109,6 +109,13 @@ export default function EditPromptsScreen() {
         <Button label="Cancel" variant="ghost" onPress={() => router.back()} />
       </ScrollView>
 
+      {pickerIndex === null && (
+        <View
+          pointerEvents="none"
+          style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top, backgroundColor: colors.background }}
+        />
+      )}
+
       {pickerIndex !== null && (
         <View
           style={{

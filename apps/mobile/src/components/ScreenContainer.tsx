@@ -28,6 +28,12 @@ export function ScreenContainer({ children, refreshControl }: ScreenContainerPro
       >
         <View style={{ gap: spacing.md }}>{children}</View>
       </ScrollView>
+      {/* Fixed, non-scrolling backdrop so content never passes directly behind the status
+          bar icons with nothing behind it once the user scrolls past the initial padding. */}
+      <View
+        pointerEvents="none"
+        style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top, backgroundColor: colors.background }}
+      />
     </KeyboardAvoidingView>
   );
 }
