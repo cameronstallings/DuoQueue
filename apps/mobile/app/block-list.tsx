@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Alert, FlatList, RefreshControl, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
@@ -59,14 +60,24 @@ function BlockedRowSkeleton() {
 
 export default function BlockListScreen() {
   const { colors, spacing } = useTheme();
-  const { data: blocked, isLoading, isFetching, error, refetch } = useBlockedUsers();
+  const { data: blocked, isLoading, error, refetch } = useBlockedUsers();
+
+  const [refreshing, setRefreshing] = useState(false);
+  async function handleRefresh() {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   return (
     <ScreenContainer
       title="Block List"
       showClose
       refreshControl={
-        <RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => void refetch()} tintColor={colors.brand} />
+        <RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} tintColor={colors.brand} />
       }
     >
       <Text style={{ color: colors.textMuted, marginBottom: spacing.sm }}>

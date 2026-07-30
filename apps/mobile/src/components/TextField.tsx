@@ -19,8 +19,8 @@ export function TextField({ label, error, style, ...inputProps }: TextFieldProps
         style={[
           styles.input,
           {
-            backgroundColor: colors.surface,
-            borderColor: error ? colors.danger : colors.surface,
+            backgroundColor: colors.surfaceAlt,
+            borderColor: error ? colors.danger : colors.border,
             color: colors.text,
             borderRadius: radius.md,
           },

@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
+import Animated, { FadeIn, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 import { PROMPT_COUNT, type PhotoRole } from "@duoqueue/shared-types";
 
 import { Card } from "@/components/Card";
@@ -94,7 +94,9 @@ function DetailSection({
       ) : isEmpty ? (
         <Text style={{ color: colors.textMuted, fontSize: 13 }}>{emptyText}</Text>
       ) : (
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>{children}</View>
+        <Animated.View entering={FadeIn.duration(200)} style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+          {children}
+        </Animated.View>
       )}
     </View>
   );
@@ -146,35 +148,37 @@ export default function ProfileScreen() {
         {isLoading ? (
           <Skeleton width="100%" height={150 + insets.top} borderRadius={0} />
         ) : (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Change header picture"
-            onPress={() => void handlePick("header")}
-            disabled={updatePhoto.isPending}
-            style={{
-              width: "100%",
-              aspectRatio: BANNER_ASPECT,
-              backgroundColor: colors.surface,
-              paddingTop: insets.top,
-              overflow: "hidden",
-            }}
-          >
-            {photos?.headerUrl && (
-              <>
-                <Image
-                  source={{ uri: photos.headerUrl }}
-                  style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
-                  resizeMode="cover"
-                />
-                <LinearGradient
-                  colors={["rgba(0,0,0,0.45)", "rgba(0,0,0,0)"]}
-                  pointerEvents="none"
-                  style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top + 44 }}
-                />
-              </>
-            )}
-            <EditBadge uploading={uploadingHeader} />
-          </Pressable>
+          <Animated.View entering={FadeIn.duration(220)}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Change header picture"
+              onPress={() => void handlePick("header")}
+              disabled={updatePhoto.isPending}
+              style={{
+                width: "100%",
+                aspectRatio: BANNER_ASPECT,
+                backgroundColor: colors.surface,
+                paddingTop: insets.top,
+                overflow: "hidden",
+              }}
+            >
+              {photos?.headerUrl && (
+                <>
+                  <Image
+                    source={{ uri: photos.headerUrl }}
+                    style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+                    resizeMode="cover"
+                  />
+                  <LinearGradient
+                    colors={["rgba(0,0,0,0.45)", "rgba(0,0,0,0)"]}
+                    pointerEvents="none"
+                    style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top + 44 }}
+                  />
+                </>
+              )}
+              <EditBadge uploading={uploadingHeader} />
+            </Pressable>
+          </Animated.View>
         )}
 
         <View style={{ paddingHorizontal: spacing.lg }}>
@@ -236,14 +240,16 @@ export default function ProfileScreen() {
             {promptsLoading ? (
               <Skeleton height={80} borderRadius={radius.lg} />
             ) : (
-              (prompts ?? []).map((prompt) => (
-                <Card key={prompt.position} style={{ gap: spacing.xs, marginBottom: spacing.sm }}>
-                  <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: "700", textTransform: "uppercase" }}>
-                    {prompt.question}
-                  </Text>
-                  <Text style={{ color: colors.text }}>{prompt.answer}</Text>
-                </Card>
-              ))
+              <Animated.View entering={FadeIn.duration(200)}>
+                {(prompts ?? []).map((prompt) => (
+                  <Card key={prompt.position} style={{ gap: spacing.xs, marginBottom: spacing.sm }}>
+                    <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: "700", textTransform: "uppercase" }}>
+                      {prompt.question}
+                    </Text>
+                    <Text style={{ color: colors.text }}>{prompt.answer}</Text>
+                  </Card>
+                ))}
+              </Animated.View>
             )}
           </View>
 

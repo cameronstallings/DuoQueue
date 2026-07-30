@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { ActivityIndicator, Alert, FlatList, Image, Pressable, RefreshControl, Text, View } from "react-native";
 import { router } from "expo-router";
+import Animated, { FadeIn } from "react-native-reanimated";
 
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
@@ -97,7 +99,18 @@ export default function AdmirersScreen() {
   const { colors, radius, spacing } = useTheme();
   const { isPremium, isLoading: premiumLoading } = usePremiumStatus();
   const { data: count } = useAdmirersCount();
-  const { data: admirers, isLoading, isFetching, error, refetch } = useAdmirers(!premiumLoading);
+  const { data: admirers, isLoading, error, refetch } = useAdmirers(!premiumLoading);
+
+  // Spinner only for user-initiated pulls, not every background refetch.
+  const [refreshing, setRefreshing] = useState(false);
+  async function handleRefresh() {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   if (premiumLoading) {
     return (
@@ -116,7 +129,7 @@ export default function AdmirersScreen() {
       title="Who liked you"
       showClose
       refreshControl={
-        <RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => void refetch()} tintColor={colors.brand} />
+        <RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} tintColor={colors.brand} />
       }
     >
       {!isPremium && (
@@ -142,12 +155,14 @@ export default function AdmirersScreen() {
           subtitle="Keep your profile fresh — new likes will show up here."
         />
       ) : (
-        <FlatList
-          data={admirers}
-          keyExtractor={(item) => item.profile_id}
-          renderItem={({ item }) => <AdmirerRow item={item} />}
-          scrollEnabled={false}
-        />
+        <Animated.View entering={FadeIn.duration(220)}>
+          <FlatList
+            data={admirers}
+            keyExtractor={(item) => item.profile_id}
+            renderItem={({ item }) => <AdmirerRow item={item} />}
+            scrollEnabled={false}
+          />
+        </Animated.View>
       )}
 
       {hiddenCount > 0 && (

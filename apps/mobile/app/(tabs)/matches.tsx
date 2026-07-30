@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { RefreshControl, SectionList, Image, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { FadeIn } from "react-native-reanimated";
 
 import { EmptyState } from "@/components/EmptyState";
 import { Skeleton } from "@/components/Skeleton";
@@ -135,8 +137,20 @@ export default function MatchesScreen() {
   const { colors, spacing, type } = useTheme();
   const insets = useSafeAreaInsets();
   const profile = useSessionStore((s) => s.profile);
-  const { data: matches, isLoading, isFetching, error, refetch } = useMatches();
+  const { data: matches, isLoading, error, refetch } = useMatches();
   const sections = matches ? groupMatches(matches, profile?.id) : [];
+
+  // Spinner only for user-initiated pulls — driving it from isFetching made the list
+  // flash a refresh spinner on every background refetch when returning to this tab.
+  const [refreshing, setRefreshing] = useState(false);
+  async function handleRefresh() {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -173,27 +187,29 @@ export default function MatchesScreen() {
           subtitle="Keep swiping in the Deck tab — mutual likes show up here."
         />
       ) : (
-        <SectionList
-          sections={sections}
-          keyExtractor={(item) => item.match_id}
-          renderItem={({ item }) => <MatchRow item={item} />}
-          renderSectionHeader={({ section }) => (
-            <View
-              style={{
-                backgroundColor: colors.background,
-                paddingHorizontal: spacing.lg,
-                paddingTop: spacing.md,
-                paddingBottom: spacing.xs,
-              }}
-            >
-              <SectionLabel>{`${section.title} (${section.data.length})`}</SectionLabel>
-            </View>
-          )}
-          stickySectionHeadersEnabled={false}
-          refreshControl={
-            <RefreshControl refreshing={isFetching} onRefresh={() => void refetch()} tintColor={colors.brand} />
-          }
-        />
+        <Animated.View entering={FadeIn.duration(220)} style={{ flex: 1 }}>
+          <SectionList
+            sections={sections}
+            keyExtractor={(item) => item.match_id}
+            renderItem={({ item }) => <MatchRow item={item} />}
+            renderSectionHeader={({ section }) => (
+              <View
+                style={{
+                  backgroundColor: colors.background,
+                  paddingHorizontal: spacing.lg,
+                  paddingTop: spacing.md,
+                  paddingBottom: spacing.xs,
+                }}
+              >
+                <SectionLabel>{`${section.title} (${section.data.length})`}</SectionLabel>
+              </View>
+            )}
+            stickySectionHeadersEnabled={false}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} tintColor={colors.brand} />
+            }
+          />
+        </Animated.View>
       )}
     </View>
   );

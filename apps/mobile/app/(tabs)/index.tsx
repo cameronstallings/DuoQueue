@@ -3,6 +3,7 @@ import { Alert, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import Animated, { FadeIn } from "react-native-reanimated";
 
 import { EmptyState } from "@/components/EmptyState";
 import { Skeleton } from "@/components/Skeleton";
@@ -200,7 +201,9 @@ export default function DeckScreen() {
             onAction={() => void refetch()}
           />
         ) : (
-          <SwipeDeck ref={deckRef} cards={cards} onSwiped={(card, direction) => void handleSwiped(card, direction)} />
+          <Animated.View entering={FadeIn.duration(220)} style={{ flex: 1 }}>
+            <SwipeDeck ref={deckRef} cards={cards} onSwiped={(card, direction) => void handleSwiped(card, direction)} />
+          </Animated.View>
         )}
       </View>
 
