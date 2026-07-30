@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -7,6 +7,7 @@ import { PROMPT_ANSWER_MAX_LENGTH, PROMPT_COUNT } from "@duoqueue/shared-types";
 
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { Skeleton } from "@/components/Skeleton";
 import { TextField } from "@/components/TextField";
 import { usePromptCatalog } from "@/features/onboarding/usePromptCatalog";
 import { useOwnPrompts } from "@/features/profile/useOwnPrompts";
@@ -83,7 +84,12 @@ export default function EditPromptsScreen() {
           </Pressable>
         </View>
         {slots === null || loadingCatalog ? (
-          <ActivityIndicator color={colors.brand} />
+          Array.from({ length: PROMPT_COUNT }, (_, index) => (
+            <Card key={index} style={{ gap: spacing.sm }}>
+              <Skeleton width="60%" height={15} />
+              <Skeleton width="100%" height={44} borderRadius={8} />
+            </Card>
+          ))
         ) : (
           slots.map((slot, index) => (
             <Card key={index} style={{ gap: spacing.sm }}>
@@ -163,7 +169,20 @@ export default function EditPromptsScreen() {
           </View>
 
           {loadingCatalog ? (
-            <ActivityIndicator color={colors.brand} />
+            <View>
+              {[0, 1, 2, 3, 4].map((i) => (
+                <View
+                  key={i}
+                  style={{
+                    paddingVertical: spacing.md,
+                    borderBottomWidth: 1,
+                    borderBottomColor: colors.border,
+                  }}
+                >
+                  <Skeleton width={`${70 - i * 8}%`} height={15} />
+                </View>
+              ))}
+            </View>
           ) : (
             <ScrollView showsVerticalScrollIndicator={false}>
               {(catalog ?? [])

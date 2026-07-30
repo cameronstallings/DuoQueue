@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Switch, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Switch, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import type { NotificationSettingsRow } from "@duoqueue/shared-types";
@@ -9,6 +9,7 @@ import { Card } from "@/components/Card";
 import { ChipSelect } from "@/components/ChipSelect";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { SectionLabel } from "@/components/SectionLabel";
+import { Skeleton } from "@/components/Skeleton";
 import { useDeleteAccount } from "@/features/settings/useDeleteAccount";
 import { useNotificationSettings } from "@/features/settings/useNotificationSettings";
 import { usePrivacyToggles } from "@/features/settings/usePrivacyToggles";
@@ -61,6 +62,23 @@ function NotificationRow({
         }}
         trackColor={{ true: colors.brand }}
       />
+    </View>
+  );
+}
+
+function NotificationRowSkeleton() {
+  const { spacing } = useTheme();
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        paddingVertical: spacing.sm,
+      }}
+    >
+      <Skeleton width="55%" height={15} />
+      <Skeleton width={44} height={26} borderRadius={13} />
     </View>
   );
 }
@@ -161,7 +179,14 @@ export default function SettingsScreen() {
         <SectionLabel>Notifications</SectionLabel>
         <Card>
           {isLoading || !settings ? (
-            <ActivityIndicator color={colors.brand} />
+            <View>
+              {[0, 1, 2, 3].map((i) => (
+                <View key={i}>
+                  {i > 0 && <Divider />}
+                  <NotificationRowSkeleton />
+                </View>
+              ))}
+            </View>
           ) : (
             categories.map((category, i) => (
               <View key={category}>

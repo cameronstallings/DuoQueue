@@ -1,11 +1,12 @@
 import { useEffect } from "react";
-import { ActivityIndicator, AppState, View } from "react-native";
+import { AppState, View } from "react-native";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Stack } from "expo-router";
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
 
 import { Logo } from "@/components/Logo";
 import { OfflineBanner } from "@/components/OfflineBanner";
@@ -36,19 +37,27 @@ configureNetworkAwareQueries();
 void SplashScreen.preventAutoHideAsync();
 
 function LoadingScreen() {
-  const { colors, spacing } = useTheme();
+  const { colors } = useTheme();
+  const opacity = useSharedValue(1);
+
+  useEffect(() => {
+    opacity.value = withRepeat(withTiming(0.35, { duration: 700, easing: Easing.ease }), -1, true);
+  }, [opacity]);
+
+  const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+
   return (
     <View
       style={{
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
-        gap: spacing.xl,
         backgroundColor: colors.background,
       }}
     >
-      <Logo width={100} />
-      <ActivityIndicator color={colors.brand} size="large" />
+      <Animated.View style={animatedStyle}>
+        <Logo width={100} />
+      </Animated.View>
     </View>
   );
 }

@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { ActivityIndicator, Modal, Pressable, ScrollView, Text, View } from "react-native";
+import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { router } from "expo-router";
 import { PROMPT_ANSWER_MAX_LENGTH } from "@duoqueue/shared-types";
 
 import { Card } from "@/components/Card";
+import { Skeleton } from "@/components/Skeleton";
 import { TextField } from "@/components/TextField";
 import { usePromptCatalog } from "@/features/onboarding/usePromptCatalog";
 import { nextStepPath } from "@/features/onboarding/steps";
@@ -72,7 +73,20 @@ export default function PromptsStep() {
           </View>
 
           {isLoading ? (
-            <ActivityIndicator color={colors.brand} />
+            <View>
+              {[0, 1, 2, 3, 4].map((i) => (
+                <View
+                  key={i}
+                  style={{
+                    paddingVertical: spacing.md,
+                    borderBottomWidth: 1,
+                    borderBottomColor: colors.border,
+                  }}
+                >
+                  <Skeleton width={`${70 - i * 8}%`} height={15} />
+                </View>
+              ))}
+            </View>
           ) : (
             <ScrollView showsVerticalScrollIndicator={false}>
               {(catalog ?? [])

@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
+import { Skeleton } from "@/components/Skeleton";
 import { TextField } from "@/components/TextField";
 import { useTheme } from "@/theme/useTheme";
 
@@ -47,7 +48,12 @@ export function CatalogPicker({ table, placeholder, profileId, selectedIds, onSe
         </Text>
       )}
 
-      {isLoading && <ActivityIndicator color={colors.brand} />}
+      {isLoading && (
+        <View style={{ gap: spacing.sm }}>
+          <Skeleton width="80%" height={16} borderRadius={radius.sm} />
+          <Skeleton width="60%" height={16} borderRadius={radius.sm} />
+        </View>
+      )}
 
       {trimmed.length > 1 && !isLoading && (results ?? []).length === 0 && (
         <Text style={{ color: colors.textMuted, fontSize: 12 }}>No matches — add it as a custom entry below.</Text>

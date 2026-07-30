@@ -1,12 +1,21 @@
 import type { ReactNode } from "react";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { useEffect } from "react";
+import { Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import Animated, { FadeIn, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
+import Animated, {
+  Easing,
+  FadeIn,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
 import { PROMPT_COUNT, type PhotoRole } from "@duoqueue/shared-types";
 
 import { Card } from "@/components/Card";
@@ -41,6 +50,18 @@ function calculateAge(dob: string): number {
 }
 
 function EditBadge({ uploading }: { uploading: boolean }) {
+  const opacity = useSharedValue(1);
+
+  useEffect(() => {
+    if (uploading) {
+      opacity.value = withRepeat(withTiming(0.3, { duration: 700, easing: Easing.ease }), -1, true);
+    } else {
+      opacity.value = withTiming(1, { duration: 150 });
+    }
+  }, [uploading, opacity]);
+
+  const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+
   return (
     <View
       style={{
@@ -55,7 +76,9 @@ function EditBadge({ uploading }: { uploading: boolean }) {
         backgroundColor: "rgba(0,0,0,0.55)",
       }}
     >
-      {uploading ? <ActivityIndicator size="small" color="#fff" /> : <Ionicons name="camera" size={13} color="#fff" />}
+      <Animated.View style={uploading ? animatedStyle : undefined}>
+        <Ionicons name="camera" size={13} color="#fff" />
+      </Animated.View>
     </View>
   );
 }

@@ -1,5 +1,7 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text } from "react-native";
+import { useEffect } from "react";
+import { Pressable, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
 
 import { useTheme } from "@/theme/useTheme";
 
@@ -11,17 +13,33 @@ interface ButtonProps {
   variant?: "primary" | "secondary" | "ghost";
 }
 
+/** The label while `loading` — pulses in place of a spinner so an in-flight button
+ * matches the skeleton loading style used everywhere else, instead of a spinning wheel. */
+function ButtonLabel({ label, color, loading }: { label: string; color: string; loading?: boolean }) {
+  const opacity = useSharedValue(1);
+
+  useEffect(() => {
+    if (loading) {
+      opacity.value = withRepeat(withTiming(0.4, { duration: 700, easing: Easing.ease }), -1, true);
+    } else {
+      opacity.value = withTiming(1, { duration: 150 });
+    }
+  }, [loading, opacity]);
+
+  const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+
+  return (
+    <Animated.Text style={[styles.label, { color }, animatedStyle]}>{label}</Animated.Text>
+  );
+}
+
 export function Button({ label, onPress, loading, disabled, variant = "primary" }: ButtonProps) {
   const { colors, radius, spacing, shadow } = useTheme();
   const isDisabled = disabled || loading;
 
   const textColor = variant === "primary" ? "#FFFFFF" : colors.text;
 
-  const inner = loading ? (
-    <ActivityIndicator color={textColor} />
-  ) : (
-    <Text style={[styles.label, { color: textColor }]}>{label}</Text>
-  );
+  const inner = <ButtonLabel label={label} color={textColor} loading={loading} />;
 
   if (variant === "primary") {
     return (

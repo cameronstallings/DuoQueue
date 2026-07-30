@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, Text, View } from "react-native";
+import { Alert, FlatList, Pressable, RefreshControl, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import Animated, { FadeIn } from "react-native-reanimated";
@@ -121,7 +121,11 @@ export default function AdmirersScreen() {
   if (premiumLoading) {
     return (
       <ScreenContainer title="Who liked you" showClose>
-        <ActivityIndicator color={colors.brand} />
+        <View>
+          {[0, 1, 2].map((i) => (
+            <AdmirerRowSkeleton key={i} />
+          ))}
+        </View>
       </ScreenContainer>
     );
   }

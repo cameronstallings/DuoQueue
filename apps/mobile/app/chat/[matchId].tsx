@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   FlatList,
   KeyboardAvoidingView,
@@ -103,7 +102,7 @@ function DiscordShareBubble({
         {isMine ? "You shared your Discord" : "Shared their Discord"}
       </Text>
       {isLoading && !isMine ? (
-        <ActivityIndicator size="small" color={colors.brand} />
+        <Skeleton width={120} height={16} style={{ alignSelf: "center" }} />
       ) : username ? (
         <Pressable
           onPress={() => void handleCopy()}

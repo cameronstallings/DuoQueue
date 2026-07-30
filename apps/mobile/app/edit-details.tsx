@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -9,6 +9,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ChipSelect } from "@/components/ChipSelect";
 import { SectionLabel } from "@/components/SectionLabel";
+import { Skeleton } from "@/components/Skeleton";
 import { TextField } from "@/components/TextField";
 import { CatalogPicker } from "@/features/onboarding/CatalogPicker";
 import { PLATFORM_LABELS, PLAYSTYLE_LABELS, SKILL_LABELS } from "@/features/onboarding/profile-labels";
@@ -124,7 +125,39 @@ export default function EditDetailsScreen() {
         </View>
 
         {!loaded || !profile ? (
-          <ActivityIndicator color={colors.brand} />
+          <>
+            <View style={{ gap: spacing.sm }}>
+              <SectionLabel>Games</SectionLabel>
+              <Skeleton height={44} borderRadius={radius.md} />
+              <Card style={{ gap: spacing.sm }}>
+                <Skeleton width="50%" height={16} />
+                <Skeleton width="100%" height={36} />
+              </Card>
+            </View>
+            <View style={{ gap: spacing.sm }}>
+              <SectionLabel>Shows & Movies</SectionLabel>
+              <Skeleton height={44} borderRadius={radius.md} />
+              <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                <Skeleton width={90} height={32} borderRadius={radius.pill} />
+                <Skeleton width={110} height={32} borderRadius={radius.pill} />
+              </View>
+            </View>
+            <View style={{ gap: spacing.sm }}>
+              <SectionLabel>Platforms</SectionLabel>
+              <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                <Skeleton width={70} height={32} borderRadius={radius.pill} />
+                <Skeleton width={90} height={32} borderRadius={radius.pill} />
+                <Skeleton width={80} height={32} borderRadius={radius.pill} />
+              </View>
+            </View>
+            <View style={{ gap: spacing.sm }}>
+              <SectionLabel>Playstyle</SectionLabel>
+              <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                <Skeleton width={100} height={32} borderRadius={radius.pill} />
+                <Skeleton width={80} height={32} borderRadius={radius.pill} />
+              </View>
+            </View>
+          </>
         ) : (
           <>
             <View style={{ gap: spacing.sm }}>

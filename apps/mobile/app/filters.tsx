@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ActivityIndicator, Switch, Text, View } from "react-native";
+import { Switch, Text, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import {
@@ -31,6 +31,7 @@ import { Card } from "@/components/Card";
 import { ChipSelect } from "@/components/ChipSelect";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { SectionLabel } from "@/components/SectionLabel";
+import { Skeleton } from "@/components/Skeleton";
 import { TextField } from "@/components/TextField";
 import { CatalogPicker } from "@/features/onboarding/CatalogPicker";
 import { usePremiumStatus } from "@/features/matching/usePremiumStatus";
@@ -146,7 +147,20 @@ export default function FiltersScreen() {
   if (isLoading || !session) {
     return (
       <ScreenContainer title="Filters" showClose>
-        <ActivityIndicator color={colors.brand} />
+        <Skeleton width="90%" height={13} />
+        {["Age range", "Gender", "Region", "Language"].map((label) => (
+          <View key={label}>
+            <SectionLabel>{label}</SectionLabel>
+            <Card style={{ gap: spacing.sm }}>
+              <Skeleton width="60%" height={13} />
+              <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                <Skeleton width={70} height={32} borderRadius={16} />
+                <Skeleton width={90} height={32} borderRadius={16} />
+                <Skeleton width={80} height={32} borderRadius={16} />
+              </View>
+            </Card>
+          </View>
+        ))}
       </ScreenContainer>
     );
   }
