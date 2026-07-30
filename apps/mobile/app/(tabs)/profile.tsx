@@ -135,6 +135,18 @@ export default function ProfileScreen() {
   const { data: details, isLoading: detailsLoading } = useOwnProfileDetails(profile?.id);
   const updatePhoto = useUpdatePhoto(profile?.id);
 
+  // Start downloading the actual image bytes the moment the signed URLs are known,
+  // instead of waiting for prompts/details too — those photo URLs resolving doesn't
+  // mean the pixels are in expo-image's cache yet, and if we only mount <Image> once
+  // the whole page is ready, the photo area sits blank until the fetch runs its full
+  // course *after* everything else is already on screen. Prefetching in parallel with
+  // the other two queries means the image is often already cached by the time the
+  // page reveals, instead of visibly popping in late.
+  useEffect(() => {
+    const urls = [photos?.profileUrl, photos?.headerUrl].filter((u): u is string => !!u);
+    if (urls.length > 0) void Image.prefetch(urls, "memory-disk");
+  }, [photos?.profileUrl, photos?.headerUrl]);
+
   async function handlePick(role: PhotoRole) {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) return;

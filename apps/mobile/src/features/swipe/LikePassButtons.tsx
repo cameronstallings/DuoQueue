@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { hapticLight } from "@/lib/haptics";
 import { useTheme } from "@/theme/useTheme";
@@ -51,23 +51,26 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, onSendRose, disab
       </Pressable>
 
       {onSuperPing && (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Super Ping"
-          onPress={withHaptic(onSuperPing)}
-          disabled={disabled}
-          style={({ pressed }) => [
-            styles.smallButton,
-            shadow,
-            {
-              backgroundColor: colors.surface,
-              opacity: disabled ? 0.5 : 1,
-              transform: [{ scale: pressed && !disabled ? 0.92 : 1 }],
-            },
-          ]}
-        >
-          <Ionicons name="diamond" size={20} color={colors.success} />
-        </Pressable>
+        <View style={styles.smallButtonWrap}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Super Ping — notify them you liked their profile"
+            onPress={withHaptic(onSuperPing)}
+            disabled={disabled}
+            style={({ pressed }) => [
+              styles.smallButton,
+              shadow,
+              {
+                backgroundColor: colors.surface,
+                opacity: disabled ? 0.5 : 1,
+                transform: [{ scale: pressed && !disabled ? 0.92 : 1 }],
+              },
+            ]}
+          >
+            <Ionicons name="diamond" size={20} color={colors.success} />
+          </Pressable>
+          <Text style={[styles.caption, { color: colors.textMuted }]}>Ping</Text>
+        </View>
       )}
 
       <Pressable
@@ -89,23 +92,26 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, onSendRose, disab
       </Pressable>
 
       {onSendRose && (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Send a Legendary Like"
-          onPress={withHaptic(onSendRose)}
-          disabled={disabled}
-          style={({ pressed }) => [
-            styles.smallButton,
-            shadow,
-            {
-              backgroundColor: colors.surface,
-              opacity: disabled ? 0.5 : 1,
-              transform: [{ scale: pressed && !disabled ? 0.92 : 1 }],
-            },
-          ]}
-        >
-          <Ionicons name="star" size={20} color={colors.warning} />
-        </Pressable>
+        <View style={styles.smallButtonWrap}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Send a Legendary Like — an extra-visible like from your Legendary Like credits"
+            onPress={withHaptic(onSendRose)}
+            disabled={disabled}
+            style={({ pressed }) => [
+              styles.smallButton,
+              shadow,
+              {
+                backgroundColor: colors.surface,
+                opacity: disabled ? 0.5 : 1,
+                transform: [{ scale: pressed && !disabled ? 0.92 : 1 }],
+              },
+            ]}
+          >
+            <Ionicons name="star" size={20} color={colors.warning} />
+          </Pressable>
+          <Text style={[styles.caption, { color: colors.textMuted }]}>Legendary</Text>
+        </View>
       )}
     </View>
   );
@@ -125,5 +131,15 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
+  },
+  smallButtonWrap: {
+    alignItems: "center",
+    gap: 2,
+  },
+  caption: {
+    fontSize: 10,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
   },
 });
