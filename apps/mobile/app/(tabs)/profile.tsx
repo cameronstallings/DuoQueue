@@ -150,7 +150,11 @@ export default function ProfileScreen() {
     if (asset) updatePhoto.mutate({ uri: asset.uri, role });
   }
 
-  const detailsReady = !isLoading && !promptsLoading && !detailsLoading;
+  // Gate the whole page behind one combined flag instead of three independent
+  // skeleton/FadeIn boundaries (photos, prompts, details) — those resolved at
+  // slightly different times and popped in one after another, which read as choppy.
+  // Waiting for all three and revealing once, together, feels like a single load.
+  const pageReady = !isLoading && !promptsLoading && !detailsLoading;
   const uploadingProfile = updatePhoto.isPending && updatePhoto.variables?.role === "profile";
   const uploadingHeader = updatePhoto.isPending && updatePhoto.variables?.role === "header";
 
@@ -169,8 +173,30 @@ export default function ProfileScreen() {
         scrollEventThrottle={16}
         contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}
       >
-        {isLoading ? (
-          <Skeleton width="100%" height={150 + insets.top} borderRadius={0} />
+        {!pageReady ? (
+          <View>
+            <Skeleton width="100%" height={150 + insets.top} borderRadius={0} />
+            <View style={{ paddingHorizontal: spacing.lg }}>
+              <Skeleton
+                width={AVATAR_SIZE}
+                height={AVATAR_SIZE}
+                borderRadius={AVATAR_SIZE / 2}
+                style={{ marginTop: -AVATAR_SIZE / 2, borderWidth: 4, borderColor: colors.background }}
+              />
+              <View style={{ marginTop: spacing.sm, gap: spacing.xs }}>
+                <Skeleton width="55%" height={22} />
+                <Skeleton width="35%" height={14} />
+              </View>
+              <View style={{ marginTop: spacing.md }}>
+                <Skeleton height={80} borderRadius={radius.lg} />
+              </View>
+              {["Games", "Shows & Movies", "Platforms", "Playstyle"].map((label) => (
+                <View key={label} style={{ marginTop: spacing.md }}>
+                  <Skeleton height={36} borderRadius={radius.pill} />
+                </View>
+              ))}
+            </View>
+          </View>
         ) : (
           <Animated.View entering={FadeIn.duration(220)}>
             <Pressable
@@ -204,75 +230,67 @@ export default function ProfileScreen() {
               )}
               <EditBadge uploading={uploadingHeader} />
             </Pressable>
-          </Animated.View>
-        )}
 
-        <View style={{ paddingHorizontal: spacing.lg }}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Change profile picture"
-            onPress={() => void handlePick("profile")}
-            disabled={updatePhoto.isPending}
-            style={{
-              width: AVATAR_SIZE,
-              height: AVATAR_SIZE,
-              borderRadius: AVATAR_SIZE / 2,
-              marginTop: -AVATAR_SIZE / 2,
-              borderWidth: 4,
-              borderColor: colors.background,
-              backgroundColor: colors.surface,
-              overflow: "hidden",
-              ...shadow,
-            }}
-          >
-            {photos?.profileUrl && (
-              <Image
-                source={{ uri: photos.profileUrl }}
-                style={{ width: "100%", height: "100%" }}
-                contentFit="cover"
-                cachePolicy="memory-disk"
-                transition={200}
-              />
-            )}
-            <EditBadge uploading={uploadingProfile} />
-          </Pressable>
-
-          <View style={{ marginTop: spacing.sm }}>
-            <Text style={{ fontSize: 24, fontWeight: "700", color: colors.text }}>{profile?.display_name}</Text>
-            {profile?.dob && (
-              <Text style={{ color: colors.textMuted, fontSize: 14, marginTop: 2 }}>
-                {calculateAge(profile.dob)} · {REGION_LABELS[profile.region] ?? profile.region}
-              </Text>
-            )}
-          </View>
-
-          {detailsReady && (
-            <ProfileCompleteness
-              items={[
-                { label: "a profile picture", done: !!photos?.profileUrl },
-                { label: "a header picture", done: !!photos?.headerUrl },
-                { label: "a game", done: (details?.games.length ?? 0) > 0 },
-                { label: "a show", done: (details?.shows.length ?? 0) > 0 },
-                { label: "a platform", done: (details?.platforms.length ?? 0) > 0 },
-                { label: "a playstyle", done: (details?.playstyles.length ?? 0) > 0 },
-                { label: "your prompts", done: (prompts?.length ?? 0) >= PROMPT_COUNT },
-              ]}
-            />
-          )}
-
-          <View style={{ marginTop: spacing.md }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-              <SectionLabel>Prompts</SectionLabel>
-              <Pressable onPress={() => router.push("/edit-prompts")}>
-                <Text style={{ color: colors.brand, fontWeight: "600", fontSize: 13, marginBottom: spacing.xs }}>
-                  Edit
-                </Text>
+            <View style={{ paddingHorizontal: spacing.lg }}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Change profile picture"
+                onPress={() => void handlePick("profile")}
+                disabled={updatePhoto.isPending}
+                style={{
+                  width: AVATAR_SIZE,
+                  height: AVATAR_SIZE,
+                  borderRadius: AVATAR_SIZE / 2,
+                  marginTop: -AVATAR_SIZE / 2,
+                  borderWidth: 4,
+                  borderColor: colors.background,
+                  backgroundColor: colors.surface,
+                  overflow: "hidden",
+                  ...shadow,
+                }}
+              >
+                {photos?.profileUrl && (
+                  <Image
+                    source={{ uri: photos.profileUrl }}
+                    style={{ width: "100%", height: "100%" }}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    transition={200}
+                  />
+                )}
+                <EditBadge uploading={uploadingProfile} />
               </Pressable>
-            </View>
-            {promptsLoading ? (
-              <Skeleton height={80} borderRadius={radius.lg} />
-            ) : (
-              <Animated.View entering={FadeIn.duration(200)}>
+
+              <View style={{ marginTop: spacing.sm }}>
+                <Text style={{ fontSize: 24, fontWeight: "700", color: colors.text }}>{profile?.display_name}</Text>
+                {profile?.dob && (
+                  <Text style={{ color: colors.textMuted, fontSize: 14, marginTop: 2 }}>
+                    {calculateAge(profile.dob)} · {REGION_LABELS[profile.region] ?? profile.region}
+                  </Text>
+                )}
+              </View>
+
+              <ProfileCompleteness
+                items={[
+                  { label: "a profile picture", done: !!photos?.profileUrl },
+                  { label: "a header picture", done: !!photos?.headerUrl },
+                  { label: "a game", done: (details?.games.length ?? 0) > 0 },
+                  { label: "a show", done: (details?.shows.length ?? 0) > 0 },
+                  { label: "a platform", done: (details?.platforms.length ?? 0) > 0 },
+                  { label: "a playstyle", done: (details?.playstyles.length ?? 0) > 0 },
+                  { label: "your prompts", done: (prompts?.length ?? 0) >= PROMPT_COUNT },
+                ]}
+              />
+
+              <View style={{ marginTop: spacing.md }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                  <SectionLabel>Prompts</SectionLabel>
+                  <Pressable onPress={() => router.push("/edit-prompts")}>
+                    <Text style={{ color: colors.brand, fontWeight: "600", fontSize: 13, marginBottom: spacing.xs }}>
+                      Edit
+                    </Text>
+                  </Pressable>
+                </View>
                 {(prompts ?? []).map((prompt) => (
                   <Card key={prompt.position} style={{ gap: spacing.xs, marginBottom: spacing.sm }}>
                     <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: "700", textTransform: "uppercase" }}>
@@ -281,72 +299,72 @@ export default function ProfileScreen() {
                     <Text style={{ color: colors.text }}>{prompt.answer}</Text>
                   </Card>
                 ))}
-              </Animated.View>
-            )}
-          </View>
+              </View>
 
-          <DetailSection
-            label="Games"
-            icon="game-controller"
-            isLoading={detailsLoading}
-            isEmpty={!detailsLoading && (details?.games.length ?? 0) === 0}
-            emptyText="No games added yet."
-            onEdit={() => router.push("/edit-details")}
-          >
-            {(details?.games ?? []).map((game) => (
-              <InfoChip
-                key={game.name}
-                label={game.name}
-                sublabel={SKILL_LABELS[game.skillLevel]}
+              <DetailSection
+                label="Games"
                 icon="game-controller"
-              />
-            ))}
-          </DetailSection>
+                isLoading={false}
+                isEmpty={(details?.games.length ?? 0) === 0}
+                emptyText="No games added yet."
+                onEdit={() => router.push("/edit-details")}
+              >
+                {(details?.games ?? []).map((game) => (
+                  <InfoChip
+                    key={game.name}
+                    label={game.name}
+                    sublabel={SKILL_LABELS[game.skillLevel]}
+                    icon="game-controller"
+                  />
+                ))}
+              </DetailSection>
 
-          <DetailSection
-            label="Shows & Movies"
-            icon="tv"
-            isLoading={detailsLoading}
-            isEmpty={!detailsLoading && (details?.shows.length ?? 0) === 0}
-            emptyText="No shows added yet."
-            onEdit={() => router.push("/edit-details")}
-          >
-            {(details?.shows ?? []).map((show) => (
-              <InfoChip key={show} label={show} icon="tv" />
-            ))}
-          </DetailSection>
+              <DetailSection
+                label="Shows & Movies"
+                icon="tv"
+                isLoading={false}
+                isEmpty={(details?.shows.length ?? 0) === 0}
+                emptyText="No shows added yet."
+                onEdit={() => router.push("/edit-details")}
+              >
+                {(details?.shows ?? []).map((show) => (
+                  <InfoChip key={show} label={show} icon="tv" />
+                ))}
+              </DetailSection>
 
-          <DetailSection
-            label="Platforms"
-            icon="hardware-chip"
-            isLoading={detailsLoading}
-            isEmpty={!detailsLoading && (details?.platforms.length ?? 0) === 0}
-            emptyText="No platforms added yet."
-            onEdit={() => router.push("/edit-details")}
-          >
-            {(details?.platforms ?? []).map((platform) => (
-              <InfoChip
-                key={platform}
-                label={PLATFORM_LABELS[platform]}
-                icon={PLATFORM_ICONS[platform]}
-                iconFamily="material-community"
-              />
-            ))}
-          </DetailSection>
+              <DetailSection
+                label="Platforms"
+                icon="hardware-chip"
+                isLoading={false}
+                isEmpty={(details?.platforms.length ?? 0) === 0}
+                emptyText="No platforms added yet."
+                onEdit={() => router.push("/edit-details")}
+              >
+                {(details?.platforms ?? []).map((platform) => (
+                  <InfoChip
+                    key={platform}
+                    label={PLATFORM_LABELS[platform]}
+                    icon={PLATFORM_ICONS[platform]}
+                    iconFamily="material-community"
+                  />
+                ))}
+              </DetailSection>
 
-          <DetailSection
-            label="Playstyle"
-            icon="people"
-            isLoading={detailsLoading}
-            isEmpty={!detailsLoading && (details?.playstyles.length ?? 0) === 0}
-            emptyText="No playstyle tags added yet."
-            onEdit={() => router.push("/edit-details")}
-          >
-            {(details?.playstyles ?? []).map((tag) => (
-              <InfoChip key={tag} label={PLAYSTYLE_LABELS[tag]} icon="people" />
-            ))}
-          </DetailSection>
-        </View>
+              <DetailSection
+                label="Playstyle"
+                icon="people"
+                isLoading={false}
+                isEmpty={(details?.playstyles.length ?? 0) === 0}
+                emptyText="No playstyle tags added yet."
+                onEdit={() => router.push("/edit-details")}
+              >
+                {(details?.playstyles ?? []).map((tag) => (
+                  <InfoChip key={tag} label={PLAYSTYLE_LABELS[tag]} icon="people" />
+                ))}
+              </DetailSection>
+            </View>
+          </Animated.View>
+        )}
       </Animated.ScrollView>
 
       {/* Fixed, non-scrolling backdrop that fades in as the banner scrolls out of view, so

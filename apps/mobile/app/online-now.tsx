@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Alert, Pressable, Switch, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { router } from "expo-router";
@@ -133,6 +134,24 @@ export default function OnlineNowScreen() {
   const { isLookingNow, setLookingNow } = useLookingNow();
   const { data: people, isLoading, error, refetch } = useOnlineNow();
 
+  // Optimistic override so the switch flips the instant you tap it instead of waiting
+  // on the round trip — cleared once the mutation settles, at which point it either
+  // matches the resynced server state (success) or the switch snaps back (failure,
+  // now paired with an alert instead of just silently doing nothing).
+  const [optimisticLooking, setOptimisticLooking] = useState<boolean | null>(null);
+
+  function handleToggleLookingNow(value: boolean) {
+    setOptimisticLooking(value);
+    setLookingNow.mutate(value, {
+      onSettled: () => setOptimisticLooking(null),
+      onError: (err) => {
+        Alert.alert("Couldn't update Online Now", err instanceof Error ? err.message : "Please try again.");
+      },
+    });
+  }
+
+  const lookingNowSwitchValue = optimisticLooking ?? isLookingNow;
+
   return (
     <ScreenContainer title="Online Now" showClose>
       <View
@@ -152,8 +171,9 @@ export default function OnlineNowScreen() {
           </Text>
         </View>
         <Switch
-          value={isLookingNow}
-          onValueChange={(value) => setLookingNow.mutate(value)}
+          value={lookingNowSwitchValue}
+          onValueChange={handleToggleLookingNow}
+          disabled={setLookingNow.isPending}
           trackColor={{ true: colors.brand }}
         />
       </View>

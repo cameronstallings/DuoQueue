@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { supabase } from "@/lib/supabase";
 import { useSessionStore } from "@/store/session-store";
+import { useToastStore } from "@/store/toast-store";
 
 /** Reads/writes the "I'm free to duo right now" toggle. The flag lives on the caller's
  * own profile row and self-expires server-side (set_looking_now), so this hook only
@@ -15,10 +16,12 @@ export function useLookingNow() {
     mutationFn: async (looking: boolean) => {
       const { error } = await supabase.rpc("set_looking_now", { p_looking: looking });
       if (error) throw error;
+      return looking;
     },
-    onSuccess: () => {
+    onSuccess: (looking) => {
       void refreshProfile();
       void queryClient.invalidateQueries({ queryKey: ["online-now"] });
+      useToastStore.getState().showToast(looking ? "You're visible in Online Now" : "Turned off Online Now");
     },
   });
 
