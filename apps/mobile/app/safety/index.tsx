@@ -16,11 +16,10 @@ const TOPIC_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 };
 
 export default function SafetyCenterScreen() {
-  const { colors, spacing, type } = useTheme();
+  const { colors, spacing } = useTheme();
 
   return (
-    <ScreenContainer>
-      <Text style={{ ...type.screenTitle, color: colors.text }}>Safety Center</Text>
+    <ScreenContainer title="Safety Center" showClose>
       <Text style={{ color: colors.textMuted, marginBottom: spacing.sm }}>
         Tips, guidelines, and resources for staying safe on DuoQueue.
       </Text>

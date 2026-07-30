@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PROMPT_ANSWER_MAX_LENGTH, PROMPT_COUNT } from "@duoqueue/shared-types";
@@ -62,7 +63,25 @@ export default function EditPromptsScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingTop: insets.top + spacing.lg, gap: spacing.md }}>
-        <Text style={{ ...type.screenTitle, color: colors.text }}>Edit Prompts</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+          <Text style={{ ...type.screenTitle, color: colors.text }}>Edit Prompts</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+            onPress={() => router.back()}
+            hitSlop={8}
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 16,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: colors.surfaceAlt,
+            }}
+          >
+            <Ionicons name="close" size={20} color={colors.text} />
+          </Pressable>
+        </View>
         {slots === null || loadingCatalog ? (
           <ActivityIndicator color={colors.brand} />
         ) : (

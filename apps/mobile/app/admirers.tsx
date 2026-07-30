@@ -37,6 +37,8 @@ function AdmirerRow({ item }: { item: AdmirerListItem }) {
         padding: spacing.md,
         backgroundColor: colors.surface,
         borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: colors.border,
         marginBottom: spacing.sm,
       }}
     >
@@ -77,6 +79,8 @@ function AdmirerRowSkeleton() {
         padding: spacing.md,
         backgroundColor: colors.surface,
         borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: colors.border,
         marginBottom: spacing.sm,
       }}
     >
@@ -90,14 +94,14 @@ function AdmirerRowSkeleton() {
 }
 
 export default function AdmirersScreen() {
-  const { colors, spacing, type } = useTheme();
+  const { colors, spacing } = useTheme();
   const { isPremium, isLoading: premiumLoading } = usePremiumStatus();
   const { data: count } = useAdmirersCount();
   const { data: admirers, isLoading, isFetching, error, refetch } = useAdmirers(isPremium);
 
   if (premiumLoading) {
     return (
-      <ScreenContainer>
+      <ScreenContainer title="Who liked you" showClose>
         <ActivityIndicator color={colors.brand} />
       </ScreenContainer>
     );
@@ -105,8 +109,7 @@ export default function AdmirersScreen() {
 
   if (!isPremium) {
     return (
-      <ScreenContainer>
-        <Text style={{ ...type.screenTitle, color: colors.text }}>Who liked you</Text>
+      <ScreenContainer title="Who liked you" showClose>
         <Text style={{ color: colors.textMuted }}>
           {count && count > 0
             ? `${count} ${count === 1 ? "person has" : "people have"} already swiped right on you.`
@@ -119,11 +122,12 @@ export default function AdmirersScreen() {
 
   return (
     <ScreenContainer
+      title="Who liked you"
+      showClose
       refreshControl={
         <RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => void refetch()} tintColor={colors.brand} />
       }
     >
-      <Text style={{ ...type.screenTitle, color: colors.text }}>Who liked you</Text>
       {isLoading ? (
         <View>
           {[0, 1, 2].map((i) => (

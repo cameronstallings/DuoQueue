@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PLATFORMS, PLAYSTYLE_TAGS, SKILL_LEVELS } from "@duoqueue/shared-types";
@@ -20,7 +21,7 @@ import { useTheme } from "@/theme/useTheme";
 const MAX_PLAYSTYLES = 6;
 
 export default function EditDetailsScreen() {
-  const { colors, radius, spacing } = useTheme();
+  const { colors, radius, spacing, type } = useTheme();
   const insets = useSafeAreaInsets();
   const profile = useSessionStore((s) => s.profile);
   const { data: existing, isLoading: loadingExisting } = useEditableProfileDetails(profile?.id);
@@ -102,7 +103,25 @@ export default function EditDetailsScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingTop: insets.top + spacing.lg, gap: spacing.lg }}>
-        <Text style={{ fontSize: 28, fontWeight: "700", color: colors.text }}>Edit Details</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+          <Text style={{ ...type.screenTitle, color: colors.text }}>Edit Details</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+            onPress={() => router.back()}
+            hitSlop={8}
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 16,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: colors.surfaceAlt,
+            }}
+          >
+            <Ionicons name="close" size={20} color={colors.text} />
+          </Pressable>
+        </View>
 
         {!loaded || !profile ? (
           <ActivityIndicator color={colors.brand} />

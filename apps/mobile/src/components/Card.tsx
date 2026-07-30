@@ -20,6 +20,8 @@ export function Card({ children, style }: CardProps) {
           backgroundColor: colors.surface,
           borderRadius: radius.lg,
           padding: spacing.md,
+          borderWidth: 1,
+          borderColor: colors.border,
           ...shadow,
         },
         style,

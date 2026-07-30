@@ -26,6 +26,8 @@ function BlockedRow({ item }: { item: BlockedUser }) {
         padding: spacing.md,
         backgroundColor: colors.surface,
         borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: colors.border,
         marginBottom: spacing.sm,
       }}
     >
@@ -45,6 +47,8 @@ function BlockedRowSkeleton() {
         padding: spacing.md,
         backgroundColor: colors.surface,
         borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: colors.border,
         marginBottom: spacing.sm,
       }}
     >
@@ -54,16 +58,17 @@ function BlockedRowSkeleton() {
 }
 
 export default function BlockListScreen() {
-  const { colors, spacing, type } = useTheme();
+  const { colors, spacing } = useTheme();
   const { data: blocked, isLoading, isFetching, error, refetch } = useBlockedUsers();
 
   return (
     <ScreenContainer
+      title="Block List"
+      showClose
       refreshControl={
         <RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => void refetch()} tintColor={colors.brand} />
       }
     >
-      <Text style={{ ...type.screenTitle, color: colors.text }}>Block List</Text>
       <Text style={{ color: colors.textMuted, marginBottom: spacing.sm }}>
         People you&apos;ve blocked. Unblocking lets them appear in your deck again — they won&apos;t be notified
         either way.

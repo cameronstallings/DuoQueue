@@ -89,7 +89,7 @@ function NavRow({ label, onPress }: { label: string; onPress: () => void }) {
 }
 
 export default function SettingsScreen() {
-  const { colors, spacing, type } = useTheme();
+  const { colors, spacing } = useTheme();
   const themePreference = useThemeStore((s) => s.preference);
   const setThemePreference = useThemeStore((s) => s.setPreference);
   const signOut = useSessionStore((s) => s.signOut);
@@ -142,9 +142,7 @@ export default function SettingsScreen() {
   const categories = ["new_match", "new_message", "super_ping", "daily_swipes_refreshed"] as const;
 
   return (
-    <ScreenContainer>
-      <Text style={{ ...type.screenTitle, color: colors.text }}>Settings</Text>
-
+    <ScreenContainer title="Settings">
       <View style={{ marginTop: spacing.md }}>
         <SectionLabel>Appearance</SectionLabel>
         <Card>

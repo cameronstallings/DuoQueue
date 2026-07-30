@@ -45,7 +45,7 @@ function PlanRow({
         borderColor: selected ? colors.brand : colors.border,
         borderRadius: radius.md,
         padding: spacing.md,
-        backgroundColor: selected ? colors.surface : "transparent",
+        backgroundColor: selected ? colors.brandSoft : colors.surface,
       }}
     >
       <View style={{ gap: 2, flex: 1 }}>
@@ -135,7 +135,7 @@ function savingsVsWeekly(pkg: PurchasesPackage, weeklyPricePerWeek: number | nul
 }
 
 export default function PaywallScreen() {
-  const { colors, spacing, type } = useTheme();
+  const { colors, spacing } = useTheme();
   const { isPremium } = usePremiumStatus();
   const { data: offering, isLoading, error } = useOfferings();
   const purchase = usePurchasePackage();
@@ -215,8 +215,7 @@ export default function PaywallScreen() {
 
   if (isPremium) {
     return (
-      <ScreenContainer>
-        <Text style={{ ...type.screenTitle, color: colors.text }}>You&apos;re on DuoQueue+</Text>
+      <ScreenContainer title="You're on DuoQueue+" showClose>
         <Text style={{ color: colors.textMuted }}>
           Unlimited swipes, unlimited conversations, advanced filters, admirers, and a daily Super Ping are
           all unlocked.
@@ -228,8 +227,7 @@ export default function PaywallScreen() {
   }
 
   return (
-    <ScreenContainer>
-      <Text style={{ ...type.screenTitle, color: colors.text }}>DuoQueue+</Text>
+    <ScreenContainer title="DuoQueue+" showClose>
       <Text style={{ color: colors.textMuted, marginBottom: spacing.sm }}>
         Unlimited swipes, unlimited conversations, advanced filters, see who liked you, and a daily Super
         Ping.

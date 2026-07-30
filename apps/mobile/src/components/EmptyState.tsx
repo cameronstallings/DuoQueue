@@ -23,7 +23,7 @@ export function EmptyState({ icon, title, subtitle, actionLabel, onAction }: Emp
           width: 72,
           height: 72,
           borderRadius: radius.pill,
-          backgroundColor: colors.surface,
+          backgroundColor: colors.brandSoft,
           alignItems: "center",
           justifyContent: "center",
         }}

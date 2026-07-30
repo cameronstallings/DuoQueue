@@ -1,4 +1,5 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { useTheme } from "@/theme/useTheme";
 
@@ -14,9 +15,40 @@ export function Button({ label, onPress, loading, disabled, variant = "primary" 
   const { colors, radius, spacing, shadow } = useTheme();
   const isDisabled = disabled || loading;
 
-  const background =
-    variant === "primary" ? colors.brand : variant === "secondary" ? colors.surface : "transparent";
   const textColor = variant === "primary" ? "#FFFFFF" : colors.text;
+
+  const inner = loading ? (
+    <ActivityIndicator color={textColor} />
+  ) : (
+    <Text style={[styles.label, { color: textColor }]}>{label}</Text>
+  );
+
+  if (variant === "primary") {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        onPress={onPress}
+        disabled={isDisabled}
+        style={({ pressed }) => [
+          {
+            borderRadius: radius.pill,
+            opacity: isDisabled ? 0.6 : pressed ? 0.85 : 1,
+            transform: [{ scale: pressed && !isDisabled ? 0.98 : 1 }],
+            ...shadow,
+          },
+        ]}
+      >
+        <LinearGradient
+          colors={[colors.brand, colors.brandDark]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.base, { borderRadius: radius.pill, paddingVertical: spacing.md }]}
+        >
+          {inner}
+        </LinearGradient>
+      </Pressable>
+    );
+  }
 
   return (
     <Pressable
@@ -26,22 +58,17 @@ export function Button({ label, onPress, loading, disabled, variant = "primary" 
       style={({ pressed }) => [
         styles.base,
         {
-          backgroundColor: background,
+          backgroundColor: variant === "secondary" ? colors.surface : "transparent",
           borderRadius: radius.pill,
           paddingVertical: spacing.md,
           opacity: isDisabled ? 0.6 : pressed ? 0.85 : 1,
           transform: [{ scale: pressed && !isDisabled ? 0.98 : 1 }],
-          borderWidth: variant === "ghost" ? 1 : 0,
+          borderWidth: 1,
           borderColor: colors.border,
-          ...(variant === "primary" ? shadow : null),
         },
       ]}
     >
-      {loading ? (
-        <ActivityIndicator color={textColor} />
-      ) : (
-        <Text style={[styles.label, { color: textColor }]}>{label}</Text>
-      )}
+      {inner}
     </Pressable>
   );
 }

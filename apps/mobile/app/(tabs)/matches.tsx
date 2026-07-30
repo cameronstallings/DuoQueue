@@ -69,7 +69,7 @@ function MatchRow({ item }: { item: MatchListItem }) {
             width: 56,
             height: 56,
             borderRadius: 28,
-            backgroundColor: colors.surface,
+            backgroundColor: colors.surfaceAlt,
             alignItems: "center",
             justifyContent: "center",
           }}

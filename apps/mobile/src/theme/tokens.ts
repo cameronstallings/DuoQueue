@@ -8,8 +8,8 @@ export const spacing = {
 } as const;
 
 export const type = {
-  screenTitle: { fontSize: 28, fontWeight: "700" },
-  title: { fontSize: 20, fontWeight: "700" },
+  screenTitle: { fontSize: 28, fontWeight: "800", letterSpacing: -0.5 },
+  title: { fontSize: 20, fontWeight: "700", letterSpacing: -0.3 },
   bodyStrong: { fontSize: 15, fontWeight: "700" },
   body: { fontSize: 15, fontWeight: "400" },
   caption: { fontSize: 13, fontWeight: "500" },
@@ -34,20 +34,26 @@ const palette = {
 
 export const lightColors = {
   ...palette,
-  background: "#FFFFFF",
-  surface: "#F5F5F7",
-  border: "#E4E4E7",
+  // Off-white canvas with pure-white surfaces: cards read as deliberate elevated
+  // objects instead of gray boxes floating on the same white as everything else.
+  background: "#F6F6F9",
+  surface: "#FFFFFF",
+  surfaceAlt: "#EFEFF4",
+  border: "#E6E6EC",
   text: "#17171A",
   textMuted: "#6B6B72",
+  brandSoft: "#EFE9FF",
 } as const;
 
 export const darkColors = {
   ...palette,
-  background: "#111113",
-  surface: "#1C1C1F",
-  border: "#2C2C30",
+  background: "#0E0E12",
+  surface: "#1A1A21",
+  surfaceAlt: "#24242D",
+  border: "#2A2A33",
   text: "#F4F4F5",
   textMuted: "#A1A1AA",
+  brandSoft: "#2A2244",
 } as const;
 
 export type ThemeColors = typeof lightColors;

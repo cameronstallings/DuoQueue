@@ -13,7 +13,7 @@ import {
 import { useTheme } from "@/theme/useTheme";
 
 export default function HiddenWordsScreen() {
-  const { colors, radius, spacing, type } = useTheme();
+  const { colors, radius, spacing } = useTheme();
   const { data: words, isLoading } = useHiddenWords();
   const addWord = useAddHiddenWord();
   const removeWord = useRemoveHiddenWord();
@@ -25,8 +25,7 @@ export default function HiddenWordsScreen() {
   }
 
   return (
-    <ScreenContainer>
-      <Text style={{ ...type.screenTitle, color: colors.text }}>Hidden Words</Text>
+    <ScreenContainer title="Hidden Words" showClose>
       <Text style={{ color: colors.textMuted, marginBottom: spacing.sm }}>
         Messages containing any of these words are hidden until you tap to reveal them.
       </Text>
