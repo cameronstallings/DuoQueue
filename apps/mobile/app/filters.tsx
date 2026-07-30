@@ -27,8 +27,10 @@ import {
 } from "@/features/onboarding/profile-labels";
 
 import { Button } from "@/components/Button";
+import { Card } from "@/components/Card";
 import { ChipSelect } from "@/components/ChipSelect";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { SectionLabel } from "@/components/SectionLabel";
 import { TextField } from "@/components/TextField";
 import { CatalogPicker } from "@/features/onboarding/CatalogPicker";
 import { usePremiumStatus } from "@/features/matching/usePremiumStatus";
@@ -39,6 +41,21 @@ import { useTheme } from "@/theme/useTheme";
 
 function toggleSingle<T>(current: T | null, value: T, setter: (value: T | null) => void) {
   setter(current === value ? null : value);
+}
+
+/** One labeled group on the Filters screen: uppercase section label + a short hint
+ * explaining what the filter does, with the controls grouped inside a Card. */
+function FilterSection({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  const { colors, spacing } = useTheme();
+  return (
+    <View>
+      <SectionLabel>{label}</SectionLabel>
+      <Card style={{ gap: spacing.sm }}>
+        {hint ? <Text style={{ color: colors.textMuted, fontSize: 13 }}>{hint}</Text> : null}
+        {children}
+      </Card>
+    </View>
+  );
 }
 
 export default function FiltersScreen() {
@@ -136,100 +153,119 @@ export default function FiltersScreen() {
 
   return (
     <ScreenContainer title="Filters" showClose>
+      <Text style={{ color: colors.textMuted, fontSize: 13 }}>
+        Choose who shows up in your deck. Leave a section empty to see everyone.
+      </Text>
 
-      <Text style={{ fontWeight: "700", color: colors.text }}>Age range</Text>
-      <View style={{ flexDirection: "row", gap: spacing.md }}>
-        <View style={{ flex: 1 }}>
-          <TextField label="Min" value={minAge} onChangeText={setMinAge} keyboardType="number-pad" />
+      <FilterSection label="Age range" hint="Only show people between these ages.">
+        <View style={{ flexDirection: "row", gap: spacing.md }}>
+          <View style={{ flex: 1 }}>
+            <TextField label="Min" value={minAge} onChangeText={setMinAge} keyboardType="number-pad" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <TextField label="Max" value={maxAge} onChangeText={setMaxAge} keyboardType="number-pad" />
+          </View>
         </View>
-        <View style={{ flex: 1 }}>
-          <TextField label="Max" value={maxAge} onChangeText={setMaxAge} keyboardType="number-pad" />
-        </View>
-      </View>
+      </FilterSection>
 
-      <Text style={{ fontWeight: "700", color: colors.text }}>Gender</Text>
-      <ChipSelect
-        options={GENDERS.map((value) => ({ value, label: GENDER_LABELS[value] }))}
-        selected={genders}
-        onToggle={(value) => setGenders((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]))}
-      />
+      <FilterSection label="Gender" hint="Pick any that apply — empty means all genders.">
+        <ChipSelect
+          options={GENDERS.map((value) => ({ value, label: GENDER_LABELS[value] }))}
+          selected={genders}
+          onToggle={(value) => setGenders((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]))}
+        />
+      </FilterSection>
 
-      <Text style={{ fontWeight: "700", color: colors.text }}>Region</Text>
-      <ChipSelect
-        options={REGIONS.map((value) => ({ value, label: REGION_LABELS[value] }))}
-        selected={regions}
-        onToggle={(value) => setRegions((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]))}
-      />
+      <FilterSection label="Region" hint="Pick any that apply — empty means all regions.">
+        <ChipSelect
+          options={REGIONS.map((value) => ({ value, label: REGION_LABELS[value] }))}
+          selected={regions}
+          onToggle={(value) => setRegions((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]))}
+        />
+      </FilterSection>
 
-      <Text style={{ fontWeight: "700", color: colors.text }}>Required language</Text>
-      <ChipSelect
-        options={LANGUAGE_CODES.map((code) => ({ value: code, label: LANGUAGE_LABELS[code] }))}
-        selected={language ? [language] : []}
-        onToggle={(value) => toggleSingle(language, value, setLanguage)}
-      />
+      <FilterSection label="Language" hint="Only show people who also speak this language.">
+        <ChipSelect
+          options={LANGUAGE_CODES.map((code) => ({ value: code, label: LANGUAGE_LABELS[code] }))}
+          selected={language ? [language] : []}
+          onToggle={(value) => toggleSingle(language, value, setLanguage)}
+        />
+      </FilterSection>
 
-      <View style={{ marginTop: spacing.lg, gap: spacing.md }}>
-        <Text style={{ fontWeight: "700", color: colors.text }}>Advanced filters</Text>
+      <View>
+        <SectionLabel>DuoQueue+ filters</SectionLabel>
         {!isPremium ? (
-          <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: spacing.md, gap: spacing.sm }}>
-            <Text style={{ color: colors.textMuted }}>
-              Filtering by specific game or show, platform, skill level, playstyle, and recent activity is a
-              DuoQueue+ feature.
+          <Card style={{ gap: spacing.sm }}>
+            <Text style={{ color: colors.textMuted, fontSize: 13 }}>
+              Filter by a specific game or show, platform, skill level, playstyle, and recent activity with
+              DuoQueue+.
             </Text>
             <Button label="Unlock DuoQueue+" onPress={() => router.push("/paywall")} />
-          </View>
+          </Card>
         ) : (
-          <>
-            <Text style={{ color: colors.textMuted }}>Specific game</Text>
-            <CatalogPicker
-              table="games"
-              placeholder="Search games"
-              profileId={session.user.id}
-              selectedIds={filterGame ? [filterGame.id] : []}
-              onSelect={(item) => setFilterGame(item)}
-            />
-            {filterGame && (
-              <Button label={`Clear "${filterGame.name}"`} variant="ghost" onPress={() => setFilterGame(null)} />
-            )}
+          <Card style={{ gap: spacing.md }}>
+            <View style={{ gap: spacing.sm }}>
+              <Text style={{ color: colors.text, fontWeight: "700", fontSize: 14 }}>Plays a specific game</Text>
+              <CatalogPicker
+                table="games"
+                placeholder="Search games"
+                profileId={session.user.id}
+                selectedIds={filterGame ? [filterGame.id] : []}
+                onSelect={(item) => setFilterGame(item)}
+              />
+              {filterGame && (
+                <Button label={`Clear "${filterGame.name}"`} variant="ghost" onPress={() => setFilterGame(null)} />
+              )}
+            </View>
 
-            <Text style={{ color: colors.textMuted }}>Platform</Text>
-            <ChipSelect
-              options={PLATFORMS.map((value) => ({ value, label: PLATFORM_LABELS[value] }))}
-              selected={platform ? [platform] : []}
-              onToggle={(value) => toggleSingle(platform, value, setPlatform)}
-            />
+            <View style={{ gap: spacing.sm }}>
+              <Text style={{ color: colors.text, fontWeight: "700", fontSize: 14 }}>Platform</Text>
+              <ChipSelect
+                options={PLATFORMS.map((value) => ({ value, label: PLATFORM_LABELS[value] }))}
+                selected={platform ? [platform] : []}
+                onToggle={(value) => toggleSingle(platform, value, setPlatform)}
+              />
+            </View>
 
-            <Text style={{ color: colors.textMuted }}>Skill level</Text>
-            <ChipSelect
-              options={SKILL_LEVELS.map((value) => ({ value, label: SKILL_LABELS[value] }))}
-              selected={skillLevel ? [skillLevel] : []}
-              onToggle={(value) => toggleSingle(skillLevel, value, setSkillLevel)}
-            />
+            <View style={{ gap: spacing.sm }}>
+              <Text style={{ color: colors.text, fontWeight: "700", fontSize: 14 }}>Skill level</Text>
+              <ChipSelect
+                options={SKILL_LEVELS.map((value) => ({ value, label: SKILL_LABELS[value] }))}
+                selected={skillLevel ? [skillLevel] : []}
+                onToggle={(value) => toggleSingle(skillLevel, value, setSkillLevel)}
+              />
+            </View>
 
-            <Text style={{ color: colors.textMuted }}>Playstyle</Text>
-            <ChipSelect
-              options={PLAYSTYLE_TAGS.map((value) => ({ value, label: PLAYSTYLE_LABELS[value] }))}
-              selected={playstyle ? [playstyle] : []}
-              onToggle={(value) => toggleSingle(playstyle, value, setPlaystyle)}
-            />
+            <View style={{ gap: spacing.sm }}>
+              <Text style={{ color: colors.text, fontWeight: "700", fontSize: 14 }}>Playstyle</Text>
+              <ChipSelect
+                options={PLAYSTYLE_TAGS.map((value) => ({ value, label: PLAYSTYLE_LABELS[value] }))}
+                selected={playstyle ? [playstyle] : []}
+                onToggle={(value) => toggleSingle(playstyle, value, setPlaystyle)}
+              />
+            </View>
 
-            <Text style={{ color: colors.textMuted }}>Specific show, anime, or movie</Text>
-            <CatalogPicker
-              table="shows"
-              placeholder="Search shows"
-              profileId={session.user.id}
-              selectedIds={filterShow ? [filterShow.id] : []}
-              onSelect={(item) => setFilterShow(item)}
-            />
-            {filterShow && (
-              <Button label={`Clear "${filterShow.name}"`} variant="ghost" onPress={() => setFilterShow(null)} />
-            )}
+            <View style={{ gap: spacing.sm }}>
+              <Text style={{ color: colors.text, fontWeight: "700", fontSize: 14 }}>
+                Watches a specific show, anime, or movie
+              </Text>
+              <CatalogPicker
+                table="shows"
+                placeholder="Search shows"
+                profileId={session.user.id}
+                selectedIds={filterShow ? [filterShow.id] : []}
+                onSelect={(item) => setFilterShow(item)}
+              />
+              {filterShow && (
+                <Button label={`Clear "${filterShow.name}"`} variant="ghost" onPress={() => setFilterShow(null)} />
+              )}
+            </View>
 
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-              <Text style={{ color: colors.textMuted }}>Recently active only</Text>
+              <Text style={{ color: colors.text, fontWeight: "700", fontSize: 14 }}>Recently active only</Text>
               <Switch value={recentlyActive} onValueChange={setRecentlyActive} trackColor={{ true: colors.brand }} />
             </View>
-          </>
+          </Card>
         )}
       </View>
 

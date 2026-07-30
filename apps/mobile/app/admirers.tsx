@@ -94,10 +94,10 @@ function AdmirerRowSkeleton() {
 }
 
 export default function AdmirersScreen() {
-  const { colors, spacing } = useTheme();
+  const { colors, radius, spacing } = useTheme();
   const { isPremium, isLoading: premiumLoading } = usePremiumStatus();
   const { data: count } = useAdmirersCount();
-  const { data: admirers, isLoading, isFetching, error, refetch } = useAdmirers(isPremium);
+  const { data: admirers, isLoading, isFetching, error, refetch } = useAdmirers(!premiumLoading);
 
   if (premiumLoading) {
     return (
@@ -107,18 +107,9 @@ export default function AdmirersScreen() {
     );
   }
 
-  if (!isPremium) {
-    return (
-      <ScreenContainer title="Who liked you" showClose>
-        <Text style={{ color: colors.textMuted }}>
-          {count && count > 0
-            ? `${count} ${count === 1 ? "person has" : "people have"} already swiped right on you.`
-            : "See who swipes right on you before you match."}
-        </Text>
-        <Button label="Unlock with DuoQueue+" onPress={() => router.push("/paywall")} />
-      </ScreenContainer>
-    );
-  }
+  // Free users see a rotating daily trio (enforced server-side); anyone beyond
+  // those 3 is the upsell.
+  const hiddenCount = !isPremium && count ? Math.max(count - (admirers?.length ?? 0), 0) : 0;
 
   return (
     <ScreenContainer
@@ -128,6 +119,11 @@ export default function AdmirersScreen() {
         <RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => void refetch()} tintColor={colors.brand} />
       }
     >
+      {!isPremium && (
+        <Text style={{ color: colors.textMuted }}>
+          Here are 3 people who liked you — a new set appears every day.
+        </Text>
+      )}
       {isLoading ? (
         <View>
           {[0, 1, 2].map((i) => (
@@ -152,6 +148,25 @@ export default function AdmirersScreen() {
           renderItem={({ item }) => <AdmirerRow item={item} />}
           scrollEnabled={false}
         />
+      )}
+
+      {hiddenCount > 0 && (
+        <View
+          style={{
+            backgroundColor: colors.brandSoft,
+            borderRadius: radius.lg,
+            padding: spacing.md,
+            gap: spacing.sm,
+          }}
+        >
+          <Text style={{ color: colors.text, fontWeight: "700" }}>
+            {hiddenCount} more {hiddenCount === 1 ? "person" : "people"} liked you
+          </Text>
+          <Text style={{ color: colors.textMuted, fontSize: 13 }}>
+            DuoQueue+ shows you everyone at once — no waiting for tomorrow&apos;s set.
+          </Text>
+          <Button label="See them all with DuoQueue+" onPress={() => router.push("/paywall")} />
+        </View>
       )}
     </ScreenContainer>
   );

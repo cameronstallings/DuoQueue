@@ -229,8 +229,8 @@ export default function PaywallScreen() {
   return (
     <ScreenContainer title="DuoQueue+" showClose>
       <Text style={{ color: colors.textMuted, marginBottom: spacing.sm }}>
-        Unlimited swipes, unlimited conversations, advanced filters, see who liked you, and a daily Super
-        Ping.
+        Unlimited swipes, unlimited conversations, advanced filters, see everyone who liked you at once, and
+        a daily Super Ping.
       </Text>
 
       {isLoading ? (
