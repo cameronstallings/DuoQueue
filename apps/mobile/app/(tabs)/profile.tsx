@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
-import { ActivityIndicator, Image, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -167,7 +168,9 @@ export default function ProfileScreen() {
                   <Image
                     source={{ uri: photos.headerUrl }}
                     style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
-                    resizeMode="cover"
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    transition={200}
                   />
                   <LinearGradient
                     colors={["rgba(0,0,0,0.45)", "rgba(0,0,0,0)"]}
@@ -200,7 +203,13 @@ export default function ProfileScreen() {
             }}
           >
             {photos?.profileUrl && (
-              <Image source={{ uri: photos.profileUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+              <Image
+                source={{ uri: photos.profileUrl }}
+                style={{ width: "100%", height: "100%" }}
+                contentFit="cover"
+                cachePolicy="memory-disk"
+                transition={200}
+              />
             )}
             <EditBadge uploading={uploadingProfile} />
           </Pressable>

@@ -42,7 +42,7 @@ export function Button({ label, onPress, loading, disabled, variant = "primary" 
           colors={[colors.brand, colors.brandDark]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.base, { borderRadius: radius.pill, paddingVertical: spacing.md }]}
+          style={[styles.base, { borderRadius: radius.pill, paddingVertical: spacing.md, paddingHorizontal: spacing.xl }]}
         >
           {inner}
         </LinearGradient>
@@ -61,6 +61,7 @@ export function Button({ label, onPress, loading, disabled, variant = "primary" 
           backgroundColor: variant === "secondary" ? colors.surface : "transparent",
           borderRadius: radius.pill,
           paddingVertical: spacing.md,
+          paddingHorizontal: spacing.xl,
           opacity: isDisabled ? 0.6 : pressed ? 0.85 : 1,
           transform: [{ scale: pressed && !isDisabled ? 0.98 : 1 }],
           borderWidth: 1,

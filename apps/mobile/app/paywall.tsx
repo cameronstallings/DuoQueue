@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import type { PurchasesPackage } from "react-native-purchases";
 
 import { Button } from "@/components/Button";
+import { Logo } from "@/components/Logo";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { Skeleton } from "@/components/Skeleton";
 import { usePremiumStatus } from "@/features/matching/usePremiumStatus";
@@ -228,6 +229,7 @@ export default function PaywallScreen() {
 
   return (
     <ScreenContainer title="DuoQueue+" showClose>
+      <Logo width={44} />
       <Text style={{ color: colors.textMuted, marginBottom: spacing.sm }}>
         Unlimited swipes, unlimited conversations, advanced filters, see everyone who liked you at once, and
         a daily Super Ping.

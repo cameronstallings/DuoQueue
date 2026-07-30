@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Image, Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
+import { Image } from "expo-image";
 
 import { SectionLabel } from "@/components/SectionLabel";
 import { Skeleton } from "@/components/Skeleton";
@@ -39,7 +40,12 @@ export function StandoutsRow() {
                   }}
                 >
                   {card.profilePhotoUrl ? (
-                    <Image source={{ uri: card.profilePhotoUrl }} style={{ width: "100%", height: "100%" }} />
+                    <Image
+                      source={{ uri: card.profilePhotoUrl }}
+                      style={{ width: "100%", height: "100%" }}
+                      cachePolicy="memory-disk"
+                      transition={150}
+                    />
                   ) : null}
                 </View>
                 <Text numberOfLines={1} style={{ color: colors.text, fontSize: 12, fontWeight: "600" }}>

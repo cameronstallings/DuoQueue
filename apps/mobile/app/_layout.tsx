@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Stack } from "expo-router";
 
+import { Logo } from "@/components/Logo";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { Toast } from "@/components/Toast";
 import { configureNetworkAwareQueries } from "@/lib/network";
@@ -35,11 +36,18 @@ configureNetworkAwareQueries();
 void SplashScreen.preventAutoHideAsync();
 
 function LoadingScreen() {
-  const { colors } = useTheme();
+  const { colors, spacing } = useTheme();
   return (
     <View
-      style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.background }}
+      style={{
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        gap: spacing.xl,
+        backgroundColor: colors.background,
+      }}
     >
+      <Logo width={100} />
       <ActivityIndicator color={colors.brand} size="large" />
     </View>
   );

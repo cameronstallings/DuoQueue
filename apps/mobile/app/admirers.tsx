@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ActivityIndicator, Alert, FlatList, Image, Pressable, RefreshControl, Text, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, Text, View } from "react-native";
+import { Image } from "expo-image";
 import { router } from "expo-router";
 import Animated, { FadeIn } from "react-native-reanimated";
 
@@ -45,7 +46,12 @@ function AdmirerRow({ item }: { item: AdmirerListItem }) {
       }}
     >
       {item.photoUrl ? (
-        <Image source={{ uri: item.photoUrl }} style={{ width: 56, height: 56, borderRadius: 28 }} />
+        <Image
+          source={{ uri: item.photoUrl }}
+          style={{ width: 56, height: 56, borderRadius: 28 }}
+          cachePolicy="memory-disk"
+          transition={150}
+        />
       ) : (
         <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.background }} />
       )}

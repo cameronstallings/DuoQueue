@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Alert, Image, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -148,7 +149,13 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger }: SwipeCardP
       <GestureDetector gesture={pan}>
         <Animated.View style={[styles.card, { borderRadius: radius.lg, backgroundColor: colors.surface }, cardStyle]}>
           {card.headerPhotoUrl ? (
-            <Image source={{ uri: card.headerPhotoUrl }} style={styles.photo} resizeMode="cover" />
+            <Image
+              source={{ uri: card.headerPhotoUrl }}
+              style={styles.photo}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              transition={200}
+            />
           ) : (
             <View style={[styles.photo, { alignItems: "center", justifyContent: "center" }]}>
               <Text style={{ color: colors.textMuted }}>No photo</Text>

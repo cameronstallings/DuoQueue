@@ -1,4 +1,5 @@
-import { Image, Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
+import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -27,7 +28,13 @@ export function ProfileDetailContent({ card, onClose }: ProfileDetailContentProp
     <ScrollView contentContainerStyle={{ paddingBottom: spacing.xl }}>
       <View style={{ width: "100%", aspectRatio: 0.85, backgroundColor: colors.surface }}>
         {card.headerPhotoUrl ? (
-          <Image source={{ uri: card.headerPhotoUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+          <Image
+            source={{ uri: card.headerPhotoUrl }}
+            style={{ width: "100%", height: "100%" }}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            transition={200}
+          />
         ) : null}
         <LinearGradient
           colors={["rgba(0,0,0,0.45)", "rgba(0,0,0,0)"]}

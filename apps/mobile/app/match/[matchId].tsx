@@ -1,4 +1,5 @@
-import { Image, View } from "react-native";
+import { View } from "react-native";
+import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import Animated, { FadeIn, FadeInUp, ZoomIn } from "react-native-reanimated";
 
@@ -25,6 +26,8 @@ export default function MatchCelebrationScreen() {
             <Image
               source={{ uri: photo }}
               style={{ width: 160, height: 160, borderRadius: 80, borderWidth: 4, borderColor: colors.brand }}
+              cachePolicy="memory-disk"
+              transition={200}
             />
           </Animated.View>
         ) : null}

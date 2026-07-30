@@ -1,4 +1,5 @@
-import { Image, View } from "react-native";
+import { View } from "react-native";
+import { Image } from "expo-image";
 
 import { useTheme } from "@/theme/useTheme";
 
@@ -38,6 +39,8 @@ export function PresenceAvatar({
             borderWidth,
             borderColor,
           }}
+          cachePolicy="memory-disk"
+          transition={150}
         />
       ) : (
         <View

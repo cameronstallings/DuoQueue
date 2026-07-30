@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { RefreshControl, SectionList, Image, Pressable, Text, View } from "react-native";
+import { RefreshControl, SectionList, Pressable, Text, View } from "react-native";
+import { Image } from "expo-image";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn } from "react-native-reanimated";
@@ -64,7 +65,12 @@ function MatchRow({ item }: { item: MatchListItem }) {
       }}
     >
       {item.otherPhotoUrl ? (
-        <Image source={{ uri: item.otherPhotoUrl }} style={{ width: 56, height: 56, borderRadius: 28 }} />
+        <Image
+          source={{ uri: item.otherPhotoUrl }}
+          style={{ width: 56, height: 56, borderRadius: 28 }}
+          cachePolicy="memory-disk"
+          transition={150}
+        />
       ) : (
         <View
           style={{
