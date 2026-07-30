@@ -12,8 +12,9 @@ import {
 } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import type { ReportReason } from "@duoqueue/shared-types";
+import { MATCH_FEEDBACK_TAGS, type MatchFeedbackTag, type ReportReason } from "@duoqueue/shared-types";
 
+import { ChipSelect } from "@/components/ChipSelect";
 import { ReportModal } from "@/components/ReportModal";
 import { Skeleton } from "@/components/Skeleton";
 import { useChatMessages } from "@/features/chat/useChatMessages";
@@ -23,9 +24,206 @@ import { useMatches } from "@/features/chat/useMatches";
 import { useSendMessage, ConversationLockedError } from "@/features/chat/useSendMessage";
 import { useTypingIndicator } from "@/features/chat/useTypingIndicator";
 import type { ChatTimelineItem } from "@/features/chat/types";
+import { useActiveMatchSession, useCancelSession, useProposeSession, useRespondSession } from "@/features/chat/useMatchSessions";
+import { MATCH_FEEDBACK_LABELS } from "@/features/onboarding/profile-labels";
+import { useCreateParty } from "@/features/party/useParty";
+import { useSubmitMatchFeedback } from "@/features/reputation/useReputation";
 import { containsHiddenWord, useHiddenWords } from "@/features/settings/useHiddenWords";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
+
+const SESSION_TIME_FORMAT = new Intl.DateTimeFormat(undefined, {
+  weekday: "short",
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+});
+
+function getSessionPresets(): { label: string; date: Date }[] {
+  const now = new Date();
+  function atHour(daysFromNow: number, hour: number): Date {
+    const d = new Date(now);
+    d.setDate(d.getDate() + daysFromNow);
+    d.setHours(hour, 0, 0, 0);
+    return d;
+  }
+
+  const presets: { label: string; date: Date }[] = [];
+  const tonight = atHour(0, 20);
+  if (tonight.getTime() > now.getTime() + 30 * 60 * 1000) {
+    presets.push({ label: "Tonight, 8pm", date: tonight });
+  }
+  presets.push({ label: "Tomorrow, 6pm", date: atHour(1, 18) });
+  presets.push({ label: "Tomorrow, 8pm", date: atHour(1, 20) });
+  const daysUntilSaturday = (6 - now.getDay() + 7) % 7 || 7;
+  presets.push({ label: "Saturday, 7pm", date: atHour(daysUntilSaturday, 19) });
+  return presets;
+}
+
+function ScheduleModal({
+  visible,
+  onClose,
+  matchId,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  matchId: string;
+}) {
+  const { colors, spacing, type } = useTheme();
+  const propose = useProposeSession(matchId);
+
+  async function handlePick(date: Date) {
+    try {
+      await propose.mutateAsync(date);
+      onClose();
+    } catch (err) {
+      Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
+    }
+  }
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.3)", justifyContent: "flex-end" }} onPress={onClose}>
+        <Pressable
+          style={{
+            backgroundColor: colors.background,
+            padding: spacing.lg,
+            gap: spacing.sm,
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+          }}
+        >
+          <Text style={{ ...type.title, color: colors.text }}>Propose a time to play</Text>
+          {getSessionPresets().map((preset) => (
+            <Pressable
+              key={preset.label}
+              onPress={() => void handlePick(preset.date)}
+              disabled={propose.isPending}
+              style={{ paddingVertical: spacing.sm }}
+            >
+              <Text style={{ color: colors.brand, fontWeight: "600", fontSize: 16 }}>{preset.label}</Text>
+            </Pressable>
+          ))}
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+function SessionBanner({ matchId, myId }: { matchId: string; myId: string | undefined }) {
+  const { colors, radius, spacing } = useTheme();
+  const { data: session } = useActiveMatchSession(matchId);
+  const respond = useRespondSession(matchId);
+  const cancel = useCancelSession(matchId);
+
+  if (!session) return null;
+
+  const isProposer = session.proposed_by === myId;
+  const label = SESSION_TIME_FORMAT.format(new Date(session.scheduled_at));
+
+  return (
+    <View
+      style={{
+        marginHorizontal: spacing.md,
+        marginBottom: spacing.sm,
+        backgroundColor: colors.brandSoft,
+        borderRadius: radius.lg,
+        padding: spacing.md,
+        gap: spacing.xs,
+      }}
+    >
+      <Text style={{ color: colors.text, fontWeight: "700" }}>
+        {session.status === "confirmed" ? "Playing " : "Proposed: "}
+        {label}
+      </Text>
+      {session.status === "pending" && !isProposer && (
+        <View style={{ flexDirection: "row", gap: spacing.md }}>
+          <Pressable onPress={() => respond.mutate({ sessionId: session.id, accept: true })}>
+            <Text style={{ color: colors.brand, fontWeight: "700" }}>Confirm</Text>
+          </Pressable>
+          <Pressable onPress={() => respond.mutate({ sessionId: session.id, accept: false })}>
+            <Text style={{ color: colors.textMuted, fontWeight: "700" }}>Decline</Text>
+          </Pressable>
+        </View>
+      )}
+      {(session.status === "confirmed" || isProposer) && (
+        <Pressable onPress={() => cancel.mutate(session.id)}>
+          <Text style={{ color: colors.textMuted, fontSize: 12 }}>Cancel</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+function FeedbackModal({
+  visible,
+  onClose,
+  matchId,
+  otherName,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  matchId: string;
+  otherName: string;
+}) {
+  const { colors, spacing, type } = useTheme();
+  const [selected, setSelected] = useState<MatchFeedbackTag[]>([]);
+  const submit = useSubmitMatchFeedback(matchId);
+
+  function toggle(tag: MatchFeedbackTag) {
+    setSelected((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
+  }
+
+  async function handleSubmit() {
+    try {
+      await submit.mutateAsync(selected);
+      setSelected([]);
+      onClose();
+    } catch (err) {
+      Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
+    }
+  }
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.3)", justifyContent: "flex-end" }} onPress={onClose}>
+        <Pressable
+          style={{
+            backgroundColor: colors.background,
+            padding: spacing.lg,
+            gap: spacing.md,
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+          }}
+        >
+          <Text style={{ ...type.title, color: colors.text }}>How was playing with {otherName}?</Text>
+          <Text style={{ color: colors.textMuted, fontSize: 13 }}>
+            Optional and private to how it shapes their reputation — pick anything that applies.
+          </Text>
+          <ChipSelect
+            options={MATCH_FEEDBACK_TAGS.map((value) => ({ value, label: MATCH_FEEDBACK_LABELS[value] }))}
+            selected={selected}
+            onToggle={toggle}
+          />
+          <Pressable
+            onPress={() => void handleSubmit()}
+            disabled={submit.isPending || selected.length === 0}
+            style={{
+              backgroundColor: colors.brand,
+              opacity: submit.isPending || selected.length === 0 ? 0.5 : 1,
+              borderRadius: 20,
+              paddingVertical: spacing.sm,
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ color: "#fff", fontWeight: "700" }}>Submit</Text>
+          </Pressable>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
 
 function MessageBubble({
   content,
@@ -133,10 +331,13 @@ export default function ChatScreen() {
   const unmatch = useUnmatch();
   const blockUser = useBlockUser();
   const reportUser = useReportUser();
+  const createParty = useCreateParty();
 
   const [draft, setDraft] = useState("");
   const [menuVisible, setMenuVisible] = useState(false);
   const [reportVisible, setReportVisible] = useState(false);
+  const [feedbackVisible, setFeedbackVisible] = useState(false);
+  const [scheduleVisible, setScheduleVisible] = useState(false);
   const listRef = useRef<FlatList<ChatTimelineItem>>(null);
 
   useEffect(() => {
@@ -170,6 +371,32 @@ export default function ChatScreen() {
     setMenuVisible(false);
     if (hasSharedDiscord) return;
     discordShare.mutate();
+  }
+
+  async function handleInviteThird() {
+    setMenuVisible(false);
+    try {
+      const partyId = await createParty.mutateAsync(matchId);
+      router.push({ pathname: "/party/[partyId]", params: { partyId } });
+    } catch (err) {
+      Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
+    }
+  }
+
+  async function handlePlayNow() {
+    setMenuVisible(false);
+    try {
+      await sendMessage.mutateAsync("🎮 I'm free to play right now!");
+    } catch (err) {
+      if (err instanceof ConversationLockedError) {
+        Alert.alert("Conversation locked", err.message, [
+          { text: "Not now" },
+          { text: "Upgrade", onPress: () => router.push("/paywall") },
+        ]);
+      } else {
+        Alert.alert("Couldn't send ping", err instanceof Error ? err.message : "Please try again.");
+      }
+    }
   }
 
   function handleUnmatch() {
@@ -278,6 +505,8 @@ export default function ChatScreen() {
         </Text>
       )}
 
+      <SessionBanner matchId={matchId} myId={myId} />
+
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
         {matchInfo?.is_locked ? (
           <View style={{ padding: spacing.md, gap: spacing.sm, borderTopWidth: 1, borderColor: colors.border }}>
@@ -341,10 +570,34 @@ export default function ChatScreen() {
           onPress={() => setMenuVisible(false)}
         >
           <View style={{ backgroundColor: colors.background, padding: spacing.lg, gap: spacing.sm, borderTopLeftRadius: 20, borderTopRightRadius: 20 }}>
+            <Pressable onPress={() => void handlePlayNow()} style={{ padding: spacing.sm }}>
+              <Text style={{ color: colors.brand, fontWeight: "600" }}>Ping: I&apos;m free to play now</Text>
+            </Pressable>
+            <Pressable onPress={() => void handleInviteThird()} style={{ padding: spacing.sm }}>
+              <Text style={{ color: colors.brand, fontWeight: "600" }}>Invite a third to duo</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                setMenuVisible(false);
+                setScheduleVisible(true);
+              }}
+              style={{ padding: spacing.sm }}
+            >
+              <Text style={{ color: colors.brand, fontWeight: "600" }}>Schedule a session</Text>
+            </Pressable>
             <Pressable onPress={handleShareDiscord} disabled={hasSharedDiscord} style={{ padding: spacing.sm }}>
               <Text style={{ color: hasSharedDiscord ? colors.textMuted : colors.brand, fontWeight: "600" }}>
                 {hasSharedDiscord ? "Discord already shared" : "Share my Discord"}
               </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                setMenuVisible(false);
+                setFeedbackVisible(true);
+              }}
+              style={{ padding: spacing.sm }}
+            >
+              <Text style={{ color: colors.text, fontWeight: "600" }}>Rate this session</Text>
             </Pressable>
             <Pressable
               onPress={() => {
@@ -366,6 +619,13 @@ export default function ChatScreen() {
       </Modal>
 
       <ReportModal visible={reportVisible} onClose={() => setReportVisible(false)} onSubmit={handleReportSubmit} />
+      <FeedbackModal
+        visible={feedbackVisible}
+        onClose={() => setFeedbackVisible(false)}
+        matchId={matchId}
+        otherName={matchInfo?.other_display_name ?? "them"}
+      />
+      <ScheduleModal visible={scheduleVisible} onClose={() => setScheduleVisible(false)} matchId={matchId} />
     </View>
   );
 }

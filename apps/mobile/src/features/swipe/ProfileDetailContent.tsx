@@ -5,11 +5,29 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PresenceAvatar } from "@/components/PresenceAvatar";
-import { REGION_LABELS } from "@/features/onboarding/profile-labels";
+import { VoiceIntroPlayer } from "@/components/VoiceIntroPlayer";
+import { MATCH_FEEDBACK_LABELS, REGION_LABELS, TILT_HANDLING_LABELS } from "@/features/onboarding/profile-labels";
+import { usePublicLinkedAccounts } from "@/features/profile/useLinkedAccounts";
+import { usePublicVoiceIntro } from "@/features/profile/useVoiceIntro";
+import { usePublicReputation } from "@/features/reputation/useReputation";
 import { useTheme } from "@/theme/useTheme";
 
 import { SkillBadge } from "./SkillBadge";
 import type { DeckCard } from "./types";
+
+const PROVIDER_LABELS = { steam: "Steam", riot: "Riot Games", xbox: "Xbox" } as const;
+
+function VibeBar({ label, pct }: { label: string; pct: number }) {
+  const { colors } = useTheme();
+  return (
+    <View style={{ gap: 4 }}>
+      <Text style={{ color: colors.textMuted, fontSize: 12 }}>{label}</Text>
+      <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.surfaceAlt, overflow: "hidden" }}>
+        <View style={{ height: 6, width: `${pct}%`, backgroundColor: colors.brand, borderRadius: 3 }} />
+      </View>
+    </View>
+  );
+}
 
 interface ProfileDetailContentProps {
   card: DeckCard;
@@ -23,6 +41,9 @@ interface ProfileDetailContentProps {
 export function ProfileDetailContent({ card, onClose }: ProfileDetailContentProps) {
   const { colors, spacing, radius } = useTheme();
   const insets = useSafeAreaInsets();
+  const { data: reputation } = usePublicReputation(card.profile_id);
+  const { data: voiceIntro } = usePublicVoiceIntro(card.profile_id);
+  const { data: linkedAccounts } = usePublicLinkedAccounts(card.profile_id);
 
   return (
     <ScrollView contentContainerStyle={{ paddingBottom: spacing.xl }}>
@@ -74,12 +95,49 @@ export function ProfileDetailContent({ card, onClose }: ProfileDetailContentProp
           <Text style={{ fontSize: 24, fontWeight: "700", color: colors.text }}>
             {card.display_name}, {card.age}
           </Text>
+          {linkedAccounts && linkedAccounts.length > 0 && (
+            <Ionicons name="shield-checkmark" size={20} color={colors.brand} />
+          )}
         </View>
+
+        {linkedAccounts && linkedAccounts.length > 0 && (
+          <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+            Verified: {linkedAccounts.map((a) => PROVIDER_LABELS[a.provider]).join(", ")}
+          </Text>
+        )}
 
         <Text style={{ color: colors.textMuted, fontSize: 14 }}>
           {REGION_LABELS[card.region] ?? card.region}
           {card.languages.length > 0 ? ` · ${card.languages.join(", ").toUpperCase()}` : ""}
         </Text>
+
+        {card.playWindowLabel && <Text style={{ color: colors.textMuted, fontSize: 14 }}>{card.playWindowLabel}</Text>}
+
+        {voiceIntro && <VoiceIntroPlayer url={voiceIntro.url} durationSeconds={voiceIntro.durationSeconds} />}
+
+        {reputation && reputation.length > 0 && (
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
+            {reputation.map((r) => (
+              <View
+                key={r.tag}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 4,
+                  backgroundColor: colors.brandSoft,
+                  borderRadius: radius.pill,
+                  paddingVertical: 4,
+                  paddingHorizontal: spacing.sm,
+                }}
+              >
+                <Ionicons name="checkmark-circle" size={13} color={colors.brand} />
+                <Text style={{ color: colors.text, fontSize: 12, fontWeight: "600" }}>
+                  {MATCH_FEEDBACK_LABELS[r.tag]} · {r.tag_count}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
 
         {card.topGames.length > 0 && (
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs, marginTop: spacing.xs }}>
@@ -95,6 +153,24 @@ export function ProfileDetailContent({ card, onClose }: ProfileDetailContentProp
 
         {card.playstyles.length > 0 && (
           <Text style={{ color: colors.textMuted, fontSize: 14 }}>{card.playstyles.join(" · ")}</Text>
+        )}
+
+        {card.vibe && (
+          <View
+            style={{ backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.md, gap: spacing.sm }}
+          >
+            <Text
+              style={{ color: colors.textMuted, fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.4 }}
+            >
+              Vibe
+            </Text>
+            <VibeBar label="Chill ↔ Sweaty ranked grind" pct={card.vibe.intensity} />
+            <VibeBar label="Quiet ↔ Mic on constantly" pct={card.vibe.commsStyle} />
+            <VibeBar label="Don't coach me ↔ Coach me" pct={card.vibe.coachingPref} />
+            <Text style={{ color: colors.text, fontSize: 13 }}>
+              After a losing streak: {TILT_HANDLING_LABELS[card.vibe.tiltHandling]}
+            </Text>
+          </View>
         )}
 
         {card.prompts.map((prompt) => (

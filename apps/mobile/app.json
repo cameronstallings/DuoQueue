@@ -62,6 +62,12 @@
             "backgroundColor": "#0E0E12"
           }
         }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "DuoQueue needs access to your microphone to record a short voice intro for your profile."
+        }
       ]
     ],
     "extra": {

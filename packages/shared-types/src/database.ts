@@ -1,5 +1,7 @@
 import type {
   Gender,
+  LinkedAccountProvider,
+  MatchSessionStatus,
   ModerationStatus,
   Platform,
   Region,
@@ -8,6 +10,7 @@ import type {
   SkillLevel,
   SubscriptionStatus,
   SwipeAction,
+  TiltHandling,
 } from "./enums";
 
 /**
@@ -33,6 +36,51 @@ export interface ProfileRow {
   is_active: boolean;
   hide_last_active: boolean;
   last_active_at: string | null;
+  usual_play_start_hour: number | null;
+  usual_play_end_hour: number | null;
+  is_looking_now: boolean;
+  looking_now_expires_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Row shape for `profile_vibe` (see 0019_vibe_compatibility.sql) — self-reported
+ * playstyle-fit sliders, 0-100, plus a tilt-handling tag. */
+export interface ProfileVibeRow {
+  profile_id: string;
+  intensity: number;
+  comms_style: number;
+  coaching_pref: number;
+  tilt_handling: TiltHandling;
+}
+
+/** Row shape for `profile_voice_intro` (see 0024_voice_intros.sql). */
+export interface ProfileVoiceIntroRow {
+  profile_id: string;
+  storage_path: string;
+  duration_seconds: number;
+  moderation_status: ModerationStatus;
+  created_at: string;
+}
+
+/** Row shape for `linked_accounts` (see 0025_linked_accounts.sql). */
+export interface LinkedAccountRow {
+  profile_id: string;
+  provider: LinkedAccountProvider;
+  external_id: string;
+  display_name: string;
+  rank_tier: string | null;
+  avatar_url: string | null;
+  linked_at: string;
+}
+
+/** Row shape for `match_sessions` (see 0023_match_sessions.sql). */
+export interface MatchSessionRow {
+  id: string;
+  match_id: string;
+  proposed_by: string;
+  scheduled_at: string;
+  status: MatchSessionStatus;
   created_at: string;
   updated_at: string;
 }

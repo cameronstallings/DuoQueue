@@ -91,6 +91,7 @@ export default function RootLayout() {
               <Stack.Screen name="filters" options={{ presentation: "modal" }} />
               <Stack.Screen name="paywall" options={{ presentation: "modal" }} />
               <Stack.Screen name="admirers" options={{ presentation: "modal" }} />
+              <Stack.Screen name="online-now" options={{ presentation: "modal" }} />
               <Stack.Screen name="block-list" options={{ presentation: "modal" }} />
               <Stack.Screen name="hidden-words" options={{ presentation: "modal" }} />
               <Stack.Screen name="safety/index" options={{ presentation: "modal" }} />
@@ -98,6 +99,8 @@ export default function RootLayout() {
               <Stack.Screen name="edit-prompts" options={{ presentation: "modal" }} />
               <Stack.Screen name="edit-details" options={{ presentation: "modal" }} />
               <Stack.Screen name="match/[matchId]" options={{ presentation: "modal" }} />
+              <Stack.Screen name="party/[partyId]/index" options={{ headerShown: false }} />
+              <Stack.Screen name="party/[partyId]/chat" options={{ headerShown: true, title: "Party chat" }} />
             </Stack>
           )}
           <Toast />

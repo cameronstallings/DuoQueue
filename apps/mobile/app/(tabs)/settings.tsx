@@ -10,6 +10,7 @@ import { ChipSelect } from "@/components/ChipSelect";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { SectionLabel } from "@/components/SectionLabel";
 import { Skeleton } from "@/components/Skeleton";
+import { useLinkedAccounts, useLinkSteamAccount, useUnlinkAccount } from "@/features/profile/useLinkedAccounts";
 import { useDeleteAccount } from "@/features/settings/useDeleteAccount";
 import { useNotificationSettings } from "@/features/settings/useNotificationSettings";
 import { usePrivacyToggles } from "@/features/settings/usePrivacyToggles";
@@ -86,6 +87,62 @@ function NotificationRowSkeleton() {
 function Divider() {
   const { colors } = useTheme();
   return <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />;
+}
+
+function LinkedAccountsSection() {
+  const { colors, spacing } = useTheme();
+  const profile = useSessionStore((s) => s.profile);
+  const { data: linked } = useLinkedAccounts(profile?.id);
+  const { startLink, linking, error } = useLinkSteamAccount(profile?.id);
+  const { unlink } = useUnlinkAccount(profile?.id);
+
+  const steamLink = linked?.find((a) => a.provider === "steam");
+
+  return (
+    <View style={{ marginTop: spacing.md }}>
+      <SectionLabel>Linked Accounts</SectionLabel>
+      <Card style={{ gap: spacing.sm }}>
+        <Text style={{ color: colors.textMuted, fontSize: 13 }}>
+          Verified badges pull your rank and username straight from the source, instead of trusting a typed-in
+          claim.
+        </Text>
+
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          <View style={{ flex: 1, marginRight: spacing.sm }}>
+            <Text style={{ color: colors.text, fontWeight: "700" }}>Steam</Text>
+            {steamLink && <Text style={{ color: colors.textMuted, fontSize: 12 }}>Verified as {steamLink.display_name}</Text>}
+          </View>
+          {steamLink ? (
+            <Pressable onPress={() => void unlink("steam")}>
+              <Text style={{ color: colors.danger, fontWeight: "600" }}>Unlink</Text>
+            </Pressable>
+          ) : (
+            <Pressable onPress={() => void startLink()} disabled={linking}>
+              <Text style={{ color: colors.brand, fontWeight: "600" }}>{linking ? "Connecting…" : "Connect"}</Text>
+            </Pressable>
+          )}
+        </View>
+        {error && <Text style={{ color: colors.danger, fontSize: 12 }}>{error}</Text>}
+
+        <Divider />
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          <View style={{ flex: 1, marginRight: spacing.sm }}>
+            <Text style={{ color: colors.textMuted, fontWeight: "700" }}>Riot Games</Text>
+            <Text style={{ color: colors.textMuted, fontSize: 12 }}>Coming soon</Text>
+          </View>
+          <Text style={{ color: colors.textMuted, fontWeight: "600" }}>Connect</Text>
+        </View>
+        <Divider />
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          <View style={{ flex: 1, marginRight: spacing.sm }}>
+            <Text style={{ color: colors.textMuted, fontWeight: "700" }}>Xbox</Text>
+            <Text style={{ color: colors.textMuted, fontSize: 12 }}>Coming soon</Text>
+          </View>
+          <Text style={{ color: colors.textMuted, fontWeight: "600" }}>Connect</Text>
+        </View>
+      </Card>
+    </View>
+  );
 }
 
 function NavRow({ label, onPress }: { label: string; onPress: () => void }) {
@@ -197,6 +254,8 @@ export default function SettingsScreen() {
           )}
         </Card>
       </View>
+
+      <LinkedAccountsSection />
 
       <View style={{ marginTop: spacing.md }}>
         <SectionLabel>Privacy</SectionLabel>

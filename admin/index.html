@@ -253,6 +253,13 @@
         </div>
         <div id="reports-table">Loading...</div>
       </div>
+      <div class="card">
+        <div class="filters">
+          <strong>Pending voice intros</strong>
+          <button class="secondary" id="refresh-voice" style="margin-left:auto">Refresh</button>
+        </div>
+        <div id="voice-intros-table">Loading...</div>
+      </div>
     `;
 
     document.getElementById("signout").addEventListener("click", async () => {
@@ -261,6 +268,89 @@
     });
     document.getElementById("status-filter").addEventListener("change", loadReports);
     document.getElementById("refresh").addEventListener("click", loadReports);
+    document.getElementById("refresh-voice").addEventListener("click", loadVoiceIntros);
+
+    async function loadVoiceIntros() {
+      const tableEl = document.getElementById("voice-intros-table");
+      tableEl.textContent = "Loading...";
+      try {
+        const { data: intros, error } = await supabase
+          .from("profile_voice_intro")
+          .select("profile_id, storage_path, duration_seconds, created_at")
+          .eq("moderation_status", "pending")
+          .order("created_at");
+        if (error) throw error;
+        if (!intros || intros.length === 0) {
+          tableEl.innerHTML = "<p class='muted'>No pending voice intros.</p>";
+          return;
+        }
+
+        const profileIds = intros.map((i) => i.profile_id);
+        const { data: profiles, error: profilesError } = await supabase
+          .from("profiles")
+          .select("id, display_name")
+          .in("id", profileIds);
+        if (profilesError) throw profilesError;
+        const nameById = new Map((profiles ?? []).map((p) => [p.id, p.display_name]));
+
+        const rows = await Promise.all(
+          intros.map(async (intro) => {
+            const { data: signed } = await supabase.storage
+              .from("voice-intros")
+              .createSignedUrl(intro.storage_path, 3600);
+            return { ...intro, name: nameById.get(intro.profile_id) ?? intro.profile_id, url: signed?.signedUrl };
+          }),
+        );
+
+        tableEl.innerHTML = `
+          <table>
+            <thead><tr><th>When</th><th>Profile</th><th>Length</th><th>Listen</th><th>Actions</th></tr></thead>
+            <tbody>
+              ${rows
+                .map(
+                  (r) => `
+                <tr data-profile-id="${r.profile_id}">
+                  <td>${new Date(r.created_at).toLocaleString()}</td>
+                  <td>${escapeHtml(r.name)}</td>
+                  <td>${r.duration_seconds}s</td>
+                  <td>${r.url ? `<audio controls src="${r.url}" style="height:32px;max-width:180px"></audio>` : "Unavailable"}</td>
+                  <td>
+                    <div class="actions">
+                      <button class="secondary approve-btn">Approve</button>
+                      <button class="danger reject-btn">Reject</button>
+                    </div>
+                  </td>
+                </tr>
+              `,
+                )
+                .join("")}
+            </tbody>
+          </table>
+        `;
+
+        tableEl.querySelectorAll("tr[data-profile-id]").forEach((row) => {
+          const profileId = row.dataset.profileId;
+          row.querySelector(".approve-btn").addEventListener("click", async () => {
+            const { error: rpcError } = await supabase.rpc("review_voice_intro", {
+              p_profile_id: profileId,
+              p_approve: true,
+            });
+            if (rpcError) alert(rpcError.message);
+            await loadVoiceIntros();
+          });
+          row.querySelector(".reject-btn").addEventListener("click", async () => {
+            const { error: rpcError } = await supabase.rpc("review_voice_intro", {
+              p_profile_id: profileId,
+              p_approve: false,
+            });
+            if (rpcError) alert(rpcError.message);
+            await loadVoiceIntros();
+          });
+        });
+      } catch (err) {
+        tableEl.innerHTML = `<p style="color:var(--danger)">${escapeHtml(err.message ?? String(err))}</p>`;
+      }
+    }
 
     async function loadReports() {
       const statusFilter = document.getElementById("status-filter").value;
@@ -337,6 +427,7 @@
     }
 
     await loadReports();
+    await loadVoiceIntros();
   }
 
   render();

@@ -161,6 +161,9 @@ export default function DeckScreen() {
             <Ionicons name="rocket" size={16} color={colors.brand} />
             <Text style={{ color: colors.brand, fontWeight: "600" }}>{credits?.boosts ?? 0}</Text>
           </Pressable>
+          <Pressable onPress={() => router.push("/online-now")}>
+            <Text style={{ color: colors.brand, fontWeight: "600" }}>Online</Text>
+          </Pressable>
           <Pressable onPress={() => router.push("/admirers")}>
             <Text style={{ color: colors.brand, fontWeight: "600" }}>
               Likes{admirersCount ? ` (${admirersCount})` : ""}

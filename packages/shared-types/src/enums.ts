@@ -67,6 +67,23 @@ export type PlaystyleTag = (typeof PLAYSTYLE_TAGS)[number];
 export const SHOW_CATEGORIES = ["show", "movie", "anime"] as const;
 export type ShowCategory = (typeof SHOW_CATEGORIES)[number];
 
+export const MATCH_FEEDBACK_TAGS = ["good_comms", "chill_after_losses", "showed_up_on_time", "flaked"] as const;
+export type MatchFeedbackTag = (typeof MATCH_FEEDBACK_TAGS)[number];
+
+export const MATCH_SESSION_STATUSES = ["pending", "confirmed", "declined", "cancelled"] as const;
+export type MatchSessionStatus = (typeof MATCH_SESSION_STATUSES)[number];
+
+export const LINKED_ACCOUNT_PROVIDERS = ["steam", "riot", "xbox"] as const;
+export type LinkedAccountProvider = (typeof LINKED_ACCOUNT_PROVIDERS)[number];
+
+export const TILT_HANDLING_OPTIONS = [
+  "stays_calm",
+  "gets_frustrated_sometimes",
+  "tilts_but_recovers_fast",
+  "needs_space_after_losses",
+] as const;
+export type TiltHandling = (typeof TILT_HANDLING_OPTIONS)[number];
+
 /** ISO 639-1 codes for the languages offered in the onboarding multi-select. */
 export const LANGUAGE_CODES = [
   "en",

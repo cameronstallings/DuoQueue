@@ -3,17 +3,31 @@ import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { PLATFORMS, PLAYSTYLE_TAGS, SKILL_LEVELS } from "@duoqueue/shared-types";
+import { PLATFORMS, PLAYSTYLE_TAGS, SKILL_LEVELS, TILT_HANDLING_OPTIONS, type TiltHandling } from "@duoqueue/shared-types";
 
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ChipSelect } from "@/components/ChipSelect";
 import { SectionLabel } from "@/components/SectionLabel";
 import { Skeleton } from "@/components/Skeleton";
+import { Slider } from "@/components/Slider";
 import { TextField } from "@/components/TextField";
 import { CatalogPicker } from "@/features/onboarding/CatalogPicker";
-import { PLATFORM_LABELS, PLAYSTYLE_LABELS, SKILL_LABELS } from "@/features/onboarding/profile-labels";
-import { type EditableGame, type EditableShow, useEditableProfileDetails } from "@/features/profile/useEditableProfileDetails";
+import { VoiceIntroRecorderCard } from "@/features/profile/VoiceIntroRecorderCard";
+import {
+  PLATFORM_LABELS,
+  PLAY_WINDOW_PRESETS,
+  PLAYSTYLE_LABELS,
+  SKILL_LABELS,
+  TILT_HANDLING_LABELS,
+} from "@/features/onboarding/profile-labels";
+import {
+  type EditableGame,
+  type EditablePlayWindow,
+  type EditableShow,
+  type EditableVibe,
+  useEditableProfileDetails,
+} from "@/features/profile/useEditableProfileDetails";
 import { useSaveProfileDetails } from "@/features/profile/useSaveProfileDetails";
 import { useSessionStore } from "@/store/session-store";
 import { useToastStore } from "@/store/toast-store";
@@ -32,6 +46,8 @@ export default function EditDetailsScreen() {
   const [shows, setShows] = useState<EditableShow[] | null>(null);
   const [platforms, setPlatforms] = useState<(typeof PLATFORMS)[number][] | null>(null);
   const [playstyles, setPlaystyles] = useState<(typeof PLAYSTYLE_TAGS)[number][] | null>(null);
+  const [vibe, setVibe] = useState<EditableVibe | null>(null);
+  const [playWindow, setPlayWindow] = useState<EditablePlayWindow | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Seed local editable state once the saved details arrive.
@@ -41,9 +57,16 @@ export default function EditDetailsScreen() {
     setShows(existing.shows);
     setPlatforms(existing.platforms);
     setPlaystyles(existing.playstyles);
+    setVibe(existing.vibe);
+    setPlayWindow(existing.playWindow);
   }, [games, loadingExisting, existing]);
 
-  const loaded = games !== null && shows !== null && platforms !== null && playstyles !== null;
+  const loaded =
+    games !== null && shows !== null && platforms !== null && playstyles !== null && vibe !== null && playWindow !== null;
+
+  const selectedPreset = PLAY_WINDOW_PRESETS.find(
+    (p) => p.startHour === playWindow?.startHour && p.endHour === playWindow?.endHour,
+  );
 
   function removeGame(gameId: string) {
     setGames((prev) => (prev ?? []).filter((g) => g.gameId !== gameId));
@@ -77,7 +100,7 @@ export default function EditDetailsScreen() {
   }
 
   async function handleSave() {
-    if (!games || !shows || !platforms || !playstyles) return;
+    if (!games || !shows || !platforms || !playstyles || !vibe || !playWindow) return;
     if (games.length === 0) {
       setError("Add at least one favorite game.");
       return;
@@ -93,6 +116,8 @@ export default function EditDetailsScreen() {
         shows: shows.map((s) => ({ showId: s.showId })),
         platforms,
         playstyles,
+        vibe,
+        playWindow,
       });
       useToastStore.getState().showToast("Profile details saved");
       router.back();
@@ -156,6 +181,14 @@ export default function EditDetailsScreen() {
                 <Skeleton width={100} height={32} borderRadius={radius.pill} />
                 <Skeleton width={80} height={32} borderRadius={radius.pill} />
               </View>
+            </View>
+            <View style={{ gap: spacing.sm }}>
+              <SectionLabel>Vibe</SectionLabel>
+              <Card style={{ gap: spacing.md }}>
+                <Skeleton height={20} />
+                <Skeleton height={20} />
+                <Skeleton height={20} />
+              </Card>
             </View>
           </>
         ) : (
@@ -242,6 +275,73 @@ export default function EditDetailsScreen() {
                 options={PLAYSTYLE_TAGS.map((value) => ({ value, label: PLAYSTYLE_LABELS[value] }))}
                 selected={playstyles}
                 onToggle={togglePlaystyle}
+              />
+            </View>
+
+            <View style={{ gap: spacing.sm }}>
+              <SectionLabel>Vibe</SectionLabel>
+              <Text style={{ color: colors.textMuted, fontSize: 13 }}>
+                Two people who play the same game can still be a terrible pair — this helps us screen for fit.
+              </Text>
+              <Card style={{ gap: spacing.lg }}>
+                <View style={{ gap: spacing.sm }}>
+                  <Text style={{ color: colors.text, fontWeight: "700", fontSize: 14 }}>Intensity</Text>
+                  <Slider
+                    value={vibe.intensity}
+                    onChange={(intensity) => setVibe((prev) => (prev ? { ...prev, intensity } : prev))}
+                    leftLabel="Chill / norms & ARAM"
+                    rightLabel="Sweaty ranked grind"
+                  />
+                </View>
+                <View style={{ gap: spacing.sm }}>
+                  <Text style={{ color: colors.text, fontWeight: "700", fontSize: 14 }}>Comms</Text>
+                  <Slider
+                    value={vibe.commsStyle}
+                    onChange={(commsStyle) => setVibe((prev) => (prev ? { ...prev, commsStyle } : prev))}
+                    leftLabel="Mostly quiet"
+                    rightLabel="Mic on constantly"
+                  />
+                </View>
+                <View style={{ gap: spacing.sm }}>
+                  <Text style={{ color: colors.text, fontWeight: "700", fontSize: 14 }}>Coaching</Text>
+                  <Slider
+                    value={vibe.coachingPref}
+                    onChange={(coachingPref) => setVibe((prev) => (prev ? { ...prev, coachingPref } : prev))}
+                    leftLabel="Don't review my deaths"
+                    rightLabel="Coach me, I want to improve"
+                  />
+                </View>
+                <View style={{ gap: spacing.sm }}>
+                  <Text style={{ color: colors.text, fontWeight: "700", fontSize: 14 }}>After a losing streak, I...</Text>
+                  <ChipSelect
+                    options={TILT_HANDLING_OPTIONS.map((value) => ({ value, label: TILT_HANDLING_LABELS[value] }))}
+                    selected={[vibe.tiltHandling]}
+                    onToggle={(value: TiltHandling) => setVibe((prev) => (prev ? { ...prev, tiltHandling: value } : prev))}
+                  />
+                </View>
+              </Card>
+            </View>
+
+            <View style={{ gap: spacing.sm }}>
+              <SectionLabel>Voice Intro</SectionLabel>
+              <VoiceIntroRecorderCard profileId={profile.id} />
+            </View>
+
+            <View style={{ gap: spacing.sm }}>
+              <SectionLabel>Schedule</SectionLabel>
+              <Text style={{ color: colors.textMuted, fontSize: 13 }}>
+                When do you usually play? We&apos;ll favor people whose window overlaps with yours.
+              </Text>
+              <ChipSelect
+                options={[
+                  ...PLAY_WINDOW_PRESETS.map((p) => ({ value: p.label, label: p.label })),
+                  { value: "none", label: "No preference" },
+                ]}
+                selected={[selectedPreset ? selectedPreset.label : "none"]}
+                onToggle={(value: string) => {
+                  const preset = PLAY_WINDOW_PRESETS.find((p) => p.label === value);
+                  setPlayWindow(preset ? { startHour: preset.startHour, endHour: preset.endHour } : { startHour: null, endHour: null });
+                }}
               />
             </View>
 

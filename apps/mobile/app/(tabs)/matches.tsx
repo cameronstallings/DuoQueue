@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { Skeleton } from "@/components/Skeleton";
 import { SectionLabel } from "@/components/SectionLabel";
 import { useMatches, type MatchListItem } from "@/features/chat/useMatches";
+import { PartyInvitesBanner } from "@/features/party/PartyInvitesBanner";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
@@ -171,6 +172,8 @@ export default function MatchesScreen() {
       >
         Matches
       </Text>
+
+      <PartyInvitesBanner />
 
       {isLoading ? (
         <View>

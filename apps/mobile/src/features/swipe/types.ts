@@ -1,4 +1,4 @@
-import type { DeckCandidate, Platform, SkillLevel } from "@duoqueue/shared-types";
+import type { DeckCandidate, Platform, SkillLevel, TiltHandling } from "@duoqueue/shared-types";
 
 export interface DeckCardGame {
   name: string;
@@ -8,6 +8,13 @@ export interface DeckCardGame {
 export interface DeckCardPrompt {
   question: string;
   answer: string;
+}
+
+export interface DeckCardVibe {
+  intensity: number;
+  commsStyle: number;
+  coachingPref: number;
+  tiltHandling: TiltHandling;
 }
 
 export interface DeckCard extends DeckCandidate {
@@ -20,6 +27,8 @@ export interface DeckCard extends DeckCandidate {
   playstyles: string[];
   prompts: DeckCardPrompt[];
   isRecentlyActive: boolean;
+  vibe: DeckCardVibe | null;
+  playWindowLabel: string | null;
 }
 
 export type SwipeDirection = "like" | "pass";

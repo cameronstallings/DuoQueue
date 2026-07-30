@@ -18,3 +18,12 @@ export async function signPhotoUrls(paths: string[]): Promise<Map<string, string
   }
   return map;
 }
+
+/** Signs a single voice-intro storage path — the bucket is private, same reasoning as
+ * profile photos, and clips are fetched one at a time (lazy, on profile-view) rather
+ * than batched with the rest of a deck page. */
+export async function signVoiceIntroUrl(path: string): Promise<string | null> {
+  const { data, error } = await supabase.storage.from("voice-intros").createSignedUrl(path, PHOTO_SIGNED_URL_TTL_SECONDS);
+  if (error) throw error;
+  return data?.signedUrl ?? null;
+}

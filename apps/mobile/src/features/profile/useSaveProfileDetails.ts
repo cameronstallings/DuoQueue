@@ -2,12 +2,15 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Platform, PlaystyleTag, SkillLevel } from "@duoqueue/shared-types";
 
 import { supabase } from "@/lib/supabase";
+import type { EditablePlayWindow, EditableVibe } from "./useEditableProfileDetails";
 
 export interface SaveProfileDetailsInput {
   games: { gameId: string; skillLevel: SkillLevel; rankText: string }[];
   shows: { showId: string }[];
   platforms: Platform[];
   playstyles: PlaystyleTag[];
+  vibe: EditableVibe;
+  playWindow: EditablePlayWindow;
 }
 
 export function useSaveProfileDetails(profileId: string | undefined) {
@@ -50,6 +53,26 @@ export function useSaveProfileDetails(profileId: string | undefined) {
           if (insertError) throw insertError;
         }
       }
+
+      const { error: vibeError } = await supabase
+        .from("profile_vibe")
+        .update({
+          intensity: input.vibe.intensity,
+          comms_style: input.vibe.commsStyle,
+          coaching_pref: input.vibe.coachingPref,
+          tilt_handling: input.vibe.tiltHandling,
+        })
+        .eq("profile_id", profileId);
+      if (vibeError) throw vibeError;
+
+      const { error: playWindowError } = await supabase
+        .from("profiles")
+        .update({
+          usual_play_start_hour: input.playWindow.startHour,
+          usual_play_end_hour: input.playWindow.endHour,
+        })
+        .eq("id", profileId);
+      if (playWindowError) throw playWindowError;
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["editable-profile-details", profileId] });

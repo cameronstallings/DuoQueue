@@ -1,5 +1,6 @@
-import type { DeckCandidate, PhotoRole, Platform, SkillLevel } from "@duoqueue/shared-types";
+import type { DeckCandidate, PhotoRole, Platform, SkillLevel, TiltHandling } from "@duoqueue/shared-types";
 
+import { formatPlayWindow } from "@/features/onboarding/profile-labels";
 import { supabase } from "@/lib/supabase";
 import { signPhotoUrls } from "@/lib/storage";
 
@@ -43,6 +44,18 @@ interface PublicProfileActivityRow {
   profile_id: string;
   is_recently_active: boolean;
 }
+interface PublicProfileVibeRow {
+  profile_id: string;
+  intensity: number;
+  comms_style: number;
+  coaching_pref: number;
+  tilt_handling: TiltHandling;
+}
+interface PublicProfileScheduleRow {
+  profile_id: string;
+  usual_play_start_hour: number | null;
+  usual_play_end_hour: number | null;
+}
 
 /** Fetches the shared per-profile detail (photos/games/shows/prompts/etc.) for a set of
  * candidate rows and joins them client-side — used by both the main deck and Standouts,
@@ -51,7 +64,7 @@ export async function enrichCandidates(rows: DeckCandidate[]): Promise<DeckCard[
   if (rows.length === 0) return [];
   const ids = rows.map((c) => c.profile_id);
 
-  const [mediaRes, gamesRes, showsRes, platformsRes, languagesRes, playstylesRes, promptsRes, activityRes] =
+  const [mediaRes, gamesRes, showsRes, platformsRes, languagesRes, playstylesRes, promptsRes, activityRes, vibeRes, scheduleRes] =
     await Promise.all([
       supabase.from("public_profile_media").select("*").in("profile_id", ids),
       supabase.from("public_profile_games").select("*").in("profile_id", ids).order("priority"),
@@ -61,8 +74,21 @@ export async function enrichCandidates(rows: DeckCandidate[]): Promise<DeckCard[
       supabase.from("public_profile_playstyles").select("*").in("profile_id", ids),
       supabase.from("public_profile_prompts").select("*").in("profile_id", ids).order("position"),
       supabase.from("public_profile_activity").select("*").in("profile_id", ids),
+      supabase.from("public_profile_vibe").select("*").in("profile_id", ids),
+      supabase.from("public_profile_schedule").select("*").in("profile_id", ids),
     ]);
-  for (const res of [mediaRes, gamesRes, showsRes, platformsRes, languagesRes, playstylesRes, promptsRes, activityRes]) {
+  for (const res of [
+    mediaRes,
+    gamesRes,
+    showsRes,
+    platformsRes,
+    languagesRes,
+    playstylesRes,
+    promptsRes,
+    activityRes,
+    vibeRes,
+    scheduleRes,
+  ]) {
     if (res.error) throw res.error;
   }
 
@@ -74,6 +100,8 @@ export async function enrichCandidates(rows: DeckCandidate[]): Promise<DeckCard[
   const playstyles = (playstylesRes.data ?? []) as PublicProfilePlaystyleRow[];
   const prompts = (promptsRes.data ?? []) as PublicProfilePromptRow[];
   const activity = (activityRes.data ?? []) as PublicProfileActivityRow[];
+  const vibes = (vibeRes.data ?? []) as PublicProfileVibeRow[];
+  const schedules = (scheduleRes.data ?? []) as PublicProfileScheduleRow[];
 
   const signedUrls = await signPhotoUrls(media.map((m) => m.storage_path));
 
@@ -110,6 +138,16 @@ export async function enrichCandidates(rows: DeckCandidate[]): Promise<DeckCard[
         .map((l) => l.language_code),
       playstyles: playstyles.filter((p) => p.profile_id === candidate.profile_id).map((p) => p.tag),
       isRecentlyActive: activity.find((a) => a.profile_id === candidate.profile_id)?.is_recently_active ?? false,
+      vibe: (() => {
+        const v = vibes.find((row) => row.profile_id === candidate.profile_id);
+        return v
+          ? { intensity: v.intensity, commsStyle: v.comms_style, coachingPref: v.coaching_pref, tiltHandling: v.tilt_handling }
+          : null;
+      })(),
+      playWindowLabel: (() => {
+        const s = schedules.find((row) => row.profile_id === candidate.profile_id);
+        return s ? formatPlayWindow(s.usual_play_start_hour, s.usual_play_end_hour) : null;
+      })(),
     };
   });
 }

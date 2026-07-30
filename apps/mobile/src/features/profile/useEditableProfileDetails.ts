@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { Platform, PlaystyleTag, SkillLevel } from "@duoqueue/shared-types";
+import type { Platform, PlaystyleTag, SkillLevel, TiltHandling } from "@duoqueue/shared-types";
 
 import { supabase } from "@/lib/supabase";
 
@@ -15,15 +15,29 @@ export interface EditableShow {
   name: string;
 }
 
+export interface EditableVibe {
+  intensity: number;
+  commsStyle: number;
+  coachingPref: number;
+  tiltHandling: TiltHandling;
+}
+
+export interface EditablePlayWindow {
+  startHour: number | null;
+  endHour: number | null;
+}
+
 export interface EditableProfileDetails {
   games: EditableGame[];
   shows: EditableShow[];
   platforms: Platform[];
   playstyles: PlaystyleTag[];
+  vibe: EditableVibe;
+  playWindow: EditablePlayWindow;
 }
 
 async function fetchEditableProfileDetails(profileId: string): Promise<EditableProfileDetails> {
-  const [gamesRes, showsRes, platformsRes, playstylesRes] = await Promise.all([
+  const [gamesRes, showsRes, platformsRes, playstylesRes, vibeRes, profileRes] = await Promise.all([
     supabase
       .from("profile_games")
       .select("game_id, skill_level, rank_text, priority")
@@ -32,8 +46,18 @@ async function fetchEditableProfileDetails(profileId: string): Promise<EditableP
     supabase.from("profile_shows").select("show_id, priority").eq("profile_id", profileId).order("priority"),
     supabase.from("profile_platforms").select("platform").eq("profile_id", profileId),
     supabase.from("profile_playstyles").select("tag").eq("profile_id", profileId),
+    supabase
+      .from("profile_vibe")
+      .select("intensity, comms_style, coaching_pref, tilt_handling")
+      .eq("profile_id", profileId)
+      .maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("usual_play_start_hour, usual_play_end_hour")
+      .eq("id", profileId)
+      .maybeSingle(),
   ]);
-  for (const res of [gamesRes, showsRes, platformsRes, playstylesRes]) {
+  for (const res of [gamesRes, showsRes, platformsRes, playstylesRes, vibeRes, profileRes]) {
     if (res.error) throw res.error;
   }
 
@@ -79,6 +103,16 @@ async function fetchEditableProfileDetails(profileId: string): Promise<EditableP
     })),
     platforms: (platformsRes.data ?? []).map((p) => p.platform as Platform),
     playstyles: (playstylesRes.data ?? []).map((p) => p.tag as PlaystyleTag),
+    vibe: {
+      intensity: (vibeRes.data?.intensity as number | undefined) ?? 50,
+      commsStyle: (vibeRes.data?.comms_style as number | undefined) ?? 50,
+      coachingPref: (vibeRes.data?.coaching_pref as number | undefined) ?? 50,
+      tiltHandling: (vibeRes.data?.tilt_handling as TiltHandling | undefined) ?? "stays_calm",
+    },
+    playWindow: {
+      startHour: (profileRes.data?.usual_play_start_hour as number | null | undefined) ?? null,
+      endHour: (profileRes.data?.usual_play_end_hour as number | null | undefined) ?? null,
+    },
   };
 }
 
