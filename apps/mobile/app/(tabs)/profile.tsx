@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { PROMPT_COUNT, type PhotoRole } from "@duoqueue/shared-types";
 
 import { Card } from "@/components/Card";
@@ -133,7 +134,14 @@ export default function ProfileScreen() {
             style={{ width: "100%", aspectRatio: BANNER_ASPECT, backgroundColor: colors.surface, paddingTop: insets.top }}
           >
             {photos?.headerUrl && (
-              <Image source={{ uri: photos.headerUrl }} style={{ width: "100%", height: "100%", position: "absolute" }} resizeMode="cover" />
+              <>
+                <Image source={{ uri: photos.headerUrl }} style={{ width: "100%", height: "100%", position: "absolute" }} resizeMode="cover" />
+                <LinearGradient
+                  colors={["rgba(0,0,0,0.45)", "rgba(0,0,0,0)"]}
+                  pointerEvents="none"
+                  style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top + 44 }}
+                />
+              </>
             )}
             <EditBadge uploading={uploadingHeader} />
           </Pressable>

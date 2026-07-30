@@ -1,5 +1,7 @@
 import { Image, Pressable, ScrollView, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PresenceAvatar } from "@/components/PresenceAvatar";
 import { REGION_LABELS } from "@/features/onboarding/profile-labels";
@@ -19,6 +21,7 @@ interface ProfileDetailContentProps {
  * the highlights at a glance. */
 export function ProfileDetailContent({ card, onClose }: ProfileDetailContentProps) {
   const { colors, spacing, radius } = useTheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <ScrollView contentContainerStyle={{ paddingBottom: spacing.xl }}>
@@ -26,13 +29,18 @@ export function ProfileDetailContent({ card, onClose }: ProfileDetailContentProp
         {card.headerPhotoUrl ? (
           <Image source={{ uri: card.headerPhotoUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
         ) : null}
+        <LinearGradient
+          colors={["rgba(0,0,0,0.45)", "rgba(0,0,0,0)"]}
+          pointerEvents="none"
+          style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top + 44 }}
+        />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Close"
           onPress={onClose}
           style={{
             position: "absolute",
-            top: 50,
+            top: insets.top + spacing.sm,
             right: spacing.md,
             width: 36,
             height: 36,
