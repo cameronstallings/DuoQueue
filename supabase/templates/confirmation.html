@@ -1,10 +1,14 @@
 <!--
   Signup confirmation email — 6-digit code, NOT a link.
 
-  {{ .Token }} only. Deliberately no {{ .ConfirmationURL }}: corporate mail scanners
-  and link-preview bots pre-fetch URLs in incoming mail, and Supabase's confirmation
-  token is single-use — a scanner "clicking" it burns the token before the user does,
-  and the code they type then fails as expired. A number can't be pre-fetched.
+  Uses the Token variable only, and deliberately NOT the ConfirmationURL one: corporate
+  mail scanners and link-preview bots pre-fetch URLs in incoming mail, and Supabase's
+  confirmation token is single-use — a scanner "clicking" it burns the token before the
+  user does, and the code they type then fails as expired. A number can't be pre-fetched.
+
+  Do not write that variable's name in template syntax anywhere in this file, including
+  inside this comment: Go's template engine expands it wherever it appears, which would
+  embed a live single-use link in the email source and reintroduce the exact problem.
 
   This file is used by `supabase start` (see [auth.email.template.confirmation] in
   config.toml). The hosted project keeps its own copy, pasted by hand into
