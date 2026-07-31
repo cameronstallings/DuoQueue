@@ -3,7 +3,7 @@
 // profanity filter and the free-tier "5 active conversations" gate are always applied
 // before a message is delivered, never left to be skipped by a client that calls the
 // table directly.
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 import { filterProfanity } from "./profanity.ts";
 

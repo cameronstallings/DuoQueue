@@ -2,7 +2,7 @@
 // messages, and Super Pings — never by the client directly. Authenticated with a
 // shared secret (INTERNAL_TRIGGER_AUTH_TOKEN) rather than a user JWT, since there's
 // no end-user session in a database trigger.
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 import { sendExpoPush } from "../_shared/expo-push.ts";
 

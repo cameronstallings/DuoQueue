@@ -3,7 +3,7 @@
 // INSERT/UPDATE grant on subscriptions). Configure this URL + a shared secret in
 // the RevenueCat dashboard (Project Settings -> Integrations -> Webhooks), and set
 // REVENUECAT_WEBHOOK_AUTH_TOKEN as a secret on this function with the same value.
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 import { CONSUMABLE_GRANTS, mapEventToStatus, mapStore, type RevenueCatEvent } from "./mapping.ts";
 

@@ -9,7 +9,7 @@
 // bytes — see sanitize.ts) and the sanitized version overwrites the stored object
 // BEFORE the moderation check runs, so the bytes that get checked are the same bytes
 // that will actually be served.
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 import { checkImage } from "./provider.ts";
 import { ImageRejectedError, sanitizeImage } from "./sanitize.ts";

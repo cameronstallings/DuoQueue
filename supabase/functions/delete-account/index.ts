@@ -5,7 +5,7 @@
 // (profiles -> profile_media/games/shows/platforms/languages/playstyles/preferences/
 // push_tokens/notification_settings/subscriptions, and swipes/matches/reports/blocks,
 // which themselves cascade further into messages/discord_shares — see 0001_init.sql).
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;

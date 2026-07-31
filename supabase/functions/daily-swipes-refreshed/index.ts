@@ -5,7 +5,7 @@
 // that local day yet (get_profiles_needing_swipe_refresh_notification), then sends and
 // records each one — so re-running this within the same hour, or a scheduler that skips
 // a beat, never double-notifies.
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 import { sendExpoPush } from "../_shared/expo-push.ts";
 
