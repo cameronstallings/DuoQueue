@@ -205,7 +205,7 @@ export default function PaywallScreen() {
         icon="star"
         iconColor={colors.warning}
         title="Legendary Like"
-        description="An extra-visible like for someone specific"
+        description="Everyone gets 1 free every 24 hours — buy more to send extra"
         count={credits?.roses ?? 0}
         pkg={rosesPkg}
         onBuy={() => void handleBuyConsumable(rosesPkg)}

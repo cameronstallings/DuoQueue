@@ -15,7 +15,7 @@ import {
 } from "@/features/matching/useSuperPing";
 import {
   NoBoostCreditsError,
-  NoRoseCreditsError,
+  RoseOnCooldownError,
   useActivateBoost,
   useConsumableCredits,
   useSendRose,
@@ -122,11 +122,18 @@ export default function DeckScreen() {
         });
       }
     } catch (err) {
-      if (err instanceof NoRoseCreditsError) {
-        Alert.alert("Out of Legendary Likes", "Get a Legendary Like to send an extra-visible like.", [
-          { text: "Not now" },
-          { text: "Get Legendary Likes", onPress: () => router.push("/paywall") },
-        ]);
+      if (err instanceof RoseOnCooldownError) {
+        const resetLabel = credits?.free_rose_available_at
+          ? new Date(credits.free_rose_available_at).toLocaleTimeString(undefined, {
+              hour: "numeric",
+              minute: "2-digit",
+            })
+          : "tomorrow";
+        Alert.alert(
+          "Legendary Like on cooldown",
+          `Your free daily Legendary Like resets around ${resetLabel}, or buy more to send one now.`,
+          [{ text: "Not now" }, { text: "Get more", onPress: () => router.push("/paywall") }],
+        );
       } else {
         Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
       }
@@ -215,7 +222,9 @@ export default function DeckScreen() {
         onPass={() => deckRef.current?.pass()}
         onLike={() => deckRef.current?.like()}
         onSuperPing={() => void handleSuperPing()}
-        onSendRose={credits && credits.roses > 0 ? () => void handleSendRose() : undefined}
+        onSendRose={
+          credits && (credits.free_rose_available || credits.roses > 0) ? () => void handleSendRose() : undefined
+        }
       />
     </View>
   );

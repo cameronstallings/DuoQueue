@@ -19,10 +19,15 @@ export interface SwipeResult {
   match_id: string | null;
 }
 
-/** Row shape returned by the `get_consumable_credits` RPC (see 0013_boosts_and_roses.sql). */
+/** Row shape returned by the `get_consumable_credits` RPC (see 0013_boosts_and_roses.sql,
+ * extended in 0027_free_daily_rose.sql). `roses` is purchased credits only — everyone
+ * also gets one free Legendary Like every 24 hours regardless of purchase history,
+ * tracked separately via `free_rose_available`/`free_rose_available_at`. */
 export interface ConsumableCredits {
   boosts: number;
   roses: number;
+  free_rose_available: boolean;
+  free_rose_available_at: string | null;
 }
 
 /** Row shape returned by the `get_swipe_quota` RPC. `swipes_limit` is null when unlimited (premium). */

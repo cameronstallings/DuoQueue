@@ -12,7 +12,7 @@ export function useConsumableCredits() {
       const { data, error } = await supabase.rpc("get_consumable_credits");
       if (error) throw error;
       const [result] = (data ?? []) as ConsumableCredits[];
-      return result ?? { boosts: 0, roses: 0 };
+      return result ?? { boosts: 0, roses: 0, free_rose_available: true, free_rose_available_at: null };
     },
   });
 }
@@ -24,10 +24,10 @@ export class NoBoostCreditsError extends Error {
   }
 }
 
-export class NoRoseCreditsError extends Error {
+export class RoseOnCooldownError extends Error {
   constructor() {
-    super("You're out of Legendary Likes.");
-    this.name = "NoRoseCreditsError";
+    super("Your free Legendary Like is on cooldown, and you're out of extra credits.");
+    this.name = "RoseOnCooldownError";
   }
 }
 
@@ -51,18 +51,24 @@ export function useActivateBoost() {
   });
 }
 
+export interface SendRoseResult extends SwipeResult {
+  usedFreeRose: boolean;
+}
+
 export function useSendRose() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (targetId: string): Promise<SwipeResult> => {
+    mutationFn: async (targetId: string): Promise<SendRoseResult> => {
       const { data, error } = await supabase.rpc("send_rose", { p_target_id: targetId });
       if (error) {
-        if (error.message.includes("no_rose_credits")) throw new NoRoseCreditsError();
+        if (error.message.includes("rose_on_cooldown")) throw new RoseOnCooldownError();
         throw error;
       }
-      const [result] = (data ?? []) as SwipeResult[];
-      return result ?? { matched: false, match_id: null };
+      const [result] = (data ?? []) as (SwipeResult & { used_free_rose: boolean })[];
+      return result
+        ? { matched: result.matched, match_id: result.match_id, usedFreeRose: result.used_free_rose }
+        : { matched: false, match_id: null, usedFreeRose: false };
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: CONSUMABLE_CREDITS_QUERY_KEY });
