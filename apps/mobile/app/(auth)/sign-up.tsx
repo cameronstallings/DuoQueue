@@ -12,6 +12,22 @@ import { supabase } from "@/lib/supabase";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
+// Mirrors the Supabase Auth password policy for this project (minimum length 10, plus
+// lowercase + uppercase + digit). Keeping them in sync matters: if the client is more
+// permissive, the user gets a generic API error instead of a message telling them what
+// to fix. Change both together.
+const PASSWORD_MIN_LENGTH = 10;
+
+function describePasswordProblem(password: string): string | null {
+  if (password.length < PASSWORD_MIN_LENGTH) {
+    return `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`;
+  }
+  if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
+    return "Password must include a lowercase letter, an uppercase letter, and a number.";
+  }
+  return null;
+}
+
 export default function SignUp() {
   const { colors, spacing } = useTheme();
   const { dob } = useLocalSearchParams<{ dob?: string }>();
@@ -33,8 +49,9 @@ export default function SignUp() {
     if (!dob) return;
     setError(null);
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
+    const passwordProblem = describePasswordProblem(password);
+    if (passwordProblem) {
+      setError(passwordProblem);
       return;
     }
     if (password !== confirmPassword) {
