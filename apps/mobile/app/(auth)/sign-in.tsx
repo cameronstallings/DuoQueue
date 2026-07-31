@@ -39,6 +39,16 @@ export default function SignIn() {
     setLoading(false);
     if (signInError) {
       setCaptchaToken(null);
+      // Someone who closed the app on the code screen would otherwise be stuck here
+      // forever: their account exists, so sign-up won't take them, and sign-in returns
+      // this same error every time. Route them back to where they can enter the code.
+      if (
+        signInError.code === "email_not_confirmed" ||
+        signInError.message.toLowerCase().includes("not confirmed")
+      ) {
+        router.push({ pathname: "/(auth)/confirm-email", params: { email } });
+        return;
+      }
       setError(signInError.message);
     }
   }

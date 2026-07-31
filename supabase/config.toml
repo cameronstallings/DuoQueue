@@ -38,19 +38,37 @@ allowed_mime_types = ["image/png", "image/jpeg", "image/webp"]
 [auth]
 enabled = true
 site_url = "duoqueue://"
-additional_redirect_urls = ["duoqueue://auth-callback"]
 jwt_expiry = 3600
 enable_signup = true
-minimum_password_length = 8
+minimum_password_length = 10
+# Exactly matches describePasswordProblem() in app/(auth)/sign-up.tsx.
+password_requirements = "lower_upper_letters_digits"
 
-# NOTE: confirmations are off for Phase 1 so sign-up returns an active session immediately
-# (the age-gate DOB write and onboarding wizard need auth.uid() right after signUp()).
-# Revisit before a production launch — e.g. switch to Supabase's OTP-based email
-# verification, which doesn't require the immediate-session flow to change.
+# Email confirmation is OTP-based: signUp() returns no session, and
+# app/(auth)/confirm-email.tsx calls verifyOtp() with the typed code, which issues the
+# session and fires onAuthStateChange (src/store/session-store.ts). dob/timezone ride in
+# through options.data and are written by handle_new_user() (0030/0031), so no
+# authenticated write is needed before confirmation — that was the original reason
+# confirmations were off, and it no longer applies.
+#
+# Not deep-link based on purpose: app.json declares no associatedDomains/intentFilters,
+# so a `duoqueue://` link has no https fallback and does nothing when mail is read on a
+# desktop, and PKCE binds the verifier to the device that signed up.
+#
+# This file configures LOCAL dev only (`supabase start`, mail caught by Inbucket on
+# :54324). The hosted project's "Confirm email" toggle, SMTP settings and template are
+# separate and edited in the Dashboard — see README step 7.
 [auth.email]
 enable_signup = true
-enable_confirmations = false
+enable_confirmations = true
 double_confirm_changes = true
+max_frequency = "60s"
+otp_length = 6
+otp_expiry = 3600
+
+[auth.email.template.confirmation]
+subject = "Your DuoQueue confirmation code"
+content_path = "./templates/confirmation.html"
 
 [auth.external.apple]
 enabled = false

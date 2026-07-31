@@ -64,6 +64,25 @@ function toggleInArray<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
 }
 
+/**
+ * PostgREST returns `JSON.parse(body)` — a plain object, not an Error — so a rethrown
+ * `{ error }` fails every `err instanceof Error` check downstream and the user gets the
+ * generic fallback instead of the real reason.
+ *
+ * P0001 is a plpgsql RAISE, i.e. a message this codebase authored deliberately, and the
+ * human-readable sentence lives in `hint` (`message` is a machine token like
+ * `email_not_verified`). Every other code is Postgres or RLS internals — those stay
+ * behind the generic string rather than leaking schema details into the UI.
+ */
+function toUserMessage(err: unknown, fallback: string): string {
+  if (err && typeof err === "object" && "code" in err) {
+    const e = err as { code?: string; hint?: string | null };
+    if (e.code === "P0001" && e.hint) return e.hint;
+    return fallback;
+  }
+  return err instanceof Error ? err.message : fallback;
+}
+
 export const useOnboardingStore = create<OnboardingState>((set, get) => ({
   displayName: "",
   profilePhotoUri: null,
@@ -127,6 +146,18 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
       if (!user) throw new Error("No signed-in user.");
       const profileId = user.id;
 
+      // The writes below are delete-then-insert, so running the wizard against a profile
+      // that's already set up would wipe the real games/shows/platforms and replace them
+      // with whatever this (possibly empty) store holds. 0028's trigger only guards the
+      // false -> true transition of onboarding_completed, so it offers no protection
+      // here. Fail loudly instead of silently destroying someone's profile.
+      const { data: existing } = await supabase
+        .from("profiles")
+        .select("onboarding_completed")
+        .eq("id", profileId)
+        .single();
+      if (existing?.onboarding_completed) throw new Error("Your profile is already set up.");
+
       if (state.profilePhotoUri) await uploadProfilePhoto(profileId, state.profilePhotoUri, "profile");
       if (state.headerPhotoUri) await uploadProfilePhoto(profileId, state.headerPhotoUri, "header");
 
@@ -188,11 +219,11 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
 
       set({ submitting: false });
     } catch (err) {
-      set({
-        submitting: false,
-        submitError: err instanceof Error ? err.message : "Something went wrong finishing your profile.",
-      });
-      throw err;
+      const message = toUserMessage(err, "Something went wrong finishing your profile.");
+      set({ submitting: false, submitError: message });
+      // Rethrow as a real Error so the screen's `err instanceof Error` branch holds and
+      // shows this message rather than falling back to its own generic string.
+      throw err instanceof Error ? err : new Error(message);
     }
   },
 }));

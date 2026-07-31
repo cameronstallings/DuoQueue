@@ -39,7 +39,6 @@ export default function SignUp() {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
 
   useEffect(() => {
     if (!dob) router.replace("/(auth)/age-gate");
@@ -87,29 +86,15 @@ export default function SignUp() {
       return;
     }
 
-    // No session means Supabase is (correctly) holding the account until the address
-    // is confirmed. That's the expected path with email confirmation enabled, not an
-    // error — the session arrives via onAuthStateChange once they click the link.
+    // No session means Supabase is (correctly) holding the account until the address is
+    // confirmed — the expected path with confirmations on, not an error. The session is
+    // issued by verifyOtp() on the next screen, not by anything happening in the inbox.
     if (!data.session) {
-      setAwaitingConfirmation(true);
+      router.replace({ pathname: "/(auth)/confirm-email", params: { email } });
       return;
     }
 
     await refreshProfile();
-  }
-
-  if (awaitingConfirmation) {
-    return (
-      <ScreenContainer>
-        <Logo width={56} />
-        <Text style={{ fontSize: 28, fontWeight: "700", color: colors.text }}>Check your email</Text>
-        <Text style={{ color: colors.textMuted, marginBottom: spacing.md }}>
-          We sent a confirmation link to {email}. Confirm your address, then come back here to finish
-          setting up your profile.
-        </Text>
-        <Button label="Back to sign in" variant="secondary" onPress={() => router.replace("/(auth)/sign-in")} />
-      </ScreenContainer>
-    );
   }
 
   return (

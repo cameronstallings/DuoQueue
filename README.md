@@ -125,10 +125,32 @@ pnpm install
 6. Make yourself an admin (for the moderation page at `admin/index.html`):
    `update public.profiles set is_admin = true where id = '<your-user-id>';`
 7. In **Authentication → Providers**, enable **Apple** and **Google**, and add their
-   client IDs/secrets. Email/password is enabled by default; this project intentionally
-   ships with **email confirmations off** for Phase 1 so sign-up returns an active
-   session immediately (needed for the age-gate DOB write and onboarding wizard) — see
-   the note in `supabase/config.toml`. Revisit before a production launch.
+   client IDs/secrets. Email/password is enabled by default.
+
+   **Email confirmation is a hosted-project setting that `supabase/config.toml` cannot
+   express** — that file only configures `supabase start`. There is no `config push` in
+   any script or workflow here, so the Dashboard is edited by hand. To turn confirmation
+   on for a real deployment, all of the following, in order:
+
+   - **Authentication → Emails → SMTP Settings**: custom SMTP is mandatory. The built-in
+     mailer is capped around 2 emails/hour and only delivers to team addresses, so
+     sign-ups fail with `over_email_send_rate_limit` without it. For Resend: host
+     `smtp.resend.com`, port `465`, username the literal `resend`, password a Resend API
+     key, sender an address on a domain **verified in Resend** (unverified accounts can
+     only mail the account owner).
+   - **Authentication → Rate Limits**: raise emails/hour. Supabase only allows this once
+     custom SMTP is live.
+   - **Authentication → Email Templates → Confirm signup**: paste
+     `supabase/templates/confirmation.html`. It must keep `{{ .Token }}` and must not
+     gain a `{{ .ConfirmationURL }}` — the app confirms with a typed 6-digit code, and a
+     mail scanner pre-fetching a link would silently consume the single-use token.
+   - **Authentication → Providers → Email → Confirm email = ON**. Do this last, and only
+     against an app build that includes `app/(auth)/confirm-email.tsx` — otherwise users
+     receive a code with nowhere to enter it.
+
+   Verify with a fresh address on a domain you don't control (not a team address, and not
+   `pnpm seed:profiles`, whose users are created with `email_confirm: true` and so prove
+   nothing about the real signup path).
 8. Copy your project's URL and anon key (Project Settings → API) into `.env` (step 4
    below), and into the placeholders at the top of `admin/index.html` if you'll use the
    moderation page.
@@ -316,9 +338,15 @@ rather than faking:
   can't be exercised in a simulator.
 - **Apple / Google sign-in** need real provider credentials configured in Supabase Auth
   and (for Apple) a real Apple Developer account; neither works in Expo Go.
-- **Email confirmations are off** (see the note in `supabase/config.toml`) so sign-up
-  can write the age-gate DOB and run onboarding immediately. Revisit this — e.g. switch
-  to Supabase's OTP-based verification — before a public launch.
+- **Email confirmation is built but not switched on in the hosted project.** The app
+  side is done — `signUp()` handles a null session, `app/(auth)/confirm-email.tsx` takes
+  a 6-digit code, and `0028_require_verified_email.sql` is the in-database backstop — and
+  local dev exercises it via `config.toml` + Inbucket. What remains is operational: a
+  sending domain verified with an email provider, custom SMTP configured in the
+  Dashboard, the raised rate limit, the template pasted in, and then the toggle. Until
+  that's done, anyone can register under someone else's address and `0028`'s gate is
+  vacuous, because Supabase stamps `email_confirmed_at` at signup when confirmation is
+  off. See setup step 7 for the ordered checklist.
 - **Account deletion cascades reports filed against the deleted user, not just their own
   data.** That's the literal reading of "fully removes personal data," but a production
   trust & safety process might prefer retaining anonymized report records to prevent a
