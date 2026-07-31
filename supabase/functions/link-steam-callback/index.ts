@@ -14,6 +14,7 @@ const STEAM_WEB_API_KEY = Deno.env.get("STEAM_WEB_API_KEY");
 const APP_DEEP_LINK_SCHEME = Deno.env.get("APP_DEEP_LINK_SCHEME") ?? "duoqueue";
 
 const CLAIMED_ID_PATTERN = /^https:\/\/steamcommunity\.com\/openid\/id\/(\d+)$/;
+const STEAM_OP_ENDPOINT = "https://steamcommunity.com/openid/login";
 
 function redirectToApp(result: "success" | "error", detail?: string): Response {
   const url = new URL(`${APP_DEEP_LINK_SCHEME}://link-steam-result`);
@@ -37,13 +38,53 @@ Deno.serve(async (req) => {
     return redirectToApp("error", "steam_not_configured");
   }
 
+  // Pin the OpenID provider. claimed_id is checked below, but without this the
+  // signature could have been produced by any endpoint the request names.
+  if (url.searchParams.get("openid.op_endpoint") !== STEAM_OP_ENDPOINT) {
+    return redirectToApp("error", "bad_op_endpoint");
+  }
+
+  // Steam signs the fields listed in openid.signed. Reading claimed_id out of the raw
+  // query string without confirming it was signed would mean trusting a value the
+  // caller controls.
+  const signedFields = (url.searchParams.get("openid.signed") ?? "").split(",");
+  if (!signedFields.includes("claimed_id") || !signedFields.includes("return_to")) {
+    return redirectToApp("error", "unsigned_claim");
+  }
+
+  // Bind the assertion to THIS request, and to this state token.
+  //
+  // check_authentication proves Steam signed the assertion; it does not prove the
+  // assertion was issued for the request now delivering it. state and the signed
+  // params arrive as independent inputs, so without this an attacker could complete
+  // their own Steam login, keep the signed params, and replay them against
+  // ...?state=<a victim's state> — linking their Steam account to the victim's
+  // profile. return_to IS signed, so comparing it to the live URL (and to state)
+  // closes that gap.
+  const returnToRaw = url.searchParams.get("openid.return_to");
+  if (!returnToRaw) {
+    return redirectToApp("error", "missing_return_to");
+  }
+  let returnTo: URL;
+  try {
+    returnTo = new URL(returnToRaw);
+  } catch {
+    return redirectToApp("error", "bad_return_to");
+  }
+  if (returnTo.origin !== url.origin || returnTo.pathname !== url.pathname) {
+    return redirectToApp("error", "bad_return_to");
+  }
+  if (returnTo.searchParams.get("state") !== state) {
+    return redirectToApp("error", "state_mismatch");
+  }
+
   // Re-verify the OpenID assertion server-to-server (never trust the redirect alone —
   // it's just a browser navigation, anyone could hit this URL with forged params).
   const verifyParams = new URLSearchParams(url.search);
   verifyParams.delete("state");
   verifyParams.set("openid.mode", "check_authentication");
 
-  const verifyRes = await fetch("https://steamcommunity.com/openid/login", {
+  const verifyRes = await fetch(STEAM_OP_ENDPOINT, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: verifyParams.toString(),
@@ -62,15 +103,16 @@ Deno.serve(async (req) => {
 
   const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-  const { data: stateRow, error: stateError } = await serviceClient
-    .from("steam_link_state")
-    .select("profile_id")
-    .eq("state", state)
-    .maybeSingle();
-  if (stateError || !stateRow) {
+  // Single statement that enforces the 15-minute TTL and consumes the token in one
+  // shot (delete ... returning). The previous select-then-delete both let an abandoned
+  // token stay valid forever — despite 0025 calling them "short-lived, single-use" —
+  // and left a window where two concurrent callbacks could each pass the check.
+  const { data: profileId, error: stateError } = await serviceClient.rpc("consume_steam_link_state", {
+    p_state: state,
+  });
+  if (stateError || !profileId) {
     return redirectToApp("error", "state_expired");
   }
-  await serviceClient.from("steam_link_state").delete().eq("state", state);
 
   const summaryRes = await fetch(
     `https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key=${STEAM_WEB_API_KEY}&steamids=${steamId64}`,
@@ -82,7 +124,7 @@ Deno.serve(async (req) => {
 
   const { error: upsertError } = await serviceClient.from("linked_accounts").upsert(
     {
-      profile_id: stateRow.profile_id as string,
+      profile_id: profileId as string,
       provider: "steam",
       external_id: steamId64,
       display_name: player?.personaname ?? `Steam user ${steamId64}`,

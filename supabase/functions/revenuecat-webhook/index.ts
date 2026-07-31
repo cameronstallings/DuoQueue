@@ -6,10 +6,11 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 import { CONSUMABLE_GRANTS, mapEventToStatus, mapStore, type RevenueCatEvent } from "./mapping.ts";
+import { checkBearerAuth, requireSecret } from "../_shared/require-secret-auth.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const WEBHOOK_AUTH_TOKEN = Deno.env.get("REVENUECAT_WEBHOOK_AUTH_TOKEN");
+const WEBHOOK_AUTH_TOKEN = requireSecret("REVENUECAT_WEBHOOK_AUTH_TOKEN");
 
 interface RevenueCatWebhookBody {
   api_version?: string;
@@ -25,12 +26,8 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Method not allowed" }, 405);
   }
 
-  if (WEBHOOK_AUTH_TOKEN) {
-    const authHeader = req.headers.get("Authorization");
-    if (authHeader !== `Bearer ${WEBHOOK_AUTH_TOKEN}`) {
-      return jsonResponse({ error: "Unauthorized" }, 401);
-    }
-  }
+  const unauthorized = await checkBearerAuth(req, WEBHOOK_AUTH_TOKEN);
+  if (unauthorized) return unauthorized;
 
   const body = (await req.json().catch(() => null)) as RevenueCatWebhookBody | null;
   const event = body?.event;
@@ -52,7 +49,8 @@ Deno.serve(async (req) => {
       if (dedupeError.code === "23505") {
         return jsonResponse({ ok: true, duplicate: true }, 200);
       }
-      return jsonResponse({ error: dedupeError.message }, 500);
+      console.error("dedupe insert failed", { event_id: event.id, code: dedupeError.code });
+      return jsonResponse({ error: "Internal error" }, 500);
     }
 
     const { error: grantError } = await serviceClient.rpc("grant_consumable_credits", {
@@ -61,7 +59,22 @@ Deno.serve(async (req) => {
       p_roses: consumableGrant.roses ?? 0,
     });
     if (grantError) {
-      return jsonResponse({ error: grantError.message }, 500);
+      // The dedup marker is written first so concurrent deliveries can't double-grant,
+      // but that means a failed grant would otherwise be permanent: RevenueCat's retry
+      // hits the marker and reports success while the customer never got what they paid
+      // for. Release the marker so the retry actually re-runs the grant.
+      const { error: releaseError } = await serviceClient
+        .from("processed_webhook_events")
+        .delete()
+        .eq("event_id", event.id);
+      if (releaseError) {
+        console.error("failed to release dedupe marker after a failed grant", {
+          event_id: event.id,
+          profile_id: event.app_user_id,
+        });
+      }
+      console.error("grant_consumable_credits failed", { event_id: event.id, code: grantError.code });
+      return jsonResponse({ error: "Internal error" }, 500);
     }
     return jsonResponse({ ok: true }, 200);
   }
@@ -82,7 +95,18 @@ Deno.serve(async (req) => {
   });
 
   if (error) {
-    return jsonResponse({ error: error.message }, 500);
+    // An app_user_id that isn't a real profile (a RevenueCat anonymous id, say) trips
+    // the FK. Retrying can never fix that, so acknowledge instead of leaving RevenueCat
+    // redelivering the same event forever.
+    if (error.code === "23503" || error.code === "22P02") {
+      console.warn("webhook event for an unmappable app_user_id — acknowledging", {
+        event_id: event.id,
+        app_user_id: event.app_user_id,
+      });
+      return jsonResponse({ ok: true, ignored: "unknown_user" }, 200);
+    }
+    console.error("subscriptions upsert failed", { event_id: event.id, code: error.code });
+    return jsonResponse({ error: "Internal error" }, 500);
   }
 
   return jsonResponse({ ok: true }, 200);

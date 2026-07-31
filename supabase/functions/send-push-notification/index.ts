@@ -5,10 +5,11 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 import { sendExpoPush } from "../_shared/expo-push.ts";
+import { checkBearerAuth, requireSecret } from "../_shared/require-secret-auth.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const INTERNAL_TRIGGER_AUTH_TOKEN = Deno.env.get("INTERNAL_TRIGGER_AUTH_TOKEN");
+const INTERNAL_TRIGGER_AUTH_TOKEN = requireSecret("INTERNAL_TRIGGER_AUTH_TOKEN");
 
 type NotificationCategory = "new_match" | "new_message" | "super_ping" | "daily_swipes_refreshed";
 
@@ -69,12 +70,8 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Method not allowed" }, 405);
   }
 
-  if (INTERNAL_TRIGGER_AUTH_TOKEN) {
-    const authHeader = req.headers.get("Authorization");
-    if (authHeader !== `Bearer ${INTERNAL_TRIGGER_AUTH_TOKEN}`) {
-      return jsonResponse({ error: "Unauthorized" }, 401);
-    }
-  }
+  const unauthorized = await checkBearerAuth(req, INTERNAL_TRIGGER_AUTH_TOKEN);
+  if (unauthorized) return unauthorized;
 
   const event = (await req.json().catch(() => null)) as NotificationEvent | null;
   if (!event?.type) {

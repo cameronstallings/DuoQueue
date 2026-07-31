@@ -8,22 +8,25 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 import { sendExpoPush } from "../_shared/expo-push.ts";
+import { checkBearerAuth, requireSecret } from "../_shared/require-secret-auth.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const INTERNAL_TRIGGER_AUTH_TOKEN = Deno.env.get("INTERNAL_TRIGGER_AUTH_TOKEN");
+const INTERNAL_TRIGGER_AUTH_TOKEN = requireSecret("INTERNAL_TRIGGER_AUTH_TOKEN");
 
 function jsonResponse(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
 
 Deno.serve(async (req) => {
-  if (INTERNAL_TRIGGER_AUTH_TOKEN) {
-    const authHeader = req.headers.get("Authorization");
-    if (authHeader !== `Bearer ${INTERNAL_TRIGGER_AUTH_TOKEN}`) {
-      return jsonResponse({ error: "Unauthorized" }, 401);
-    }
+  // Each run fans out a query-plus-push per candidate, so a GET from a crawler or a
+  // scheduler double-fire shouldn't be able to kick it off.
+  if (req.method !== "POST") {
+    return jsonResponse({ error: "Method not allowed" }, 405);
   }
+
+  const unauthorized = await checkBearerAuth(req, INTERNAL_TRIGGER_AUTH_TOKEN);
+  if (unauthorized) return unauthorized;
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 

@@ -39,15 +39,34 @@ Deno.serve(async (req) => {
 
   const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-  const { data: files, error: listError } = await serviceClient.storage.from("profile-photos").list(user.id);
-  if (listError) {
-    return jsonResponse({ error: `Failed to list photos: ${listError.message}` }, 500);
-  }
-  if (files && files.length > 0) {
-    const paths = files.map((f) => `${user.id}/${f.name}`);
-    const { error: removeError } = await serviceClient.storage.from("profile-photos").remove(paths);
-    if (removeError) {
-      return jsonResponse({ error: `Failed to delete photos: ${removeError.message}` }, 500);
+  // Every bucket holding personal data. Voice intros are recordings of the user's own
+  // voice: the profile_voice_intro row cascades away with the profile, but the audio
+  // object does not, and once the profile is gone no policy can ever reach it again.
+  // Missing one here means "delete my account" quietly leaves personal data behind,
+  // which is exactly what the App Store / Play deletion requirement forbids.
+  for (const bucket of ["profile-photos", "voice-intros"]) {
+    // list() returns at most 100 entries per call and does not paginate on its own.
+    // Uploads accumulate (each one writes a fresh timestamped key), so a long-lived
+    // account can easily exceed that — the old code deleted the first page and
+    // reported success.
+    for (;;) {
+      const { data: files, error: listError } = await serviceClient.storage
+        .from(bucket)
+        .list(user.id, { limit: 1000 });
+      if (listError) {
+        console.error("failed to list objects during account deletion", { bucket, message: listError.message });
+        return jsonResponse({ error: "Failed to delete stored files" }, 500);
+      }
+      if (!files || files.length === 0) break;
+
+      const paths = files.map((f) => `${user.id}/${f.name}`);
+      const { error: removeError } = await serviceClient.storage.from(bucket).remove(paths);
+      if (removeError) {
+        console.error("failed to remove objects during account deletion", { bucket, message: removeError.message });
+        return jsonResponse({ error: "Failed to delete stored files" }, 500);
+      }
+
+      if (files.length < 1000) break;
     }
   }
 

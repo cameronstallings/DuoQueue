@@ -42,3 +42,6 @@ pnpm-debug.log*
 # Build output
 dist/
 build/
+
+# Local Expo CLI state
+.expo/

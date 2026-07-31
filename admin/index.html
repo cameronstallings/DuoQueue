@@ -108,10 +108,17 @@
     other: "Other",
   };
 
+  // Escapes for BOTH text and attribute contexts. The textContent round-trip alone
+  // handles < > &, but leaves quotes intact — fine inside a text node, an escape hatch
+  // inside an attribute. Everything on this page is user-generated content being shown
+  // to an admin, so it all gets the stricter treatment.
   function escapeHtml(value) {
-    const div = document.createElement("div");
-    div.textContent = value ?? "";
-    return div.innerHTML;
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
   }
 
   async function render() {
@@ -309,11 +316,11 @@
               ${rows
                 .map(
                   (r) => `
-                <tr data-profile-id="${r.profile_id}">
+                <tr data-profile-id="${escapeHtml(r.profile_id)}">
                   <td>${new Date(r.created_at).toLocaleString()}</td>
                   <td>${escapeHtml(r.name)}</td>
-                  <td>${r.duration_seconds}s</td>
-                  <td>${r.url ? `<audio controls src="${r.url}" style="height:32px;max-width:180px"></audio>` : "Unavailable"}</td>
+                  <td>${escapeHtml(r.duration_seconds)}s</td>
+                  <td>${r.url ? `<audio controls src="${escapeHtml(r.url)}" style="height:32px;max-width:180px"></audio>` : "Unavailable"}</td>
                   <td>
                     <div class="actions">
                       <button class="secondary approve-btn">Approve</button>
@@ -371,13 +378,13 @@
               ${reports
                 .map(
                   (r) => `
-                <tr data-id="${r.id}">
+                <tr data-id="${escapeHtml(r.id)}">
                   <td>${new Date(r.created_at).toLocaleString()}</td>
-                  <td>${REASON_LABELS[r.reason] ?? r.reason}</td>
+                  <td>${escapeHtml(REASON_LABELS[r.reason] ?? r.reason)}</td>
                   <td>${escapeHtml(r.reporterName)}</td>
                   <td>${escapeHtml(r.reportedName)}</td>
                   <td>${escapeHtml(r.details ?? "")}</td>
-                  <td><span class="status-badge ${r.status === "open" ? "status-open" : ""}">${r.status}</span></td>
+                  <td><span class="status-badge ${r.status === "open" ? "status-open" : ""}">${escapeHtml(r.status)}</span></td>
                   <td>
                     <div class="actions">
                       <button class="secondary review-btn">Reviewed</button>

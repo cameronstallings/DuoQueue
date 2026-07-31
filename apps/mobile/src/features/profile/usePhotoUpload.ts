@@ -20,19 +20,36 @@ export async function uploadProfilePhoto(profileId: string, uri: string, role: P
     .upload(storagePath, base64js.toByteArray(base64), { contentType, upsert: true });
   if (uploadError) throw uploadError;
 
-  const { data: mediaRow, error: mediaError } = await supabase
+  // Update-then-insert rather than upsert: clients hold column-level grants here
+  // (insert: profile_id/storage_path/photo_role, update: storage_path only), so an
+  // upsert's conflict path would try to write columns it isn't allowed to touch.
+  // moderation_status is deliberately never sent — it defaults to 'pending' on insert,
+  // and a trigger resets it to 'pending' whenever storage_path changes, so only the
+  // moderate-photo function can ever approve a photo.
+  const { data: updatedRow, error: updateError } = await supabase
     .from("profile_media")
-    .upsert(
-      { profile_id: profileId, storage_path: storagePath, photo_role: role, moderation_status: "pending" },
-      { onConflict: "profile_id,photo_role" },
-    )
+    .update({ storage_path: storagePath })
+    .eq("profile_id", profileId)
+    .eq("photo_role", role)
     .select("id")
-    .single();
-  if (mediaError) throw mediaError;
+    .maybeSingle();
+  if (updateError) throw updateError;
+
+  let mediaId = updatedRow?.id;
+
+  if (!mediaId) {
+    const { data: insertedRow, error: insertError } = await supabase
+      .from("profile_media")
+      .insert({ profile_id: profileId, storage_path: storagePath, photo_role: role })
+      .select("id")
+      .single();
+    if (insertError) throw insertError;
+    mediaId = insertedRow.id;
+  }
 
   // Best-effort, non-blocking: a failed moderation check just leaves the photo
   // "pending" (invisible to other users) rather than failing the upload.
-  supabase.functions.invoke("moderate-photo", { body: { mediaId: mediaRow.id } }).catch((err: unknown) => {
+  supabase.functions.invoke("moderate-photo", { body: { mediaId } }).catch((err: unknown) => {
     console.warn("moderate-photo invocation failed:", err);
   });
 }

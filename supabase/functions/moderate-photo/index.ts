@@ -50,8 +50,8 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "mediaId is required" }, 400);
   }
 
-  // RLS (profile_media_all_own) means this only succeeds if the media row belongs to
-  // the caller — no separate ownership check needed.
+  // RLS (profile_media_all_own) means this only succeeds if the media ROW belongs to
+  // the caller.
   const { data: media, error: mediaError } = await userClient
     .from("profile_media")
     .select("id, profile_id, storage_path")
@@ -59,6 +59,18 @@ Deno.serve(async (req) => {
     .single();
   if (mediaError || !media) {
     return jsonResponse({ error: "Media not found" }, 404);
+  }
+
+  // Owning the row is not the same as owning the object it points at. Everything below
+  // this line runs with the service role, which bypasses storage RLS entirely — it
+  // downloads the path, overwrites it in place, and marks it approved. If storage_path
+  // could name someone else's object, that would publish a stranger's unapproved photo
+  // under this caller's profile and destroy the original. The DB has a CHECK enforcing
+  // the same rule (0031_security_hardening.sql); this is the belt to that's braces,
+  // because the consequence of getting it wrong here is cross-tenant.
+  if (media.profile_id !== user.id || !media.storage_path.startsWith(`${user.id}/`)) {
+    console.error("media row path does not belong to the caller", { mediaId, userId: user.id });
+    return jsonResponse({ error: "Invalid media" }, 403);
   }
 
   const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);

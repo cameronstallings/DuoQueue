@@ -85,3 +85,11 @@ verify_jwt = false
 
 [functions.daily-swipes-refreshed]
 verify_jwt = false
+
+# Reached by a browser redirect from Steam at the end of the OpenID flow, which cannot
+# carry a Supabase JWT. Authorization comes from the signed OpenID assertion plus the
+# one-time state token issued by start_steam_link(). Stated here rather than left to
+# the verify_jwt=true default (or a --no-verify-jwt flag in someone's shell history)
+# so that this endpoint's posture is reviewable in source.
+[functions.link-steam-callback]
+verify_jwt = false

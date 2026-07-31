@@ -103,7 +103,10 @@ async function createFakeProfile(games: { id: string }[], shows: { id: string }[
 
   const mediaRows = (["profile", "header"] as const).map((photo_role) => ({
     profile_id: profileId,
-    storage_path: `seed/${profileId}/${photo_role}.jpg`,
+    // Must live under the owning profile's folder: profile_media has a CHECK tying
+    // storage_path to profile_id, and the storage read policy re-checks the same
+    // convention (0031_security_hardening.sql).
+    storage_path: `${profileId}/${photo_role}.jpg`,
     photo_role,
     moderation_status: "approved" as const,
   }));
