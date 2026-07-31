@@ -1,5 +1,8 @@
-import { Ionicons } from "@expo/vector-icons";
+import type { ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import type { StyleProp, ViewStyle } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 
 import { hapticLight } from "@/lib/haptics";
 import { useTheme } from "@/theme/useTheme";
@@ -12,15 +15,79 @@ interface LikePassButtonsProps {
   disabled?: boolean;
 }
 
+/** A round icon button that springs down on press and pops back with a brief
+ * expanding "ping" ring in the icon's own color on release — replaces the old
+ * instant, non-animated pressed-state snap, which read as flat/unresponsive. */
+function AnimatedIconButton({
+  size,
+  ringColor,
+  disabled,
+  accessibilityLabel,
+  onPress,
+  style,
+  children,
+}: {
+  size: number;
+  ringColor: string;
+  disabled?: boolean;
+  accessibilityLabel: string;
+  onPress: () => void;
+  style?: StyleProp<ViewStyle>;
+  children: ReactNode;
+}) {
+  const scale = useSharedValue(1);
+  const pulse = useSharedValue(0);
+
+  function handlePressIn() {
+    if (disabled) return;
+    scale.value = withSpring(0.86, { damping: 14, stiffness: 380 });
+  }
+
+  function handlePressOut() {
+    scale.value = withSpring(1, { damping: 9, stiffness: 220 });
+  }
+
+  function handlePress() {
+    if (disabled) return;
+    hapticLight();
+    pulse.value = 0;
+    pulse.value = withTiming(1, { duration: 380, easing: Easing.out(Easing.quad) });
+    onPress();
+  }
+
+  const buttonStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const ringStyle = useAnimatedStyle(() => ({
+    opacity: (1 - pulse.value) * 0.55,
+    transform: [{ scale: 1 + pulse.value * 0.7 }],
+  }));
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      onPress={handlePress}
+      disabled={disabled}
+      hitSlop={8}
+    >
+      <Animated.View style={[{ width: size, height: size }, style, { opacity: disabled ? 0.5 : 1 }, buttonStyle]}>
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFillObject,
+            { borderRadius: size / 2, borderWidth: 2, borderColor: ringColor },
+            ringStyle,
+          ]}
+        />
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>{children}</View>
+      </Animated.View>
+    </Pressable>
+  );
+}
+
 export function LikePassButtons({ onLike, onPass, onSuperPing, onSendRose, disabled }: LikePassButtonsProps) {
   const { colors, spacing, shadow } = useTheme();
-
-  function withHaptic(fn: () => void) {
-    return () => {
-      hapticLight();
-      fn();
-    };
-  }
 
   return (
     <View
@@ -32,84 +99,56 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, onSendRose, disab
         paddingVertical: spacing.md,
       }}
     >
-      <Pressable
-        accessibilityRole="button"
+      <AnimatedIconButton
+        size={64}
+        ringColor={colors.danger}
         accessibilityLabel="Pass"
-        onPress={withHaptic(onPass)}
+        onPress={onPass}
         disabled={disabled}
-        style={({ pressed }) => [
-          styles.button,
-          shadow,
-          {
-            backgroundColor: colors.surface,
-            opacity: disabled ? 0.5 : 1,
-            transform: [{ scale: pressed && !disabled ? 0.92 : 1 }],
-          },
-        ]}
+        style={[styles.button, shadow, { backgroundColor: colors.surface }]}
       >
         <Ionicons name="close" size={30} color={colors.danger} />
-      </Pressable>
+      </AnimatedIconButton>
 
       {onSuperPing && (
         <View style={styles.smallButtonWrap}>
-          <Pressable
-            accessibilityRole="button"
+          <AnimatedIconButton
+            size={48}
+            ringColor={colors.success}
             accessibilityLabel="Super Ping — notify them you liked their profile"
-            onPress={withHaptic(onSuperPing)}
+            onPress={onSuperPing}
             disabled={disabled}
-            style={({ pressed }) => [
-              styles.smallButton,
-              shadow,
-              {
-                backgroundColor: colors.surface,
-                opacity: disabled ? 0.5 : 1,
-                transform: [{ scale: pressed && !disabled ? 0.92 : 1 }],
-              },
-            ]}
+            style={[styles.smallButton, shadow, { backgroundColor: colors.surface }]}
           >
             <Ionicons name="diamond" size={20} color={colors.success} />
-          </Pressable>
+          </AnimatedIconButton>
           <Text style={[styles.caption, { color: colors.textMuted }]}>Ping</Text>
         </View>
       )}
 
-      <Pressable
-        accessibilityRole="button"
+      <AnimatedIconButton
+        size={64}
+        ringColor={colors.info}
         accessibilityLabel="Like"
-        onPress={withHaptic(onLike)}
+        onPress={onLike}
         disabled={disabled}
-        style={({ pressed }) => [
-          styles.button,
-          shadow,
-          {
-            backgroundColor: colors.surface,
-            opacity: disabled ? 0.5 : 1,
-            transform: [{ scale: pressed && !disabled ? 0.92 : 1 }],
-          },
-        ]}
+        style={[styles.button, shadow, { backgroundColor: colors.surface }]}
       >
         <Ionicons name="flash" size={28} color={colors.info} />
-      </Pressable>
+      </AnimatedIconButton>
 
       {onSendRose && (
         <View style={styles.smallButtonWrap}>
-          <Pressable
-            accessibilityRole="button"
+          <AnimatedIconButton
+            size={48}
+            ringColor={colors.warning}
             accessibilityLabel="Send a Legendary Like — an extra-visible like from your Legendary Like credits"
-            onPress={withHaptic(onSendRose)}
+            onPress={onSendRose}
             disabled={disabled}
-            style={({ pressed }) => [
-              styles.smallButton,
-              shadow,
-              {
-                backgroundColor: colors.surface,
-                opacity: disabled ? 0.5 : 1,
-                transform: [{ scale: pressed && !disabled ? 0.92 : 1 }],
-              },
-            ]}
+            style={[styles.smallButton, shadow, { backgroundColor: colors.surface }]}
           >
             <Ionicons name="star" size={20} color={colors.warning} />
-          </Pressable>
+          </AnimatedIconButton>
           <Text style={[styles.caption, { color: colors.textMuted }]}>Legendary</Text>
         </View>
       )}
@@ -119,18 +158,10 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, onSendRose, disab
 
 const styles = StyleSheet.create({
   button: {
-    width: 64,
-    height: 64,
     borderRadius: 32,
-    alignItems: "center",
-    justifyContent: "center",
   },
   smallButton: {
-    width: 48,
-    height: 48,
     borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
   },
   smallButtonWrap: {
     alignItems: "center",
