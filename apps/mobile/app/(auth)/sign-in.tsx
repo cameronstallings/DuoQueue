@@ -8,6 +8,7 @@ import { Logo } from "@/components/Logo";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { TextField } from "@/components/TextField";
 import { signInWithApple } from "@/features/auth/appleSignIn";
+import { isCaptchaConfigured, TurnstileCaptcha } from "@/features/auth/TurnstileCaptcha";
 import { useGoogleSignIn } from "@/features/auth/useGoogleSignIn";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/theme/useTheme";
@@ -16,16 +17,30 @@ export default function SignIn() {
   const { colors, spacing } = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const google = useGoogleSignIn();
 
   async function handleSignIn() {
     setError(null);
+    if (isCaptchaConfigured && !captchaToken) {
+      setError("Please complete the verification check.");
+      return;
+    }
     setLoading(true);
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    // Supabase enforces captcha on password sign-in too once bot protection is on,
+    // so the token has to be sent here as well or every login is rejected.
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+      ...(captchaToken ? { options: { captchaToken } } : {}),
+    });
     setLoading(false);
-    if (signInError) setError(signInError.message);
+    if (signInError) {
+      setCaptchaToken(null);
+      setError(signInError.message);
+    }
   }
 
   async function handleAppleSignIn() {
@@ -61,6 +76,7 @@ export default function SignIn() {
         secureTextEntry
         textContentType="password"
       />
+      <TurnstileCaptcha onToken={setCaptchaToken} />
       {error ? <Text style={{ color: colors.danger }}>{error}</Text> : null}
 
       <Button label="Sign in" onPress={() => void handleSignIn()} loading={loading} />

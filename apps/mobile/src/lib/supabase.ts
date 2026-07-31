@@ -66,5 +66,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+    // supabase-js defaults to the implicit flow, which puts tokens in the redirect
+    // URL where they can leak via logs/history. PKCE keeps the exchange server-side
+    // against a one-time verifier instead.
+    flowType: "pkce",
   },
 });

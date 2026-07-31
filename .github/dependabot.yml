@@ -1,0 +1,24 @@
+version: 2
+updates:
+  # Grouped so Expo SDK bumps arrive as one reviewable PR instead of ~30 separate ones
+  # — staying current on Expo is the point, and unbatched updates get ignored.
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      expo:
+        patterns: ["expo", "expo-*", "@expo/*", "react-native", "react-native-*"]
+      dev-tooling:
+        dependency-type: development
+    ignore:
+      # Expo pins these to SDK-compatible versions; let `expo install` manage them
+      # rather than having Dependabot push an incompatible React/RN pair.
+      - dependency-name: "react"
+      - dependency-name: "react-dom"
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
