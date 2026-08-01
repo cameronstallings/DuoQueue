@@ -9,13 +9,12 @@ import { Stack } from "expo-router";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
 import { useFonts } from "expo-font";
 import {
-  Archivo_500Medium,
-  Archivo_600SemiBold,
-  Archivo_700Bold,
-  Archivo_900Black,
-} from "@expo-google-fonts/archivo";
-import { Bungee_400Regular } from "@expo-google-fonts/bungee";
-import { MartianMono_400Regular, MartianMono_700Bold } from "@expo-google-fonts/martian-mono";
+  Manrope_500Medium,
+  Manrope_600SemiBold,
+  Manrope_700Bold,
+  Manrope_800ExtraBold,
+} from "@expo-google-fonts/manrope";
+import { Unbounded_600SemiBold, Unbounded_700Bold } from "@expo-google-fonts/unbounded";
 
 import { Logo } from "@/components/Logo";
 import { OfflineBanner } from "@/components/OfflineBanner";
@@ -81,13 +80,12 @@ export default function RootLayout() {
   // screen. `fontError` deliberately does not block: if a face fails to load the OS
   // font renders instead, and every size, line-height and letter-spacing still applies.
   const [fontsLoaded, fontError] = useFonts({
-    Archivo_500Medium,
-    Archivo_600SemiBold,
-    Archivo_700Bold,
-    Archivo_900Black,
-    MartianMono_400Regular,
-    MartianMono_700Bold,
-    Bungee_400Regular,
+    Unbounded_600SemiBold,
+    Unbounded_700Bold,
+    Manrope_500Medium,
+    Manrope_600SemiBold,
+    Manrope_700Bold,
+    Manrope_800ExtraBold,
   });
 
   useEffect(() => {
