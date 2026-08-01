@@ -48,3 +48,4 @@ build/
 
 # Local moderation-page config (contains project URL + anon key)
 admin/config.js
+.superpowers/
