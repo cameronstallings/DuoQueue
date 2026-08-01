@@ -1,36 +1,40 @@
 import type { PropsWithChildren } from "react";
 import type { ViewStyle } from "react-native";
 import { View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { useTheme } from "@/theme/useTheme";
 
 interface CardProps extends PropsWithChildren {
   style?: ViewStyle;
-  /** Drops the offset plate — for cards inside a scrolling list, where a plate on
-   * every row turns into visual noise rather than depth. */
+  /** No glass fill — for rows inside dense lists. */
   flat?: boolean;
+  /** 1px hero-gradient edge. Hero surfaces only (deck card, match sheet, own-profile header). */
+  luminous?: boolean;
 }
 
-/** A grouped content block. The hard keyline and offset plate are what make it read
- * as a printed object sitting on the surface rather than a tinted rectangle. */
-export function Card({ children, style, flat }: CardProps) {
-  const { colors, radius, spacing, shadow, hairline } = useTheme();
-
-  return (
+export function Card({ children, style, flat, luminous }: CardProps) {
+  const { colors, radius, spacing, heroGradient } = useTheme();
+  const inner = (
     <View
       style={[
         {
-          backgroundColor: colors.surface,
-          borderRadius: radius.md,
+          backgroundColor: flat ? "transparent" : luminous ? colors.surfaceSolid : colors.surface,
+          borderRadius: luminous ? radius.card - 1 : radius.card,
           padding: spacing.lg,
-          borderWidth: hairline,
-          borderColor: colors.ink,
+          borderWidth: flat || luminous ? 0 : 1,
+          borderColor: colors.border,
         },
-        flat ? null : shadow,
         style,
       ]}
     >
       {children}
     </View>
+  );
+  if (!luminous) return inner;
+  return (
+    <LinearGradient {...heroGradient} style={{ borderRadius: radius.card, padding: 1 }}>
+      {inner}
+    </LinearGradient>
   );
 }
