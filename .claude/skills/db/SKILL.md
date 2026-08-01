@@ -2,13 +2,21 @@
 description: Inspect or change the hosted Supabase database for DuoQueue - run SQL, check grants and RLS policies, or apply a migration safely. Use whenever the task involves reading database state, writing a migration, or verifying that a schema change actually took effect.
 ---
 
-## Current migration state
+## First, check where things stand
 
-!`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/db/run-sql.ps1 -Query "select max(version) as latest_applied from supabase_migrations.schema_migrations"`
+Run this before anything else, so you are working from the real state rather than what
+the migration files imply:
 
-## Migration files on disk
+```
+powershell -NoProfile -File scripts/db/run-sql.ps1 -Query "select max(version) as latest_applied from supabase_migrations.schema_migrations"
+```
 
-!`powershell -NoProfile -Command "Get-ChildItem supabase/migrations -Name | Select-Object -Last 5"`
+Compare it to the highest-numbered file in `supabase/migrations/`. A gap means something
+was written but never applied.
+
+(This is a normal command rather than a `!` auto-run block on purpose: skills' inline
+`!` commands are permission-checked separately from the session's permission mode, so an
+auto-run block stalls on an approval prompt even when everything else runs freely.)
 
 ## How to work with this database
 
