@@ -16,7 +16,7 @@ interface CatalogPickerProps {
 }
 
 export function CatalogPicker({ table, placeholder, profileId, selectedIds, onSelect }: CatalogPickerProps) {
-  const { colors, radius, spacing } = useTheme();
+  const { colors, radius, spacing, type } = useTheme();
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
   const { data: results, isLoading } = useCatalogSearch(table, query);
@@ -43,7 +43,7 @@ export function CatalogPicker({ table, placeholder, profileId, selectedIds, onSe
       <TextField label={placeholder} value={query} onChangeText={setQuery} autoCapitalize="words" />
 
       {trimmed.length <= 1 && (
-        <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+        <Text style={[type.caption, { color: colors.textMuted }]}>
           Type at least 2 characters to search — or add your own if it&apos;s not listed.
         </Text>
       )}
@@ -56,7 +56,7 @@ export function CatalogPicker({ table, placeholder, profileId, selectedIds, onSe
       )}
 
       {trimmed.length > 1 && !isLoading && (results ?? []).length === 0 && (
-        <Text style={{ color: colors.textMuted, fontSize: 12 }}>No matches — add it as a custom entry below.</Text>
+        <Text style={[type.caption, { color: colors.textMuted }]}>No matches — add it as a custom entry below.</Text>
       )}
 
       {(results ?? [])
@@ -74,7 +74,7 @@ export function CatalogPicker({ table, placeholder, profileId, selectedIds, onSe
               backgroundColor: colors.surface,
             }}
           >
-            <Text style={{ color: colors.text }}>{item.name}</Text>
+            <Text style={[type.body, { color: colors.text }]}>{item.name}</Text>
           </Pressable>
         ))}
 
@@ -90,7 +90,7 @@ export function CatalogPicker({ table, placeholder, profileId, selectedIds, onSe
             borderColor: colors.brand,
           }}
         >
-          <Text style={{ color: colors.brand, fontWeight: "600" }}>
+          <Text style={[type.caption, { color: colors.brand }]}>
             {creating ? "Adding…" : `+ Add "${trimmed}"`}
           </Text>
         </Pressable>

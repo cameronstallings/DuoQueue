@@ -16,7 +16,7 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
       {Array.from({ length: total }, (_, i) => (
         <View
           key={i}
-          style={{ flex: 1, height: 4, borderRadius: radius.pill, backgroundColor: colors.border, overflow: "hidden" }}
+          style={{ flex: 1, height: 4, borderRadius: radius.chip, backgroundColor: colors.border, overflow: "hidden" }}
         >
           {i < current && (
             <Animated.View entering={FadeIn.duration(250)} style={{ flex: 1, backgroundColor: colors.brand }} />
@@ -49,21 +49,21 @@ export function WizardStep({
   error,
   children,
 }: WizardStepProps) {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, type } = useTheme();
   const stepNumber = ONBOARDING_STEPS.indexOf(step) + 1;
 
   return (
     <ScreenContainer>
       <ProgressBar current={stepNumber} total={ONBOARDING_STEPS.length} />
-      <Text style={{ color: colors.textMuted, fontSize: 13, fontWeight: "600" }}>
+      <Text style={[type.caption, { color: colors.textMuted }]}>
         STEP {stepNumber} OF {ONBOARDING_STEPS.length}
       </Text>
-      <Text style={{ fontSize: 26, fontWeight: "700", color: colors.text }}>{title}</Text>
-      {subtitle ? <Text style={{ color: colors.textMuted }}>{subtitle}</Text> : null}
+      <Text style={[type.screenTitle, { color: colors.text }]}>{title}</Text>
+      {subtitle ? <Text style={[type.body, { color: colors.textMuted }]}>{subtitle}</Text> : null}
 
       <View style={{ gap: spacing.md }}>{children}</View>
 
-      {error ? <Text style={{ color: colors.danger }}>{error}</Text> : null}
+      {error ? <Text style={[type.caption, { color: colors.danger }]}>{error}</Text> : null}
 
       <Button label={continueLabel} onPress={onContinue} disabled={continueDisabled} loading={loading} />
     </ScreenContainer>

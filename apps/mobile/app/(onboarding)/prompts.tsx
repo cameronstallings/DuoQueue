@@ -38,9 +38,9 @@ export default function PromptsStep() {
           {prompt ? (
             <>
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                <Text style={{ color: colors.text, fontWeight: "700", flex: 1 }}>{prompt.question}</Text>
+                <Text style={[type.bodyStrong, { color: colors.text, flex: 1 }]}>{prompt.question}</Text>
                 <Pressable onPress={() => clearPromptAt(index)}>
-                  <Text style={{ color: colors.brand, fontSize: 13, fontWeight: "600" }}>Change</Text>
+                  <Text style={[type.caption, { color: colors.brand }]}>Change</Text>
                 </Pressable>
               </View>
               <TextField
@@ -51,13 +51,13 @@ export default function PromptsStep() {
                 maxLength={PROMPT_ANSWER_MAX_LENGTH}
                 style={{ minHeight: 60, textAlignVertical: "top" }}
               />
-              <Text style={{ color: colors.textMuted, textAlign: "right", fontSize: 12 }}>
+              <Text style={[type.caption, { color: colors.textMuted, textAlign: "right" }]}>
                 {prompt.answer.length}/{PROMPT_ANSWER_MAX_LENGTH}
               </Text>
             </>
           ) : (
             <Pressable onPress={() => setPickerIndex(index)} style={{ alignItems: "center", paddingVertical: spacing.sm }}>
-              <Text style={{ color: colors.brand, fontWeight: "700" }}>+ Select a prompt</Text>
+              <Text style={[type.bodyStrong, { color: colors.brand }]}>+ Select a prompt</Text>
             </Pressable>
           )}
         </Card>
@@ -68,7 +68,7 @@ export default function PromptsStep() {
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.md }}>
             <Text style={{ ...type.title, color: colors.text }}>Select a prompt</Text>
             <Pressable onPress={() => setPickerIndex(null)}>
-              <Text style={{ color: colors.brand, fontWeight: "600" }}>Cancel</Text>
+              <Text style={[type.caption, { color: colors.brand }]}>Cancel</Text>
             </Pressable>
           </View>
 
@@ -105,7 +105,7 @@ export default function PromptsStep() {
                       borderBottomColor: colors.border,
                     }}
                   >
-                    <Text style={{ color: colors.text, fontSize: 15 }}>{item.question}</Text>
+                    <Text style={[type.body, { color: colors.text }]}>{item.question}</Text>
                   </Pressable>
                 ))}
             </ScrollView>

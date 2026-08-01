@@ -1,4 +1,5 @@
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 
 import { useTheme } from "@/theme/useTheme";
@@ -13,7 +14,7 @@ interface PhotoSlotProps {
 }
 
 function PhotoSlot({ label, sublabel, uri, aspect, width, onChange }: PhotoSlotProps) {
-  const { colors, radius, spacing } = useTheme();
+  const { colors, radius, spacing, type } = useTheme();
 
   async function handlePick() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -32,8 +33,8 @@ function PhotoSlot({ label, sublabel, uri, aspect, width, onChange }: PhotoSlotP
 
   return (
     <View style={{ gap: spacing.xs }}>
-      <Text style={{ color: colors.text, fontWeight: "700" }}>{label}</Text>
-      <Text style={{ color: colors.textMuted, fontSize: 12 }}>{sublabel}</Text>
+      <Text style={[type.bodyStrong, { color: colors.text }]}>{label}</Text>
+      <Text style={[type.caption, { color: colors.textMuted }]}>{sublabel}</Text>
       <Pressable
         onPress={() => void handlePick()}
         style={[
@@ -54,7 +55,7 @@ function PhotoSlot({ label, sublabel, uri, aspect, width, onChange }: PhotoSlotP
         {uri ? (
           <Image source={{ uri }} style={[styles.image, { borderRadius: radius.md }]} resizeMode="cover" />
         ) : (
-          <Text style={{ color: colors.textMuted, fontSize: 28 }}>+</Text>
+          <Ionicons name="add" size={28} color={colors.textMuted} />
         )}
       </Pressable>
     </View>

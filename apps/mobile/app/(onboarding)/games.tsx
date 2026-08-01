@@ -3,6 +3,7 @@ import { Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import { SKILL_LEVELS } from "@duoqueue/shared-types";
 
+import { Card } from "@/components/Card";
 import { ChipSelect } from "@/components/ChipSelect";
 import { TextField } from "@/components/TextField";
 import { CatalogPicker } from "@/features/onboarding/CatalogPicker";
@@ -20,7 +21,7 @@ const SKILL_LABELS: Record<(typeof SKILL_LEVELS)[number], string> = {
 };
 
 export default function GamesStep() {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, type } = useTheme();
   const session = useSessionStore((s) => s.session);
   const { games, addGame, removeGame, updateGameSkill, updateGameRank } = useOnboardingStore();
   const [error, setError] = useState<string | null>(null);
@@ -54,14 +55,11 @@ export default function GamesStep() {
 
       <View style={{ gap: spacing.md }}>
         {games.map((game) => (
-          <View
-            key={game.gameId}
-            style={{ backgroundColor: colors.surface, borderRadius: 12, padding: spacing.md, gap: spacing.sm }}
-          >
+          <Card key={game.gameId} style={{ gap: spacing.sm }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-              <Text style={{ color: colors.text, fontWeight: "700", fontSize: 16 }}>{game.name}</Text>
+              <Text style={[type.bodyStrong, { color: colors.text }]}>{game.name}</Text>
               <Pressable onPress={() => removeGame(game.gameId)}>
-                <Text style={{ color: colors.danger }}>Remove</Text>
+                <Text style={[type.caption, { color: colors.danger }]}>Remove</Text>
               </Pressable>
             </View>
             <ChipSelect
@@ -75,7 +73,7 @@ export default function GamesStep() {
               onChangeText={(text) => updateGameRank(game.gameId, text)}
               placeholder="e.g. Diamond II"
             />
-          </View>
+          </Card>
         ))}
       </View>
     </WizardStep>

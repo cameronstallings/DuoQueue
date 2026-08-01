@@ -9,7 +9,7 @@ import { useOnboardingStore } from "@/store/onboarding-store";
 import { useTheme } from "@/theme/useTheme";
 
 export default function DiscordStep() {
-  const { colors } = useTheme();
+  const { colors, type } = useTheme();
   const { discordUsername, setDiscordUsername, submit, submitting } = useOnboardingStore();
   const [error, setError] = useState<string | null>(null);
 
@@ -50,7 +50,7 @@ export default function DiscordStep() {
         autoCapitalize="none"
         placeholder="yourname"
       />
-      <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+      <Text style={[type.caption, { color: colors.textMuted }]}>
         Your Discord is never shown automatically — only when you tap &quot;Share my Discord&quot; in a
         match chat.
       </Text>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
 import { CatalogPicker } from "@/features/onboarding/CatalogPicker";
@@ -10,7 +11,7 @@ import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
 export default function ShowsStep() {
-  const { colors, radius, spacing } = useTheme();
+  const { colors, radius, spacing, type } = useTheme();
   const session = useSessionStore((s) => s.session);
   const { shows, addShow, removeShow } = useOnboardingStore();
   const [error, setError] = useState<string | null>(null);
@@ -50,12 +51,12 @@ export default function ShowsStep() {
               gap: spacing.xs,
               paddingVertical: spacing.sm,
               paddingHorizontal: spacing.md,
-              borderRadius: radius.pill,
+              borderRadius: radius.chip,
               backgroundColor: colors.brand,
             }}
           >
-            <Text style={{ color: "#fff", fontWeight: "600" }}>{show.name}</Text>
-            <Text style={{ color: "#fff", fontWeight: "700" }}>×</Text>
+            <Text style={[type.caption, { color: colors.onFill }]}>{show.name}</Text>
+            <Ionicons name="close" size={13} color={colors.onFill} />
           </Pressable>
         ))}
       </View>
