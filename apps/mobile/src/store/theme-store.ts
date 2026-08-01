@@ -11,14 +11,14 @@ interface ThemeState {
 }
 
 export const useThemeStore = create<ThemeState>((set) => ({
-  preference: "system",
+  preference: "dark",
   setPreference: (preference) => {
     set({ preference });
     void AsyncStorage.setItem(STORAGE_KEY, preference);
   },
 }));
 
-/** Loads the saved preference once at app startup — call from the root layout. */
+/** Loads the saved preference once at app startup — call from the root layout. Dark is Aurora's default; "system"/"light" remain user choices via Settings → Appearance. */
 export async function loadThemePreference(): Promise<void> {
   const saved = await AsyncStorage.getItem(STORAGE_KEY);
   if (saved === "light" || saved === "dark" || saved === "system") {
