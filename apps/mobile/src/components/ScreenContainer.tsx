@@ -38,7 +38,7 @@ export function ScreenContainer({
   showBack,
   aurora = "default",
 }: ScreenContainerProps) {
-  const { colors, spacing, type } = useTheme();
+  const { colors, spacing, type, radius } = useTheme();
   const insets = useSafeAreaInsets();
 
   /**
@@ -85,6 +85,8 @@ export function ScreenContainer({
                 height: 34,
                 alignItems: "center",
                 justifyContent: "center",
+                backgroundColor: colors.surfaceAlt,
+                borderRadius: radius.round,
               }}
             >
               <Ionicons name="chevron-back" size={19} color={colors.text} />
@@ -108,6 +110,8 @@ export function ScreenContainer({
                 height: 34,
                 alignItems: "center",
                 justifyContent: "center",
+                backgroundColor: colors.surfaceAlt,
+                borderRadius: radius.round,
               }}
             >
               <Ionicons name="close" size={19} color={colors.text} />
@@ -129,6 +133,8 @@ export function ScreenContainer({
               height: 34,
               alignItems: "center",
               justifyContent: "center",
+              backgroundColor: colors.surfaceAlt,
+              borderRadius: radius.round,
             }}
           >
             <Ionicons name={showClose ? "close" : "chevron-back"} size={19} color={colors.text} />
