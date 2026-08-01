@@ -1,6 +1,8 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import { useTheme } from "@/theme/useTheme";
+
+import { Chip } from "./Chip";
 
 interface ChipOption<T extends string> {
   value: T;
@@ -13,42 +15,21 @@ interface ChipSelectProps<T extends string> {
   onToggle: (value: T) => void;
 }
 
-/**
- * Chips are stickers, not pills — a 4pt corner and a hard keyline. Selection is
- * carried by the fill AND by the keyline thickening, so it survives greyscale and
- * does not depend on colour alone.
- */
+/** A wrapped row of selectable Chips — one selection state per option, toggled
+ * independently. */
 export function ChipSelect<T extends string>({ options, selected, onToggle }: ChipSelectProps<T>) {
-  const { colors, radius, spacing, type, hairline } = useTheme();
+  const { spacing } = useTheme();
 
   return (
     <View style={[styles.wrap, { gap: spacing.sm }]}>
-      {options.map((option) => {
-        const isSelected = selected.includes(option.value);
-        return (
-          <Pressable
-            key={option.value}
-            accessibilityRole="button"
-            accessibilityState={{ selected: isSelected }}
-            onPress={() => onToggle(option.value)}
-            style={({ pressed }) => [
-              {
-                paddingVertical: spacing.sm,
-                paddingHorizontal: spacing.md,
-                borderRadius: radius.chip,
-                borderWidth: hairline,
-                borderColor: colors.ink,
-                backgroundColor: isSelected ? colors.brand : colors.surface,
-                opacity: pressed ? 0.85 : 1,
-              },
-            ]}
-          >
-            <Text style={[type.caption, { color: isSelected ? colors.onFill : colors.text }]}>
-              {option.label}
-            </Text>
-          </Pressable>
-        );
-      })}
+      {options.map((option) => (
+        <Chip
+          key={option.value}
+          label={option.label}
+          selected={selected.includes(option.value)}
+          onPress={() => onToggle(option.value)}
+        />
+      ))}
     </View>
   );
 }
