@@ -35,7 +35,7 @@ const TAB_CONFIG = {
 export default function TabsLayout() {
   const status = useSessionStore((s) => s.status);
   const profile = useSessionStore((s) => s.profile);
-  const { colors, scheme } = useTheme();
+  const { colors, scheme, type } = useTheme();
 
   useHeartbeat();
 
@@ -46,17 +46,19 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.brand,
+        tabBarActiveTintColor: colors.brandInk,
         tabBarInactiveTintColor: colors.textMuted,
+        // A hard rule instead of a soft drop shadow: the bar is a printed edge, and a
+        // blurred elevation here was one of the things that made every screen read
+        // as stock Material.
         tabBarStyle: {
-          backgroundColor: colors.background,
-          borderTopWidth: 0,
-          shadowColor: "#000000",
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: scheme === "light" ? 0.08 : 0.3,
-          shadowRadius: 8,
-          elevation: 8,
+          backgroundColor: colors.surface,
+          borderTopWidth: scheme === "light" ? 1.5 : 1,
+          borderTopColor: colors.ink,
+          elevation: 0,
         },
+        tabBarLabelStyle: type.label,
+        tabBarItemStyle: { paddingTop: 4 },
         sceneStyle: { backgroundColor: colors.background },
       }}
     >

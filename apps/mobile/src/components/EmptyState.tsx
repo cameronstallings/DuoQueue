@@ -11,30 +11,37 @@ interface EmptyStateProps {
   onAction?: () => void;
 }
 
-/** A consistent "nothing here" / "something went wrong" presentation — an icon badge
- * instead of bare text, used across the deck, matches, admirers, and block list. */
+/** A consistent "nothing here" / "something went wrong" presentation — used across the
+ * deck, matches, admirers, and block list. The icon sits in a keylined square rather
+ * than a soft circle, so an empty screen still looks like it belongs to this app. */
 export function EmptyState({ icon, title, subtitle, actionLabel, onAction }: EmptyStateProps) {
-  const { colors, spacing, radius } = useTheme();
+  const { colors, spacing, radius, type, shadow, scheme } = useTheme();
 
   return (
     <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.md, padding: spacing.lg }}>
       <View
-        style={{
-          width: 72,
-          height: 72,
-          borderRadius: radius.pill,
-          backgroundColor: colors.brandSoft,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
+        style={[
+          {
+            width: 72,
+            height: 72,
+            borderRadius: radius.md,
+            backgroundColor: colors.brandSoft,
+            borderWidth: scheme === "light" ? 1.5 : 1,
+            borderColor: colors.ink,
+            alignItems: "center",
+            justifyContent: "center",
+            transform: [{ rotate: "-3deg" }],
+          },
+          shadow,
+        ]}
       >
-        <Ionicons name={icon} size={32} color={colors.brand} />
+        <Ionicons name={icon} size={32} color={colors.brandInk} />
       </View>
-      <Text style={{ fontSize: 18, fontWeight: "600", color: colors.text, textAlign: "center" }}>{title}</Text>
-      <Text style={{ color: colors.textMuted, textAlign: "center" }}>{subtitle}</Text>
+      <Text style={[type.title, { color: colors.text, textAlign: "center" }]}>{title}</Text>
+      <Text style={[type.body, { color: colors.textMuted, textAlign: "center" }]}>{subtitle}</Text>
       {actionLabel && onAction && (
-        <Pressable onPress={onAction}>
-          <Text style={{ color: colors.brand, fontWeight: "600" }}>{actionLabel}</Text>
+        <Pressable onPress={onAction} accessibilityRole="button" hitSlop={8}>
+          <Text style={[type.label, { color: colors.brandInk }]}>{actionLabel}</Text>
         </Pressable>
       )}
     </View>

@@ -17,7 +17,7 @@ interface ScreenContainerProps extends PropsWithChildren {
 }
 
 export function ScreenContainer({ children, refreshControl, title, showClose }: ScreenContainerProps) {
-  const { colors, spacing, type } = useTheme();
+  const { colors, spacing, type, radius, scheme } = useTheme();
   const insets = useSafeAreaInsets();
 
   return (
@@ -37,9 +37,14 @@ export function ScreenContainer({ children, refreshControl, title, showClose }: 
             backgroundColor: colors.background,
           }}
         >
-          <Text style={{ ...type.screenTitle, color: colors.text, flex: 1 }} numberOfLines={1}>
-            {title}
-          </Text>
+          <View style={{ flex: 1, gap: spacing.xs }}>
+            <Text style={{ ...type.screenTitle, color: colors.text }} numberOfLines={1}>
+              {title}
+            </Text>
+            {/* The rule under a screen title is the app's most repeated mark — it is
+                what makes an otherwise plain list screen still feel authored. */}
+            <View style={{ width: 44, height: 4, backgroundColor: colors.p1Line }} />
+          </View>
           {showClose && (
             <Pressable
               accessibilityRole="button"
@@ -47,15 +52,17 @@ export function ScreenContainer({ children, refreshControl, title, showClose }: 
               onPress={() => router.back()}
               hitSlop={8}
               style={{
-                width: 32,
-                height: 32,
-                borderRadius: 16,
+                width: 34,
+                height: 34,
+                borderRadius: radius.sm,
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: colors.surfaceAlt,
+                backgroundColor: colors.surface,
+                borderWidth: scheme === "light" ? 1.5 : 1,
+                borderColor: colors.ink,
               }}
             >
-              <Ionicons name="close" size={20} color={colors.text} />
+              <Ionicons name="close" size={19} color={colors.text} />
             </Pressable>
           )}
         </View>

@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn } from "react-native-reanimated";
 
 import { EmptyState } from "@/components/EmptyState";
+import { Name } from "@/components/Name";
 import { Skeleton } from "@/components/Skeleton";
 import { SectionLabel } from "@/components/SectionLabel";
 import { useMatches, type MatchListItem } from "@/features/chat/useMatches";
@@ -52,77 +53,86 @@ function timeAgo(iso: string | null): string {
 }
 
 function MatchRow({ item }: { item: MatchListItem }) {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, type, radius, scheme } = useTheme();
+  const unread = item.unread_count > 0;
 
   return (
     <Pressable
       onPress={() => router.push({ pathname: "/chat/[matchId]", params: { matchId: item.match_id } })}
-      style={{
+      style={({ pressed }) => ({
         flexDirection: "row",
         alignItems: "center",
         gap: spacing.md,
-        paddingVertical: spacing.sm,
+        paddingVertical: spacing.md,
         paddingHorizontal: spacing.lg,
-      }}
+        backgroundColor: pressed ? colors.surfaceAlt : "transparent",
+      })}
     >
+      {/* A keylined square, not a circle — the avatar reads as a small printed tile,
+          matching the deck card's photo window. */}
       {item.otherPhotoUrl ? (
         <Image
           source={{ uri: item.otherPhotoUrl }}
-          style={{ width: 56, height: 56, borderRadius: 28 }}
+          style={{
+            width: 54,
+            height: 54,
+            borderRadius: radius.window,
+            borderWidth: scheme === "light" ? 1.5 : 1,
+            borderColor: colors.ink,
+          }}
           cachePolicy="memory-disk"
           transition={150}
         />
       ) : (
         <View
           style={{
-            width: 56,
-            height: 56,
-            borderRadius: 28,
+            width: 54,
+            height: 54,
+            borderRadius: radius.window,
             backgroundColor: colors.surfaceAlt,
+            borderWidth: scheme === "light" ? 1.5 : 1,
+            borderColor: colors.ink,
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Text style={{ color: colors.textMuted, fontSize: 20 }}>{item.other_display_name[0]}</Text>
+          <Text style={[type.title, { color: colors.textMuted }]}>{item.other_display_name[0]}</Text>
         </View>
       )}
 
       <View style={{ flex: 1, gap: 2 }}>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <Text style={{ fontWeight: "700", color: colors.text, fontSize: 16 }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          <Name variant="bodyStrong" style={{ color: colors.text, flex: 1 }} numberOfLines={1}>
             {item.other_display_name}
-          </Text>
-          <Text style={{ color: colors.textMuted, fontSize: 12 }}>{timeAgo(item.last_message_at)}</Text>
+          </Name>
+          <Text style={[type.statSm, { color: colors.textMuted }]}>{timeAgo(item.last_message_at)}</Text>
         </View>
         <Text
           numberOfLines={1}
-          style={{
-            color: item.unread_count > 0 ? colors.text : colors.textMuted,
-            fontWeight: item.unread_count > 0 ? "600" : "400",
-          }}
+          style={[unread ? type.bodyStrong : type.body, { color: unread ? colors.text : colors.textMuted }]}
         >
           {item.is_locked ? "Locked — upgrade to keep chatting" : (item.last_message ?? "Say hi!")}
         </Text>
       </View>
 
-      {item.unread_count > 0 && (
+      {unread && (
         <View
           style={{
             minWidth: 22,
             height: 22,
-            borderRadius: 11,
+            borderRadius: radius.chip,
             backgroundColor: colors.brand,
+            borderWidth: scheme === "light" ? 1.5 : 1,
+            borderColor: colors.ink,
             alignItems: "center",
             justifyContent: "center",
-            paddingHorizontal: 6,
+            paddingHorizontal: 5,
           }}
         >
-          <Text style={{ color: "#fff", fontSize: 12, fontWeight: "700" }}>{item.unread_count}</Text>
+          <Text style={[type.statSm, { color: colors.onFill }]}>{item.unread_count}</Text>
         </View>
       )}
-      {item.is_locked && (
-        <Text style={{ fontSize: 11, fontWeight: "700", color: colors.textMuted }}>LOCKED</Text>
-      )}
+      {item.is_locked && <Text style={[type.label, { color: colors.textMuted }]}>LOCKED</Text>}
     </Pressable>
   );
 }
@@ -131,7 +141,7 @@ function MatchRowSkeleton() {
   const { spacing } = useTheme();
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.lg }}>
-      <Skeleton width={56} height={56} borderRadius={28} />
+      <Skeleton width={54} height={54} borderRadius={8} />
       <View style={{ flex: 1, gap: spacing.xs }}>
         <Skeleton width="50%" height={14} />
         <Skeleton width="80%" height={12} />
