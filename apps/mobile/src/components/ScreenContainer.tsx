@@ -7,6 +7,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useTheme } from "@/theme/useTheme";
 
+import { AuroraBackground } from "./AuroraBackground";
+import { GrainOverlay } from "./GrainOverlay";
+
 interface ScreenContainerProps extends PropsWithChildren {
   refreshControl?: ReactElement<RefreshControlProps>;
   /** Renders a fixed (non-scrolling) title row above the content. */
@@ -23,6 +26,8 @@ interface ScreenContainerProps extends PropsWithChildren {
    * it the only way back is the OS swipe gesture, which does not exist on Android.
    */
   showBack?: boolean;
+  /** Which aurora wash sits behind the content. "none" opts out of the atmosphere. */
+  aurora?: "default" | "solar" | "none";
 }
 
 export function ScreenContainer({
@@ -31,8 +36,9 @@ export function ScreenContainer({
   title,
   showClose,
   showBack,
+  aurora = "default",
 }: ScreenContainerProps) {
-  const { colors, spacing, type, radius, hairline } = useTheme();
+  const { colors, spacing, type } = useTheme();
   const insets = useSafeAreaInsets();
 
   /**
@@ -49,6 +55,13 @@ export function ScreenContainer({
       style={{ flex: 1, backgroundColor: colors.background }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
+      {aurora !== "none" && (
+        <>
+          <AuroraBackground variant={aurora === "solar" ? "solar" : "default"} />
+          <GrainOverlay />
+        </>
+      )}
+
       {title !== undefined && (
         <View
           style={{
@@ -70,12 +83,8 @@ export function ScreenContainer({
               style={{
                 width: 34,
                 height: 34,
-                borderRadius: radius.sm,
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: colors.surface,
-                borderWidth: hairline,
-                borderColor: colors.ink,
               }}
             >
               <Ionicons name="chevron-back" size={19} color={colors.text} />
@@ -86,9 +95,6 @@ export function ScreenContainer({
             <Text style={{ ...type.screenTitle, color: colors.text }} numberOfLines={1}>
               {title}
             </Text>
-            {/* The rule under a screen title is the app's most repeated mark — it is
-                what makes an otherwise plain list screen still feel authored. */}
-            <View style={{ width: 32, height: 3, backgroundColor: colors.p1Line }} />
           </View>
 
           {showClose && (
@@ -100,12 +106,8 @@ export function ScreenContainer({
               style={{
                 width: 34,
                 height: 34,
-                borderRadius: radius.sm,
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: colors.surface,
-                borderWidth: hairline,
-                borderColor: colors.ink,
               }}
             >
               <Ionicons name="close" size={19} color={colors.text} />
@@ -125,12 +127,8 @@ export function ScreenContainer({
             style={{
               width: 34,
               height: 34,
-              borderRadius: radius.sm,
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: colors.surface,
-              borderWidth: hairline,
-              borderColor: colors.ink,
             }}
           >
             <Ionicons name={showClose ? "close" : "chevron-back"} size={19} color={colors.text} />
