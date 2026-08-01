@@ -332,13 +332,16 @@ pnpm lint        # eslint across all workspace packages
 Things this repo deliberately leaves as clearly-marked stubs or manual setup steps,
 rather than faking:
 
-- **Photo moderation needs a Sightengine account to run automatically.** The provider is
-  implemented (`supabase/functions/moderate-photo/provider.ts`); it just needs
-  credentials. Until `MODERATION_PROVIDER=sightengine` plus `SIGHTENGINE_API_USER` and
-  `SIGHTENGINE_API_SECRET` are set, every uploaded photo is routed to the admin review
-  queue instead of being checked. That is a deliberate fail-safe: there is no
-  approve-everything mode, so a missing key can never silently publish unreviewed photos
-  — it can only create a manual-review backlog, which is visible.
+- **Photo moderation is live** via Sightengine
+  (`supabase/functions/moderate-photo/provider.ts`), checking explicit content, gore, and
+  — the reason this provider was chosen — an apparent-minor score per detected face.
+  A new deployment needs `MODERATION_PROVIDER=sightengine` plus `SIGHTENGINE_API_USER`
+  and `SIGHTENGINE_API_SECRET`. Without them the function routes every photo to the admin
+  review queue rather than approving it: there is deliberately no approve-everything
+  mode, so a missing key produces a visible backlog instead of silently publishing
+  unreviewed photos. Scores that fall between the review and reject thresholds also go to
+  the queue rather than being rounded toward either mistake. Worth revisiting the
+  thresholds in `provider.ts` against real traffic before a wide launch.
 - **Push notifications** need `eas init` for a real EAS project id, a physical device to
   test on, and someone to actually schedule `daily-swipes-refreshed` (a Supabase Cron
   Trigger or any external scheduler) — see README setup step 5.
