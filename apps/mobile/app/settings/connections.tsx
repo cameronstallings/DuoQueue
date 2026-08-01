@@ -58,7 +58,7 @@ export default function ConnectionsSettings() {
   const steamLink = linked?.find((a) => a.provider === "steam");
 
   return (
-    <ScreenContainer title="Connections">
+    <ScreenContainer title="Connections" showBack>
       <Text style={[type.body, { color: colors.textMuted }]}>
         A verified badge pulls your rank and username straight from the source, rather than trusting a typed-in
         claim.

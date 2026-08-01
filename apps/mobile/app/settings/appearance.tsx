@@ -28,7 +28,7 @@ export default function AppearanceSettings() {
   const setPreference = useThemeStore((s) => s.setPreference);
 
   return (
-    <ScreenContainer title="Appearance">
+    <ScreenContainer title="Appearance" showBack>
       <Card style={{ padding: 0, overflow: "hidden" }}>
         {OPTIONS.map((option, i) => {
           const selected = preference === option.value;

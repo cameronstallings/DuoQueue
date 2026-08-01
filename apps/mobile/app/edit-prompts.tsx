@@ -17,7 +17,7 @@ import { useToastStore } from "@/store/toast-store";
 import { useTheme } from "@/theme/useTheme";
 
 export default function EditPromptsScreen() {
-  const { colors, spacing, type } = useTheme();
+  const { colors, spacing, type, radius, hairline } = useTheme();
   const insets = useSafeAreaInsets();
   const profile = useSessionStore((s) => s.profile);
   const { data: existing, isLoading: loadingExisting } = useOwnPrompts(profile?.id);
@@ -63,7 +63,8 @@ export default function EditPromptsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingTop: insets.top + spacing.lg, gap: spacing.md }}>
+      {/* No insets.top — presented as a modal, which is already inset below the status bar. */}
+      <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
           <Text style={{ ...type.screenTitle, color: colors.text }}>Edit Prompts</Text>
           <Pressable
@@ -72,15 +73,17 @@ export default function EditPromptsScreen() {
             onPress={() => router.back()}
             hitSlop={8}
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 16,
+              width: 34,
+              height: 34,
+              borderRadius: radius.sm,
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: colors.surfaceAlt,
+              backgroundColor: colors.surface,
+              borderWidth: hairline,
+              borderColor: colors.ink,
             }}
           >
-            <Ionicons name="close" size={20} color={colors.text} />
+            <Ionicons name="close" size={19} color={colors.text} />
           </Pressable>
         </View>
         {slots === null || loadingCatalog ? (

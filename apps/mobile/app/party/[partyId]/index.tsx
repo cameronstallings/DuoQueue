@@ -16,7 +16,7 @@ import { hapticSuccess } from "@/lib/haptics";
 import { useTheme } from "@/theme/useTheme";
 
 export default function PartyDeckScreen() {
-  const { colors, spacing, type } = useTheme();
+  const { colors, spacing, type, radius, hairline } = useTheme();
   const insets = useSafeAreaInsets();
   const { partyId } = useLocalSearchParams<{ partyId: string }>();
   const { data: members } = usePartyMembers(partyId);
@@ -45,24 +45,50 @@ export default function PartyDeckScreen() {
       <View
         style={{
           flexDirection: "row",
-          justifyContent: "space-between",
           alignItems: "center",
+          gap: spacing.md,
           paddingHorizontal: spacing.lg,
-          paddingTop: insets.top + spacing.lg,
+          paddingTop: insets.top + spacing.md,
         }}
       >
+        {/* This screen hides the native header, so without an explicit control there
+            is no way back on Android at all. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          onPress={() => router.back()}
+          hitSlop={8}
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: radius.sm,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: colors.surface,
+            borderWidth: hairline,
+            borderColor: colors.ink,
+          }}
+        >
+          <Ionicons name="chevron-back" size={19} color={colors.text} />
+        </Pressable>
+
         <View style={{ flex: 1 }}>
           <Text style={{ ...type.screenTitle, color: colors.text }}>Party</Text>
-          <Text style={{ color: colors.textMuted, fontSize: 13 }}>
+          <Text style={[type.caption, { color: colors.textMuted }]}>
             {(members ?? []).map((m) => m.display_name).join(" & ") || "Loading…"}
           </Text>
         </View>
-        <Pressable onPress={() => router.push({ pathname: "/party/[partyId]/chat", params: { partyId } })}>
-          <Ionicons name="chatbubbles" size={26} color={colors.brand} />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Party chat"
+          onPress={() => router.push({ pathname: "/party/[partyId]/chat", params: { partyId } })}
+          hitSlop={8}
+        >
+          <Ionicons name="chatbubbles" size={24} color={colors.brandInk} />
         </Pressable>
       </View>
 
-      <Text style={{ color: colors.textMuted, paddingHorizontal: spacing.lg, paddingTop: spacing.xs, fontSize: 13 }}>
+      <Text style={[type.caption, { color: colors.textMuted, paddingHorizontal: spacing.lg, paddingTop: spacing.sm }]}>
         Everyone in the party has to like someone before they get invited.
       </Text>
 

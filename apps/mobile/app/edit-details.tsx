@@ -36,7 +36,7 @@ import { useTheme } from "@/theme/useTheme";
 const MAX_PLAYSTYLES = 6;
 
 export default function EditDetailsScreen() {
-  const { colors, radius, spacing, type } = useTheme();
+  const { colors, radius, spacing, type, hairline } = useTheme();
   const insets = useSafeAreaInsets();
   const profile = useSessionStore((s) => s.profile);
   const { data: existing, isLoading: loadingExisting } = useEditableProfileDetails(profile?.id);
@@ -128,7 +128,10 @@ export default function EditDetailsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingTop: insets.top + spacing.lg, gap: spacing.lg }}>
+      {/* No insets.top: this is presented as a modal, which is already inset below the
+          status bar. Adding it again opened the sheet with a second status bar of
+          empty space. */}
+      <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
           <Text style={{ ...type.screenTitle, color: colors.text }}>Edit Details</Text>
           <Pressable
@@ -137,12 +140,14 @@ export default function EditDetailsScreen() {
             onPress={() => router.back()}
             hitSlop={8}
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 16,
+              width: 34,
+              height: 34,
+              borderRadius: radius.sm,
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: colors.surfaceAlt,
+              backgroundColor: colors.surface,
+              borderWidth: hairline,
+              borderColor: colors.ink,
             }}
           >
             <Ionicons name="close" size={20} color={colors.text} />

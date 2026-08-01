@@ -50,7 +50,7 @@ export default function AccountSettings() {
   }
 
   return (
-    <ScreenContainer title="Account">
+    <ScreenContainer title="Account" showBack>
       <Button label="Sign out" variant="secondary" onPress={() => void signOut()} />
 
       <View style={{ marginTop: spacing.xl }}>

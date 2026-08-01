@@ -86,7 +86,7 @@ export default function NotificationSettings() {
   const { settings, isLoading, update } = useNotificationSettings();
 
   return (
-    <ScreenContainer title="Notifications">
+    <ScreenContainer title="Notifications" showBack>
       <Card style={{ padding: 0, overflow: "hidden" }}>
         {isLoading || !settings
           ? [0, 1, 2, 3].map((i) => (

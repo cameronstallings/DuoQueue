@@ -1,5 +1,5 @@
 import { Text } from "react-native";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 
 import { Card } from "@/components/Card";
 import { ScreenContainer } from "@/components/ScreenContainer";
@@ -11,24 +11,24 @@ export default function SafetyTopicScreen() {
   const { topic: topicKey } = useLocalSearchParams<{ topic: string }>();
   const topic = SAFETY_TOPICS.find((t) => t.key === topicKey);
 
+  // Reached from a modal (safety/index), so the native header this used to enable
+  // never rendered — the screen title was drawn twice and there was no way back.
   if (!topic) {
     return (
-      <ScreenContainer>
-        <Text style={{ color: colors.textMuted }}>This safety topic isn&apos;t available.</Text>
+      <ScreenContainer title="Not found" showBack>
+        <Text style={[type.body, { color: colors.textMuted }]}>This safety topic isn&apos;t available.</Text>
       </ScreenContainer>
     );
   }
 
   return (
-    <ScreenContainer>
-      <Stack.Screen options={{ headerShown: true, title: topic.title }} />
-      <Text style={{ ...type.screenTitle, color: colors.text }}>{topic.title}</Text>
-      <Text style={{ color: colors.textMuted, marginBottom: spacing.sm }}>{topic.summary}</Text>
+    <ScreenContainer title={topic.title} showBack>
+      <Text style={[type.body, { color: colors.textMuted }]}>{topic.summary}</Text>
 
       {topic.sections.map((section) => (
         <Card key={section.heading} style={{ gap: spacing.xs }}>
-          <Text style={{ color: colors.text, fontWeight: "700" }}>{section.heading}</Text>
-          <Text style={{ color: colors.textMuted, lineHeight: 20 }}>{section.body}</Text>
+          <Text style={[type.bodyStrong, { color: colors.text }]}>{section.heading}</Text>
+          <Text style={[type.body, { color: colors.textMuted }]}>{section.body}</Text>
         </Card>
       ))}
     </ScreenContainer>

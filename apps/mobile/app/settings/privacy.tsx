@@ -50,7 +50,7 @@ export default function PrivacySettings() {
   const { profile, setIsActive, setHideLastActive } = usePrivacyToggles();
 
   return (
-    <ScreenContainer title="Privacy">
+    <ScreenContainer title="Privacy" showBack>
       <Card style={{ padding: 0, overflow: "hidden" }}>
         <ToggleRow
           label="Pause my profile"
