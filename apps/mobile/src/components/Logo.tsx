@@ -30,6 +30,9 @@ export function Logo({ width = 64, variant = "mark" }: LogoProps) {
     fontSize,
     lineHeight: fontSize * 1.16,
     color: colors.text,
+    // The mark stays untracked (two letters need no help); the wordmark gets a
+    // touch of tracking so "duoqueue" doesn't set too tight at this weight.
+    letterSpacing: variant === "wordmark" ? fontSize * 0.02 : 0,
   } as const;
 
   return (

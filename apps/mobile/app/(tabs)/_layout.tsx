@@ -1,6 +1,7 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Redirect, Tabs } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
+import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useHeartbeat } from "@/features/online-now/useHeartbeat";
@@ -61,16 +62,18 @@ function TabIcon({ config, focused, color }: { config: TabIconConfig; focused: b
 
   if (!focused) return icon;
 
+  // The glow has to sit on a plain wrapper, not the gradient itself — a boxShadow
+  // on a LinearGradient gets clipped to the gradient's own bounds instead of
+  // spreading past them. Same split Button.tsx uses for its glow.
   return (
-    <LinearGradient
-      {...heroGradient}
-      style={[
-        { width: 34, height: 34, borderRadius: radius.sm, alignItems: "center", justifyContent: "center" },
-        glow(colors.glowViolet, 14),
-      ]}
-    >
-      {icon}
-    </LinearGradient>
+    <View style={[{ width: 34, height: 34, borderRadius: radius.sm }, glow(colors.glowViolet, 14)]}>
+      <LinearGradient
+        {...heroGradient}
+        style={{ flex: 1, borderRadius: radius.sm, alignItems: "center", justifyContent: "center" }}
+      >
+        {icon}
+      </LinearGradient>
+    </View>
   );
 }
 
