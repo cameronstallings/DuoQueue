@@ -1,6 +1,13 @@
 import { useEffect } from "react";
 import type { DimensionValue, ViewStyle } from "react-native";
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
+import Animated, {
+  Easing,
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
 
 import { useTheme } from "@/theme/useTheme";
 
@@ -12,20 +19,23 @@ interface SkeletonProps {
 }
 
 /** A pulsing placeholder block — compose a few of these to sketch a screen's shape
- * while its data loads, instead of a single centered spinner. */
-export function Skeleton({ width = "100%", height = 16, borderRadius = 8, style }: SkeletonProps) {
-  const { colors } = useTheme();
-  const opacity = useSharedValue(0.4);
+ * while its data loads, instead of a single centered spinner. Pulses between the
+ * base glass surface and its lighter shimmer tint, rather than fading opacity. */
+export function Skeleton({ width = "100%", height = 16, borderRadius, style }: SkeletonProps) {
+  const { colors, radius } = useTheme();
+  const progress = useSharedValue(0);
 
   useEffect(() => {
-    opacity.value = withRepeat(withTiming(1, { duration: 700, easing: Easing.ease }), -1, true);
-  }, [opacity]);
+    progress.value = withRepeat(withTiming(1, { duration: 700, easing: Easing.ease }), -1, true);
+  }, [progress]);
 
-  const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  const animatedStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(progress.value, [0, 1], [colors.surface, colors.surfaceAlt]),
+  }));
 
   return (
     <Animated.View
-      style={[{ width, height, borderRadius, backgroundColor: colors.surfaceAlt }, animatedStyle, style]}
+      style={[{ width, height, borderRadius: borderRadius ?? radius.sm }, animatedStyle, style]}
     />
   );
 }

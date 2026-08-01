@@ -12,7 +12,7 @@ interface VoiceIntroPlayerProps {
 /** A tap-to-play bubble for someone else's voice intro clip — three seconds tells you
  * more than a bio, per the brief, so this stays a single glanceable control. */
 export function VoiceIntroPlayer({ url, durationSeconds }: VoiceIntroPlayerProps) {
-  const { colors, radius, spacing } = useTheme();
+  const { colors, radius, spacing, type } = useTheme();
   const player = useAudioPlayer(url);
   const status = useAudioPlayerStatus(player);
 
@@ -37,14 +37,14 @@ export function VoiceIntroPlayer({ url, durationSeconds }: VoiceIntroPlayerProps
         alignItems: "center",
         gap: spacing.sm,
         backgroundColor: colors.brandSoft,
-        borderRadius: radius.pill,
+        borderRadius: radius.chip,
         paddingVertical: spacing.sm,
         paddingHorizontal: spacing.md,
         alignSelf: "flex-start",
       }}
     >
       <Ionicons name={status.playing ? "pause-circle" : "play-circle"} size={28} color={colors.brand} />
-      <Text style={{ color: colors.text, fontWeight: "600" }}>
+      <Text style={[type.caption, { color: colors.text }]}>
         {status.playing ? `${remaining}s` : "Voice intro"}
       </Text>
     </Pressable>

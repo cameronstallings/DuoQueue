@@ -23,7 +23,7 @@ export function PresenceAvatar({
   borderColor,
   borderWidth = 0,
 }: PresenceAvatarProps) {
-  const { colors } = useTheme();
+  const { colors, glow } = useTheme();
   const notchSize = Math.round(size * 0.36);
   const dotSize = Math.round(size * 0.26);
 
@@ -48,7 +48,7 @@ export function PresenceAvatar({
             width: size,
             height: size,
             borderRadius: size / 2,
-            backgroundColor: "rgba(128,128,128,0.3)",
+            backgroundColor: colors.surfaceAlt,
             borderWidth,
             borderColor,
           }}
@@ -69,12 +69,15 @@ export function PresenceAvatar({
           }}
         >
           <View
-            style={{
-              width: dotSize,
-              height: dotSize,
-              borderRadius: dotSize / 2,
-              backgroundColor: colors.success,
-            }}
+            style={[
+              {
+                width: dotSize,
+                height: dotSize,
+                borderRadius: dotSize / 2,
+                backgroundColor: colors.success,
+              },
+              glow("rgba(74,222,156,0.6)", 8),
+            ]}
           />
         </View>
       )}

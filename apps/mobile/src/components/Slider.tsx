@@ -24,7 +24,7 @@ function clamp(n: number, min: number, max: number) {
 /** A drag-to-set 0-100 slider, built on gesture-handler + Reanimated (the same stack
  * SwipeCard already uses) instead of pulling in a native slider dependency. */
 export function Slider({ value, onChange, leftLabel, rightLabel }: SliderProps) {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, type } = useTheme();
   const [trackWidth, setTrackWidth] = useState(0);
   const position = useSharedValue(0);
   const dragging = useSharedValue(false);
@@ -76,7 +76,7 @@ export function Slider({ value, onChange, leftLabel, rightLabel }: SliderProps) 
               overflow: "hidden",
             }}
           >
-            <Animated.View style={[{ height: TRACK_HEIGHT, backgroundColor: colors.brand }, fillStyle]} />
+            <Animated.View style={[{ height: TRACK_HEIGHT, backgroundColor: colors.accent }, fillStyle]} />
           </View>
           <Animated.View
             style={[
@@ -85,9 +85,7 @@ export function Slider({ value, onChange, leftLabel, rightLabel }: SliderProps) 
                 width: THUMB_SIZE,
                 height: THUMB_SIZE,
                 borderRadius: THUMB_SIZE / 2,
-                backgroundColor: colors.brand,
-                borderWidth: 2,
-                borderColor: colors.surface,
+                backgroundColor: colors.text,
               },
               thumbStyle,
             ]}
@@ -95,8 +93,8 @@ export function Slider({ value, onChange, leftLabel, rightLabel }: SliderProps) 
         </View>
       </GestureDetector>
       <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-        <Text style={{ color: colors.textMuted, fontSize: 12 }}>{leftLabel}</Text>
-        <Text style={{ color: colors.textMuted, fontSize: 12 }}>{rightLabel}</Text>
+        <Text style={[type.caption, { color: colors.textMuted }]}>{leftLabel}</Text>
+        <Text style={[type.caption, { color: colors.textMuted }]}>{rightLabel}</Text>
       </View>
     </View>
   );

@@ -14,14 +14,14 @@ interface TextFieldProps extends TextInputProps {
  * body text — it is a field name, not prose, and the distinction is what stops a
  * form reading as an undifferentiated column of grey.
  *
- * Focus is signalled by the keyline going brand-coloured and thickening, not by a
- * glow. Nothing in this system glows.
+ * Focus is signalled by the glass border going accent-coloured, not by a glow —
+ * glow is reserved for a short list of emphasis moments elsewhere in the system.
  */
 export function TextField({ label, error, style, onFocus, onBlur, ...inputProps }: TextFieldProps) {
-  const { colors, radius, spacing, type, hairline } = useTheme();
+  const { colors, radius, spacing, type } = useTheme();
   const [focused, setFocused] = useState(false);
 
-  const strokeColor = error ? colors.danger : focused ? colors.brandInk : colors.ink;
+  const strokeColor = error ? colors.danger : focused ? colors.accent : colors.border;
 
   return (
     <View style={{ gap: spacing.xs }}>
@@ -40,10 +40,10 @@ export function TextField({ label, error, style, onFocus, onBlur, ...inputProps 
           type.body,
           {
             backgroundColor: colors.surface,
-            borderWidth: focused || error ? hairline + 0.5 : hairline,
+            borderWidth: 1,
             borderColor: strokeColor,
             color: colors.text,
-            borderRadius: radius.sm,
+            borderRadius: radius.input,
             paddingHorizontal: spacing.md,
             paddingVertical: spacing.md,
           },

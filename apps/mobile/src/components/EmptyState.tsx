@@ -12,30 +12,27 @@ interface EmptyStateProps {
 }
 
 /** A consistent "nothing here" / "something went wrong" presentation — used across the
- * deck, matches, admirers, and block list. The icon sits in a keylined square rather
- * than a soft circle, so an empty screen still looks like it belongs to this app. */
+ * deck, matches, admirers, and block list. The icon sits in a soft glowing circle,
+ * so an empty screen still looks like it belongs to this app. */
 export function EmptyState({ icon, title, subtitle, actionLabel, onAction }: EmptyStateProps) {
-  const { colors, spacing, radius, type, shadow, hairline } = useTheme();
+  const { colors, spacing, radius, type, glow } = useTheme();
 
   return (
     <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.md, padding: spacing.lg }}>
       <View
         style={[
           {
-            width: 72,
-            height: 72,
-            borderRadius: radius.md,
+            width: 64,
+            height: 64,
+            borderRadius: radius.round,
             backgroundColor: colors.brandSoft,
-            borderWidth: hairline,
-            borderColor: colors.ink,
             alignItems: "center",
             justifyContent: "center",
-            transform: [{ rotate: "-2deg" }],
           },
-          shadow,
+          glow(colors.glowViolet, 24),
         ]}
       >
-        <Ionicons name={icon} size={32} color={colors.brandInk} />
+        <Ionicons name={icon} size={32} color={colors.accentInk} />
       </View>
       <Text style={[type.title, { color: colors.text, textAlign: "center" }]}>{title}</Text>
       <Text style={[type.body, { color: colors.textMuted, textAlign: "center" }]}>{subtitle}</Text>

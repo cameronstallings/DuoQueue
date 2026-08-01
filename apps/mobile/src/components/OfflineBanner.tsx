@@ -9,7 +9,7 @@ import { useTheme } from "@/theme/useTheme";
  * distinct from a per-screen error state, since it applies globally regardless of
  * which screen is active. */
 export function OfflineBanner() {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, type } = useTheme();
   const insets = useSafeAreaInsets();
   const netInfo = useNetInfo();
 
@@ -35,7 +35,7 @@ export function OfflineBanner() {
         animatedStyle,
       ]}
     >
-      <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>No internet connection</Text>
+      <Text style={[type.caption, { color: colors.onFill }]}>No internet connection</Text>
     </Animated.View>
   );
 }

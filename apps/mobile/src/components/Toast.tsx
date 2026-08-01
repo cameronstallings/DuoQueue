@@ -10,7 +10,7 @@ import { useTheme } from "@/theme/useTheme";
  * the root so it survives navigation triggered right after the action it confirms
  * (edit-prompts calls router.back() the moment it saves). */
 export function Toast() {
-  const { colors, radius, spacing, shadow, type, hairline } = useTheme();
+  const { colors, radius, spacing, type } = useTheme();
   const insets = useSafeAreaInsets();
   const message = useToastStore((s) => s.message);
 
@@ -35,17 +35,16 @@ export function Toast() {
           alignItems: "center",
           gap: spacing.sm,
           maxWidth: "85%",
-          backgroundColor: colors.brand,
-          borderWidth: hairline,
-          borderColor: colors.ink,
+          backgroundColor: colors.successFill,
+          borderWidth: 1,
+          borderColor: colors.success,
           paddingVertical: spacing.sm,
           paddingHorizontal: spacing.md,
           borderRadius: radius.md,
-          ...shadow,
         }}
       >
-        <Ionicons name="checkmark-circle" size={16} color={colors.onFill} />
-        <Text style={[type.caption, { color: colors.onFill }]}>{message}</Text>
+        <Ionicons name="checkmark-circle" size={16} color={colors.success} />
+        <Text style={[type.caption, { color: colors.success }]}>{message}</Text>
       </Animated.View>
     </View>
   );
