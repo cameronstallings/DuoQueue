@@ -1,5 +1,7 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Redirect, Tabs } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useHeartbeat } from "@/features/online-now/useHeartbeat";
 import { useSessionStore } from "@/store/session-store";
@@ -32,10 +34,51 @@ const TAB_CONFIG = {
   ) & { title: string }
 >;
 
+type TabIconConfig = (typeof TAB_CONFIG)[keyof typeof TAB_CONFIG];
+
+/**
+ * The active tab reads as a small cartridge slotted into the bar: a gradient tile
+ * with its own glow. Inactive tabs stay bare icons in the muted tint — the glow is
+ * reserved for "where you are," not spent on every icon at once.
+ */
+function TabIcon({ config, focused, color }: { config: TabIconConfig; focused: boolean; color: string }) {
+  const { colors, radius, heroGradient, glow } = useTheme();
+
+  const icon =
+    config.family === "material-community" ? (
+      <MaterialCommunityIcons
+        name={focused ? config.active : config.inactive}
+        color={focused ? colors.onFill : color}
+        size={focused ? 19 : 22}
+      />
+    ) : (
+      <Ionicons
+        name={focused ? config.active : config.inactive}
+        color={focused ? colors.onFill : color}
+        size={focused ? 19 : 22}
+      />
+    );
+
+  if (!focused) return icon;
+
+  return (
+    <LinearGradient
+      {...heroGradient}
+      style={[
+        { width: 34, height: 34, borderRadius: radius.sm, alignItems: "center", justifyContent: "center" },
+        glow(colors.glowViolet, 14),
+      ]}
+    >
+      {icon}
+    </LinearGradient>
+  );
+}
+
 export default function TabsLayout() {
   const status = useSessionStore((s) => s.status);
   const profile = useSessionStore((s) => s.profile);
-  const { colors, type, hairline } = useTheme();
+  const { colors, fonts } = useTheme();
+  const insets = useSafeAreaInsets();
 
   useHeartbeat();
 
@@ -46,19 +89,19 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.brandInk,
+        tabBarActiveTintColor: colors.text,
         tabBarInactiveTintColor: colors.textMuted,
-        // A hard rule instead of a soft drop shadow: the bar is a printed edge, and a
-        // blurred elevation here was one of the things that made every screen read
-        // as stock Material.
+        // Full-width and solid, not floating glass — a translucent bar over swipe
+        // cards and chat threads muddied the content underneath. Separation comes
+        // from the color step against the scene, not a border or elevation.
         tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopWidth: hairline,
-          borderTopColor: colors.ink,
+          backgroundColor: colors.surfaceSolid,
+          borderTopWidth: 0,
           elevation: 0,
+          height: 60 + insets.bottom,
+          paddingTop: 6,
         },
-        tabBarLabelStyle: type.label,
-        tabBarItemStyle: { paddingTop: 4 },
+        tabBarLabelStyle: { fontFamily: fonts.bold, fontSize: 10, letterSpacing: 0 },
         sceneStyle: { backgroundColor: colors.background },
       }}
     >
@@ -69,12 +112,7 @@ export default function TabsLayout() {
             name={name}
             options={{
               title: config.title,
-              tabBarIcon: ({ focused, color, size }) =>
-                config.family === "material-community" ? (
-                  <MaterialCommunityIcons name={focused ? config.active : config.inactive} color={color} size={size} />
-                ) : (
-                  <Ionicons name={focused ? config.active : config.inactive} color={color} size={size} />
-                ),
+              tabBarIcon: ({ focused, color }) => <TabIcon config={config} focused={focused} color={color} />,
             }}
           />
         ),
