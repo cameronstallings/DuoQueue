@@ -15,7 +15,7 @@ interface EmptyStateProps {
  * deck, matches, admirers, and block list. The icon sits in a keylined square rather
  * than a soft circle, so an empty screen still looks like it belongs to this app. */
 export function EmptyState({ icon, title, subtitle, actionLabel, onAction }: EmptyStateProps) {
-  const { colors, spacing, radius, type, shadow, scheme } = useTheme();
+  const { colors, spacing, radius, type, shadow, hairline } = useTheme();
 
   return (
     <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.md, padding: spacing.lg }}>
@@ -26,11 +26,11 @@ export function EmptyState({ icon, title, subtitle, actionLabel, onAction }: Emp
             height: 72,
             borderRadius: radius.md,
             backgroundColor: colors.brandSoft,
-            borderWidth: scheme === "light" ? 1.5 : 1,
+            borderWidth: hairline,
             borderColor: colors.ink,
             alignItems: "center",
             justifyContent: "center",
-            transform: [{ rotate: "-3deg" }],
+            transform: [{ rotate: "-2deg" }],
           },
           shadow,
         ]}

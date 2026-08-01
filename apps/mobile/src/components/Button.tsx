@@ -37,7 +37,7 @@ function ButtonLabel({ label, color, loading }: { label: string; color: string; 
  * elevation blur, which is what gives every surface in the app its printed feel.
  */
 export function Button({ label, onPress, loading, disabled, variant = "primary" }: ButtonProps) {
-  const { colors, radius, spacing, shadow, scheme } = useTheme();
+  const { colors, radius, spacing, shadow, hairline } = useTheme();
   const isDisabled = disabled || loading;
 
   const fill =
@@ -58,7 +58,7 @@ export function Button({ label, onPress, loading, disabled, variant = "primary" 
         {
           backgroundColor: fill,
           borderRadius: radius.md,
-          borderWidth: variant === "ghost" ? 0 : scheme === "light" ? 1.5 : 1,
+          borderWidth: variant === "ghost" ? 0 : hairline,
           borderColor: strokeColor,
           paddingVertical: spacing.md + 2,
           paddingHorizontal: spacing.xl,
@@ -66,7 +66,7 @@ export function Button({ label, onPress, loading, disabled, variant = "primary" 
         },
         variant !== "ghost" && !isDisabled && !pressed ? shadow : null,
         // Travel exactly the distance the plate occupies, so the button lands on it.
-        pressed && !isDisabled ? { transform: [{ translateX: 3 }, { translateY: 3 }] } : null,
+        pressed && !isDisabled ? { transform: [{ translateX: 2 }, { translateY: 2 }] } : null,
       ]}
     >
       <ButtonLabel label={label} color={textColor} loading={loading} />

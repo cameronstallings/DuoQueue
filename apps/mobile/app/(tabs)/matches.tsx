@@ -53,7 +53,7 @@ function timeAgo(iso: string | null): string {
 }
 
 function MatchRow({ item }: { item: MatchListItem }) {
-  const { colors, spacing, type, radius, scheme } = useTheme();
+  const { colors, spacing, type, radius, hairline } = useTheme();
   const unread = item.unread_count > 0;
 
   return (
@@ -77,7 +77,7 @@ function MatchRow({ item }: { item: MatchListItem }) {
             width: 54,
             height: 54,
             borderRadius: radius.window,
-            borderWidth: scheme === "light" ? 1.5 : 1,
+            borderWidth: hairline,
             borderColor: colors.ink,
           }}
           cachePolicy="memory-disk"
@@ -90,7 +90,7 @@ function MatchRow({ item }: { item: MatchListItem }) {
             height: 54,
             borderRadius: radius.window,
             backgroundColor: colors.surfaceAlt,
-            borderWidth: scheme === "light" ? 1.5 : 1,
+            borderWidth: hairline,
             borderColor: colors.ink,
             alignItems: "center",
             justifyContent: "center",
@@ -122,7 +122,7 @@ function MatchRow({ item }: { item: MatchListItem }) {
             height: 22,
             borderRadius: radius.chip,
             backgroundColor: colors.brand,
-            borderWidth: scheme === "light" ? 1.5 : 1,
+            borderWidth: hairline,
             borderColor: colors.ink,
             alignItems: "center",
             justifyContent: "center",

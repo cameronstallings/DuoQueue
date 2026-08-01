@@ -60,7 +60,7 @@ function overlapLabel(count: number): string {
 }
 
 export function SwipeCard({ card, isTop, onSwiped, externalTrigger }: SwipeCardProps) {
-  const { colors, radius, spacing, type, scrimRgb, shadowLifted, scheme } = useTheme();
+  const { colors, radius, spacing, type, scrimRgb, shadowLifted, hairline } = useTheme();
   const bucket = overlapBucket(card.shared_games_count);
   const frameColor = colors.overlap[bucket];
   const [reportVisible, setReportVisible] = useState(false);
@@ -177,9 +177,11 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger }: SwipeCardP
               // The card is a printed object: a coloured frame around an inset photo
               // window, not a full-bleed photo with text floating on it.
               backgroundColor: frameColor,
-              borderWidth: scheme === "light" ? 2 : 1.5,
+              borderWidth: hairline,
               borderColor: colors.ink,
-              padding: 6,
+              // A narrower frame: 6pt of saturated colour around the whole photo was
+              // the loudest thing on screen, and the photo is what people are here for.
+              padding: 4,
             },
             shadowLifted,
             cardStyle,
@@ -293,10 +295,11 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger }: SwipeCardP
             </View>
           </View>
 
-          {/* The overlap read, printed on the frame itself. Always spelled out in words
-              so the frame colour is never the only thing carrying the meaning. */}
-          <View style={styles.frameLabel}>
-            <Text style={[type.statSm, { color: colors.onFill }]} numberOfLines={1}>
+          {/* The overlap read. Always spelled out in words so the frame colour is never
+              the only thing carrying the meaning. It sits inside the photo window's
+              bottom edge rather than on the frame, so the frame can stay thin. */}
+          <View style={[styles.frameLabel, { paddingHorizontal: spacing.sm }]}>
+            <Text style={[type.statSm, { color: "rgba(240,236,227,0.75)" }]} numberOfLines={1}>
               {overlapLabel(card.shared_games_count)}
             </Text>
           </View>
@@ -351,28 +354,28 @@ const styles = StyleSheet.create({
   },
   frameLabel: {
     position: "absolute",
-    left: 10,
-    bottom: -1,
-    height: 7,
-    justifyContent: "center",
+    left: 4,
+    right: 4,
+    bottom: 6,
+    alignItems: "center",
   },
   stamp: {
     position: "absolute",
-    top: 36,
+    top: 32,
   },
   likeStamp: {
-    left: 20,
-    transform: [{ rotate: "-11deg" }],
+    left: 18,
+    transform: [{ rotate: "-8deg" }],
   },
   passStamp: {
-    right: 20,
-    transform: [{ rotate: "11deg" }],
+    right: 18,
+    transform: [{ rotate: "8deg" }],
   },
   /** A stamped-on block, not outlined display text — it reads as ink applied to the
    *  card rather than a floating label. */
   stampText: {
-    borderWidth: 2.5,
-    paddingHorizontal: 10,
+    borderWidth: 2,
+    paddingHorizontal: 9,
     paddingVertical: 2,
     borderRadius: 4,
     overflow: "hidden",

@@ -10,7 +10,7 @@ import { useTheme } from "@/theme/useTheme";
  * the root so it survives navigation triggered right after the action it confirms
  * (edit-prompts calls router.back() the moment it saves). */
 export function Toast() {
-  const { colors, radius, spacing, shadow, type, scheme } = useTheme();
+  const { colors, radius, spacing, shadow, type, hairline } = useTheme();
   const insets = useSafeAreaInsets();
   const message = useToastStore((s) => s.message);
 
@@ -36,7 +36,7 @@ export function Toast() {
           gap: spacing.sm,
           maxWidth: "85%",
           backgroundColor: colors.brand,
-          borderWidth: scheme === "light" ? 1.5 : 1,
+          borderWidth: hairline,
           borderColor: colors.ink,
           paddingVertical: spacing.sm,
           paddingHorizontal: spacing.md,

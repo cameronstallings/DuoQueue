@@ -14,7 +14,7 @@ type InfoChipProps = { label: string; sublabel?: string } & (
  * object in different states, with no plate since these are never pressable. */
 export function InfoChip(props: InfoChipProps) {
   const { label, sublabel, icon } = props;
-  const { colors, radius, spacing, type, scheme } = useTheme();
+  const { colors, radius, spacing, type, hairline } = useTheme();
 
   return (
     <View
@@ -26,7 +26,7 @@ export function InfoChip(props: InfoChipProps) {
         paddingHorizontal: spacing.sm,
         borderRadius: radius.chip,
         backgroundColor: colors.surface,
-        borderWidth: scheme === "light" ? 1.5 : 1,
+        borderWidth: hairline,
         borderColor: colors.ink,
       }}
     >

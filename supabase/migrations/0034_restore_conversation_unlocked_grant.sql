@@ -1,0 +1,22 @@
+-- Restore EXECUTE on is_conversation_unlocked to `authenticated`.
+--
+-- 0031 revoked it along with the other internal predicates. That was wrong, and it
+-- broke every message send: send-message/index.ts:84 calls this RPC through the
+-- *user's* client, not the service client, because the function derives the caller
+-- from auth.uid() and would return the wrong answer under the service role. With the
+-- grant gone, every send failed with "permission denied for function".
+--
+-- Why it is safe to expose, unlike the predicates it was grouped with:
+-- is_premium(uuid), is_minor(uuid) and is_blocked_pair(uuid, uuid) all take a
+-- caller-supplied id, so an authenticated user could ask questions about strangers.
+-- This one takes only a match id and resolves the user internally from auth.uid(),
+-- so it can only ever answer "is THIS conversation unlocked for ME" — a fact the
+-- caller is already entitled to, and which the chat UI needs in order to show the
+-- upgrade prompt.
+--
+-- The lesson worth keeping: 0031's verification exercised the RPCs the mobile client
+-- calls directly and found nothing wrong here, because this one is reached through an
+-- Edge Function on the user's behalf. Grant changes need checking against every
+-- caller, not just the ones in the app bundle.
+grant execute on function public.is_conversation_unlocked(uuid) to authenticated;
+revoke execute on function public.is_conversation_unlocked(uuid) from public, anon;

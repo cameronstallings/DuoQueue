@@ -17,7 +17,7 @@ interface ScreenContainerProps extends PropsWithChildren {
 }
 
 export function ScreenContainer({ children, refreshControl, title, showClose }: ScreenContainerProps) {
-  const { colors, spacing, type, radius, scheme } = useTheme();
+  const { colors, spacing, type, radius, hairline } = useTheme();
   const insets = useSafeAreaInsets();
 
   return (
@@ -43,7 +43,7 @@ export function ScreenContainer({ children, refreshControl, title, showClose }: 
             </Text>
             {/* The rule under a screen title is the app's most repeated mark — it is
                 what makes an otherwise plain list screen still feel authored. */}
-            <View style={{ width: 44, height: 4, backgroundColor: colors.p1Line }} />
+            <View style={{ width: 32, height: 3, backgroundColor: colors.p1Line }} />
           </View>
           {showClose && (
             <Pressable
@@ -58,7 +58,7 @@ export function ScreenContainer({ children, refreshControl, title, showClose }: 
                 alignItems: "center",
                 justifyContent: "center",
                 backgroundColor: colors.surface,
-                borderWidth: scheme === "light" ? 1.5 : 1,
+                borderWidth: hairline,
                 borderColor: colors.ink,
               }}
             >

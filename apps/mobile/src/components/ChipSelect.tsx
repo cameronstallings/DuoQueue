@@ -19,8 +19,7 @@ interface ChipSelectProps<T extends string> {
  * does not depend on colour alone.
  */
 export function ChipSelect<T extends string>({ options, selected, onToggle }: ChipSelectProps<T>) {
-  const { colors, radius, spacing, type, scheme } = useTheme();
-  const baseWidth = scheme === "light" ? 1.5 : 1;
+  const { colors, radius, spacing, type, hairline } = useTheme();
 
   return (
     <View style={[styles.wrap, { gap: spacing.sm }]}>
@@ -37,7 +36,7 @@ export function ChipSelect<T extends string>({ options, selected, onToggle }: Ch
                 paddingVertical: spacing.sm,
                 paddingHorizontal: spacing.md,
                 borderRadius: radius.chip,
-                borderWidth: isSelected ? baseWidth + 0.5 : baseWidth,
+                borderWidth: hairline,
                 borderColor: colors.ink,
                 backgroundColor: isSelected ? colors.brand : colors.surface,
                 opacity: pressed ? 0.85 : 1,

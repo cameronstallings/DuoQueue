@@ -35,7 +35,7 @@ const TAB_CONFIG = {
 export default function TabsLayout() {
   const status = useSessionStore((s) => s.status);
   const profile = useSessionStore((s) => s.profile);
-  const { colors, scheme, type } = useTheme();
+  const { colors, type, hairline } = useTheme();
 
   useHeartbeat();
 
@@ -53,7 +53,7 @@ export default function TabsLayout() {
         // as stock Material.
         tabBarStyle: {
           backgroundColor: colors.surface,
-          borderTopWidth: scheme === "light" ? 1.5 : 1,
+          borderTopWidth: hairline,
           borderTopColor: colors.ink,
           elevation: 0,
         },

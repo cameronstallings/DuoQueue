@@ -66,23 +66,27 @@ export const fonts = {
 export const type = {
   marquee: {
     fontFamily: fonts.marquee,
-    fontSize: 34,
-    lineHeight: 38,
-    letterSpacing: 1.0,
+    fontSize: 26,
+    lineHeight: 30,
+    letterSpacing: 0.6,
     textTransform: "uppercase",
   },
-  screenTitle: { fontFamily: fonts.black, fontSize: 30, lineHeight: 32, letterSpacing: -0.9 },
-  cardName: { fontFamily: fonts.black, fontSize: 26, lineHeight: 28, letterSpacing: -0.7 },
-  title: { fontFamily: fonts.bold, fontSize: 19, lineHeight: 24, letterSpacing: -0.3 },
-  quote: { fontFamily: fonts.semibold, fontSize: 17, lineHeight: 22, letterSpacing: -0.2 },
+  // Archivo Black runs visually larger than its point size, so these sit a step
+  // below the first pass — 30pt titles were crowding the header on small screens.
+  screenTitle: { fontFamily: fonts.black, fontSize: 25, lineHeight: 29, letterSpacing: -0.6 },
+  cardName: { fontFamily: fonts.black, fontSize: 22, lineHeight: 26, letterSpacing: -0.5 },
+  title: { fontFamily: fonts.bold, fontSize: 18, lineHeight: 24, letterSpacing: -0.2 },
+  quote: { fontFamily: fonts.semibold, fontSize: 16, lineHeight: 23, letterSpacing: -0.1 },
   body: { fontFamily: fonts.medium, fontSize: 15, lineHeight: 22, letterSpacing: 0 },
   bodyStrong: { fontFamily: fonts.semibold, fontSize: 15, lineHeight: 21, letterSpacing: -0.1 },
-  caption: { fontFamily: fonts.semibold, fontSize: 13, lineHeight: 17, letterSpacing: 0 },
+  caption: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 18, letterSpacing: 0 },
+  // Tracking eased from 1.4 — wide-tracked black caps read as shouting when they
+  // appear as often as they do here (every section head, every field label).
   label: {
-    fontFamily: fonts.black,
+    fontFamily: fonts.bold,
     fontSize: 11,
-    lineHeight: 13,
-    letterSpacing: 1.4,
+    lineHeight: 14,
+    letterSpacing: 0.9,
     textTransform: "uppercase",
   },
   /** Numbers and machine facts. Monospace so digits do not jitter as they change. */
@@ -102,10 +106,10 @@ export const type = {
   },
   /** @deprecated Alias of `label`, kept so existing imports keep compiling. */
   micro: {
-    fontFamily: fonts.black,
+    fontFamily: fonts.bold,
     fontSize: 11,
-    lineHeight: 13,
-    letterSpacing: 1.4,
+    lineHeight: 14,
+    letterSpacing: 0.9,
     textTransform: "uppercase",
   },
 } as const satisfies Record<string, TextStyle>;
@@ -139,12 +143,13 @@ export const radius = {
  * p1 owns brand, attention, unread, active tab, errors.
  * p2 owns LIKE, meter fills, your own message bubble, links.
  */
-const P1 = "#FF4632"; // vermilion — 5.58:1 on dark bg. Graphic-only on light.
-const P2 = "#0AD9CE"; // phosphor  — 10.69:1 on dark bg. NEVER on a light surface.
+const P1 = "#E4573F"; // clay vermilion — desaturated from a pure signal red so a full
+//                       screen of chips and rules does not vibrate.
+const P2 = "#2FA8A0"; // muted teal — the old phosphor cyan read as neon against warm stock.
 
 /** Darkened variants, required wherever the ink carries text on light surfaces. */
-const P1_INK = "#C0231A"; // 6.01:1 on white
-const P2_INK = "#00706A"; // 5.96:1 on white
+const P1_INK = "#B2412C"; // 5.24:1 on white
+const P2_INK = "#1E7871"; // 4.97:1 on white
 
 /** The label ink used on every saturated fill. Warm, not #000. */
 const NEAR_BLACK = "#14110D";
@@ -165,16 +170,16 @@ const NEAR_BLACK = "#14110D";
  * card, so the meaning is never carried by colour alone.
  */
 const OVERLAP_LIGHT = {
-  none: "#7F7668",
-  one: "#3E7D4E",
-  two: "#2B62B8",
-  many: "#9A5B10",
+  none: "#8C8375",
+  one: "#5B8466",
+  two: "#4A6E9E",
+  many: "#A8763A",
 } as const;
 const OVERLAP_DARK = {
-  none: "#9A9080",
-  one: "#4FCB77",
-  two: "#5FA3FF",
-  many: "#FFB13D",
+  none: "#8C8375",
+  one: "#6FA783",
+  two: "#7492BE",
+  many: "#C39257",
 } as const;
 
 /**
@@ -185,10 +190,10 @@ const OVERLAP_DARK = {
  * rank ladder through the back door. All four carry NEAR_BLACK text above 10:1.
  */
 const PLAYSTYLE = {
-  casual: "#C9C2B4",
-  intermediate: "#8FD6A6",
-  competitive: "#9CC5F5",
-  ranked_grinder: "#F5C06B",
+  casual: "#CFC8BA",
+  intermediate: "#A8CDB2",
+  competitive: "#AEC4DE",
+  ranked_grinder: "#E0BE8C",
 } as const;
 
 /**
@@ -210,14 +215,16 @@ export const foil = {
 export const SCRIM_RGB = "18,16,14";
 
 export const lightColors = {
-  background: "#F0EDE6",
+  background: "#F2EFE9",
   surface: "#FFFFFF",
-  surfaceAlt: "#E6E2D9",
-  border: "#D9D4C9",
-  /** THE KEYLINE — a hard stroke on every raised surface. 18.16:1 on surface. */
-  ink: "#191510",
-  text: "#14110D",
-  textMuted: "#635D53",
+  surfaceAlt: "#E9E5DC",
+  border: "#DDD8CD",
+  /** THE KEYLINE. Softened from near-black to a warm dark brown: at 1.5pt on every
+   *  surface, true black turned each screen into a grid of hard boxes. This still
+   *  reads as a printed edge but lets the page breathe. 9.8:1 on surface. */
+  ink: "#4A4237",
+  text: "#1A1712",
+  textMuted: "#6B6459",
 
   brand: P1,
   brandInk: P1_INK,
@@ -246,14 +253,15 @@ export const lightColors = {
 } as const;
 
 export const darkColors = {
-  background: "#12100E",
-  surface: "#1C1A16",
-  surfaceAlt: "#26231D",
+  background: "#15130F",
+  surface: "#1E1B16",
+  surfaceAlt: "#272319",
   border: "#332F27",
-  /** The keyline inverts in dark: the pale stock edge is what reads, not the black. */
-  ink: "#7A7060",
-  text: "#F5F1E8",
-  textMuted: "#A69D8C",
+  /** The keyline inverts in dark: the pale stock edge is what reads, not the black.
+   *  Kept dim — a bright edge on every surface is what made dark mode feel busy. */
+  ink: "#5C5446",
+  text: "#F0ECE3",
+  textMuted: "#9E9686",
 
   brand: P1,
   brandInk: P1,
@@ -293,18 +301,31 @@ export type ThemeColors = typeof lightColors;
  * Dark:  the same geometry in true black, since a pale plate would glow.
  * ========================================================================== */
 export function shadow(scheme: "light" | "dark") {
-  const plate = scheme === "light" ? "rgba(25,21,16,1)" : "rgba(0,0,0,0.9)";
-  return { boxShadow: `3px 3px 0 0 ${plate}` } as const;
+  // Partial opacity rather than a solid slab. A full-strength plate under every
+  // button and row was the single loudest thing in the first pass — it doubled the
+  // apparent weight of each surface. This still reads as a printed offset up close
+  // and settles down at arm's length.
+  const plate = scheme === "light" ? "rgba(74,66,55,0.30)" : "rgba(0,0,0,0.55)";
+  return { boxShadow: `2px 2px 0 0 ${plate}` } as const;
 }
 
-/** A deeper plate for the hero surfaces — the deck card and the match sheet. */
+/** A deeper plate, reserved for the two hero surfaces: the deck card and the match
+ *  sheet. Depth is a signal here, so it should not be spent on ordinary rows. */
 export function shadowLifted(scheme: "light" | "dark") {
-  const plate = scheme === "light" ? "rgba(25,21,16,1)" : "rgba(0,0,0,0.9)";
-  return { boxShadow: `5px 5px 0 0 ${plate}` } as const;
+  const plate = scheme === "light" ? "rgba(74,66,55,0.42)" : "rgba(0,0,0,0.7)";
+  return { boxShadow: `4px 4px 0 0 ${plate}` } as const;
 }
 
 /** The pressed state: the plate collapses and the surface moves into it. */
 export const pressedOffset = { transform: [{ translateX: 2 }, { translateY: 2 }] } as const;
+
+/**
+ * The standard keyline width. One value for both schemes: the first pass used 1.5pt
+ * in light and 1pt in dark, which made light mode noticeably heavier than dark for
+ * no reason anyone could articulate. A single hairline keeps the printed edge without
+ * turning a list of cards into a stack of boxes.
+ */
+export const hairline = 1;
 
 /* ============================================================================
  * MOTION — fast and mechanical. A physical object either moves or it does not;

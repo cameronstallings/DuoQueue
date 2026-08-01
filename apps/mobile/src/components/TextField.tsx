@@ -18,11 +18,10 @@ interface TextFieldProps extends TextInputProps {
  * glow. Nothing in this system glows.
  */
 export function TextField({ label, error, style, onFocus, onBlur, ...inputProps }: TextFieldProps) {
-  const { colors, radius, spacing, type, scheme } = useTheme();
+  const { colors, radius, spacing, type, hairline } = useTheme();
   const [focused, setFocused] = useState(false);
 
-  const strokeColor = error ? colors.danger : focused ? colors.brand : colors.ink;
-  const baseWidth = scheme === "light" ? 1.5 : 1;
+  const strokeColor = error ? colors.danger : focused ? colors.brandInk : colors.ink;
 
   return (
     <View style={{ gap: spacing.xs }}>
@@ -41,7 +40,7 @@ export function TextField({ label, error, style, onFocus, onBlur, ...inputProps 
           type.body,
           {
             backgroundColor: colors.surface,
-            borderWidth: focused || error ? baseWidth + 0.5 : baseWidth,
+            borderWidth: focused || error ? hairline + 0.5 : hairline,
             borderColor: strokeColor,
             color: colors.text,
             borderRadius: radius.sm,

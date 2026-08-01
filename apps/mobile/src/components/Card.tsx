@@ -14,7 +14,7 @@ interface CardProps extends PropsWithChildren {
 /** A grouped content block. The hard keyline and offset plate are what make it read
  * as a printed object sitting on the surface rather than a tinted rectangle. */
 export function Card({ children, style, flat }: CardProps) {
-  const { colors, radius, spacing, shadow, scheme } = useTheme();
+  const { colors, radius, spacing, shadow, hairline } = useTheme();
 
   return (
     <View
@@ -23,7 +23,7 @@ export function Card({ children, style, flat }: CardProps) {
           backgroundColor: colors.surface,
           borderRadius: radius.md,
           padding: spacing.lg,
-          borderWidth: scheme === "light" ? 1.5 : 1,
+          borderWidth: hairline,
           borderColor: colors.ink,
         },
         flat ? null : shadow,
