@@ -27,7 +27,7 @@ const RESEND_COOLDOWN_SECONDS = 60;
  * those failure modes, and verifyOtp() issues the session directly.
  */
 export default function ConfirmEmail() {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, type } = useTheme();
   const { email } = useLocalSearchParams<{ email?: string }>();
 
   const [code, setCode] = useState("");
@@ -115,8 +115,8 @@ export default function ConfirmEmail() {
   return (
     <ScreenContainer>
       <Logo width={56} />
-      <Text style={{ fontSize: 28, fontWeight: "700", color: colors.text }}>Check your email</Text>
-      <Text style={{ color: colors.textMuted, marginBottom: spacing.md }}>
+      <Text style={[type.screenTitle, { color: colors.text }]}>Check your email</Text>
+      <Text style={[type.body, { color: colors.textMuted, marginBottom: spacing.md }]}>
         We sent a {CODE_LENGTH}-digit code to {email}. Enter it below to finish creating your account.
       </Text>
 
@@ -130,8 +130,8 @@ export default function ConfirmEmail() {
         maxLength={CODE_LENGTH}
       />
 
-      {error && <Text style={{ color: colors.danger, marginBottom: spacing.sm }}>{error}</Text>}
-      {notice && <Text style={{ color: colors.textMuted, marginBottom: spacing.sm }}>{notice}</Text>}
+      {error && <Text style={[type.caption, { color: colors.danger, marginBottom: spacing.sm }]}>{error}</Text>}
+      {notice && <Text style={[type.caption, { color: colors.textMuted, marginBottom: spacing.sm }]}>{notice}</Text>}
 
       {isCaptchaConfigured && <TurnstileCaptcha key={captchaEpoch} onToken={setCaptchaToken} />}
 

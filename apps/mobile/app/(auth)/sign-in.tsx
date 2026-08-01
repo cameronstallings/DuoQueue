@@ -14,7 +14,7 @@ import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/theme/useTheme";
 
 export default function SignIn() {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, type, radius } = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
@@ -66,8 +66,8 @@ export default function SignIn() {
   return (
     <ScreenContainer>
       <Logo width={56} />
-      <Text style={{ fontSize: 28, fontWeight: "700", color: colors.text }}>Welcome back</Text>
-      <Text style={{ color: colors.textMuted, marginBottom: spacing.md }}>
+      <Text style={[type.screenTitle, { color: colors.text }]}>Welcome back</Text>
+      <Text style={[type.body, { color: colors.textMuted, marginBottom: spacing.md }]}>
         Sign in to find your next gaming duo.
       </Text>
 
@@ -87,7 +87,7 @@ export default function SignIn() {
         textContentType="password"
       />
       <TurnstileCaptcha onToken={setCaptchaToken} />
-      {error ? <Text style={{ color: colors.danger }}>{error}</Text> : null}
+      {error ? <Text style={[type.caption, { color: colors.danger }]}>{error}</Text> : null}
 
       <Button label="Sign in" onPress={() => void handleSignIn()} loading={loading} />
 
@@ -95,7 +95,7 @@ export default function SignIn() {
         <AppleAuthentication.AppleAuthenticationButton
           buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
           buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-          cornerRadius={12}
+          cornerRadius={radius.button}
           style={{ height: 48 }}
           onPress={() => void handleAppleSignIn()}
         />

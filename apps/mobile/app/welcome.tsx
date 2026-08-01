@@ -12,7 +12,7 @@ import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
 export default function WelcomeScreen() {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, type } = useTheme();
   const displayName = useOnboardingStore((s) => s.displayName);
   const refreshProfile = useSessionStore((s) => s.refreshProfile);
 
@@ -29,19 +29,19 @@ export default function WelcomeScreen() {
     <ScreenContainer>
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.lg }}>
         <Animated.View entering={ZoomIn.springify().delay(100)}>
-          <Logo width={96} />
+          <Logo width={220} variant="wordmark" />
         </Animated.View>
 
         <Animated.Text
           entering={FadeIn.duration(400).delay(250)}
-          style={{ fontSize: 28, fontWeight: "800", color: colors.text, textAlign: "center" }}
+          style={[type.screenTitle, { color: colors.text, textAlign: "center" }]}
         >
           You&apos;re all set{displayName ? `, ${displayName}` : ""}!
         </Animated.Text>
 
         <Animated.Text
           entering={FadeIn.duration(400).delay(400)}
-          style={{ fontSize: 16, color: colors.textMuted, textAlign: "center", lineHeight: 22 }}
+          style={[type.body, { color: colors.textMuted, textAlign: "center" }]}
         >
           Your profile is live. Time to find some people worth queueing up with.
         </Animated.Text>

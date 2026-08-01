@@ -29,7 +29,7 @@ function describePasswordProblem(password: string): string | null {
 }
 
 export default function SignUp() {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, type } = useTheme();
   const { dob } = useLocalSearchParams<{ dob?: string }>();
   const refreshProfile = useSessionStore((s) => s.refreshProfile);
 
@@ -100,8 +100,8 @@ export default function SignUp() {
   return (
     <ScreenContainer>
       <Logo width={56} />
-      <Text style={{ fontSize: 28, fontWeight: "700", color: colors.text }}>Create your account</Text>
-      <Text style={{ color: colors.textMuted, marginBottom: spacing.md }}>
+      <Text style={[type.screenTitle, { color: colors.text }]}>Create your account</Text>
+      <Text style={[type.body, { color: colors.textMuted, marginBottom: spacing.md }]}>
         Next you&apos;ll set up your profile — games, shows, and how you like to play.
       </Text>
 
@@ -128,7 +128,7 @@ export default function SignUp() {
         textContentType="newPassword"
       />
       <TurnstileCaptcha onToken={setCaptchaToken} />
-      {error ? <Text style={{ color: colors.danger }}>{error}</Text> : null}
+      {error ? <Text style={[type.caption, { color: colors.danger }]}>{error}</Text> : null}
 
       <Button label="Create account" onPress={() => void handleSignUp()} loading={loading} />
     </ScreenContainer>

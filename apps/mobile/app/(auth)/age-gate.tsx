@@ -13,7 +13,7 @@ const MIN_AGE_CUTOFF = new Date();
 MIN_AGE_CUTOFF.setFullYear(MIN_AGE_CUTOFF.getFullYear() - MIN_AGE);
 
 export default function AgeGate() {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, type } = useTheme();
   const [dob, setDob] = useState<Date>(MIN_AGE_CUTOFF);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,8 +31,8 @@ export default function AgeGate() {
   return (
     <ScreenContainer>
       <Logo width={56} />
-      <Text style={{ fontSize: 28, fontWeight: "700", color: colors.text }}>Confirm your age</Text>
-      <Text style={{ color: colors.textMuted, marginBottom: spacing.md }}>
+      <Text style={[type.screenTitle, { color: colors.text }]}>Confirm your age</Text>
+      <Text style={[type.body, { color: colors.textMuted, marginBottom: spacing.md }]}>
         DuoQueue is for players {MIN_AGE} and older. Your date of birth is kept private — only your age
         is ever shown on your profile.
       </Text>
@@ -45,7 +45,7 @@ export default function AgeGate() {
         onChange={(_event, selected) => selected && setDob(selected)}
       />
 
-      {error ? <Text style={{ color: colors.danger }}>{error}</Text> : null}
+      {error ? <Text style={[type.caption, { color: colors.danger }]}>{error}</Text> : null}
 
       <Button label="Continue" onPress={handleContinue} />
     </ScreenContainer>
