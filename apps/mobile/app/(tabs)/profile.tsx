@@ -20,7 +20,7 @@ import { PROMPT_COUNT, type PhotoRole } from "@duoqueue/shared-types";
 
 import { Card } from "@/components/Card";
 import { InfoChip } from "@/components/InfoChip";
-import { SectionLabel } from "@/components/SectionLabel";
+import { Name } from "@/components/Name";
 import { Skeleton } from "@/components/Skeleton";
 import {
   PLATFORM_ICONS,
@@ -100,25 +100,39 @@ function DetailSection({
   onEdit: () => void;
   children: ReactNode;
 }) {
-  const { colors, radius, spacing } = useTheme();
+  const { colors, radius, spacing, type, hairline } = useTheme();
 
+  // Every section was previously a heading followed immediately by more chips, so the
+  // page read as one continuous run of text with no landmarks. A rule above each
+  // heading gives the eye somewhere to stop.
   return (
-    <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
-          <Ionicons name={icon} size={14} color={colors.textMuted} />
-          <SectionLabel>{label}</SectionLabel>
+    <View style={{ marginTop: spacing.lg }}>
+      <View style={{ height: hairline, backgroundColor: colors.border, marginBottom: spacing.md }} />
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: spacing.sm,
+        }}
+      >
+        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+          <Ionicons name={icon} size={15} color={colors.textMuted} />
+          <Text style={[type.label, { color: colors.textMuted }]}>{label}</Text>
         </View>
-        <Pressable onPress={onEdit}>
-          <Text style={{ color: colors.brand, fontWeight: "600", fontSize: 13 }}>Edit</Text>
+        <Pressable onPress={onEdit} accessibilityRole="button" hitSlop={8}>
+          <Text style={[type.label, { color: colors.brandInk }]}>Edit</Text>
         </Pressable>
       </View>
       {isLoading ? (
-        <Skeleton height={36} borderRadius={radius.pill} />
+        <Skeleton height={32} borderRadius={radius.chip} />
       ) : isEmpty ? (
-        <Text style={{ color: colors.textMuted, fontSize: 13 }}>{emptyText}</Text>
+        <Text style={[type.body, { color: colors.textMuted }]}>{emptyText}</Text>
       ) : (
-        <Animated.View entering={FadeIn.duration(200)} style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+        <Animated.View
+          entering={FadeIn.duration(200)}
+          style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}
+        >
           {children}
         </Animated.View>
       )}
@@ -127,7 +141,7 @@ function DetailSection({
 }
 
 export default function ProfileScreen() {
-  const { colors, radius, spacing, shadow } = useTheme();
+  const { colors, radius, spacing, shadow, type, hairline } = useTheme();
   const insets = useSafeAreaInsets();
   const profile = useSessionStore((s) => s.profile);
   const { data: photos, isLoading } = useOwnProfilePhotos(profile?.id);
@@ -273,10 +287,14 @@ export default function ProfileScreen() {
                 <EditBadge uploading={uploadingProfile} />
               </Pressable>
 
-              <View style={{ marginTop: spacing.sm }}>
-                <Text style={{ fontSize: 24, fontWeight: "700", color: colors.text }}>{profile?.display_name}</Text>
+              <View style={{ marginTop: spacing.md, gap: 2 }}>
+                {profile?.display_name && (
+                  <Name variant="screenTitle" style={{ color: colors.text }}>
+                    {profile.display_name}
+                  </Name>
+                )}
                 {profile?.dob && (
-                  <Text style={{ color: colors.textMuted, fontSize: 14, marginTop: 2 }}>
+                  <Text style={[type.stat, { color: colors.textMuted }]}>
                     {calculateAge(profile.dob)} · {REGION_LABELS[profile.region] ?? profile.region}
                   </Text>
                 )}
@@ -294,21 +312,28 @@ export default function ProfileScreen() {
                 ]}
               />
 
-              <View style={{ marginTop: spacing.md }}>
-                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                  <SectionLabel>Prompts</SectionLabel>
-                  <Pressable onPress={() => router.push("/edit-prompts")}>
-                    <Text style={{ color: colors.brand, fontWeight: "600", fontSize: 13, marginBottom: spacing.xs }}>
-                      Edit
-                    </Text>
+              <View style={{ marginTop: spacing.lg }}>
+                <View style={{ height: hairline, backgroundColor: colors.border, marginBottom: spacing.md }} />
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: spacing.sm,
+                  }}
+                >
+                  <Text style={[type.label, { color: colors.textMuted }]}>Prompts</Text>
+                  <Pressable onPress={() => router.push("/edit-prompts")} accessibilityRole="button" hitSlop={8}>
+                    <Text style={[type.label, { color: colors.brandInk }]}>Edit</Text>
                   </Pressable>
                 </View>
                 {(prompts ?? []).map((prompt) => (
                   <Card key={prompt.position} style={{ gap: spacing.xs, marginBottom: spacing.sm }}>
-                    <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: "700", textTransform: "uppercase" }}>
-                      {prompt.question}
-                    </Text>
-                    <Text style={{ color: colors.text }}>{prompt.answer}</Text>
+                    <Text style={[type.label, { color: colors.textMuted }]}>{prompt.question}</Text>
+                    {/* The answer is the one place a user's own writing appears at length,
+                        so it gets the quote size rather than body — it should read as
+                        something they said, not as a field value. */}
+                    <Text style={[type.quote, { color: colors.text }]}>{prompt.answer}</Text>
                   </Card>
                 ))}
               </View>

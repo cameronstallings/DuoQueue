@@ -317,7 +317,7 @@ function DiscordShareBubble({
 }
 
 export default function ChatScreen() {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, type } = useTheme();
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const myId = useSessionStore((s) => s.session?.user.id);
   const { data: matches } = useMatches();
@@ -443,9 +443,16 @@ export default function ChatScreen() {
       <Stack.Screen
         options={{
           title: matchInfo?.other_display_name ?? "Chat",
+          // Without this iOS labels the back button with the previous route's name,
+          // which here is the literal route group "(tabs)".
+          headerBackTitle: "Matches",
+          headerTintColor: colors.brandInk,
+          headerStyle: { backgroundColor: colors.surface },
+          headerTitleStyle: { ...type.title, color: colors.text },
+          headerShadowVisible: false,
           headerRight: () => (
-            <Pressable onPress={() => setMenuVisible(true)} hitSlop={12}>
-              <Text style={{ color: colors.brand, fontSize: 20, fontWeight: "700" }}>•••</Text>
+            <Pressable onPress={() => setMenuVisible(true)} hitSlop={12} accessibilityLabel="Chat options">
+              <Text style={{ color: colors.brandInk, fontSize: 20 }}>•••</Text>
             </Pressable>
           ),
         }}

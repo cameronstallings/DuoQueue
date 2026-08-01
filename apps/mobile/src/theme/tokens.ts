@@ -16,17 +16,23 @@ import type { TextStyle } from "react-native";
 
 /* ============================================================================
  * SPACING — tighter inside surfaces, more generous between them. Printed cards
- * are dense internally and float in whitespace. `md` 16→12 and `lg` 24→16 retune
- * every existing call site on purpose: the old rhythm was uniformly loose.
+ * The first pass retuned these (md 16→12, lg 24→16) to make surfaces denser. That
+ * was a mistake: all 37 screens were laid out against the original scale, so
+ * shrinking the tokens silently re-cut every margin, gutter and gap in the app at
+ * once. Spacing is not where the visual identity lives — the type, keyline and ink
+ * carry that — so the scale is back to its original values and `tight` exists for
+ * the places that genuinely want a denser rhythm.
  * ========================================================================== */
 export const spacing = {
   xs: 4,
   sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 24,
-  xxl: 32,
-  huge: 48,
+  /** Denser than `md`, for use *inside* a chip or badge — never for page layout. */
+  tight: 12,
+  md: 16,
+  lg: 24,
+  xl: 32,
+  xxl: 48,
+  huge: 64,
 } as const;
 
 /* ============================================================================

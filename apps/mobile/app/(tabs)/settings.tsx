@@ -1,337 +1,101 @@
-import { useState } from "react";
-import { Alert, Pressable, StyleSheet, Switch, Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { View } from "react-native";
 import { router } from "expo-router";
-import type { NotificationSettingsRow } from "@duoqueue/shared-types";
 
-import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
-import { ChipSelect } from "@/components/ChipSelect";
+import { NavRow, RowDivider } from "@/components/NavRow";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { SectionLabel } from "@/components/SectionLabel";
-import { Skeleton } from "@/components/Skeleton";
-import { useLinkedAccounts, useLinkSteamAccount, useUnlinkAccount } from "@/features/profile/useLinkedAccounts";
-import { useDeleteAccount } from "@/features/settings/useDeleteAccount";
-import { useNotificationSettings } from "@/features/settings/useNotificationSettings";
-import { usePrivacyToggles } from "@/features/settings/usePrivacyToggles";
-import { hapticSelection } from "@/lib/haptics";
-import { useSessionStore } from "@/store/session-store";
-import { useToastStore } from "@/store/toast-store";
 import { type ThemePreference, useThemeStore } from "@/store/theme-store";
 import { useTheme } from "@/theme/useTheme";
 
-const APPEARANCE_OPTIONS: { value: ThemePreference; label: string }[] = [
-  { value: "system", label: "System" },
-  { value: "light", label: "Light" },
-  { value: "dark", label: "Dark" },
-];
-
-type NotificationCategory = "new_match" | "new_message" | "super_ping" | "daily_swipes_refreshed";
-
-const CATEGORY_LABELS: Record<NotificationCategory, string> = {
-  new_match: "New match",
-  new_message: "New message",
-  super_ping: "Super Ping received",
-  daily_swipes_refreshed: "Daily swipes refreshed",
+const APPEARANCE_SUMMARY: Record<ThemePreference, string> = {
+  system: "Automatic",
+  light: "Light",
+  dark: "Dark",
 };
 
-function NotificationRow({
-  category,
-  settings,
-  onToggle,
-}: {
-  category: NotificationCategory;
-  settings: NotificationSettingsRow;
-  onToggle: (category: NotificationCategory, value: boolean) => void;
-}) {
-  const { colors, spacing } = useTheme();
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        paddingVertical: spacing.sm,
-      }}
-    >
-      <Text style={{ color: colors.text, fontSize: 15 }}>{CATEGORY_LABELS[category]}</Text>
-      <Switch
-        value={settings[category]}
-        onValueChange={(value) => {
-          hapticSelection();
-          onToggle(category, value);
-        }}
-        trackColor={{ true: colors.brand }}
-      />
-    </View>
-  );
-}
-
-function NotificationRowSkeleton() {
-  const { spacing } = useTheme();
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        paddingVertical: spacing.sm,
-      }}
-    >
-      <Skeleton width="55%" height={15} />
-      <Skeleton width={44} height={26} borderRadius={13} />
-    </View>
-  );
-}
-
-function Divider() {
-  const { colors } = useTheme();
-  return <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />;
-}
-
-function LinkedAccountsSection() {
-  const { colors, spacing } = useTheme();
-  const profile = useSessionStore((s) => s.profile);
-  const { data: linked } = useLinkedAccounts(profile?.id);
-  const { startLink, linking, error } = useLinkSteamAccount(profile?.id);
-  const { unlink } = useUnlinkAccount(profile?.id);
-
-  const steamLink = linked?.find((a) => a.provider === "steam");
-
-  return (
-    <View style={{ marginTop: spacing.md }}>
-      <SectionLabel>Linked Accounts</SectionLabel>
-      <Card style={{ gap: spacing.sm }}>
-        <Text style={{ color: colors.textMuted, fontSize: 13 }}>
-          Verified badges pull your rank and username straight from the source, instead of trusting a typed-in
-          claim.
-        </Text>
-
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-          <View style={{ flex: 1, marginRight: spacing.sm }}>
-            <Text style={{ color: colors.text, fontWeight: "700" }}>Steam</Text>
-            {steamLink && <Text style={{ color: colors.textMuted, fontSize: 12 }}>Verified as {steamLink.display_name}</Text>}
-          </View>
-          {steamLink ? (
-            <Pressable onPress={() => void unlink("steam")}>
-              <Text style={{ color: colors.danger, fontWeight: "600" }}>Unlink</Text>
-            </Pressable>
-          ) : (
-            <Pressable onPress={() => void startLink()} disabled={linking}>
-              <Text style={{ color: colors.brand, fontWeight: "600" }}>{linking ? "Connecting…" : "Connect"}</Text>
-            </Pressable>
-          )}
-        </View>
-        {error && <Text style={{ color: colors.danger, fontSize: 12 }}>{error}</Text>}
-
-        <Divider />
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-          <View style={{ flex: 1, marginRight: spacing.sm }}>
-            <Text style={{ color: colors.textMuted, fontWeight: "700" }}>Riot Games</Text>
-            <Text style={{ color: colors.textMuted, fontSize: 12 }}>Coming soon</Text>
-          </View>
-          <Text style={{ color: colors.textMuted, fontWeight: "600" }}>Connect</Text>
-        </View>
-        <Divider />
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-          <View style={{ flex: 1, marginRight: spacing.sm }}>
-            <Text style={{ color: colors.textMuted, fontWeight: "700" }}>Xbox</Text>
-            <Text style={{ color: colors.textMuted, fontSize: 12 }}>Coming soon</Text>
-          </View>
-          <Text style={{ color: colors.textMuted, fontWeight: "600" }}>Connect</Text>
-        </View>
-      </Card>
-    </View>
-  );
-}
-
-function NavRow({ label, onPress }: { label: string; onPress: () => void }) {
-  const { colors, spacing } = useTheme();
-  return (
-    <Pressable
-      onPress={onPress}
-      style={{
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        padding: spacing.md,
-      }}
-    >
-      <Text style={{ color: colors.text, fontSize: 15 }}>{label}</Text>
-      <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-    </Pressable>
-  );
-}
-
+/**
+ * A menu, not a control panel.
+ *
+ * Every setting used to live on this one screen, so finding anything meant reading
+ * the whole thing, and adding one more toggle made it worse. The controls now live
+ * behind named destinations; each row carries a one-line hint so you can tell what
+ * is inside without opening it, and rows that hold a single choice show the current
+ * value on the right.
+ */
 export default function SettingsScreen() {
-  const { colors, spacing } = useTheme();
+  const { spacing } = useTheme();
   const themePreference = useThemeStore((s) => s.preference);
-  const setThemePreference = useThemeStore((s) => s.setPreference);
-  const signOut = useSessionStore((s) => s.signOut);
-  const { settings, isLoading, update } = useNotificationSettings();
-  const { profile, setIsActive, setHideLastActive } = usePrivacyToggles();
-  const deleteAccount = useDeleteAccount();
-  const [deleting, setDeleting] = useState(false);
-
-  function handleToggle(category: NotificationCategory, value: boolean) {
-    update.mutate({ [category]: value });
-  }
-
-  function handleDeleteAccount() {
-    Alert.alert(
-      "Delete your account?",
-      "This permanently removes your profile, photos, matches, and messages. This cannot be undone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => {
-            Alert.alert("Are you absolutely sure?", "Your account will be deleted immediately.", [
-              { text: "Cancel", style: "cancel" },
-              {
-                text: "Delete my account",
-                style: "destructive",
-                onPress: () => void confirmDelete(),
-              },
-            ]);
-          },
-        },
-      ],
-    );
-  }
-
-  async function confirmDelete() {
-    setDeleting(true);
-    try {
-      await deleteAccount.mutateAsync();
-      await signOut();
-      router.replace("/(auth)/sign-in");
-    } catch (err) {
-      Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
-    } finally {
-      setDeleting(false);
-    }
-  }
-
-  const categories = ["new_match", "new_message", "super_ping", "daily_swipes_refreshed"] as const;
 
   return (
     <ScreenContainer title="Settings">
-      <View style={{ marginTop: spacing.md }}>
-        <SectionLabel>Appearance</SectionLabel>
-        <Card>
-          <ChipSelect
-            options={APPEARANCE_OPTIONS}
-            selected={[themePreference]}
-            onToggle={(value) => {
-              hapticSelection();
-              setThemePreference(value);
-            }}
+      <View>
+        <SectionLabel>You</SectionLabel>
+        <Card style={{ padding: 0, overflow: "hidden" }}>
+          <NavRow
+            icon="color-palette-outline"
+            label="Appearance"
+            hint="Light, dark, or follow your phone"
+            value={APPEARANCE_SUMMARY[themePreference]}
+            onPress={() => router.push("/settings/appearance")}
+          />
+          <RowDivider />
+          <NavRow
+            icon="notifications-outline"
+            label="Notifications"
+            hint="Choose what you get pinged about"
+            onPress={() => router.push("/settings/notifications")}
+          />
+          <RowDivider />
+          <NavRow
+            icon="eye-off-outline"
+            label="Privacy"
+            hint="Pause your profile, hide last-active"
+            onPress={() => router.push("/settings/privacy")}
+          />
+          <RowDivider />
+          <NavRow
+            icon="game-controller-outline"
+            label="Connections"
+            hint="Verify your Steam account"
+            onPress={() => router.push("/settings/connections")}
           />
         </Card>
       </View>
 
       <View style={{ marginTop: spacing.md }}>
-        <SectionLabel>Notifications</SectionLabel>
-        <Card>
-          {isLoading || !settings ? (
-            <View>
-              {[0, 1, 2, 3].map((i) => (
-                <View key={i}>
-                  {i > 0 && <Divider />}
-                  <NotificationRowSkeleton />
-                </View>
-              ))}
-            </View>
-          ) : (
-            categories.map((category, i) => (
-              <View key={category}>
-                {i > 0 && <Divider />}
-                <NotificationRow category={category} settings={settings} onToggle={handleToggle} />
-              </View>
-            ))
-          )}
-        </Card>
-      </View>
-
-      <LinkedAccountsSection />
-
-      <View style={{ marginTop: spacing.md }}>
-        <SectionLabel>Privacy</SectionLabel>
-        <Card>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-            <View style={{ flex: 1, marginRight: spacing.sm }}>
-              <Text style={{ color: colors.text, fontSize: 15 }}>Pause my profile</Text>
-              <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-                Hide yourself from other people&apos;s decks and Standouts.
-              </Text>
-            </View>
-            <Switch
-              value={!(profile?.is_active ?? true)}
-              onValueChange={(value) => {
-                hapticSelection();
-                setIsActive.mutate(!value);
-                useToastStore.getState().showToast(value ? "Profile paused" : "Profile active again");
-              }}
-              trackColor={{ true: colors.brand }}
-            />
-          </View>
-          <Divider />
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              paddingTop: spacing.sm,
-            }}
-          >
-            <View style={{ flex: 1, marginRight: spacing.sm }}>
-              <Text style={{ color: colors.text, fontSize: 15 }}>Hide last-active status</Text>
-              <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-                Don&apos;t show others when you were last active.
-              </Text>
-            </View>
-            <Switch
-              value={profile?.hide_last_active ?? false}
-              onValueChange={(value) => {
-                hapticSelection();
-                setHideLastActive.mutate(value);
-                useToastStore.getState().showToast("Settings saved");
-              }}
-              trackColor={{ true: colors.brand }}
-            />
-          </View>
-        </Card>
-      </View>
-
-      <View style={{ marginTop: spacing.md }}>
         <SectionLabel>Safety</SectionLabel>
-        <Card style={{ padding: 0 }}>
-          <NavRow label="Safety Center" onPress={() => router.push("/safety")} />
-          <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />
-          <NavRow label="Block List" onPress={() => router.push("/block-list")} />
-          <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />
-          <NavRow label="Hidden Words" onPress={() => router.push("/hidden-words")} />
+        <Card style={{ padding: 0, overflow: "hidden" }}>
+          <NavRow
+            icon="shield-checkmark-outline"
+            label="Safety Center"
+            hint="Staying safe when you meet people online"
+            onPress={() => router.push("/safety")}
+          />
+          <RowDivider />
+          <NavRow
+            icon="person-remove-outline"
+            label="Blocked people"
+            hint="Everyone you've blocked"
+            onPress={() => router.push("/block-list")}
+          />
+          <RowDivider />
+          <NavRow
+            icon="text-outline"
+            label="Hidden words"
+            hint="Filter messages containing words you choose"
+            onPress={() => router.push("/hidden-words")}
+          />
         </Card>
       </View>
 
       <View style={{ marginTop: spacing.md }}>
-        <Button label="Sign out" variant="secondary" onPress={() => void signOut()} />
-      </View>
-
-      <View style={{ marginTop: spacing.xl }}>
-        <SectionLabel>Danger zone</SectionLabel>
-        <Card style={{ borderWidth: 1, borderColor: colors.danger, backgroundColor: "transparent", gap: spacing.sm }}>
-          <Text style={{ color: colors.textMuted, fontSize: 13 }}>
-            Deleting your account permanently removes your profile, photos, matches, and messages. This cannot be
-            undone.
-          </Text>
-          <Button
-            label={deleting ? "Deleting..." : "Delete account"}
-            variant="ghost"
-            onPress={handleDeleteAccount}
-            loading={deleting}
+        <SectionLabel>Account</SectionLabel>
+        <Card style={{ padding: 0, overflow: "hidden" }}>
+          <NavRow
+            icon="log-out-outline"
+            label="Sign out or delete account"
+            onPress={() => router.push("/settings/account")}
           />
         </Card>
       </View>

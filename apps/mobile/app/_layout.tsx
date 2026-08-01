@@ -122,13 +122,21 @@ export default function RootLayout() {
               <Stack.Screen name="online-now" options={{ presentation: "modal" }} />
               <Stack.Screen name="block-list" options={{ presentation: "modal" }} />
               <Stack.Screen name="hidden-words" options={{ presentation: "modal" }} />
+              <Stack.Screen name="settings/appearance" />
+              <Stack.Screen name="settings/notifications" />
+              <Stack.Screen name="settings/privacy" />
+              <Stack.Screen name="settings/connections" />
+              <Stack.Screen name="settings/account" />
               <Stack.Screen name="safety/index" options={{ presentation: "modal" }} />
               <Stack.Screen name="safety/[topic]" />
               <Stack.Screen name="edit-prompts" options={{ presentation: "modal" }} />
               <Stack.Screen name="edit-details" options={{ presentation: "modal" }} />
               <Stack.Screen name="match/[matchId]" options={{ presentation: "modal" }} />
               <Stack.Screen name="party/[partyId]/index" options={{ headerShown: false }} />
-              <Stack.Screen name="party/[partyId]/chat" options={{ headerShown: true, title: "Party chat" }} />
+              <Stack.Screen
+                name="party/[partyId]/chat"
+                options={{ headerShown: true, title: "Party chat", headerBackTitle: "Back" }}
+              />
             </Stack>
           )}
           <Toast />
