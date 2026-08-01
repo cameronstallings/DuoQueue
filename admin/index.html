@@ -88,14 +88,24 @@
 <body>
 <div id="app"></div>
 
+<!-- Optional, gitignored. Absent in a fresh clone, which is fine — the module below
+     falls back to placeholders and the page shows a clear connection error. -->
+<script src="./config.js"></script>
+
 <script type="module">
   import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-  // Fill these in for your project (Project Settings -> API). The anon key is safe to
-  // ship client-side — every query here still goes through RLS, gated by
-  // profiles.is_admin (see supabase/migrations/0006_moderation_and_notifications.sql).
-  const SUPABASE_URL = "https://YOUR-PROJECT-REF.supabase.co";
-  const SUPABASE_ANON_KEY = "YOUR-ANON-KEY";
+  // Point this at your project. Either drop a gitignored `admin/config.js` next to this
+  // file (copy config.example.js), or edit the fallbacks below.
+  //
+  // The anon key is safe to ship client-side — every query here still goes through RLS,
+  // gated by profiles.is_admin (0006_moderation_and_notifications.sql). It is kept out of
+  // git anyway: a committed key advertises which project this page administers, and this
+  // page is the one surface where an is_admin account can read reports and private
+  // messages. Nothing is lost by not publishing that pointer.
+  const cfg = globalThis.DUOQUEUE_ADMIN_CONFIG ?? {};
+  const SUPABASE_URL = cfg.supabaseUrl ?? "https://YOUR-PROJECT-REF.supabase.co";
+  const SUPABASE_ANON_KEY = cfg.supabaseAnonKey ?? "YOUR-ANON-KEY";
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const app = document.getElementById("app");
@@ -262,6 +272,13 @@
       </div>
       <div class="card">
         <div class="filters">
+          <strong>Pending photos</strong>
+          <button class="secondary" id="refresh-photos" style="margin-left:auto">Refresh</button>
+        </div>
+        <div id="photos-table">Loading...</div>
+      </div>
+      <div class="card">
+        <div class="filters">
           <strong>Pending voice intros</strong>
           <button class="secondary" id="refresh-voice" style="margin-left:auto">Refresh</button>
         </div>
@@ -276,6 +293,85 @@
     document.getElementById("status-filter").addEventListener("change", loadReports);
     document.getElementById("refresh").addEventListener("click", loadReports);
     document.getElementById("refresh-voice").addEventListener("click", loadVoiceIntros);
+    document.getElementById("refresh-photos").addEventListener("click", loadPhotos);
+
+    // Photos land here when the automated check can't reach a verdict — a provider
+    // outage, a timeout, or no credentials configured. moderate-photo fails closed, so
+    // without this queue those photos would sit invisible forever with no way out.
+    async function loadPhotos() {
+      const tableEl = document.getElementById("photos-table");
+      tableEl.textContent = "Loading...";
+      try {
+        const { data: media, error } = await supabase
+          .from("profile_media")
+          .select("id, profile_id, storage_path, photo_role, created_at")
+          .eq("moderation_status", "pending")
+          .order("created_at");
+        if (error) throw error;
+        if (!media || media.length === 0) {
+          tableEl.innerHTML = "<p class='muted'>No pending photos.</p>";
+          return;
+        }
+
+        const { data: profiles, error: profilesError } = await supabase
+          .from("profiles")
+          .select("id, display_name")
+          .in("id", media.map((m) => m.profile_id));
+        if (profilesError) throw profilesError;
+        const nameById = new Map((profiles ?? []).map((p) => [p.id, p.display_name]));
+
+        const rows = await Promise.all(
+          media.map(async (m) => {
+            const { data: signed } = await supabase.storage
+              .from("profile-photos")
+              .createSignedUrl(m.storage_path, 3600);
+            return { ...m, name: nameById.get(m.profile_id) ?? m.profile_id, url: signed?.signedUrl };
+          }),
+        );
+
+        tableEl.innerHTML = `
+          <table>
+            <thead><tr><th>When</th><th>Profile</th><th>Role</th><th>Photo</th><th>Actions</th></tr></thead>
+            <tbody>
+              ${rows
+                .map(
+                  (r) => `
+                <tr data-media-id="${escapeHtml(r.id)}">
+                  <td>${new Date(r.created_at).toLocaleString()}</td>
+                  <td>${escapeHtml(r.name)}</td>
+                  <td>${escapeHtml(r.photo_role)}</td>
+                  <td>${r.url ? `<img src="${escapeHtml(r.url)}" alt="pending profile photo" style="max-height:120px;max-width:160px;border-radius:8px" />` : "Unavailable"}</td>
+                  <td>
+                    <div class="actions">
+                      <button class="secondary approve-btn">Approve</button>
+                      <button class="danger reject-btn">Reject</button>
+                    </div>
+                  </td>
+                </tr>
+              `,
+                )
+                .join("")}
+            </tbody>
+          </table>
+        `;
+
+        tableEl.querySelectorAll("tr[data-media-id]").forEach((row) => {
+          const mediaId = row.dataset.mediaId;
+          async function review(approve) {
+            const { error: rpcError } = await supabase.rpc("review_photo", {
+              p_media_id: mediaId,
+              p_approve: approve,
+            });
+            if (rpcError) alert(rpcError.message);
+            await loadPhotos();
+          }
+          row.querySelector(".approve-btn").addEventListener("click", () => review(true));
+          row.querySelector(".reject-btn").addEventListener("click", () => review(false));
+        });
+      } catch (err) {
+        tableEl.innerHTML = `<p style="color:var(--danger)">${escapeHtml(err.message ?? String(err))}</p>`;
+      }
+    }
 
     async function loadVoiceIntros() {
       const tableEl = document.getElementById("voice-intros-table");
@@ -434,6 +530,7 @@
     }
 
     await loadReports();
+    await loadPhotos();
     await loadVoiceIntros();
   }
 

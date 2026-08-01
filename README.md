@@ -109,6 +109,11 @@ pnpm install
    `revenuecat-webhook` additionally needs `REVENUECAT_WEBHOOK_AUTH_TOKEN` (step 3
    below), and `send-push-notification`/`daily-swipes-refreshed` need
    `INTERNAL_TRIGGER_AUTH_TOKEN` — set both with `supabase secrets set KEY=value`.
+   Those three refuse to start without their secret rather than running unauthenticated.
+
+   `moderate-photo` takes `MODERATION_PROVIDER` (`sightengine` or `manual-review`) plus
+   `SIGHTENGINE_API_USER`/`SIGHTENGINE_API_SECRET` when set to `sightengine`. Left unset
+   it behaves as `manual-review`: photos are never auto-approved, they queue for a human.
 5. Enable push + swipe-refresh notifications: insert your project's own values into
    `app_config` (no client can read this table — service-role/trigger-only, see
    0006_moderation_and_notifications.sql) via the SQL Editor:
@@ -327,9 +332,13 @@ pnpm lint        # eslint across all workspace packages
 Things this repo deliberately leaves as clearly-marked stubs or manual setup steps,
 rather than faking:
 
-- **Photo moderation** (`supabase/functions/moderate-photo/provider.ts`) always
-  approves. Wire in a real NSFW-detection provider — the pipeline around it (client
-  upload → this function → `moderation_status`, unwritable by clients) doesn't change.
+- **Photo moderation needs a Sightengine account to run automatically.** The provider is
+  implemented (`supabase/functions/moderate-photo/provider.ts`); it just needs
+  credentials. Until `MODERATION_PROVIDER=sightengine` plus `SIGHTENGINE_API_USER` and
+  `SIGHTENGINE_API_SECRET` are set, every uploaded photo is routed to the admin review
+  queue instead of being checked. That is a deliberate fail-safe: there is no
+  approve-everything mode, so a missing key can never silently publish unreviewed photos
+  — it can only create a manual-review backlog, which is visible.
 - **Push notifications** need `eas init` for a real EAS project id, a physical device to
   test on, and someone to actually schedule `daily-swipes-refreshed` (a Supabase Cron
   Trigger or any external scheduler) — see README setup step 5.

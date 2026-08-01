@@ -112,15 +112,25 @@ Deno.serve(async (req) => {
   }
 
   const result = await checkImage(signed.signedUrl);
-  const moderationStatus = result.approved ? "approved" : "rejected";
+
+  // "undetermined" means the check couldn't reach a confident answer — provider outage,
+  // an ambiguous score, or no provider configured. The row is left `pending`, which is
+  // where it already is, so the photo stays invisible to everyone but its owner and
+  // appears in the admin review queue (0033_photo_review_queue.sql). Writing a status
+  // here would mean either publishing something unreviewed or rejecting a user's photo
+  // because a third party was down.
+  if (result.verdict === "undetermined") {
+    return jsonResponse({ moderationStatus: "pending", reason: result.reason }, 200);
+  }
 
   const { error: updateError } = await serviceClient
     .from("profile_media")
-    .update({ moderation_status: moderationStatus })
+    .update({ moderation_status: result.verdict })
     .eq("id", mediaId);
   if (updateError) {
-    return jsonResponse({ error: updateError.message }, 500);
+    console.error("failed to write moderation status", { mediaId, code: updateError.code });
+    return jsonResponse({ error: "Internal error" }, 500);
   }
 
-  return jsonResponse({ moderationStatus, reason: result.reason }, 200);
+  return jsonResponse({ moderationStatus: result.verdict, reason: result.reason }, 200);
 });

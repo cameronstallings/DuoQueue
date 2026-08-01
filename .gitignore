@@ -45,3 +45,6 @@ build/
 
 # Local Expo CLI state
 .expo/
+
+# Local moderation-page config (contains project URL + anon key)
+admin/config.js
