@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { useTheme } from "@/theme/useTheme";
 
@@ -9,7 +10,7 @@ interface ButtonProps {
   onPress: () => void;
   loading?: boolean;
   disabled?: boolean;
-  variant?: "primary" | "secondary" | "ghost";
+  variant?: "primary" | "secondary" | "ghost" | "solar";
 }
 
 /** The label while `loading` — pulses in place of a spinner so an in-flight button
@@ -28,24 +29,34 @@ function ButtonLabel({ label, color, loading }: { label: string; color: string; 
 
   const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
 
-  return <Animated.Text style={[type.label, { color }, animatedStyle]}>{label}</Animated.Text>;
+  return <Animated.Text style={[type.bodyStrong, { color }, animatedStyle]}>{label}</Animated.Text>;
 }
 
 /**
- * A pressed button does not fade — it moves into its own shadow plate, the way a
- * physical key does. The plate is a hard zero-blur offset rather than a soft
- * elevation blur, which is what gives every surface in the app its printed feel.
+ * The Pressable is a bare shell — it only ever carries press scale, the glow, and
+ * disabled opacity. The fill lives one level in: a gradient for primary/solar, a
+ * glass tint for secondary, nothing for ghost. That split is what lets the glow
+ * sit outside the gradient's own bounding box instead of getting clipped by it.
  */
 export function Button({ label, onPress, loading, disabled, variant = "primary" }: ButtonProps) {
-  const { colors, radius, spacing, shadow, hairline } = useTheme();
+  const { colors, radius, spacing, glow, heroGradient, solarGradient } = useTheme();
   const isDisabled = disabled || loading;
 
-  const fill =
-    variant === "primary" ? colors.brand : variant === "secondary" ? colors.surface : "transparent";
-  const textColor = variant === "primary" ? colors.onFill : colors.text;
-  // In dark mode the pale keyline is what reads as the card edge; in light it is the
-  // near-black stroke. Ghost buttons carry no plate and no stroke at all.
-  const strokeColor = variant === "ghost" ? "transparent" : colors.ink;
+  const textColor =
+    variant === "primary" ? colors.onFill : variant === "solar" ? colors.onSolar : colors.text;
+
+  const glowStyle =
+    variant === "primary"
+      ? glow(colors.glowViolet)
+      : variant === "solar"
+        ? glow("rgba(255,157,92,0.35)")
+        : null;
+
+  const contentStyle = {
+    borderRadius: radius.button,
+    paddingVertical: spacing.md + 2,
+    paddingHorizontal: spacing.xl,
+  };
 
   return (
     <Pressable
@@ -54,22 +65,31 @@ export function Button({ label, onPress, loading, disabled, variant = "primary" 
       onPress={onPress}
       disabled={isDisabled}
       style={({ pressed }) => [
-        styles.base,
-        {
-          backgroundColor: fill,
-          borderRadius: radius.md,
-          borderWidth: variant === "ghost" ? 0 : hairline,
-          borderColor: strokeColor,
-          paddingVertical: spacing.md + 2,
-          paddingHorizontal: spacing.xl,
-          opacity: isDisabled ? 0.45 : 1,
-        },
-        variant !== "ghost" && !isDisabled && !pressed ? shadow : null,
-        // Travel exactly the distance the plate occupies, so the button lands on it.
-        pressed && !isDisabled ? { transform: [{ translateX: 2 }, { translateY: 2 }] } : null,
+        { borderRadius: radius.button, opacity: isDisabled ? 0.45 : 1 },
+        !isDisabled ? glowStyle : null,
+        { transform: [{ scale: pressed ? 0.97 : 1 }] },
       ]}
     >
-      <ButtonLabel label={label} color={textColor} loading={loading} />
+      {variant === "primary" || variant === "solar" ? (
+        <LinearGradient
+          {...(variant === "primary" ? heroGradient : solarGradient)}
+          style={[styles.content, contentStyle]}
+        >
+          <ButtonLabel label={label} color={textColor} loading={loading} />
+        </LinearGradient>
+      ) : (
+        <View
+          style={[
+            styles.content,
+            contentStyle,
+            variant === "secondary"
+              ? { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }
+              : null,
+          ]}
+        >
+          <ButtonLabel label={label} color={textColor} loading={loading} />
+        </View>
+      )}
     </Pressable>
   );
 }
@@ -81,7 +101,7 @@ export function ButtonRow({ children }: { children: React.ReactNode }) {
 }
 
 const styles = StyleSheet.create({
-  base: {
+  content: {
     alignItems: "center",
     justifyContent: "center",
   },
