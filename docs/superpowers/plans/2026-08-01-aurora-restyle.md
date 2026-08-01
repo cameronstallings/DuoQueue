@@ -241,7 +241,9 @@ export const lightColors = {
   playstyle: PLAYSTYLE_LIGHT,
 } as const;
 
-export type ThemeColors = typeof darkColors;
+// Union, not `typeof darkColors` alone: both palettes are `as const` literal types,
+// and the gradient helpers below take whichever one the active scheme resolved.
+export type ThemeColors = typeof darkColors | typeof lightColors;
 
 /** Colored soft glow — the ONLY depth/emphasis channel. See Global Constraints for
  * the short list of things allowed to glow. */
