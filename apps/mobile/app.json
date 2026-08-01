@@ -69,7 +69,8 @@
         {
           "microphonePermission": "DuoQueue needs access to your microphone to record a short voice intro for your profile."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "router": {}

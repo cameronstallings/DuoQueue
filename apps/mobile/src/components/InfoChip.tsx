@@ -9,11 +9,12 @@ type InfoChipProps = { label: string; sublabel?: string } & (
   | { icon: ComponentProps<typeof MaterialCommunityIcons>["name"]; iconFamily: "material-community" }
 );
 
-/** A small, non-interactive pill — used to display (not select) games/shows/platforms/
- * playstyles on the Profile tab, visually related to ChipSelect but read-only. */
+/** A read-only sticker — displays (rather than selects) games, shows, platforms and
+ * playstyles. Deliberately the same geometry as ChipSelect so the two read as the same
+ * object in different states, with no plate since these are never pressable. */
 export function InfoChip(props: InfoChipProps) {
   const { label, sublabel, icon } = props;
-  const { colors, radius, spacing } = useTheme();
+  const { colors, radius, spacing, type, scheme } = useTheme();
 
   return (
     <View
@@ -21,22 +22,22 @@ export function InfoChip(props: InfoChipProps) {
         flexDirection: "row",
         alignItems: "center",
         gap: spacing.xs,
-        paddingVertical: spacing.xs,
+        paddingVertical: spacing.xs + 1,
         paddingHorizontal: spacing.sm,
-        borderRadius: radius.pill,
+        borderRadius: radius.chip,
         backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.border,
+        borderWidth: scheme === "light" ? 1.5 : 1,
+        borderColor: colors.ink,
       }}
     >
       {icon &&
         (props.iconFamily === "material-community" ? (
-          <MaterialCommunityIcons name={props.icon} size={13} color={colors.brand} />
+          <MaterialCommunityIcons name={props.icon} size={13} color={colors.brandInk} />
         ) : (
-          <Ionicons name={props.icon} size={13} color={colors.brand} />
+          <Ionicons name={props.icon} size={13} color={colors.brandInk} />
         ))}
-      <Text style={{ color: colors.text, fontWeight: "600", fontSize: 13 }}>{label}</Text>
-      {sublabel && <Text style={{ color: colors.textMuted, fontSize: 12 }}>{sublabel}</Text>}
+      <Text style={[type.caption, { color: colors.text }]}>{label}</Text>
+      {sublabel && <Text style={[type.statSm, { color: colors.textMuted }]}>{sublabel}</Text>}
     </View>
   );
 }

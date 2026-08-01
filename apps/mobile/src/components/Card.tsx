@@ -6,24 +6,27 @@ import { useTheme } from "@/theme/useTheme";
 
 interface CardProps extends PropsWithChildren {
   style?: ViewStyle;
+  /** Drops the offset plate — for cards inside a scrolling list, where a plate on
+   * every row turns into visual noise rather than depth. */
+  flat?: boolean;
 }
 
-/** A grouped, elevated content block — used to visually separate sections instead of
- * relying on bare headings and vertical spacing alone. */
-export function Card({ children, style }: CardProps) {
-  const { colors, radius, spacing, shadow } = useTheme();
+/** A grouped content block. The hard keyline and offset plate are what make it read
+ * as a printed object sitting on the surface rather than a tinted rectangle. */
+export function Card({ children, style, flat }: CardProps) {
+  const { colors, radius, spacing, shadow, scheme } = useTheme();
 
   return (
     <View
       style={[
         {
           backgroundColor: colors.surface,
-          borderRadius: radius.lg,
-          padding: spacing.md,
-          borderWidth: 1,
-          borderColor: colors.border,
-          ...shadow,
+          borderRadius: radius.md,
+          padding: spacing.lg,
+          borderWidth: scheme === "light" ? 1.5 : 1,
+          borderColor: colors.ink,
         },
+        flat ? null : shadow,
         style,
       ]}
     >

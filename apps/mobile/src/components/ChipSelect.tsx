@@ -13,8 +13,14 @@ interface ChipSelectProps<T extends string> {
   onToggle: (value: T) => void;
 }
 
+/**
+ * Chips are stickers, not pills — a 4pt corner and a hard keyline. Selection is
+ * carried by the fill AND by the keyline thickening, so it survives greyscale and
+ * does not depend on colour alone.
+ */
 export function ChipSelect<T extends string>({ options, selected, onToggle }: ChipSelectProps<T>) {
-  const { colors, radius, spacing } = useTheme();
+  const { colors, radius, spacing, type, scheme } = useTheme();
+  const baseWidth = scheme === "light" ? 1.5 : 1;
 
   return (
     <View style={[styles.wrap, { gap: spacing.sm }]}>
@@ -26,16 +32,19 @@ export function ChipSelect<T extends string>({ options, selected, onToggle }: Ch
             accessibilityRole="button"
             accessibilityState={{ selected: isSelected }}
             onPress={() => onToggle(option.value)}
-            style={{
-              paddingVertical: spacing.sm,
-              paddingHorizontal: spacing.md,
-              borderRadius: radius.pill,
-              borderWidth: 1,
-              borderColor: isSelected ? colors.brand : colors.border,
-              backgroundColor: isSelected ? colors.brand : colors.surface,
-            }}
+            style={({ pressed }) => [
+              {
+                paddingVertical: spacing.sm,
+                paddingHorizontal: spacing.md,
+                borderRadius: radius.chip,
+                borderWidth: isSelected ? baseWidth + 0.5 : baseWidth,
+                borderColor: colors.ink,
+                backgroundColor: isSelected ? colors.brand : colors.surface,
+                opacity: pressed ? 0.85 : 1,
+              },
+            ]}
           >
-            <Text style={{ color: isSelected ? "#FFFFFF" : colors.text, fontWeight: "600" }}>
+            <Text style={[type.caption, { color: isSelected ? colors.onFill : colors.text }]}>
               {option.label}
             </Text>
           </Pressable>

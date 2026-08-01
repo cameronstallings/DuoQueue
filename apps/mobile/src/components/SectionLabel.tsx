@@ -1,24 +1,25 @@
-import { Text } from "react-native";
+import { Text, View } from "react-native";
 
 import { useTheme } from "@/theme/useTheme";
 
-/** Small uppercase, letter-spaced label for the heading above a grouped Card section —
- * reads as more deliberate/structured than a plain bold heading of the same size as body text. */
+/**
+ * The heading above a grouped section. A short brand rule sits to its left — the
+ * recurring detail that marks where one group of content ends and the next begins,
+ * so sections are separated by a mark rather than only by whitespace.
+ */
 export function SectionLabel({ children }: { children: string }) {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, type } = useTheme();
   return (
-    <Text
+    <View
       style={{
-        color: colors.textMuted,
-        fontSize: 12,
-        fontWeight: "700",
-        letterSpacing: 0.6,
-        textTransform: "uppercase",
-        marginBottom: spacing.xs,
-        marginLeft: spacing.xs,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: spacing.sm,
+        marginBottom: spacing.sm,
       }}
     >
-      {children}
-    </Text>
+      <View style={{ width: 10, height: 3, backgroundColor: colors.p1Line }} />
+      <Text style={[type.label, { color: colors.textMuted }]}>{children}</Text>
+    </View>
   );
 }

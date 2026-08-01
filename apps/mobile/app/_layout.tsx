@@ -7,6 +7,15 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Stack } from "expo-router";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
+import { useFonts } from "expo-font";
+import {
+  Archivo_500Medium,
+  Archivo_600SemiBold,
+  Archivo_700Bold,
+  Archivo_900Black,
+} from "@expo-google-fonts/archivo";
+import { Bungee_400Regular } from "@expo-google-fonts/bungee";
+import { MartianMono_400Regular, MartianMono_700Bold } from "@expo-google-fonts/martian-mono";
 
 import { Logo } from "@/components/Logo";
 import { OfflineBanner } from "@/components/OfflineBanner";
@@ -67,11 +76,30 @@ export default function RootLayout() {
   const initialize = useSessionStore((s) => s.initialize);
   const { colors, scheme } = useTheme();
 
+  // The type system carries most of the visual identity, so the splash stays up
+  // until the faces are in memory — swapping them in mid-render would reflow every
+  // screen. `fontError` deliberately does not block: if a face fails to load the OS
+  // font renders instead, and every size, line-height and letter-spacing still applies.
+  const [fontsLoaded, fontError] = useFonts({
+    Archivo_500Medium,
+    Archivo_600SemiBold,
+    Archivo_700Bold,
+    Archivo_900Black,
+    MartianMono_400Regular,
+    MartianMono_700Bold,
+    Bungee_400Regular,
+  });
+
   useEffect(() => {
     void initialize();
     void loadThemePreference();
-    void SplashScreen.hideAsync();
   }, [initialize]);
+
+  useEffect(() => {
+    if (fontsLoaded || fontError) void SplashScreen.hideAsync();
+  }, [fontsLoaded, fontError]);
+
+  if (!fontsLoaded && !fontError) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
