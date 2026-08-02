@@ -5,9 +5,11 @@ import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PLATFORMS, PLAYSTYLE_TAGS, SKILL_LEVELS, TILT_HANDLING_OPTIONS, type TiltHandling } from "@duoqueue/shared-types";
 
-import { Button } from "@/components/Button";
+import { Button, ButtonRow } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { Chip } from "@/components/Chip";
 import { ChipSelect } from "@/components/ChipSelect";
+import { ModalHeader } from "@/components/ModalHeader";
 import { SectionLabel } from "@/components/SectionLabel";
 import { Skeleton } from "@/components/Skeleton";
 import { Slider } from "@/components/Slider";
@@ -36,7 +38,7 @@ import { useTheme } from "@/theme/useTheme";
 const MAX_PLAYSTYLES = 6;
 
 export default function EditDetailsScreen() {
-  const { colors, radius, spacing, type, hairline } = useTheme();
+  const { colors, radius, spacing, type } = useTheme();
   const insets = useSafeAreaInsets();
   const profile = useSessionStore((s) => s.profile);
   const { data: existing, isLoading: loadingExisting } = useEditableProfileDetails(profile?.id);
@@ -132,34 +134,14 @@ export default function EditDetailsScreen() {
           status bar. Adding it again opened the sheet with a second status bar of
           empty space. */}
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <Text style={{ ...type.screenTitle, color: colors.text }}>Edit Details</Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Close"
-            onPress={() => router.back()}
-            hitSlop={8}
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: radius.sm,
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: colors.surface,
-              borderWidth: hairline,
-              borderColor: colors.ink,
-            }}
-          >
-            <Ionicons name="close" size={20} color={colors.text} />
-          </Pressable>
-        </View>
+        <ModalHeader title="Edit Details" />
 
         {!loaded || !profile ? (
           <>
             <View style={{ gap: spacing.sm }}>
               <SectionLabel>Games</SectionLabel>
               <Skeleton height={44} borderRadius={radius.md} />
-              <Card style={{ gap: spacing.sm }}>
+              <Card flat style={{ gap: spacing.sm }}>
                 <Skeleton width="50%" height={16} />
                 <Skeleton width="100%" height={36} />
               </Card>
@@ -189,11 +171,9 @@ export default function EditDetailsScreen() {
             </View>
             <View style={{ gap: spacing.sm }}>
               <SectionLabel>Vibe</SectionLabel>
-              <Card style={{ gap: spacing.md }}>
-                <Skeleton height={20} />
-                <Skeleton height={20} />
-                <Skeleton height={20} />
-              </Card>
+              <Skeleton height={20} />
+              <Skeleton height={20} />
+              <Skeleton height={20} />
             </View>
           </>
         ) : (
@@ -211,9 +191,9 @@ export default function EditDetailsScreen() {
               />
               <View style={{ gap: spacing.md }}>
                 {games.map((game) => (
-                  <Card key={game.gameId} style={{ gap: spacing.sm }}>
+                  <Card key={game.gameId} flat style={{ gap: spacing.sm }}>
                     <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                      <Text style={{ color: colors.text, fontWeight: "700", fontSize: 16 }}>{game.name}</Text>
+                      <Text style={[type.bodyStrong, { color: colors.text }]}>{game.name}</Text>
                       <Pressable onPress={() => removeGame(game.gameId)}>
                         <Text style={{ color: colors.danger }}>Remove</Text>
                       </Pressable>
@@ -245,22 +225,13 @@ export default function EditDetailsScreen() {
               />
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
                 {shows.map((show) => (
-                  <Pressable
+                  <Chip
                     key={show.showId}
+                    label={show.name}
+                    selected
                     onPress={() => removeShow(show.showId)}
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: spacing.xs,
-                      paddingVertical: spacing.sm,
-                      paddingHorizontal: spacing.md,
-                      borderRadius: radius.pill,
-                      backgroundColor: colors.brand,
-                    }}
-                  >
-                    <Text style={{ color: "#fff", fontWeight: "600" }}>{show.name}</Text>
-                    <Text style={{ color: "#fff", fontWeight: "700" }}>×</Text>
-                  </Pressable>
+                    icon={<Ionicons name="close" size={13} color={colors.brandInk} />}
+                  />
                 ))}
               </View>
             </View>
@@ -285,46 +256,48 @@ export default function EditDetailsScreen() {
 
             <View style={{ gap: spacing.sm }}>
               <SectionLabel>Vibe</SectionLabel>
-              <Text style={{ color: colors.textMuted, fontSize: 13 }}>
+              <Text style={[type.caption, { color: colors.textMuted }]}>
                 Two people who play the same game can still be a terrible pair — this helps us screen for fit.
               </Text>
-              <Card style={{ gap: spacing.lg }}>
-                <View style={{ gap: spacing.sm }}>
-                  <Text style={{ color: colors.text, fontWeight: "700", fontSize: 14 }}>Intensity</Text>
-                  <Slider
-                    value={vibe.intensity}
-                    onChange={(intensity) => setVibe((prev) => (prev ? { ...prev, intensity } : prev))}
-                    leftLabel="Chill / norms & ARAM"
-                    rightLabel="Sweaty ranked grind"
-                  />
-                </View>
-                <View style={{ gap: spacing.sm }}>
-                  <Text style={{ color: colors.text, fontWeight: "700", fontSize: 14 }}>Comms</Text>
-                  <Slider
-                    value={vibe.commsStyle}
-                    onChange={(commsStyle) => setVibe((prev) => (prev ? { ...prev, commsStyle } : prev))}
-                    leftLabel="Mostly quiet"
-                    rightLabel="Mic on constantly"
-                  />
-                </View>
-                <View style={{ gap: spacing.sm }}>
-                  <Text style={{ color: colors.text, fontWeight: "700", fontSize: 14 }}>Coaching</Text>
-                  <Slider
-                    value={vibe.coachingPref}
-                    onChange={(coachingPref) => setVibe((prev) => (prev ? { ...prev, coachingPref } : prev))}
-                    leftLabel="Don't review my deaths"
-                    rightLabel="Coach me, I want to improve"
-                  />
-                </View>
-                <View style={{ gap: spacing.sm }}>
-                  <Text style={{ color: colors.text, fontWeight: "700", fontSize: 14 }}>After a losing streak, I...</Text>
-                  <ChipSelect
-                    options={TILT_HANDLING_OPTIONS.map((value) => ({ value, label: TILT_HANDLING_LABELS[value] }))}
-                    selected={[vibe.tiltHandling]}
-                    onToggle={(value: TiltHandling) => setVibe((prev) => (prev ? { ...prev, tiltHandling: value } : prev))}
-                  />
-                </View>
-              </Card>
+            </View>
+
+            <View style={{ gap: spacing.sm }}>
+              <Text style={[type.bodyStrong, { color: colors.text }]}>Intensity</Text>
+              <Slider
+                value={vibe.intensity}
+                onChange={(intensity) => setVibe((prev) => (prev ? { ...prev, intensity } : prev))}
+                leftLabel="Chill / norms & ARAM"
+                rightLabel="Sweaty ranked grind"
+              />
+            </View>
+
+            <View style={{ gap: spacing.sm }}>
+              <Text style={[type.bodyStrong, { color: colors.text }]}>Comms</Text>
+              <Slider
+                value={vibe.commsStyle}
+                onChange={(commsStyle) => setVibe((prev) => (prev ? { ...prev, commsStyle } : prev))}
+                leftLabel="Mostly quiet"
+                rightLabel="Mic on constantly"
+              />
+            </View>
+
+            <View style={{ gap: spacing.sm }}>
+              <Text style={[type.bodyStrong, { color: colors.text }]}>Coaching</Text>
+              <Slider
+                value={vibe.coachingPref}
+                onChange={(coachingPref) => setVibe((prev) => (prev ? { ...prev, coachingPref } : prev))}
+                leftLabel="Don't review my deaths"
+                rightLabel="Coach me, I want to improve"
+              />
+            </View>
+
+            <View style={{ gap: spacing.sm }}>
+              <Text style={[type.bodyStrong, { color: colors.text }]}>After a losing streak, I...</Text>
+              <ChipSelect
+                options={TILT_HANDLING_OPTIONS.map((value) => ({ value, label: TILT_HANDLING_LABELS[value] }))}
+                selected={[vibe.tiltHandling]}
+                onToggle={(value: TiltHandling) => setVibe((prev) => (prev ? { ...prev, tiltHandling: value } : prev))}
+              />
             </View>
 
             <View style={{ gap: spacing.sm }}>
@@ -334,7 +307,7 @@ export default function EditDetailsScreen() {
 
             <View style={{ gap: spacing.sm }}>
               <SectionLabel>Schedule</SectionLabel>
-              <Text style={{ color: colors.textMuted, fontSize: 13 }}>
+              <Text style={[type.caption, { color: colors.textMuted }]}>
                 When do you usually play? We&apos;ll favor people whose window overlaps with yours.
               </Text>
               <ChipSelect
@@ -350,10 +323,12 @@ export default function EditDetailsScreen() {
               />
             </View>
 
-            {error && <Text style={{ color: colors.danger, fontSize: 13 }}>{error}</Text>}
+            {error && <Text style={[type.caption, { color: colors.danger }]}>{error}</Text>}
 
-            <Button label={save.isPending ? "Saving..." : "Save"} onPress={() => void handleSave()} loading={save.isPending} />
-            <Button label="Cancel" variant="ghost" onPress={() => router.back()} />
+            <ButtonRow>
+              <Button label={save.isPending ? "Saving..." : "Save"} onPress={() => void handleSave()} loading={save.isPending} />
+              <Button label="Cancel" variant="ghost" onPress={() => router.back()} />
+            </ButtonRow>
           </>
         )}
       </ScrollView>

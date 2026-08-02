@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Alert, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PROMPT_ANSWER_MAX_LENGTH, PROMPT_COUNT } from "@duoqueue/shared-types";
 
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { ModalHeader } from "@/components/ModalHeader";
+import { Sheet } from "@/components/Sheet";
 import { Skeleton } from "@/components/Skeleton";
 import { TextField } from "@/components/TextField";
 import { usePromptCatalog } from "@/features/onboarding/usePromptCatalog";
@@ -17,8 +18,9 @@ import { useToastStore } from "@/store/toast-store";
 import { useTheme } from "@/theme/useTheme";
 
 export default function EditPromptsScreen() {
-  const { colors, spacing, type, radius, hairline } = useTheme();
+  const { colors, spacing, type, radius } = useTheme();
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const profile = useSessionStore((s) => s.profile);
   const { data: existing, isLoading: loadingExisting } = useOwnPrompts(profile?.id);
   const { data: catalog, isLoading: loadingCatalog } = usePromptCatalog();
@@ -65,32 +67,12 @@ export default function EditPromptsScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       {/* No insets.top — presented as a modal, which is already inset below the status bar. */}
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <Text style={{ ...type.screenTitle, color: colors.text }}>Edit Prompts</Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Close"
-            onPress={() => router.back()}
-            hitSlop={8}
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: radius.sm,
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: colors.surface,
-              borderWidth: hairline,
-              borderColor: colors.ink,
-            }}
-          >
-            <Ionicons name="close" size={19} color={colors.text} />
-          </Pressable>
-        </View>
+        <ModalHeader title="Edit Prompts" />
         {slots === null || loadingCatalog ? (
           Array.from({ length: PROMPT_COUNT }, (_, index) => (
             <Card key={index} style={{ gap: spacing.sm }}>
               <Skeleton width="60%" height={15} />
-              <Skeleton width="100%" height={44} borderRadius={8} />
+              <Skeleton width="100%" height={44} borderRadius={radius.input} />
             </Card>
           ))
         ) : (
@@ -99,9 +81,9 @@ export default function EditPromptsScreen() {
               {slot ? (
                 <>
                   <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                    <Text style={{ color: colors.text, fontWeight: "700", flex: 1 }}>{slot.question}</Text>
+                    <Text style={[type.bodyStrong, { color: colors.text, flex: 1 }]}>{slot.question}</Text>
                     <Pressable onPress={() => clearAt(index)}>
-                      <Text style={{ color: colors.brand, fontSize: 13, fontWeight: "600" }}>Change</Text>
+                      <Text style={[type.caption, { color: colors.brand }]}>Change</Text>
                     </Pressable>
                   </View>
                   <TextField
@@ -112,7 +94,7 @@ export default function EditPromptsScreen() {
                     maxLength={PROMPT_ANSWER_MAX_LENGTH}
                     style={{ minHeight: 60, textAlignVertical: "top" }}
                   />
-                  <Text style={{ color: colors.textMuted, textAlign: "right", fontSize: 12 }}>
+                  <Text style={[type.caption, { color: colors.textMuted, textAlign: "right" }]}>
                     {slot.answer.length}/{PROMPT_ANSWER_MAX_LENGTH}
                   </Text>
                 </>
@@ -121,7 +103,7 @@ export default function EditPromptsScreen() {
                   onPress={() => setPickerIndex(index)}
                   style={{ alignItems: "center", paddingVertical: spacing.sm }}
                 >
-                  <Text style={{ color: colors.brand, fontWeight: "700" }}>+ Select a prompt</Text>
+                  <Text style={[type.bodyStrong, { color: colors.brand }]}>+ Select a prompt</Text>
                 </Pressable>
               )}
             </Card>
@@ -137,79 +119,53 @@ export default function EditPromptsScreen() {
         <Button label="Cancel" variant="ghost" onPress={() => router.back()} />
       </ScrollView>
 
-      {pickerIndex === null && (
-        <View
-          pointerEvents="none"
-          style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top, backgroundColor: colors.background }}
-        />
-      )}
+      <View
+        pointerEvents="none"
+        style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top, backgroundColor: colors.background }}
+      />
 
-      {pickerIndex !== null && (
-        <View
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: colors.background,
-            paddingTop: insets.top + spacing.lg,
-            paddingHorizontal: spacing.lg,
-          }}
-        >
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: spacing.md,
-            }}
-          >
-            <Text style={{ ...type.title, color: colors.text }}>Select a prompt</Text>
-            <Pressable onPress={() => setPickerIndex(null)}>
-              <Text style={{ color: colors.brand, fontWeight: "600" }}>Cancel</Text>
-            </Pressable>
+      <Sheet visible={pickerIndex !== null} onClose={() => setPickerIndex(null)} title="Select a prompt">
+        {loadingCatalog ? (
+          <View>
+            {[0, 1, 2, 3, 4].map((i) => (
+              <View
+                key={i}
+                style={{
+                  paddingVertical: spacing.md,
+                  borderBottomWidth: 1,
+                  borderBottomColor: colors.border,
+                }}
+              >
+                <Skeleton width={`${70 - i * 8}%`} height={15} />
+              </View>
+            ))}
           </View>
-
-          {loadingCatalog ? (
-            <View>
-              {[0, 1, 2, 3, 4].map((i) => (
-                <View
-                  key={i}
-                  style={{
-                    paddingVertical: spacing.md,
-                    borderBottomWidth: 1,
-                    borderBottomColor: colors.border,
+        ) : (
+          <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: windowHeight * 0.6 }}>
+            {(catalog ?? [])
+              .filter((item) => !chosenIds.has(item.id))
+              .map((item) => (
+                <Pressable
+                  key={item.id}
+                  onPress={() => {
+                    if (pickerIndex !== null) setPromptAt(pickerIndex, { promptId: item.id, question: item.question });
+                    setPickerIndex(null);
                   }}
-                >
-                  <Skeleton width={`${70 - i * 8}%`} height={15} />
-                </View>
-              ))}
-            </View>
-          ) : (
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {(catalog ?? [])
-                .filter((item) => !chosenIds.has(item.id))
-                .map((item) => (
-                  <Pressable
-                    key={item.id}
-                    onPress={() => {
-                      setPromptAt(pickerIndex, { promptId: item.id, question: item.question });
-                      setPickerIndex(null);
-                    }}
-                    style={{
+                  style={({ pressed }) => [
+                    {
                       paddingVertical: spacing.md,
                       borderBottomWidth: 1,
                       borderBottomColor: colors.border,
-                    }}
-                  >
-                    <Text style={{ color: colors.text, fontSize: 15 }}>{item.question}</Text>
-                  </Pressable>
-                ))}
-            </ScrollView>
-          )}
-        </View>
-      )}
+                      backgroundColor: pressed ? colors.surfaceAlt : "transparent",
+                    },
+                  ]}
+                >
+                  <Text style={[type.body, { color: colors.text }]}>{item.question}</Text>
+                </Pressable>
+              ))}
+          </ScrollView>
+        )}
+      </Sheet>
     </View>
   );
 }
