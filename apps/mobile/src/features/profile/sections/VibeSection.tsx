@@ -39,7 +39,16 @@ function VibeBar({ left, right, pct }: { left: string; right: string; pct: numbe
  * both the own-profile and stranger-profile call sites can pass `null` straight
  * through without a conditional wrapper.
  */
-export function VibeSection({ vibe }: { vibe: DeckCard["vibe"] }) {
+export function VibeSection({
+  vibe,
+  /** Own-profile-only polish: a 1px hairline above the tilt sentence so it reads as a
+   * footer under the bars rather than a fourth bar. Opt-in and off by default so the
+   * stranger-profile call site (ProfileDetailContent) renders exactly as before. */
+  footerDivider = false,
+}: {
+  vibe: DeckCard["vibe"];
+  footerDivider?: boolean;
+}) {
   const { colors, spacing, type } = useTheme();
 
   if (!vibe) return null;
@@ -51,9 +60,17 @@ export function VibeSection({ vibe }: { vibe: DeckCard["vibe"] }) {
         {AXES.map((axis) => (
           <VibeBar key={axis.key} left={axis.left} right={axis.right} pct={vibe[axis.key]} />
         ))}
-        <Text style={[type.body, { color: colors.text }]}>
-          After a losing streak: {TILT_HANDLING_LABELS[vibe.tiltHandling]}
-        </Text>
+        <View
+          style={
+            footerDivider
+              ? { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.sm }
+              : undefined
+          }
+        >
+          <Text style={[type.body, { color: colors.text }]}>
+            After a losing streak: {TILT_HANDLING_LABELS[vibe.tiltHandling]}
+          </Text>
+        </View>
       </View>
     </View>
   );

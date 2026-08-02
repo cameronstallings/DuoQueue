@@ -20,6 +20,7 @@ import { PROMPT_COUNT, type PhotoRole } from "@duoqueue/shared-types";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { Name } from "@/components/Name";
+import { SectionLabel } from "@/components/SectionLabel";
 import { Skeleton } from "@/components/Skeleton";
 import { VoiceIntroPlayer } from "@/components/VoiceIntroPlayer";
 import {
@@ -155,6 +156,35 @@ export default function ProfileScreen() {
   const regionLabel = profile ? (REGION_LABELS[profile.region] ?? profile.region) : null;
   const playWindowLabel = profile ? formatPlayWindow(profile.usual_play_start_hour, profile.usual_play_end_hour) : null;
 
+  // Derived once so both the hero card's stat strip and the panels below can gate on
+  // (and reuse) the exact same shape each section component already checks internally —
+  // wrapping a section in a visible Card only when the section itself would render.
+  const gamesList = (details?.games ?? []).map((game) => ({
+    name: game.name,
+    skillLevel: SKILL_LABELS[game.skillLevel],
+    rank: game.rankText,
+  }));
+  const platformsList = (details?.platforms ?? []).map((platform) => PLATFORM_LABELS[platform]);
+  const playstylesList = (details?.playstyles ?? []).map((tag) => PLAYSTYLE_LABELS[tag]);
+  const showsList = details?.shows ?? [];
+  const vibe = editableDetails?.vibe ?? null;
+
+  // 2-3 facts already on the page, condensed into the hero card's stat strip —
+  // no new fetches, just a reading of `details` that's already loaded.
+  const gameCount = details?.games.length ?? 0;
+  const primaryPlatform = details?.platforms[0];
+  const primaryPlaystyle = details?.playstyles[0];
+  const primaryPlatformLabel = primaryPlatform ? PLATFORM_LABELS[primaryPlatform] : null;
+  const primaryPlaystyleLabel = primaryPlaystyle ? PLAYSTYLE_LABELS[primaryPlaystyle] : null;
+  const statLine =
+    [
+      gameCount > 0 ? `${gameCount} game${gameCount === 1 ? "" : "s"}` : null,
+      primaryPlatformLabel,
+      primaryPlaystyleLabel,
+    ]
+      .filter((part): part is string => !!part)
+      .join(" · ") || null;
+
   const scrollY = useSharedValue(0);
   const scrollHandler = useAnimatedScrollHandler((event) => {
     scrollY.value = event.contentOffset.y;
@@ -180,18 +210,17 @@ export default function ProfileScreen() {
                 borderRadius={AVATAR_SIZE / 2}
                 style={{ marginTop: -AVATAR_SIZE / 2, borderWidth: 4, borderColor: colors.background }}
               />
-              <View style={{ marginTop: spacing.sm, gap: spacing.xs }}>
-                <Skeleton width="55%" height={22} />
-                <Skeleton width="35%" height={14} />
-              </View>
               <View style={{ marginTop: spacing.md }}>
-                <Skeleton height={80} borderRadius={radius.lg} />
+                {/* Hero card: name + meta, stat strip, completeness bar, edit button. */}
+                <Skeleton height={166} borderRadius={radius.card} />
               </View>
-              {["Games", "Shows & Movies", "Platforms", "Playstyle"].map((label) => (
-                <View key={label} style={{ marginTop: spacing.md }}>
-                  <Skeleton height={36} borderRadius={radius.chip} />
-                </View>
-              ))}
+              <View style={{ marginTop: spacing.lg, gap: spacing.lg }}>
+                {/* Panel rhythm: one glass-card-shaped block per labeled section, spaced
+                    the same as the real Cards, so loading doesn't jump when data lands. */}
+                {[104, 84, 128, 96].map((height, index) => (
+                  <Skeleton key={index} height={height} borderRadius={radius.card} />
+                ))}
+              </View>
             </View>
           </View>
         ) : (
@@ -258,38 +287,48 @@ export default function ProfileScreen() {
               </Pressable>
 
               {profile && (
-                <Card luminous style={{ marginTop: spacing.md, gap: spacing.xs }}>
-                  <Name variant="cardName" style={{ color: colors.text }}>
-                    {profile.display_name}
-                  </Name>
-                  {age !== null && regionLabel && (
-                    <Text style={[type.caption, { color: colors.textMuted }]}>
-                      {age} · {regionLabel}
-                    </Text>
-                  )}
-                  <View style={{ flexDirection: "row", marginTop: spacing.xs }}>
-                    <Button label="Edit profile" onPress={() => router.push("/edit-details")} />
+                <Card luminous style={{ marginTop: spacing.md, gap: spacing.sm }}>
+                  <View style={{ gap: spacing.xs }}>
+                    <Name variant="cardName" style={{ color: colors.text }}>
+                      {profile.display_name}
+                    </Name>
+                    {age !== null && regionLabel && (
+                      <Text style={[type.caption, { color: colors.textMuted }]}>
+                        {age} · {regionLabel}
+                      </Text>
+                    )}
                   </View>
+
+                  {statLine && (
+                    <Text style={[type.caption, { color: colors.textMuted }]}>{statLine}</Text>
+                  )}
+
+                  <ProfileCompleteness
+                    items={[
+                      { label: "a profile picture", done: !!photos?.profileUrl },
+                      { label: "a header picture", done: !!photos?.headerUrl },
+                      { label: "a game", done: (details?.games.length ?? 0) > 0 },
+                      { label: "a show", done: (details?.shows.length ?? 0) > 0 },
+                      { label: "a platform", done: (details?.platforms.length ?? 0) > 0 },
+                      { label: "a playstyle", done: (details?.playstyles.length ?? 0) > 0 },
+                      { label: "your prompts", done: (prompts?.length ?? 0) >= PROMPT_COUNT },
+                    ]}
+                  />
+
+                  {/* Bare (no row wrapper) so it stretches to the card's full content
+                      width by default flex stretch, instead of shrinking beside dead
+                      space the way a row-wrapped button would. */}
+                  <Button label="Edit profile" onPress={() => router.push("/edit-details")} />
                 </Card>
               )}
 
-              <ProfileCompleteness
-                items={[
-                  { label: "a profile picture", done: !!photos?.profileUrl },
-                  { label: "a header picture", done: !!photos?.headerUrl },
-                  { label: "a game", done: (details?.games.length ?? 0) > 0 },
-                  { label: "a show", done: (details?.shows.length ?? 0) > 0 },
-                  { label: "a platform", done: (details?.platforms.length ?? 0) > 0 },
-                  { label: "a playstyle", done: (details?.playstyles.length ?? 0) > 0 },
-                  { label: "your prompts", done: (prompts?.length ?? 0) >= PROMPT_COUNT },
-                ]}
-              />
-
               <View style={{ marginTop: spacing.lg, gap: spacing.lg }}>
-                {/* PromptsSection owns its own "Prompts" heading; the Edit link is laid
-                    on top rather than threaded into the shared component's props, so
-                    prompt editing (a separate screen from the rest of edit-details) stays
-                    a call-site concern instead of a section-component one. */}
+                {/* PromptsSection already renders one glass Card per prompt — an outer
+                    Card here would nest glass edges, so this stays the one section that
+                    isn't wrapped. The Edit link is laid on top rather than threaded into
+                    the shared component's props, so prompt editing (a separate screen
+                    from the rest of edit-details) stays a call-site concern instead of a
+                    section-component one. */}
                 <View style={{ position: "relative" }}>
                   <PromptsSection prompts={prompts ?? []} />
                   <Pressable
@@ -302,28 +341,48 @@ export default function ProfileScreen() {
                   </Pressable>
                 </View>
 
-                <GamesSection
-                  games={(details?.games ?? []).map((game) => ({
-                    name: game.name,
-                    skillLevel: SKILL_LABELS[game.skillLevel],
-                    rank: game.rankText,
-                  }))}
-                />
-
-                <HowIPlaySection
-                  platforms={(details?.platforms ?? []).map((platform) => PLATFORM_LABELS[platform])}
-                  playstyles={(details?.playstyles ?? []).map((tag) => PLAYSTYLE_LABELS[tag])}
-                />
-
-                <VibeSection vibe={editableDetails?.vibe ?? null} />
-
-                <MetaLine playWindow={playWindowLabel} />
-
-                {ownVoiceIntro && (
-                  <VoiceIntroPlayer url={ownVoiceIntro.url} durationSeconds={ownVoiceIntro.durationSeconds} />
+                {/* Every other section is gated on the exact data its section component
+                    checks internally, so a Card never wraps a section that would
+                    otherwise render null. */}
+                {gamesList.length > 0 && (
+                  <Card>
+                    <GamesSection games={gamesList} />
+                  </Card>
                 )}
 
-                <ShowsSection shows={details?.shows ?? []} />
+                {(platformsList.length > 0 || playstylesList.length > 0) && (
+                  <Card>
+                    <HowIPlaySection platforms={platformsList} playstyles={playstylesList} />
+                  </Card>
+                )}
+
+                {vibe && (
+                  <Card>
+                    <VibeSection vibe={vibe} footerDivider />
+                  </Card>
+                )}
+
+                {playWindowLabel && (
+                  // SectionLabel carries its own bottom margin (same idiom the other
+                  // section components use internally) — no extra gap needed here.
+                  <Card>
+                    <SectionLabel>Schedule</SectionLabel>
+                    <MetaLine playWindow={playWindowLabel} />
+                  </Card>
+                )}
+
+                {ownVoiceIntro && (
+                  <Card>
+                    <SectionLabel>Voice Intro</SectionLabel>
+                    <VoiceIntroPlayer url={ownVoiceIntro.url} durationSeconds={ownVoiceIntro.durationSeconds} />
+                  </Card>
+                )}
+
+                {showsList.length > 0 && (
+                  <Card>
+                    <ShowsSection shows={showsList} />
+                  </Card>
+                )}
               </View>
             </View>
           </Animated.View>
