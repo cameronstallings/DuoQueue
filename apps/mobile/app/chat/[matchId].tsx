@@ -287,7 +287,7 @@ function MessageBubble({
         {isHidden ? "Message hidden — tap to reveal" : content}
       </Text>
       {isMine && (
-        <Text style={[type.caption, { color: colors.textMuted, textAlign: "right", marginTop: 2 }]}>
+        <Text style={[type.caption, { color: colors.onFill, opacity: 0.75, textAlign: "right", marginTop: 2 }]}>
           {readAt ? "Read" : "Sent"}
         </Text>
       )}
@@ -504,8 +504,7 @@ export default function ChatScreen() {
           // which here is the literal route group "(tabs)".
           headerBackTitle: "Matches",
           headerTintColor: colors.brandInk,
-          headerStyle: { backgroundColor: colors.surface },
-          headerTitleStyle: { ...type.title, color: colors.text },
+          headerStyle: { backgroundColor: colors.surfaceSolid },
           headerShadowVisible: false,
           // The name itself is the way into their profile — smallest change that
           // keeps the native header chrome but makes the title tappable.

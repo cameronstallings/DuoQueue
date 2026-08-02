@@ -138,10 +138,10 @@ function MatchRow({ item }: { item: MatchListItem }) {
 }
 
 function MatchRowSkeleton() {
-  const { spacing } = useTheme();
+  const { spacing, radius } = useTheme();
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.lg }}>
-      <Skeleton width={54} height={54} borderRadius={8} />
+      <Skeleton width={54} height={54} borderRadius={radius.round} />
       <View style={{ flex: 1, gap: spacing.xs }}>
         <Skeleton width="50%" height={14} />
         <Skeleton width="80%" height={12} />
