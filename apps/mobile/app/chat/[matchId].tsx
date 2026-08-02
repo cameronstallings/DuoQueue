@@ -595,7 +595,14 @@ export default function ChatScreen() {
             // the normal run-separating gap.
             const previous = reversedTimeline[index + 1];
             const isRunContinuation = previous?.kind === "message" && previous.message.sender_id === item.message.sender_id;
-            const marginTop = index === reversedTimeline.length - 1 ? 0 : isRunContinuation ? 3 : spacing.sm;
+            // A discord_share bubble carries its own marginVertical (spacing.sm top AND
+            // bottom). If the message right below it (chronologically after, rendered
+            // below on screen) ALSO applied the normal spacing.sm marginTop, the gap
+            // below the bubble would be 2x spacing.sm while the gap above it stays 1x.
+            // Zero this message's own marginTop so the share bubble's bottom margin is
+            // the only contributor — symmetric spacing.sm on both sides of the bubble.
+            const followsDiscordShare = previous?.kind === "discord_share";
+            const marginTop = index === reversedTimeline.length - 1 ? 0 : followsDiscordShare ? 0 : isRunContinuation ? 3 : spacing.sm;
             return (
               <View style={{ marginTop }}>
                 <MessageBubble
