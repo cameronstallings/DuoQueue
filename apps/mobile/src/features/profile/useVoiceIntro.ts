@@ -25,6 +25,25 @@ export function useOwnVoiceIntro(profileId: string | undefined) {
   });
 }
 
+/** Signs the caller's own clip for playback, given the row `useOwnVoiceIntro` already
+ * fetched — reuses that query instead of re-selecting `profile_voice_intro`, and signs
+ * with the same `signVoiceIntroUrl` helper `usePublicVoiceIntro` uses below. Own-path
+ * signing is covered by the `voice_intros_select_own_folder` storage policy (see
+ * 0024_voice_intros.sql / 0032_scope_voice_intro_policies.sql): object paths are
+ * `${profile_id}/${filename}`, and `profiles.id` is the same uuid as `auth.uid()` for
+ * one's own account, so the folder-vs-auth.uid() check that policy makes passes for a
+ * caller signing their own clip regardless of moderation_status. */
+export function useOwnVoiceIntroUrl(row: ProfileVoiceIntroRow | null | undefined) {
+  return useQuery({
+    queryKey: ["own-voice-intro-url", row?.storage_path],
+    queryFn: async () => {
+      const url = await signVoiceIntroUrl(row!.storage_path);
+      return url ? { url, durationSeconds: row!.duration_seconds } : null;
+    },
+    enabled: !!row?.storage_path,
+  });
+}
+
 /** Another profile's clip — only ever resolves for approved clips (RLS via the public
  * view), fetched lazily when a profile's detail view is actually opened. */
 export function usePublicVoiceIntro(profileId: string | undefined) {

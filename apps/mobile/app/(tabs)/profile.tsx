@@ -21,6 +21,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { Name } from "@/components/Name";
 import { Skeleton } from "@/components/Skeleton";
+import { VoiceIntroPlayer } from "@/components/VoiceIntroPlayer";
 import {
   PLATFORM_LABELS,
   PLAYSTYLE_LABELS,
@@ -42,6 +43,7 @@ import { useOwnProfileDetails } from "@/features/profile/useOwnProfileDetails";
 import { useOwnProfilePhotos } from "@/features/profile/useOwnProfilePhotos";
 import { useOwnPrompts } from "@/features/profile/useOwnPrompts";
 import { useUpdatePhoto } from "@/features/profile/usePhotoUpload";
+import { useOwnVoiceIntro, useOwnVoiceIntroUrl } from "@/features/profile/useVoiceIntro";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
@@ -105,6 +107,14 @@ export default function ProfileScreen() {
   // useOwnProfileDetails, which already has the shape these sections expect.
   const { data: editableDetails, isLoading: vibeLoading } = useEditableProfileDetails(profile?.id);
   const updatePhoto = useUpdatePhoto(profile?.id);
+
+  // Voice intro: sign the caller's own clip (whatever its moderation status) for
+  // playback, reusing the row useOwnVoiceIntro already fetches rather than
+  // re-querying profile_voice_intro. Not part of the pageReady gate — like the
+  // stranger-profile view, it resolves lazily and simply appears once signed rather
+  // than holding up the rest of the page.
+  const { data: ownVoiceIntroRow } = useOwnVoiceIntro(profile?.id);
+  const { data: ownVoiceIntro } = useOwnVoiceIntroUrl(ownVoiceIntroRow);
 
   // Start downloading the actual image bytes the moment the signed URLs are known,
   // instead of waiting for prompts/details too — those photo URLs resolving doesn't
@@ -310,12 +320,9 @@ export default function ProfileScreen() {
 
                 <MetaLine playWindow={playWindowLabel} />
 
-                {/* Voice intro intentionally omitted: no existing own-profile hook
-                    returns a signed, playable URL for the caller's own clip —
-                    useOwnVoiceIntro only exposes the raw profile_voice_intro row
-                    (moderation status, storage path) for the edit-details recorder
-                    card's status display. Wiring VoiceIntroPlayer here would mean
-                    standing up a new signing fetch, which is out of scope. */}
+                {ownVoiceIntro && (
+                  <VoiceIntroPlayer url={ownVoiceIntro.url} durationSeconds={ownVoiceIntro.durationSeconds} />
+                )}
 
                 <ShowsSection shows={details?.shows ?? []} />
               </View>
