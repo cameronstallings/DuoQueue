@@ -57,9 +57,14 @@ function MatchRow({ item }: { item: MatchListItem }) {
   const { colors, spacing, type, radius, glow } = useTheme();
   const unread = item.unread_count > 0;
 
+  const unreadLabel = unread ? `, ${item.unread_count} unread` : "";
+  const lockedLabel = item.is_locked ? ", locked" : "";
+
   return (
     <Pressable
       onPress={() => router.push({ pathname: "/chat/[matchId]", params: { matchId: item.match_id } })}
+      accessibilityRole="button"
+      accessibilityLabel={`${item.other_display_name}${unreadLabel}${lockedLabel}`}
       style={({ pressed }) => ({
         flexDirection: "row",
         alignItems: "center",
