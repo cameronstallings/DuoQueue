@@ -27,7 +27,7 @@ export function ReportModal({ visible, onClose, onSubmit }: ReportModalProps) {
   const [details, setDetails] = useState("");
 
   return (
-    <Sheet visible={visible} onClose={onClose} title="Report this user">
+    <Sheet visible={visible} onClose={onClose} title="Report this user" dismissable={false}>
       <View style={{ gap: spacing.md }}>
         <ChipSelect
           options={REPORT_REASONS.map((value) => ({ value, label: REPORT_REASON_LABELS[value] }))}

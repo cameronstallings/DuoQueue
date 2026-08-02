@@ -8,10 +8,13 @@ interface SheetProps extends PropsWithChildren {
   visible: boolean;
   onClose: () => void;
   title?: string;
+  /** Forms that carry user input should pass `dismissable={false}` so a mis-tap
+   *  on the scrim can't destroy it — hardware back still closes it either way. */
+  dismissable?: boolean;
 }
 
 /** The one shared bottom-sheet chrome — scrim, grab handle, optional title. */
-export function Sheet({ visible, onClose, title, children }: SheetProps) {
+export function Sheet({ visible, onClose, title, children, dismissable = true }: SheetProps) {
   const { colors, radius, spacing, type, scrimRgb } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -19,7 +22,7 @@ export function Sheet({ visible, onClose, title, children }: SheetProps) {
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable
         style={{ flex: 1, justifyContent: "flex-end", backgroundColor: `rgba(${scrimRgb},0.6)` }}
-        onPress={onClose}
+        onPress={dismissable ? onClose : undefined}
       >
         <View
           onStartShouldSetResponder={() => true}
