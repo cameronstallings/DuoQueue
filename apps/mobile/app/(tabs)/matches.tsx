@@ -5,6 +5,7 @@ import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn } from "react-native-reanimated";
 
+import { Chip } from "@/components/Chip";
 import { EmptyState } from "@/components/EmptyState";
 import { Name } from "@/components/Name";
 import { Skeleton } from "@/components/Skeleton";
@@ -53,7 +54,7 @@ function timeAgo(iso: string | null): string {
 }
 
 function MatchRow({ item }: { item: MatchListItem }) {
-  const { colors, spacing, type, radius, hairline } = useTheme();
+  const { colors, spacing, type, radius, glow } = useTheme();
   const unread = item.unread_count > 0;
 
   return (
@@ -68,71 +69,65 @@ function MatchRow({ item }: { item: MatchListItem }) {
         backgroundColor: pressed ? colors.surfaceAlt : "transparent",
       })}
     >
-      {/* A keylined square, not a circle — the avatar reads as a small printed tile,
-          matching the deck card's photo window. */}
-      {item.otherPhotoUrl ? (
-        <Image
-          source={{ uri: item.otherPhotoUrl }}
-          style={{
+      {/* A round avatar, own Pressable so a tap opens the profile without also
+          opening the chat underneath it. Ring glows pink — the one unread signal. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="View profile"
+        onPress={() => router.push(`/profile/${item.other_profile_id}`)}
+        hitSlop={8}
+        style={[
+          {
             width: 54,
             height: 54,
-            borderRadius: radius.window,
-            borderWidth: hairline,
-            borderColor: colors.ink,
-          }}
-          cachePolicy="memory-disk"
-          transition={150}
-        />
-      ) : (
-        <View
-          style={{
-            width: 54,
-            height: 54,
-            borderRadius: radius.window,
-            backgroundColor: colors.surfaceAlt,
-            borderWidth: hairline,
-            borderColor: colors.ink,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Text style={[type.title, { color: colors.textMuted }]}>{item.other_display_name[0]}</Text>
-        </View>
-      )}
+            borderRadius: radius.round,
+            borderWidth: unread ? 2 : 1,
+            borderColor: unread ? colors.pink : colors.border,
+          },
+          // The glow (boxShadow) is a ViewStyle-only prop — it goes on this
+          // Pressable wrapper, not on expo-image's Image, which doesn't type it.
+          unread ? glow(colors.glowPink, 10) : null,
+        ]}
+      >
+        {item.otherPhotoUrl ? (
+          <Image
+            source={{ uri: item.otherPhotoUrl }}
+            style={{ width: "100%", height: "100%", borderRadius: radius.round }}
+            cachePolicy="memory-disk"
+            transition={150}
+          />
+        ) : (
+          <View
+            style={{
+              width: "100%",
+              height: "100%",
+              borderRadius: radius.round,
+              backgroundColor: colors.surfaceAlt,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text style={[type.title, { color: colors.textMuted }]}>{item.other_display_name[0]}</Text>
+          </View>
+        )}
+      </Pressable>
 
       <View style={{ flex: 1, gap: 2 }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
           <Name variant="bodyStrong" style={{ color: colors.text, flex: 1 }} numberOfLines={1}>
             {item.other_display_name}
           </Name>
-          <Text style={[type.statSm, { color: colors.textMuted }]}>{timeAgo(item.last_message_at)}</Text>
+          <Text style={[type.caption, { color: colors.textMuted }]}>{timeAgo(item.last_message_at)}</Text>
         </View>
         <Text
           numberOfLines={1}
           style={[unread ? type.bodyStrong : type.body, { color: unread ? colors.text : colors.textMuted }]}
         >
-          {item.is_locked ? "Locked — upgrade to keep chatting" : (item.last_message ?? "Say hi!")}
+          {item.last_message ?? "Say hi!"}
         </Text>
       </View>
 
-      {unread && (
-        <View
-          style={{
-            minWidth: 22,
-            height: 22,
-            borderRadius: radius.chip,
-            backgroundColor: colors.brand,
-            borderWidth: hairline,
-            borderColor: colors.ink,
-            alignItems: "center",
-            justifyContent: "center",
-            paddingHorizontal: 5,
-          }}
-        >
-          <Text style={[type.statSm, { color: colors.onFill }]}>{item.unread_count}</Text>
-        </View>
-      )}
-      {item.is_locked && <Text style={[type.label, { color: colors.textMuted }]}>LOCKED</Text>}
+      {item.is_locked && <Chip tone="solar" label="Locked" />}
     </Pressable>
   );
 }
