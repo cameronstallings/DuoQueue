@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   FlatList,
@@ -12,6 +12,7 @@ import {
 import * as Clipboard from "expo-clipboard";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useHeaderHeight } from "@react-navigation/elements";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { MATCH_FEEDBACK_TAGS, type MatchFeedbackTag, type ReportReason } from "@duoqueue/shared-types";
 
@@ -253,11 +254,13 @@ function FeedbackModal({
 function MessageBubble({
   content,
   isMine,
+  showReceipt,
   readAt,
   hiddenWords,
 }: {
   content: string;
   isMine: boolean;
+  showReceipt: boolean;
   readAt: string | null;
   hiddenWords: string[];
 }) {
@@ -266,52 +269,52 @@ function MessageBubble({
   const isHidden = !isMine && !revealed && containsHiddenWord(content, hiddenWords);
 
   const bubbleShape = {
-    // Bubble geometry has no token — 18 is the base radius, 6 is the tail corner.
-    borderRadius: 18,
+    // Bubble geometry has no token — 20 is the base radius, 6 is the tail corner.
+    borderRadius: 20,
     ...(isMine ? { borderBottomRightRadius: 6 } : { borderBottomLeftRadius: 6 }),
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 1,
+    paddingHorizontal: spacing.md - 2,
   };
 
-  const inner = (
-    <>
-      <Text
-        style={[
-          type.body,
-          {
-            color: isMine ? colors.onFill : isHidden ? colors.textMuted : colors.text,
-            fontStyle: isHidden ? "italic" : "normal",
-          },
-        ]}
-      >
-        {isHidden ? "Message hidden — tap to reveal" : content}
-      </Text>
-      {isMine && (
-        <Text style={[type.caption, { color: colors.onFill, opacity: 0.75, textAlign: "right", marginTop: 2 }]}>
-          {readAt ? "Read" : "Sent"}
-        </Text>
-      )}
-    </>
+  const text = (
+    <Text
+      style={[
+        type.body,
+        {
+          color: isMine ? colors.onFill : isHidden ? colors.textMuted : colors.text,
+          fontStyle: isHidden ? "italic" : "normal",
+        },
+      ]}
+    >
+      {isHidden ? "Message hidden — tap to reveal" : content}
+    </Text>
   );
 
   return (
-    <Pressable
-      disabled={!isHidden}
-      onPress={() => setRevealed(true)}
-      style={{ alignSelf: isMine ? "flex-end" : "flex-start", maxWidth: "80%" }}
-    >
-      {isMine ? (
-        // The 0.9 opacity lives on the gradient container itself, not the text —
-        // so the whole fill reads as a hair translucent, not the label alone.
-        <LinearGradient {...heroGradient} style={[bubbleShape, { opacity: 0.9 }]}>
-          {inner}
-        </LinearGradient>
-      ) : (
-        <View style={[bubbleShape, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}>
-          {inner}
-        </View>
+    <View style={{ alignSelf: isMine ? "flex-end" : "flex-start", maxWidth: "78%" }}>
+      <Pressable disabled={!isHidden} onPress={() => setRevealed(true)}>
+        {isMine ? (
+          // The 0.9 opacity lives on the gradient container itself, not the text —
+          // so the whole fill reads as a hair translucent, not the label alone.
+          <LinearGradient {...heroGradient} style={[bubbleShape, { opacity: 0.9 }]}>
+            {text}
+          </LinearGradient>
+        ) : (
+          <View style={[bubbleShape, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}>
+            {text}
+          </View>
+        )}
+      </Pressable>
+      {/* Lives below the bubble, not inside it — a one-word receipt inside a short
+          bubble was inflating every own message into a near-square blob. Shown only
+          on the latest own message (computed by the caller) so a whole run of "Sent"
+          labels doesn't repeat down the screen. */}
+      {isMine && showReceipt && (
+        <Text style={[type.caption, { color: colors.textMuted, textAlign: "right", marginTop: 2 }]}>
+          {readAt ? "Read" : "Sent"}
+        </Text>
       )}
-    </Pressable>
+    </View>
   );
 }
 
@@ -370,6 +373,7 @@ function DiscordShareBubble({
 
 export default function ChatScreen() {
   const { colors, spacing, radius, type, glow, heroGradient, solarGradient } = useTheme();
+  const headerHeight = useHeaderHeight();
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const myId = useSessionStore((s) => s.session?.user.id);
   const { data: matches } = useMatches();
@@ -395,6 +399,21 @@ export default function ChatScreen() {
   useEffect(() => {
     void markAsRead();
   }, [timeline.length, markAsRead]);
+
+  // `timeline` is chronological (oldest first) from the hook. The list below renders
+  // it `inverted` (standard chat pattern — anchors to the bottom, keeps scroll-to-latest
+  // free), which needs the data reversed to newest-first.
+  const reversedTimeline = useMemo(() => [...timeline].reverse(), [timeline]);
+
+  // The read receipt only ever belongs on the newest message I sent — walk from the
+  // end of the chronological list once rather than recomputing per bubble.
+  const latestOwnMessageId = useMemo(() => {
+    for (let i = timeline.length - 1; i >= 0; i--) {
+      const item = timeline[i];
+      if (item?.kind === "message" && item.message.sender_id === myId) return item.message.id;
+    }
+    return null;
+  }, [timeline, myId]);
 
   const hasSharedDiscord = timeline.some(
     (item) => item.kind === "discord_share" && item.share.shared_by === myId && !item.share.revoked,
@@ -546,10 +565,16 @@ export default function ChatScreen() {
       ) : (
         <FlatList
           ref={listRef}
-          data={timeline}
+          data={reversedTimeline}
+          // Only invert once there's something to show — an inverted empty list flips
+          // `ListEmptyComponent` upside down too, since it isn't wrapped in the cell
+          // renderer that cancels the list's own flip for real rows.
+          inverted={reversedTimeline.length > 0}
           keyExtractor={(item) => (item.kind === "message" ? item.message.id : item.share.id)}
-          contentContainerStyle={{ padding: spacing.md, gap: spacing.xs, flexGrow: 1 }}
-          onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
+          contentContainerStyle={{ padding: spacing.md, flexGrow: 1 }}
+          onContentSizeChange={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
+          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+          keyboardShouldPersistTaps="handled"
           ListEmptyComponent={
             <EmptyState
               icon="chatbubbles"
@@ -557,19 +582,30 @@ export default function ChatScreen() {
               subtitle="You matched — break the ice with a message about a game you both play."
             />
           }
-          renderItem={({ item }: { item: ChatTimelineItem }) => {
+          renderItem={({ item, index }: { item: ChatTimelineItem; index: number }) => {
             if (item.kind === "discord_share") {
               if (item.share.revoked) return null;
               return <DiscordShareBubble matchId={matchId} sharedBy={item.share.shared_by} isMine={item.share.shared_by === myId} />;
             }
             const isMine = item.message.sender_id === myId;
+            // `reversedTimeline` is newest-first, so the chronologically-previous
+            // message (the one rendered just above this one, since the list is
+            // inverted) sits at index + 1. Same sender back-to-back → tighten the
+            // gap into a "run"; anything else (including the very first item) gets
+            // the normal run-separating gap.
+            const previous = reversedTimeline[index + 1];
+            const isRunContinuation = previous?.kind === "message" && previous.message.sender_id === item.message.sender_id;
+            const marginTop = index === reversedTimeline.length - 1 ? 0 : isRunContinuation ? 3 : spacing.sm;
             return (
-              <MessageBubble
-                content={item.message.content}
-                isMine={isMine}
-                readAt={item.message.read_at}
-                hiddenWords={hiddenWords ?? []}
-              />
+              <View style={{ marginTop }}>
+                <MessageBubble
+                  content={item.message.content}
+                  isMine={isMine}
+                  showReceipt={isMine && item.message.id === latestOwnMessageId}
+                  readAt={item.message.read_at}
+                  hiddenWords={hiddenWords ?? []}
+                />
+              </View>
             );
           }}
         />
@@ -583,7 +619,10 @@ export default function ChatScreen() {
 
       <SessionBanner matchId={matchId} myId={myId} />
 
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={headerHeight}
+      >
         {matchInfo?.is_locked ? (
           <View style={{ padding: spacing.md, borderTopWidth: 1, borderColor: colors.border }}>
             <LinearGradient {...solarGradient} style={{ borderRadius: radius.card, padding: 1 }}>
@@ -637,6 +676,9 @@ export default function ChatScreen() {
                 },
               ]}
               multiline
+              returnKeyType="send"
+              blurOnSubmit={false}
+              onSubmitEditing={() => void handleSend()}
             />
             <Pressable
               accessibilityRole="button"
