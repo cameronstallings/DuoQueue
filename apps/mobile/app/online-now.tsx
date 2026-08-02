@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Alert, Pressable, Switch, Text, View } from "react-native";
-import { Image } from "expo-image";
+import { Alert, Switch, Text, View } from "react-native";
 import { router } from "expo-router";
 
 import { Button } from "@/components/Button";
+import { Card } from "@/components/Card";
 import { EmptyState } from "@/components/EmptyState";
+import { PresenceAvatar } from "@/components/PresenceAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { Skeleton } from "@/components/Skeleton";
 import { useLookingNow } from "@/features/online-now/useLookingNow";
@@ -23,7 +24,7 @@ function timeAgo(iso: string | null): string {
 }
 
 function OnlineNowRow({ item }: { item: OnlineNowCard }) {
-  const { colors, radius, spacing } = useTheme();
+  const { colors, spacing, type } = useTheme();
   const swipeAction = useSwipeAction();
 
   async function handleLike() {
@@ -41,96 +42,39 @@ function OnlineNowRow({ item }: { item: OnlineNowCard }) {
   }
 
   return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: spacing.md,
-        padding: spacing.md,
-        backgroundColor: colors.surface,
-        borderRadius: radius.md,
-        borderWidth: 1,
-        borderColor: colors.border,
-      }}
-    >
-      <View>
-        {item.profilePhotoUrl ? (
-          <Image
-            source={{ uri: item.profilePhotoUrl }}
-            style={{ width: 56, height: 56, borderRadius: 28 }}
-            cachePolicy="memory-disk"
-            transition={150}
-          />
-        ) : (
-          <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.background }} />
-        )}
-        <View
-          style={{
-            position: "absolute",
-            bottom: -2,
-            right: -2,
-            width: 16,
-            height: 16,
-            borderRadius: 8,
-            backgroundColor: colors.success,
-            borderWidth: 2,
-            borderColor: colors.surface,
-          }}
-        />
-      </View>
+    <Card style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md }}>
+      <PresenceAvatar uri={item.profilePhotoUrl} size={56} isActive backdropColor={colors.surface} />
       <View style={{ flex: 1 }}>
-        <Text style={{ fontWeight: "700", color: colors.text }}>
+        <Text style={[type.bodyStrong, { color: colors.text }]}>
           {item.display_name}, {item.age}
         </Text>
-        <Text style={{ color: colors.textMuted, fontSize: 12 }}>{timeAgo(item.lastActiveAt)}</Text>
+        <Text style={[type.caption, { color: colors.textMuted }]}>{timeAgo(item.lastActiveAt)}</Text>
         {item.shared_games_count > 0 && (
-          <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+          <Text style={[type.caption, { color: colors.textMuted }]}>
             {item.shared_games_count} game{item.shared_games_count === 1 ? "" : "s"} in common
           </Text>
         )}
       </View>
-      <Pressable
-        onPress={() => void handleLike()}
-        disabled={swipeAction.isPending}
-        style={{
-          backgroundColor: colors.brand,
-          paddingHorizontal: spacing.md,
-          paddingVertical: spacing.sm,
-          borderRadius: radius.pill,
-        }}
-      >
-        <Text style={{ color: "#fff", fontWeight: "700" }}>Like</Text>
-      </Pressable>
-    </View>
+      <Button label="Like" onPress={() => void handleLike()} loading={swipeAction.isPending} />
+    </Card>
   );
 }
 
 function OnlineNowRowSkeleton() {
-  const { colors, radius, spacing } = useTheme();
+  const { radius, spacing } = useTheme();
   return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: spacing.md,
-        padding: spacing.md,
-        backgroundColor: colors.surface,
-        borderRadius: radius.md,
-        borderWidth: 1,
-        borderColor: colors.border,
-      }}
-    >
-      <Skeleton width={56} height={56} borderRadius={28} />
+    <Card style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md }}>
+      <Skeleton width={56} height={56} borderRadius={radius.round} />
       <View style={{ flex: 1, gap: spacing.xs }}>
         <Skeleton width="40%" height={14} />
         <Skeleton width="55%" height={12} />
       </View>
-    </View>
+    </Card>
   );
 }
 
 export default function OnlineNowScreen() {
-  const { colors, radius, spacing } = useTheme();
+  const { colors, radius, spacing, type } = useTheme();
   const { isLookingNow, setLookingNow } = useLookingNow();
   const { data: people, isLoading, error, refetch } = useOnlineNow();
 
@@ -165,8 +109,8 @@ export default function OnlineNowScreen() {
         }}
       >
         <View style={{ flex: 1, marginRight: spacing.sm }}>
-          <Text style={{ color: colors.text, fontWeight: "700" }}>I&apos;m free to duo right now</Text>
-          <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+          <Text style={[type.bodyStrong, { color: colors.text }]}>I&apos;m free to duo right now</Text>
+          <Text style={[type.caption, { color: colors.textMuted }]}>
             Shows you in other people&apos;s Online Now list for the next hour.
           </Text>
         </View>
@@ -186,7 +130,7 @@ export default function OnlineNowScreen() {
         </View>
       ) : error ? (
         <View style={{ gap: spacing.sm }}>
-          <Text style={{ color: colors.textMuted }}>Couldn&apos;t load who&apos;s online.</Text>
+          <Text style={[type.body, { color: colors.textMuted }]}>Couldn&apos;t load who&apos;s online.</Text>
           <Button label="Try again" variant="ghost" onPress={() => void refetch()} />
         </View>
       ) : !people || people.length === 0 ? (

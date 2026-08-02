@@ -47,12 +47,12 @@ function toggleSingle<T>(current: T | null, value: T, setter: (value: T | null) 
 /** One labeled group on the Filters screen: uppercase section label + a short hint
  * explaining what the filter does, with the controls grouped inside a Card. */
 function FilterSection({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, type } = useTheme();
   return (
     <View>
       <SectionLabel>{label}</SectionLabel>
       <Card style={{ gap: spacing.sm }}>
-        {hint ? <Text style={{ color: colors.textMuted, fontSize: 13 }}>{hint}</Text> : null}
+        {hint ? <Text style={[type.caption, { color: colors.textMuted }]}>{hint}</Text> : null}
         {children}
       </Card>
     </View>
@@ -60,7 +60,7 @@ function FilterSection({ label, hint, children }: { label: string; hint?: string
 }
 
 export default function FiltersScreen() {
-  const { colors, spacing } = useTheme();
+  const { colors, radius, spacing, type } = useTheme();
   const session = useSessionStore((s) => s.session);
   const { preferences, isLoading, save } = usePreferences();
   const { isPremium } = usePremiumStatus();
@@ -154,9 +154,9 @@ export default function FiltersScreen() {
             <Card style={{ gap: spacing.sm }}>
               <Skeleton width="60%" height={13} />
               <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                <Skeleton width={70} height={32} borderRadius={16} />
-                <Skeleton width={90} height={32} borderRadius={16} />
-                <Skeleton width={80} height={32} borderRadius={16} />
+                <Skeleton width={70} height={32} borderRadius={radius.chip} />
+                <Skeleton width={90} height={32} borderRadius={radius.chip} />
+                <Skeleton width={80} height={32} borderRadius={radius.chip} />
               </View>
             </Card>
           </View>
@@ -167,7 +167,7 @@ export default function FiltersScreen() {
 
   return (
     <ScreenContainer title="Filters" showClose>
-      <Text style={{ color: colors.textMuted, fontSize: 13 }}>
+      <Text style={[type.caption, { color: colors.textMuted }]}>
         Choose who shows up in your deck. Leave a section empty to see everyone.
       </Text>
 
@@ -210,7 +210,7 @@ export default function FiltersScreen() {
         <SectionLabel>DuoQueue+ filters</SectionLabel>
         {!isPremium ? (
           <Card style={{ gap: spacing.sm }}>
-            <Text style={{ color: colors.textMuted, fontSize: 13 }}>
+            <Text style={[type.caption, { color: colors.textMuted }]}>
               Filter by a specific game or show, platform, skill level, playstyle, and recent activity with
               DuoQueue+.
             </Text>
@@ -219,7 +219,7 @@ export default function FiltersScreen() {
         ) : (
           <Card style={{ gap: spacing.md }}>
             <View style={{ gap: spacing.sm }}>
-              <Text style={{ color: colors.text, fontWeight: "700", fontSize: 14 }}>Plays a specific game</Text>
+              <Text style={[type.bodyStrong, { color: colors.text }]}>Plays a specific game</Text>
               <CatalogPicker
                 table="games"
                 placeholder="Search games"
@@ -233,7 +233,7 @@ export default function FiltersScreen() {
             </View>
 
             <View style={{ gap: spacing.sm }}>
-              <Text style={{ color: colors.text, fontWeight: "700", fontSize: 14 }}>Platform</Text>
+              <Text style={[type.bodyStrong, { color: colors.text }]}>Platform</Text>
               <ChipSelect
                 options={PLATFORMS.map((value) => ({ value, label: PLATFORM_LABELS[value] }))}
                 selected={platform ? [platform] : []}
@@ -242,7 +242,7 @@ export default function FiltersScreen() {
             </View>
 
             <View style={{ gap: spacing.sm }}>
-              <Text style={{ color: colors.text, fontWeight: "700", fontSize: 14 }}>Skill level</Text>
+              <Text style={[type.bodyStrong, { color: colors.text }]}>Skill level</Text>
               <ChipSelect
                 options={SKILL_LEVELS.map((value) => ({ value, label: SKILL_LABELS[value] }))}
                 selected={skillLevel ? [skillLevel] : []}
@@ -251,7 +251,7 @@ export default function FiltersScreen() {
             </View>
 
             <View style={{ gap: spacing.sm }}>
-              <Text style={{ color: colors.text, fontWeight: "700", fontSize: 14 }}>Playstyle</Text>
+              <Text style={[type.bodyStrong, { color: colors.text }]}>Playstyle</Text>
               <ChipSelect
                 options={PLAYSTYLE_TAGS.map((value) => ({ value, label: PLAYSTYLE_LABELS[value] }))}
                 selected={playstyle ? [playstyle] : []}
@@ -260,7 +260,7 @@ export default function FiltersScreen() {
             </View>
 
             <View style={{ gap: spacing.sm }}>
-              <Text style={{ color: colors.text, fontWeight: "700", fontSize: 14 }}>
+              <Text style={[type.bodyStrong, { color: colors.text }]}>
                 Watches a specific show, anime, or movie
               </Text>
               <CatalogPicker
@@ -276,14 +276,14 @@ export default function FiltersScreen() {
             </View>
 
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-              <Text style={{ color: colors.text, fontWeight: "700", fontSize: 14 }}>Recently active only</Text>
+              <Text style={[type.bodyStrong, { color: colors.text }]}>Recently active only</Text>
               <Switch value={recentlyActive} onValueChange={setRecentlyActive} trackColor={{ true: colors.brand }} />
             </View>
           </Card>
         )}
       </View>
 
-      {error ? <Text style={{ color: colors.danger }}>{error}</Text> : null}
+      {error ? <Text style={[type.body, { color: colors.danger }]}>{error}</Text> : null}
 
       <Button label="Save filters" onPress={() => void handleSave()} loading={save.isPending} />
       <Button label="Cancel" variant="ghost" onPress={() => router.back()} />

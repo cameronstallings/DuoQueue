@@ -5,7 +5,7 @@ import { useTheme } from "@/theme/useTheme";
 import { usePartyInvites, usePartyMembers, useRespondPartyInvite } from "./useParty";
 
 function PartyInviteCard({ inviteId, partyId }: { inviteId: string; partyId: string }) {
-  const { colors, radius, spacing } = useTheme();
+  const { colors, radius, spacing, type } = useTheme();
   const { data: members } = usePartyMembers(partyId);
   const respond = useRespondPartyInvite();
 
@@ -21,18 +21,18 @@ function PartyInviteCard({ inviteId, partyId }: { inviteId: string; partyId: str
         marginBottom: spacing.sm,
       }}
     >
-      <Text style={{ color: colors.text, fontWeight: "700" }}>
+      <Text style={[type.bodyStrong, { color: colors.text }]}>
         {names || "A duo"} want you to join their party
       </Text>
-      <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+      <Text style={[type.caption, { color: colors.textMuted }]}>
         You all liked each other while swiping together — accept to unlock a group chat.
       </Text>
       <View style={{ flexDirection: "row", gap: spacing.md }}>
         <Pressable onPress={() => respond.mutate({ inviteId, accept: true })} disabled={respond.isPending}>
-          <Text style={{ color: colors.brand, fontWeight: "700" }}>Accept</Text>
+          <Text style={[type.bodyStrong, { color: colors.brand }]}>Accept</Text>
         </Pressable>
         <Pressable onPress={() => respond.mutate({ inviteId, accept: false })} disabled={respond.isPending}>
-          <Text style={{ color: colors.textMuted, fontWeight: "700" }}>Decline</Text>
+          <Text style={[type.bodyStrong, { color: colors.textMuted }]}>Decline</Text>
         </Pressable>
       </View>
     </View>

@@ -2,6 +2,8 @@ import { useRef, useState } from "react";
 import { Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from "react-native";
 import { Stack, useLocalSearchParams } from "expo-router";
 
+import { AuroraBackground } from "@/components/AuroraBackground";
+import { GrainOverlay } from "@/components/GrainOverlay";
 import { Skeleton } from "@/components/Skeleton";
 import { usePartyMembers } from "@/features/party/useParty";
 import { usePartyMessages, useSendPartyMessage } from "@/features/party/usePartyMessages";
@@ -9,26 +11,28 @@ import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
 function MessageBubble({ content, isMine, senderName }: { content: string; isMine: boolean; senderName: string }) {
-  const { colors, spacing } = useTheme();
+  const { colors, radius, spacing, type } = useTheme();
   return (
     <View style={{ alignSelf: isMine ? "flex-end" : "flex-start", maxWidth: "80%", gap: 2 }}>
-      {!isMine && <Text style={{ color: colors.textMuted, fontSize: 11, marginLeft: spacing.sm }}>{senderName}</Text>}
+      {!isMine && (
+        <Text style={[type.caption, { color: colors.textMuted, marginLeft: spacing.sm }]}>{senderName}</Text>
+      )}
       <View
         style={{
           backgroundColor: isMine ? colors.brand : colors.surface,
-          borderRadius: 16,
+          borderRadius: radius.md,
           paddingVertical: spacing.sm,
           paddingHorizontal: spacing.md,
         }}
       >
-        <Text style={{ color: isMine ? "#fff" : colors.text }}>{content}</Text>
+        <Text style={[type.body, { color: isMine ? colors.onFill : colors.text }]}>{content}</Text>
       </View>
     </View>
   );
 }
 
 export default function PartyChatScreen() {
-  const { colors, spacing } = useTheme();
+  const { colors, radius, spacing, type } = useTheme();
   const { partyId } = useLocalSearchParams<{ partyId: string }>();
   const myId = useSessionStore((s) => s.session?.user.id);
   const { data: members } = usePartyMembers(partyId);
@@ -53,12 +57,15 @@ export default function PartyChatScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <AuroraBackground />
+      <GrainOverlay />
+
       <Stack.Screen options={{ title: "Party chat", headerShown: true }} />
 
       {isLoading ? (
         <View style={{ padding: spacing.md, gap: spacing.sm }}>
-          <Skeleton width="60%" height={36} borderRadius={16} style={{ alignSelf: "flex-start" }} />
-          <Skeleton width="45%" height={36} borderRadius={16} style={{ alignSelf: "flex-end" }} />
+          <Skeleton width="60%" height={36} borderRadius={radius.md} style={{ alignSelf: "flex-start" }} />
+          <Skeleton width="45%" height={36} borderRadius={radius.md} style={{ alignSelf: "flex-end" }} />
         </View>
       ) : (
         <FlatList
@@ -69,7 +76,7 @@ export default function PartyChatScreen() {
           onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
           ListEmptyComponent={
             <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-              <Text style={{ color: colors.textMuted }}>Say hi to the party!</Text>
+              <Text style={[type.body, { color: colors.textMuted }]}>Say hi to the party!</Text>
             </View>
           }
           renderItem={({ item }) => (
@@ -101,7 +108,7 @@ export default function PartyChatScreen() {
             style={{
               flex: 1,
               backgroundColor: colors.surface,
-              borderRadius: 20,
+              borderRadius: radius.card,
               paddingHorizontal: spacing.md,
               paddingVertical: spacing.sm,
               color: colors.text,
@@ -114,12 +121,12 @@ export default function PartyChatScreen() {
             style={{
               backgroundColor: colors.brand,
               opacity: sendMessage.isPending || !draft.trim() ? 0.5 : 1,
-              borderRadius: 20,
+              borderRadius: radius.card,
               paddingHorizontal: spacing.md,
               paddingVertical: spacing.sm,
             }}
           >
-            <Text style={{ color: "#fff", fontWeight: "700" }}>Send</Text>
+            <Text style={[type.bodyStrong, { color: colors.onFill }]}>Send</Text>
           </Pressable>
         </View>
       </KeyboardAvoidingView>

@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Alert, FlatList, Pressable, RefreshControl, Text, View } from "react-native";
-import { Image } from "expo-image";
+import { Alert, FlatList, RefreshControl, Text, View } from "react-native";
 import { router } from "expo-router";
 import Animated, { FadeIn } from "react-native-reanimated";
 
 import { Button } from "@/components/Button";
+import { Card } from "@/components/Card";
 import { EmptyState } from "@/components/EmptyState";
+import { PresenceAvatar } from "@/components/PresenceAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { Skeleton } from "@/components/Skeleton";
 import { usePremiumStatus } from "@/features/matching/usePremiumStatus";
@@ -14,7 +15,7 @@ import { useSwipeAction } from "@/features/swipe/useSwipeAction";
 import { useTheme } from "@/theme/useTheme";
 
 function AdmirerRow({ item }: { item: AdmirerListItem }) {
-  const { colors, radius, spacing } = useTheme();
+  const { colors, spacing, type } = useTheme();
   const swipeAction = useSwipeAction();
 
   async function handleLikeBack() {
@@ -32,77 +33,38 @@ function AdmirerRow({ item }: { item: AdmirerListItem }) {
   }
 
   return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: spacing.md,
-        padding: spacing.md,
-        backgroundColor: colors.surface,
-        borderRadius: radius.md,
-        borderWidth: 1,
-        borderColor: colors.border,
-        marginBottom: spacing.sm,
-      }}
-    >
-      {item.photoUrl ? (
-        <Image
-          source={{ uri: item.photoUrl }}
-          style={{ width: 56, height: 56, borderRadius: 28 }}
-          cachePolicy="memory-disk"
-          transition={150}
-        />
-      ) : (
-        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.background }} />
-      )}
+    <Card style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md, marginBottom: spacing.sm }}>
+      <PresenceAvatar uri={item.photoUrl} size={56} backdropColor={colors.surface} />
       <View style={{ flex: 1 }}>
-        <Text style={{ fontWeight: "700", color: colors.text }}>
+        <Text style={[type.bodyStrong, { color: colors.text }]}>
           {item.display_name}, {item.age}
         </Text>
         {item.bio ? (
-          <Text numberOfLines={1} style={{ color: colors.textMuted }}>
+          <Text numberOfLines={1} style={[type.body, { color: colors.textMuted }]}>
             {item.bio}
           </Text>
         ) : null}
       </View>
-      <Pressable
-        onPress={() => void handleLikeBack()}
-        disabled={swipeAction.isPending}
-        style={{ backgroundColor: colors.brand, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill }}
-      >
-        <Text style={{ color: "#fff", fontWeight: "700" }}>Like back</Text>
-      </Pressable>
-    </View>
+      <Button label="Like back" onPress={() => void handleLikeBack()} loading={swipeAction.isPending} />
+    </Card>
   );
 }
 
 function AdmirerRowSkeleton() {
-  const { colors, radius, spacing } = useTheme();
+  const { radius, spacing } = useTheme();
   return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: spacing.md,
-        padding: spacing.md,
-        backgroundColor: colors.surface,
-        borderRadius: radius.md,
-        borderWidth: 1,
-        borderColor: colors.border,
-        marginBottom: spacing.sm,
-      }}
-    >
-      <Skeleton width={56} height={56} borderRadius={28} />
+    <Card style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md, marginBottom: spacing.sm }}>
+      <Skeleton width={56} height={56} borderRadius={radius.round} />
       <View style={{ flex: 1, gap: spacing.xs }}>
         <Skeleton width="40%" height={14} />
         <Skeleton width="70%" height={12} />
       </View>
-    </View>
+    </Card>
   );
 }
 
 export default function AdmirersScreen() {
-  const { colors, radius, spacing } = useTheme();
+  const { colors, radius, spacing, type } = useTheme();
   const { isPremium, isLoading: premiumLoading } = usePremiumStatus();
   const { data: count } = useAdmirersCount();
   const { data: admirers, isLoading, error, refetch } = useAdmirers(!premiumLoading);
@@ -143,7 +105,7 @@ export default function AdmirersScreen() {
       }
     >
       {!isPremium && (
-        <Text style={{ color: colors.textMuted }}>
+        <Text style={[type.body, { color: colors.textMuted }]}>
           Here are 3 people who liked you — a new set appears every day.
         </Text>
       )}
@@ -155,7 +117,7 @@ export default function AdmirersScreen() {
         </View>
       ) : error ? (
         <View style={{ gap: spacing.sm }}>
-          <Text style={{ color: colors.textMuted }}>Couldn&apos;t load your admirers.</Text>
+          <Text style={[type.body, { color: colors.textMuted }]}>Couldn&apos;t load your admirers.</Text>
           <Button label="Try again" variant="ghost" onPress={() => void refetch()} />
         </View>
       ) : !admirers || admirers.length === 0 ? (
@@ -184,10 +146,10 @@ export default function AdmirersScreen() {
             gap: spacing.sm,
           }}
         >
-          <Text style={{ color: colors.text, fontWeight: "700" }}>
+          <Text style={[type.bodyStrong, { color: colors.text }]}>
             {hiddenCount} more {hiddenCount === 1 ? "person" : "people"} liked you
           </Text>
-          <Text style={{ color: colors.textMuted, fontSize: 13 }}>
+          <Text style={[type.caption, { color: colors.textMuted }]}>
             DuoQueue+ shows you everyone at once — no waiting for tomorrow&apos;s set.
           </Text>
           <Button label="See them all with DuoQueue+" onPress={() => router.push("/paywall")} />

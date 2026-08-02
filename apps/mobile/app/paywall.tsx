@@ -2,9 +2,12 @@ import { useState } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import type { PurchasesPackage } from "react-native-purchases";
 
 import { Button } from "@/components/Button";
+import { Card } from "@/components/Card";
+import { Chip } from "@/components/Chip";
 import { Logo } from "@/components/Logo";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { Skeleton } from "@/components/Skeleton";
@@ -33,47 +36,38 @@ function PlanRow({
   badge?: string;
   subCaption?: string;
 }) {
-  const { colors, radius, spacing } = useTheme();
+  const { colors, radius, spacing, type, solarGradient } = useTheme();
+
+  const rowContent = (
+    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: spacing.md }}>
+      <View style={{ gap: 2, flex: 1 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+          <Text style={[type.bodyStrong, { color: colors.text }]}>{title}</Text>
+          {badge ? <Chip label={badge} tone="solar" /> : null}
+        </View>
+        {subCaption ? <Text style={[type.caption, { color: colors.textMuted }]}>{subCaption}</Text> : null}
+        {pkg.product.introPrice ? (
+          <Text style={[type.caption, { color: colors.success }]}>Free trial included</Text>
+        ) : null}
+      </View>
+      <Text style={[type.title, { color: colors.text }]}>{pkg.product.priceString}</Text>
+    </View>
+  );
 
   return (
     <Pressable
+      accessibilityRole="radio"
+      accessibilityState={{ selected }}
       onPress={onSelect}
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        borderWidth: 2,
-        borderColor: selected ? colors.brand : colors.border,
-        borderRadius: radius.md,
-        padding: spacing.md,
-        backgroundColor: selected ? colors.brandSoft : colors.surface,
-      }}
+      style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
     >
-      <View style={{ gap: 2, flex: 1 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
-          <Text style={{ fontWeight: "700", fontSize: 16, color: colors.text }}>{title}</Text>
-          {badge ? (
-            <Text
-              style={{
-                color: "#fff",
-                backgroundColor: colors.brand,
-                fontSize: 11,
-                fontWeight: "700",
-                paddingHorizontal: 8,
-                paddingVertical: 2,
-                borderRadius: radius.pill,
-              }}
-            >
-              {badge}
-            </Text>
-          ) : null}
-        </View>
-        {subCaption ? <Text style={{ color: colors.textMuted, fontSize: 12 }}>{subCaption}</Text> : null}
-        {pkg.product.introPrice ? (
-          <Text style={{ color: colors.success, fontSize: 12, fontWeight: "600" }}>Free trial included</Text>
-        ) : null}
-      </View>
-      <Text style={{ fontSize: 20, fontWeight: "800", color: colors.text }}>{pkg.product.priceString}</Text>
+      {selected ? (
+        <LinearGradient {...solarGradient} style={{ borderRadius: radius.card, padding: 1 }}>
+          <View style={{ backgroundColor: colors.surfaceSolid, borderRadius: radius.card - 1 }}>{rowContent}</View>
+        </LinearGradient>
+      ) : (
+        <Card style={{ padding: 0 }}>{rowContent}</Card>
+      )}
     </Pressable>
   );
 }
@@ -97,33 +91,23 @@ function ConsumableRow({
   onBuy: () => void;
   buying: boolean;
 }) {
-  const { colors, radius, spacing } = useTheme();
+  const { colors, spacing, type } = useTheme();
 
   return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: spacing.md,
-        borderWidth: 1,
-        borderColor: colors.border,
-        borderRadius: radius.md,
-        padding: spacing.md,
-      }}
-    >
+    <Card style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md }}>
       <Ionicons name={icon} size={24} color={iconColor} />
       <View style={{ flex: 1, gap: 2 }}>
-        <Text style={{ fontWeight: "700", color: colors.text }}>
+        <Text style={[type.bodyStrong, { color: colors.text }]}>
           {title} · {count} left
         </Text>
-        <Text style={{ color: colors.textMuted, fontSize: 12 }}>{description}</Text>
+        <Text style={[type.caption, { color: colors.textMuted }]}>{description}</Text>
       </View>
-      <Pressable onPress={onBuy} disabled={!pkg || buying}>
-        <Text style={{ color: colors.brand, fontWeight: "700", opacity: !pkg || buying ? 0.5 : 1 }}>
+      <Pressable onPress={onBuy} disabled={!pkg || buying} hitSlop={8}>
+        <Text style={[type.bodyStrong, { color: colors.brand, opacity: !pkg || buying ? 0.5 : 1 }]}>
           {pkg ? pkg.product.priceString : "N/A"}
         </Text>
       </Pressable>
-    </View>
+    </Card>
   );
 }
 
@@ -136,7 +120,7 @@ function savingsVsWeekly(pkg: PurchasesPackage, weeklyPricePerWeek: number | nul
 }
 
 export default function PaywallScreen() {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, radius, type } = useTheme();
   const { isPremium } = usePremiumStatus();
   const { data: offering, isLoading, error } = useOfferings();
   const purchase = usePurchasePackage();
@@ -190,7 +174,7 @@ export default function PaywallScreen() {
 
   const consumableSection = (
     <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
-      <Text style={{ fontSize: 16, fontWeight: "700", color: colors.text }}>Power-Ups & Legendary Likes</Text>
+      <Text style={[type.bodyStrong, { color: colors.text }]}>Power-Ups & Legendary Likes</Text>
       <ConsumableRow
         icon="rocket"
         iconColor={colors.brand}
@@ -216,8 +200,8 @@ export default function PaywallScreen() {
 
   if (isPremium) {
     return (
-      <ScreenContainer title="You're on DuoQueue+" showClose>
-        <Text style={{ color: colors.textMuted }}>
+      <ScreenContainer title="You're on DuoQueue+" showClose aurora="solar">
+        <Text style={[type.body, { color: colors.textMuted }]}>
           Unlimited swipes, unlimited conversations, advanced filters, admirers, and a daily Super Ping are
           all unlocked.
         </Text>
@@ -228,22 +212,22 @@ export default function PaywallScreen() {
   }
 
   return (
-    <ScreenContainer title="DuoQueue+" showClose>
+    <ScreenContainer title="DuoQueue+" showClose aurora="solar">
       <Logo width={44} />
-      <Text style={{ color: colors.textMuted, marginBottom: spacing.sm }}>
+      <Text style={[type.body, { color: colors.textMuted, marginBottom: spacing.sm }]}>
         Unlimited swipes, unlimited conversations, advanced filters, see everyone who liked you at once, and
         a daily Super Ping.
       </Text>
 
       {isLoading ? (
         <View style={{ gap: spacing.sm }}>
-          <Skeleton height={64} borderRadius={12} />
-          <Skeleton height={64} borderRadius={12} />
-          <Skeleton height={64} borderRadius={12} />
-          <Skeleton height={64} borderRadius={12} />
+          <Skeleton height={64} borderRadius={radius.card} />
+          <Skeleton height={64} borderRadius={radius.card} />
+          <Skeleton height={64} borderRadius={radius.card} />
+          <Skeleton height={64} borderRadius={radius.card} />
         </View>
       ) : error || tiers.length === 0 ? (
-        <Text style={{ color: colors.textMuted }}>
+        <Text style={[type.body, { color: colors.textMuted }]}>
           Plans aren&apos;t available right now. Check your connection and try again shortly.
         </Text>
       ) : (
@@ -317,6 +301,7 @@ export default function PaywallScreen() {
             onPress={() => void handleSubscribe()}
             loading={purchase.isPending}
             disabled={!selectedPackage}
+            variant="solar"
           />
         </>
       )}

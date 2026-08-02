@@ -5,7 +5,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn } from "react-native-reanimated";
 
+import { AuroraBackground } from "@/components/AuroraBackground";
 import { EmptyState } from "@/components/EmptyState";
+import { GrainOverlay } from "@/components/GrainOverlay";
 import { Skeleton } from "@/components/Skeleton";
 import { usePartyMembers } from "@/features/party/useParty";
 import { usePartyDeck, usePartySwipeAction } from "@/features/party/usePartyDeck";
@@ -42,6 +44,9 @@ export default function PartyDeckScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <AuroraBackground />
+      <GrainOverlay />
+
       <View
         style={{
           flexDirection: "row",
@@ -94,7 +99,7 @@ export default function PartyDeckScreen() {
 
       <View style={{ flex: 1, margin: spacing.lg }}>
         {isLoading ? (
-          <Skeleton style={{ flex: 1, borderRadius: 20 }} />
+          <Skeleton style={{ flex: 1, borderRadius: radius.card }} />
         ) : error ? (
           <EmptyState
             icon="cloud-offline"
