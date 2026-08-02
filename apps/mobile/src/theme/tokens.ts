@@ -54,10 +54,13 @@ export const darkColors = {
   text: "#F0ECF7",
   textMuted: "#9C92B8",
 
-  // heroA/heroB (and brand, which mirrors heroB) are darkened one notch from the
-  // original hue-true pink/violet so `onFill` (white) button/icon labels clear
-  // 4.5:1 against every point in the gradient — see contrast audit, task 23.
-  heroA: "#E00089", heroB: "#8452F5",
+  // heroB (and brand, which mirrors it) is darkened one notch from the original
+  // hue-true violet so `onFill` (white) button/icon labels clear 4.5:1 against every
+  // point in the gradient — see contrast audit, task 23. heroA was ALSO darkened by
+  // that audit, but past the point of hue-true: #E00089 sits at 100% saturation,
+  // which reads as hot magenta rather than pink. Retuned to hue ~334°/74% sat — still
+  // clears 4.5:1 at the gradient midpoint (#B349BE, 4.55:1) but reads as pink again.
+  heroA: "#E24087", heroB: "#8452F5",
   pink: "#FF6EC7",
   brand: "#8452F5",
   brandInk: "#C9B4FF",
@@ -104,7 +107,10 @@ export const lightColors = {
 
   // heroA darkened one notch (same hue) so `onFill` white text/icons clear 4.5:1 at
   // that end of the gradient — see contrast audit, task 23. heroB already passed.
-  heroA: "#D7248A", heroB: "#7C3AED",
+  // Like the dark scheme, that darkening drifted the hue toward magenta (~326°);
+  // retuned to hue ~333°/75% sat to read as pink, still clears 4.5:1 at the gradient
+  // midpoint (#B03FBD, 4.90:1) with room to spare.
+  heroA: "#E4448C", heroB: "#7C3AED",
   pink: "#C93A8C",
   brand: "#7C3AED",
   brandInk: "#6D28D9",
