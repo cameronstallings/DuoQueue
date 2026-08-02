@@ -224,15 +224,16 @@ export default function DeckScreen() {
         )}
       </View>
 
-      <LikePassButtons
-        disabled={cards.length === 0}
-        onPass={() => deckRef.current?.pass()}
-        onLike={() => deckRef.current?.like()}
-        onSuperPing={() => void handleSuperPing()}
-        onSendRose={
-          credits && (credits.free_rose_available || credits.roses > 0) ? () => void handleSendRose() : undefined
-        }
-      />
+      {cards.length > 0 && (
+        <LikePassButtons
+          onPass={() => deckRef.current?.pass()}
+          onLike={() => deckRef.current?.like()}
+          onSuperPing={() => void handleSuperPing()}
+          onSendRose={
+            credits && (credits.free_rose_available || credits.roses > 0) ? () => void handleSendRose() : undefined
+          }
+        />
+      )}
     </View>
   );
 }

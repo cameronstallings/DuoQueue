@@ -1,6 +1,7 @@
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
+import { Button } from "@/components/Button";
 import { useTheme } from "@/theme/useTheme";
 
 interface EmptyStateProps {
@@ -36,11 +37,7 @@ export function EmptyState({ icon, title, subtitle, actionLabel, onAction }: Emp
       </View>
       <Text style={[type.title, { color: colors.text, textAlign: "center" }]}>{title}</Text>
       <Text style={[type.body, { color: colors.textMuted, textAlign: "center" }]}>{subtitle}</Text>
-      {actionLabel && onAction && (
-        <Pressable onPress={onAction} accessibilityRole="button" hitSlop={8}>
-          <Text style={[type.label, { color: colors.brandInk }]}>{actionLabel}</Text>
-        </Pressable>
-      )}
+      {actionLabel && onAction && <Button label={actionLabel} onPress={onAction} variant="ghost" />}
     </View>
   );
 }

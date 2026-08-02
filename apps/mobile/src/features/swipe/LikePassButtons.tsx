@@ -136,7 +136,7 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, onSendRose, disab
           >
             <Ionicons name="diamond" size={20} color={colors.success} />
           </AnimatedIconButton>
-          <Text style={[type.label, { color: colors.textMuted }]}>Ping</Text>
+          <Text style={[type.caption, { color: colors.textMuted }]}>Ping</Text>
         </View>
       )}
 
@@ -164,7 +164,7 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, onSendRose, disab
           >
             <Ionicons name="star" size={20} color={colors.warning} />
           </AnimatedIconButton>
-          <Text style={[type.label, { color: colors.textMuted }]}>Legendary</Text>
+          <Text style={[type.caption, { color: colors.textMuted }]}>Legendary</Text>
         </View>
       )}
     </View>
