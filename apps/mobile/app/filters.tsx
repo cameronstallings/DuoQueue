@@ -214,7 +214,7 @@ export default function FiltersScreen() {
               Filter by a specific game or show, platform, skill level, playstyle, and recent activity with
               DuoQueue+.
             </Text>
-            <Button label="Unlock DuoQueue+" onPress={() => router.push("/paywall")} />
+            <Button variant="solar" label="Unlock DuoQueue+" onPress={() => router.push("/paywall")} />
           </Card>
         ) : (
           <Card style={{ gap: spacing.md }}>

@@ -152,7 +152,7 @@ export default function AdmirersScreen() {
           <Text style={[type.caption, { color: colors.textMuted }]}>
             DuoQueue+ shows you everyone at once — no waiting for tomorrow&apos;s set.
           </Text>
-          <Button label="See them all with DuoQueue+" onPress={() => router.push("/paywall")} />
+          <Button variant="solar" label="See them all with DuoQueue+" onPress={() => router.push("/paywall")} />
         </View>
       )}
     </ScreenContainer>

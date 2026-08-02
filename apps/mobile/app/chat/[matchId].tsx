@@ -597,7 +597,8 @@ export default function ChatScreen() {
                 }}
               >
                 <Text style={[type.caption, { color: colors.textMuted, textAlign: "center" }]}>
-                  This conversation is locked — upgrade for unlimited active conversations.
+                  This conversation is locked — upgrade for unlimited active conversations, or unmatch an
+                  older conversation to free up a slot.
                 </Text>
                 <Button variant="solar" label="Get DuoQueue+" onPress={() => router.push("/paywall")} />
               </View>

@@ -13,6 +13,9 @@ export interface ChipProps {
   selected?: boolean;
   tone?: ChipTone; // default "default"
   onPress?: () => void; // renders Pressable when given
+  /** Screen-reader override for chips whose press action isn't "select" — removable
+   * chips should announce "Remove {label}", not "{label}, selected". */
+  accessibilityLabel?: string;
 }
 
 /**
@@ -20,7 +23,7 @@ export interface ChipProps {
  * (selectable), with the same geometry either way so the two read as the same
  * object in different states.
  */
-export function Chip({ label, detail, icon, selected, tone = "default", onPress }: ChipProps) {
+export function Chip({ label, detail, icon, selected, tone = "default", onPress, accessibilityLabel }: ChipProps) {
   const { colors, radius, spacing, type, scheme, glow } = useTheme();
 
   const isAccent = selected || tone === "accent";
@@ -76,6 +79,7 @@ export function Chip({ label, detail, icon, selected, tone = "default", onPress 
     return (
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
         accessibilityState={{ selected: !!selected }}
         onPress={onPress}
         style={({ pressed }) => [...containerStyle, pressed ? { opacity: 0.85 } : null]}

@@ -11,6 +11,9 @@ interface AuroraBackgroundProps {
  * Fixed geometry per variant; background only, content never sits inside a gradient. */
 export function AuroraBackground({ variant = "default" }: AuroraBackgroundProps) {
   const { colors, scheme } = useTheme();
+  // Not colors.heroA/heroB: those were darkened for onFill text contrast (contrast
+  // audit, task 23). These washes are pure background — content never sits inside a
+  // gradient — so they deliberately keep the brighter hue-true pink/violet.
   const a = variant === "solar" ? colors.solarB : scheme === "dark" ? "#8B5CF6" : "#7C3AED";
   const b = variant === "solar" ? colors.solarA : scheme === "dark" ? "#FF6EC7" : "#E0479E";
   const opacity = scheme === "dark" ? (variant === "solar" ? 0.30 : 0.34) : 0.14;

@@ -18,7 +18,7 @@ import { hapticSuccess } from "@/lib/haptics";
 import { useTheme } from "@/theme/useTheme";
 
 export default function PartyDeckScreen() {
-  const { colors, spacing, type, radius, hairline } = useTheme();
+  const { colors, spacing, type, radius } = useTheme();
   const insets = useSafeAreaInsets();
   const { partyId } = useLocalSearchParams<{ partyId: string }>();
   const { data: members } = usePartyMembers(partyId);
@@ -66,12 +66,10 @@ export default function PartyDeckScreen() {
           style={{
             width: 34,
             height: 34,
-            borderRadius: radius.sm,
+            borderRadius: radius.round,
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: colors.surface,
-            borderWidth: hairline,
-            borderColor: colors.border,
+            backgroundColor: colors.surfaceAlt,
           }}
         >
           <Ionicons name="chevron-back" size={19} color={colors.text} />
