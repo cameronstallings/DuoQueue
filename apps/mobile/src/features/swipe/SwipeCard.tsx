@@ -11,10 +11,11 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-import type { ReportReason, SkillLevel } from "@duoqueue/shared-types";
+import type { ReportReason } from "@duoqueue/shared-types";
 
 import { LinearGradient } from "expo-linear-gradient";
 
+import { Chip } from "@/components/Chip";
 import { Name } from "@/components/Name";
 import { PresenceAvatar } from "@/components/PresenceAvatar";
 import { ReportModal } from "@/components/ReportModal";
@@ -25,55 +26,6 @@ import { useTheme } from "@/theme/useTheme";
 
 import { ProfileDetailContent } from "./ProfileDetailContent";
 import type { DeckCard, SwipeDirection } from "./types";
-
-/**
- * The game name is the loud part; the skill level is a coloured tab clipped to its
- * right edge, like the category stripe on a cartridge label. Inlined here (rather than
- * a shared component) since it only ever appears once, on the deck card's photo
- * overlay, and needs the scrim tint that context supplies.
- */
-function GameBadge({ gameName, skillLevel }: { gameName: string; skillLevel: SkillLevel }) {
-  const { colors, radius, spacing, type, scrimRgb } = useTheme();
-  const tab = colors.playstyle[skillLevel];
-
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "stretch",
-        borderRadius: radius.chip,
-        overflow: "hidden",
-        borderWidth: 1,
-        borderColor: `rgba(${scrimRgb},0.9)`,
-      }}
-    >
-      <View
-        style={{
-          justifyContent: "center",
-          paddingVertical: spacing.xs,
-          paddingHorizontal: spacing.sm,
-          backgroundColor: `rgba(${scrimRgb},0.82)`,
-        }}
-      >
-        <Text style={[type.caption, { color: "#F5F1E8" }]} numberOfLines={1}>
-          {gameName}
-        </Text>
-      </View>
-      <View
-        style={{
-          justifyContent: "center",
-          paddingVertical: spacing.xs,
-          paddingHorizontal: spacing.sm,
-          backgroundColor: tab,
-        }}
-      >
-        <Text style={[type.statSm, { color: colors.onFill }]} numberOfLines={1}>
-          {SKILL_LABELS[skillLevel]}
-        </Text>
-      </View>
-    </View>
-  );
-}
 
 const SWIPE_THRESHOLD = 120;
 const OFFSCREEN_DISTANCE = 500;
@@ -314,7 +266,7 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger }: SwipeCardP
 
                   {card.topGames[0] && (
                     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
-                      <GameBadge gameName={card.topGames[0].name} skillLevel={card.topGames[0].skillLevel} />
+                      <Chip label={card.topGames[0].name} detail={SKILL_LABELS[card.topGames[0].skillLevel]} />
                     </View>
                   )}
 
