@@ -29,7 +29,7 @@ function PartyInviteCard({ inviteId, partyId }: { inviteId: string; partyId: str
       </Text>
       <View style={{ flexDirection: "row", gap: spacing.md }}>
         <Pressable onPress={() => respond.mutate({ inviteId, accept: true })} disabled={respond.isPending}>
-          <Text style={[type.bodyStrong, { color: colors.brand }]}>Accept</Text>
+          <Text style={[type.bodyStrong, { color: colors.brandInk }]}>Accept</Text>
         </Pressable>
         <Pressable onPress={() => respond.mutate({ inviteId, accept: false })} disabled={respond.isPending}>
           <Text style={[type.bodyStrong, { color: colors.textMuted }]}>Decline</Text>

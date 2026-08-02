@@ -40,7 +40,7 @@ export default function PromptsStep() {
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                 <Text style={[type.bodyStrong, { color: colors.text, flex: 1 }]}>{prompt.question}</Text>
                 <Pressable onPress={() => clearPromptAt(index)}>
-                  <Text style={[type.caption, { color: colors.brand }]}>Change</Text>
+                  <Text style={[type.caption, { color: colors.brandInk }]}>Change</Text>
                 </Pressable>
               </View>
               <TextField
@@ -57,7 +57,7 @@ export default function PromptsStep() {
             </>
           ) : (
             <Pressable onPress={() => setPickerIndex(index)} style={{ alignItems: "center", paddingVertical: spacing.sm }}>
-              <Text style={[type.bodyStrong, { color: colors.brand }]}>+ Select a prompt</Text>
+              <Text style={[type.bodyStrong, { color: colors.brandInk }]}>+ Select a prompt</Text>
             </Pressable>
           )}
         </Card>
@@ -68,7 +68,7 @@ export default function PromptsStep() {
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.md }}>
             <Text style={{ ...type.title, color: colors.text }}>Select a prompt</Text>
             <Pressable onPress={() => setPickerIndex(null)}>
-              <Text style={[type.caption, { color: colors.brand }]}>Cancel</Text>
+              <Text style={[type.caption, { color: colors.brandInk }]}>Cancel</Text>
             </Pressable>
           </View>
 

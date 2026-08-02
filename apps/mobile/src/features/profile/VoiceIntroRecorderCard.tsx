@@ -76,7 +76,7 @@ export function VoiceIntroRecorderCard({ profileId }: { profileId: string }) {
               <Text style={{ color: colors.textMuted, fontWeight: "600" }}>Discard</Text>
             </Pressable>
             <Pressable onPress={() => void handleSave()} disabled={upload.isPending}>
-              <Text style={{ color: colors.brand, fontWeight: "700" }}>{upload.isPending ? "Saving…" : "Save"}</Text>
+              <Text style={{ color: colors.brandInk, fontWeight: "700" }}>{upload.isPending ? "Saving…" : "Save"}</Text>
             </Pressable>
           </View>
         ) : (
@@ -89,10 +89,10 @@ export function VoiceIntroRecorderCard({ profileId }: { profileId: string }) {
                 borderRadius: 24,
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: recorder.isRecording ? colors.danger : colors.brand,
+                backgroundColor: recorder.isRecording ? colors.dangerDark : colors.brand,
               }}
             >
-              <Ionicons name={recorder.isRecording ? "stop" : "mic"} size={22} color="#fff" />
+              <Ionicons name={recorder.isRecording ? "stop" : "mic"} size={22} color={colors.onFill} />
             </Pressable>
             <Text style={{ color: colors.textMuted }}>
               {recorder.isRecording

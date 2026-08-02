@@ -49,7 +49,7 @@ export function Button({ label, onPress, loading, disabled, variant = "primary" 
     variant === "primary"
       ? glow(colors.glowViolet)
       : variant === "solar"
-        ? glow("rgba(255,157,92,0.35)")
+        ? glow(colors.glowSolar)
         : null;
 
   const contentStyle = {

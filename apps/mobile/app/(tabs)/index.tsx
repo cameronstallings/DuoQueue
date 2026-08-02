@@ -171,18 +171,18 @@ export default function DeckScreen() {
             style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
           >
             <Ionicons name="rocket" size={16} color={colors.brand} />
-            <Text style={[type.caption, { color: colors.brand }]}>{credits?.boosts ?? 0}</Text>
+            <Text style={[type.caption, { color: colors.brandInk }]}>{credits?.boosts ?? 0}</Text>
           </Pressable>
           <Pressable onPress={() => router.push("/online-now")}>
-            <Text style={[type.caption, { color: colors.brand }]}>Online</Text>
+            <Text style={[type.caption, { color: colors.brandInk }]}>Online</Text>
           </Pressable>
           <Pressable onPress={() => router.push("/admirers")}>
-            <Text style={[type.caption, { color: colors.brand }]}>
+            <Text style={[type.caption, { color: colors.brandInk }]}>
               Likes{admirersCount ? ` (${admirersCount})` : ""}
             </Text>
           </Pressable>
           <Pressable onPress={() => router.push("/filters")}>
-            <Text style={[type.caption, { color: colors.brand }]}>Filters</Text>
+            <Text style={[type.caption, { color: colors.brandInk }]}>Filters</Text>
           </Pressable>
         </View>
       </View>

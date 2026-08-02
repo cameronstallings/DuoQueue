@@ -76,7 +76,7 @@ export function PresenceAvatar({
                 borderRadius: dotSize / 2,
                 backgroundColor: colors.success,
               },
-              glow("rgba(74,222,156,0.6)", 8),
+              glow(colors.glowSuccess, 8),
             ]}
           />
         </View>

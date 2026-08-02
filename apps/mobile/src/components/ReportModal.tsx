@@ -56,7 +56,7 @@ export function ReportModal({ visible, onClose, onSubmit }: ReportModalProps) {
           disabled={!reason}
           onPress={() => reason && onSubmit(reason, details)}
           style={{
-            backgroundColor: colors.danger,
+            backgroundColor: colors.dangerDark,
             opacity: reason ? 1 : 0.5,
             padding: spacing.md,
             borderRadius: radius.button,

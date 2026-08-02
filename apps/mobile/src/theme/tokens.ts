@@ -68,9 +68,12 @@ export const darkColors = {
   text: "#F0ECF7",
   textMuted: "#9C92B8",
 
-  heroA: "#FF6EC7", heroB: "#8B5CF6",
+  // heroA/heroB (and brand, which mirrors heroB) are darkened one notch from the
+  // original hue-true pink/violet so `onFill` (white) button/icon labels clear
+  // 4.5:1 against every point in the gradient — see contrast audit, task 23.
+  heroA: "#E00089", heroB: "#8452F5",
   pink: "#FF6EC7",
-  brand: "#8B5CF6",
+  brand: "#8452F5",
   brandInk: "#C9B4FF",
   brandDark: "#7C3AED",
   brandSoft: "rgba(139,92,246,0.16)",
@@ -83,6 +86,11 @@ export const darkColors = {
   solarA: "#FFD98A", solarB: "#FF9D5C", onSolar: "#4A2A00",
 
   danger: "#FF5C7A",
+  /** Fill-only variant for `onFill`-on-danger surfaces (ReportModal, OfflineBanner).
+   * `danger` itself has to stay light enough to read as TEXT on this dark background —
+   * that and "dark enough for white text to read on top of it" are contradictory for a
+   * single value, so the fill gets its own darker shade of the same hue. */
+  dangerDark: "#E8002B",
   success: "#4ADE9C",
   warning: "#FFC864",
   info: "#7FD4FF",
@@ -92,6 +100,8 @@ export const darkColors = {
 
   glowViolet: "rgba(139,92,246,0.45)",
   glowPink: "rgba(255,110,199,0.45)",
+  glowSolar: "rgba(255,157,92,0.35)",
+  glowSuccess: "rgba(74,222,156,0.6)",
 
   overlap: OVERLAP_DARK,
   playstyle: PLAYSTYLE_DARK,
@@ -107,7 +117,9 @@ export const lightColors = {
   text: "#241A3D",
   textMuted: "#6E6390",
 
-  heroA: "#E0479E", heroB: "#7C3AED",
+  // heroA darkened one notch (same hue) so `onFill` white text/icons clear 4.5:1 at
+  // that end of the gradient — see contrast audit, task 23. heroB already passed.
+  heroA: "#D7248A", heroB: "#7C3AED",
   pink: "#C93A8C",
   brand: "#7C3AED",
   brandInk: "#6D28D9",
@@ -119,18 +131,35 @@ export const lightColors = {
   p1Line: "#C93A8C",
   p2Line: "#7C3AED",
 
-  solarA: "#E8963C", solarB: "#D97706", onSolar: "#FFFFFF",
+  // solarA/B darkened so `onSolar` (white, in light mode) clears 4.5:1 on the gold
+  // gradient, and so the Chip "solar" tone's text (solarA/solarB) clears 4.5:1 against
+  // `warningFill`. danger/success/warning/info darkened so each clears 4.5:1 as plain
+  // text on `background` (the stricter of background/surface) — see contrast audit.
+  solarA: "#AB6314", solarB: "#9D5604", onSolar: "#FFFFFF",
 
-  danger: "#D6335F",
-  success: "#1F8A5D",
-  warning: "#9A6B00",
-  info: "#1D7FA8",
+  danger: "#D02A57",
+  /** No fill/text conflict in light mode (darkening helps both uses), so this can
+   * just equal `danger` — kept as a separate token for parity with dark mode, where
+   * the fill and text values genuinely have to diverge. */
+  dangerDark: "#D02A57",
+  // Darkened one notch past the "plain text on background" minimum — Toast renders
+  // `success` text directly on `successFill` composited over `background` (not
+  // `surface`, which is the easier case Chip.tsx uses), and that composite is the
+  // real bottleneck: it only clears 4.5:1 once `success` itself is dark enough.
+  success: "#1A704C",
+  warning: "#906400",
+  info: "#1B779D",
   onFill: "#FFFFFF",
-  successFill: "rgba(31,138,93,0.14)",
-  warningFill: "rgba(154,107,0,0.14)",
+  successFill: "rgba(26,112,76,0.14)",
+  warningFill: "rgba(144,100,0,0.14)",
 
+  // Same hues as the dark-mode glows, opacity brought down to match — a colored
+  // blur this strong reads as a soft accent on near-black; over white it just
+  // looks muddy. See contrast audit, task 23.
   glowViolet: "rgba(124,58,237,0.25)",
   glowPink: "rgba(224,71,158,0.25)",
+  glowSolar: "rgba(255,157,92,0.20)",
+  glowSuccess: "rgba(74,222,156,0.33)",
 
   overlap: OVERLAP_LIGHT,
   playstyle: PLAYSTYLE_LIGHT,

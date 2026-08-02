@@ -103,7 +103,7 @@ function ConsumableRow({
         <Text style={[type.caption, { color: colors.textMuted }]}>{description}</Text>
       </View>
       <Pressable onPress={onBuy} disabled={!pkg || buying} hitSlop={8}>
-        <Text style={[type.bodyStrong, { color: colors.brand, opacity: !pkg || buying ? 0.5 : 1 }]}>
+        <Text style={[type.bodyStrong, { color: colors.brandInk, opacity: !pkg || buying ? 0.5 : 1 }]}>
           {pkg ? pkg.product.priceString : "N/A"}
         </Text>
       </Pressable>

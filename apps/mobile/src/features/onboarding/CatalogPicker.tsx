@@ -90,7 +90,7 @@ export function CatalogPicker({ table, placeholder, profileId, selectedIds, onSe
             borderColor: colors.brand,
           }}
         >
-          <Text style={[type.caption, { color: colors.brand }]}>
+          <Text style={[type.caption, { color: colors.brandInk }]}>
             {creating ? "Adding…" : `+ Add "${trimmed}"`}
           </Text>
         </Pressable>

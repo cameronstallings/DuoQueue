@@ -26,7 +26,7 @@ export function OfflineBanner() {
     <Animated.View
       style={[
         {
-          backgroundColor: colors.danger,
+          backgroundColor: colors.dangerDark,
           alignItems: "center",
           justifyContent: "flex-end",
           overflow: "hidden",
