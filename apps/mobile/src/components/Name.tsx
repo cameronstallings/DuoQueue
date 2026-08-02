@@ -21,12 +21,12 @@ const LATIN_SAFE = /^[\p{Script=Latin}\p{Script=Common}\p{Script=Inherited}]*$/u
 /**
  * Renders a name a user typed.
  *
- * Archivo covers Latin, Latin-Ext and Vietnamese — and nothing else. The app
- * offers twenty spoken languages including Russian, Japanese, Korean, Chinese,
- * Arabic and Hindi, so a real share of display names contain glyphs the face
- * does not have. React Native has no font-stack fallback: naming a missing
- * family does not cascade, it renders tofu or silently substitutes with the
- * wrong metrics.
+ * Manrope and Unbounded — the app's two Latin faces — don't cover every script.
+ * The app offers twenty spoken languages including Russian, Japanese, Korean,
+ * Chinese, Arabic and Hindi, so a real share of display names contain glyphs
+ * the faces don't have. React Native has no font-stack fallback: naming a
+ * missing family does not cascade, it renders tofu or silently substitutes
+ * with the wrong metrics.
  *
  * So for non-Latin strings we drop `fontFamily` only, and keep the size,
  * line-height and letter-spacing. The OS font handles the glyphs, and the name

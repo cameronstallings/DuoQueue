@@ -222,13 +222,13 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger }: SwipeCardP
                     primary action in the app. PASS stays a glass pill: present, not loud. */}
                 <Animated.View style={[styles.stamp, styles.likeStamp, likeStampStyle]}>
                   <LinearGradient {...heroGradient} style={[styles.stampPill, { borderRadius: radius.chip }]}>
-                    <Text style={[type.marquee, { color: colors.onFill }]}>LIKE</Text>
+                    <Text style={[type.screenTitle, { color: colors.onFill }]}>LIKE</Text>
                   </LinearGradient>
                 </Animated.View>
                 <Animated.View style={[styles.stamp, styles.passStamp, passStampStyle]}>
                   <Text
                     style={[
-                      type.marquee,
+                      type.screenTitle,
                       styles.stampPill,
                       {
                         borderRadius: radius.chip,

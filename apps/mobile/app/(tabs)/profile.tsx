@@ -94,7 +94,7 @@ function EditBadge({ uploading }: { uploading: boolean }) {
 }
 
 export default function ProfileScreen() {
-  const { colors, radius, spacing, shadow, type } = useTheme();
+  const { colors, radius, spacing, type } = useTheme();
   const insets = useSafeAreaInsets();
   const profile = useSessionStore((s) => s.profile);
   const { data: photos, isLoading } = useOwnProfilePhotos(profile?.id);
@@ -189,7 +189,7 @@ export default function ProfileScreen() {
               </View>
               {["Games", "Shows & Movies", "Platforms", "Playstyle"].map((label) => (
                 <View key={label} style={{ marginTop: spacing.md }}>
-                  <Skeleton height={36} borderRadius={radius.pill} />
+                  <Skeleton height={36} borderRadius={radius.chip} />
                 </View>
               ))}
             </View>
@@ -243,7 +243,6 @@ export default function ProfileScreen() {
                   borderColor: colors.background,
                   backgroundColor: colors.surface,
                   overflow: "hidden",
-                  ...shadow,
                 }}
               >
                 {photos?.profileUrl && (

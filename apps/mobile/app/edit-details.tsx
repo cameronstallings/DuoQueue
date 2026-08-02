@@ -150,23 +150,23 @@ export default function EditDetailsScreen() {
               <SectionLabel>Shows & Movies</SectionLabel>
               <Skeleton height={44} borderRadius={radius.md} />
               <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                <Skeleton width={90} height={32} borderRadius={radius.pill} />
-                <Skeleton width={110} height={32} borderRadius={radius.pill} />
+                <Skeleton width={90} height={32} borderRadius={radius.chip} />
+                <Skeleton width={110} height={32} borderRadius={radius.chip} />
               </View>
             </View>
             <View style={{ gap: spacing.sm }}>
               <SectionLabel>Platforms</SectionLabel>
               <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                <Skeleton width={70} height={32} borderRadius={radius.pill} />
-                <Skeleton width={90} height={32} borderRadius={radius.pill} />
-                <Skeleton width={80} height={32} borderRadius={radius.pill} />
+                <Skeleton width={70} height={32} borderRadius={radius.chip} />
+                <Skeleton width={90} height={32} borderRadius={radius.chip} />
+                <Skeleton width={80} height={32} borderRadius={radius.chip} />
               </View>
             </View>
             <View style={{ gap: spacing.sm }}>
               <SectionLabel>Playstyle</SectionLabel>
               <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                <Skeleton width={100} height={32} borderRadius={radius.pill} />
-                <Skeleton width={80} height={32} borderRadius={radius.pill} />
+                <Skeleton width={100} height={32} borderRadius={radius.chip} />
+                <Skeleton width={80} height={32} borderRadius={radius.chip} />
               </View>
             </View>
             <View style={{ gap: spacing.sm }}>

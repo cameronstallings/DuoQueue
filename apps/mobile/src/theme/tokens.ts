@@ -19,11 +19,6 @@ export const fonts = {
   /** Unbounded — names, screen titles, hero moments ONLY. */
   display: "Unbounded_600SemiBold",
   displayBold: "Unbounded_700Bold",
-  /** @deprecated Cartridge compat — migrate to display/bold. Deleted in the cleanup task. */
-  black: "Unbounded_600SemiBold",
-  mono: "Manrope_600SemiBold",
-  monoBold: "Manrope_700Bold",
-  marquee: "Unbounded_700Bold",
 } as const;
 
 export const type = {
@@ -36,18 +31,11 @@ export const type = {
   caption: { fontFamily: fonts.semibold, fontSize: 13, lineHeight: 18, letterSpacing: 0 },
   /** The ONLY uppercase style. Section labels, sparingly. */
   label: { fontFamily: fonts.extrabold, fontSize: 11, lineHeight: 14, letterSpacing: 1, textTransform: "uppercase" },
-  /** @deprecated Cartridge compat aliases — migrate: marquee→screenTitle, stat/statSm→caption, micro→label. */
-  marquee: { fontFamily: fonts.displayBold, fontSize: 24, lineHeight: 30, letterSpacing: 0.4 },
-  stat: { fontFamily: fonts.bold, fontSize: 12, lineHeight: 16, letterSpacing: 0.2 },
-  statSm: { fontFamily: fonts.semibold, fontSize: 11, lineHeight: 14, letterSpacing: 0.3 },
-  micro: { fontFamily: fonts.extrabold, fontSize: 11, lineHeight: 14, letterSpacing: 1, textTransform: "uppercase" },
 } as const satisfies Record<string, TextStyle>;
 
 export const radius = {
   chip: 999, sm: 10, window: 16, input: 14, button: 16, md: 16, card: 20, lg: 20,
   sheet: 28, round: 999,
-  /** @deprecated use chip */
-  pill: 999,
 } as const;
 
 /* Categorical inks — same anti-rarity-ladder rationale as before (word label always
@@ -63,8 +51,6 @@ export const darkColors = {
   surfaceSolid: "#1C1728",
   surfaceAlt: "rgba(255,255,255,0.10)",
   border: "rgba(255,255,255,0.09)",
-  /** @deprecated Cartridge keyline — now the glass hairline; migrate to `border`. */
-  ink: "rgba(255,255,255,0.09)",
   text: "#F0ECF7",
   textMuted: "#9C92B8",
 
@@ -113,7 +99,6 @@ export const lightColors = {
   surfaceSolid: "#FFFFFF",
   surfaceAlt: "#EFEAF8",
   border: "rgba(76,58,130,0.14)",
-  ink: "rgba(76,58,130,0.14)",
   text: "#241A3D",
   textMuted: "#6E6390",
 
@@ -187,21 +172,5 @@ export const SCRIM_RGB = "10,7,18";
 
 export const motion = { instant: 90, quick: 140, base: 200, deliberate: 260 } as const;
 
-/* ------------------------------------------------------------------ */
-/* Cartridge compat shims — inert. Deleted in the final cleanup task.  */
-/* ------------------------------------------------------------------ */
-/** @deprecated plates are gone; returns {}. Remove the call site when you touch it. */
-export function shadow(_scheme: "light" | "dark") { return {} as const; }
-/** @deprecated plates are gone; returns {}. */
-export function shadowLifted(_scheme: "light" | "dark") { return {} as const; }
-/** @deprecated press feedback is opacity/scale now; this is a no-op style. */
-export const pressedOffset = {} as const;
-/** @deprecated the printed keyline is dead; 1px glass hairlines use colors.border. */
+/** Border width for the 1px glass hairlines (colors.border). */
 export const hairline = 1;
-/** @deprecated foil is dead; this now carries the solar gradient so paywall surfaces
- * stay premium-looking until they migrate to useTheme().solarGradient. */
-export const foil = {
-  colors: ["#FFD98A", "#FF9D5C"] as const,
-  start: { x: 0, y: 1 }, end: { x: 1, y: 0 },
-  onFoil: "#4A2A00",
-} as const;

@@ -56,7 +56,7 @@ export default function AppearanceSettings() {
                     height: 20,
                     borderRadius: radius.chip,
                     borderWidth: hairline,
-                    borderColor: selected ? colors.brandInk : colors.ink,
+                    borderColor: selected ? colors.brandInk : colors.border,
                     backgroundColor: selected ? colors.brand : "transparent",
                     alignItems: "center",
                     justifyContent: "center",

@@ -71,7 +71,7 @@ export default function PartyDeckScreen() {
             justifyContent: "center",
             backgroundColor: colors.surface,
             borderWidth: hairline,
-            borderColor: colors.ink,
+            borderColor: colors.border,
           }}
         >
           <Ionicons name="chevron-back" size={19} color={colors.text} />
