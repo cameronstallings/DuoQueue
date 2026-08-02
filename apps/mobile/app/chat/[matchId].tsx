@@ -3,7 +3,6 @@ import {
   Alert,
   FlatList,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   Text,
@@ -11,11 +10,21 @@ import {
   View,
 } from "react-native";
 import * as Clipboard from "expo-clipboard";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { MATCH_FEEDBACK_TAGS, type MatchFeedbackTag, type ReportReason } from "@duoqueue/shared-types";
 
+import { AuroraBackground } from "@/components/AuroraBackground";
+import { Button, ButtonRow } from "@/components/Button";
+import { Card } from "@/components/Card";
 import { ChipSelect } from "@/components/ChipSelect";
+import { EmptyState } from "@/components/EmptyState";
+import { GrainOverlay } from "@/components/GrainOverlay";
+import { Name } from "@/components/Name";
 import { ReportModal } from "@/components/ReportModal";
+import { SectionLabel } from "@/components/SectionLabel";
+import { Sheet } from "@/components/Sheet";
 import { Skeleton } from "@/components/Skeleton";
 import { useChatMessages } from "@/features/chat/useChatMessages";
 import { useDiscordShare, useSharedDiscordUsername } from "@/features/chat/useDiscordShare";
@@ -61,6 +70,48 @@ function getSessionPresets(): { label: string; date: Date }[] {
   return presets;
 }
 
+/**
+ * One tappable row: icon + label. Shared by the schedule presets and the overflow
+ * sheet's grouped actions — a flat list item, not a `Button` (a full-width pill would
+ * be too heavy repeated this many times in one sheet) and not `NavRow` (its trailing
+ * chevron implies a destination screen; these are one-shot actions, not navigation).
+ */
+function ActionRow({
+  icon,
+  label,
+  onPress,
+  danger,
+  disabled,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+  danger?: boolean;
+  disabled?: boolean;
+}) {
+  const { colors, spacing, type } = useTheme();
+  const tint = danger ? colors.danger : colors.text;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled: !!disabled }}
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => ({
+        flexDirection: "row",
+        alignItems: "center",
+        gap: spacing.md,
+        paddingVertical: spacing.sm + 2,
+        opacity: disabled ? 0.5 : pressed ? 0.7 : 1,
+      })}
+    >
+      <Ionicons name={icon} size={18} color={danger ? colors.danger : colors.textMuted} />
+      <Text style={[type.body, { color: tint }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 function ScheduleModal({
   visible,
   onClose,
@@ -70,7 +121,7 @@ function ScheduleModal({
   onClose: () => void;
   matchId: string;
 }) {
-  const { colors, spacing, type } = useTheme();
+  const { spacing } = useTheme();
   const propose = useProposeSession(matchId);
 
   async function handlePick(date: Date) {
@@ -83,36 +134,24 @@ function ScheduleModal({
   }
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.3)", justifyContent: "flex-end" }} onPress={onClose}>
-        <Pressable
-          style={{
-            backgroundColor: colors.background,
-            padding: spacing.lg,
-            gap: spacing.sm,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-          }}
-        >
-          <Text style={{ ...type.title, color: colors.text }}>Propose a time to play</Text>
-          {getSessionPresets().map((preset) => (
-            <Pressable
-              key={preset.label}
-              onPress={() => void handlePick(preset.date)}
-              disabled={propose.isPending}
-              style={{ paddingVertical: spacing.sm }}
-            >
-              <Text style={{ color: colors.brand, fontWeight: "600", fontSize: 16 }}>{preset.label}</Text>
-            </Pressable>
-          ))}
-        </Pressable>
-      </Pressable>
-    </Modal>
+    <Sheet visible={visible} onClose={onClose} title="Propose a time to play">
+      <View style={{ gap: spacing.xs }}>
+        {getSessionPresets().map((preset) => (
+          <ActionRow
+            key={preset.label}
+            icon="time-outline"
+            label={preset.label}
+            onPress={() => void handlePick(preset.date)}
+            disabled={propose.isPending}
+          />
+        ))}
+      </View>
+    </Sheet>
   );
 }
 
 function SessionBanner({ matchId, myId }: { matchId: string; myId: string | undefined }) {
-  const { colors, radius, spacing } = useTheme();
+  const { colors, spacing, type } = useTheme();
   const { data: session } = useActiveMatchSession(matchId);
   const respond = useRespondSession(matchId);
   const cancel = useCancelSession(matchId);
@@ -123,35 +162,35 @@ function SessionBanner({ matchId, myId }: { matchId: string; myId: string | unde
   const label = SESSION_TIME_FORMAT.format(new Date(session.scheduled_at));
 
   return (
-    <View
-      style={{
-        marginHorizontal: spacing.md,
-        marginBottom: spacing.sm,
-        backgroundColor: colors.brandSoft,
-        borderRadius: radius.lg,
-        padding: spacing.md,
-        gap: spacing.xs,
-      }}
-    >
-      <Text style={{ color: colors.text, fontWeight: "700" }}>
-        {session.status === "confirmed" ? "Playing " : "Proposed: "}
-        {label}
-      </Text>
-      {session.status === "pending" && !isProposer && (
-        <View style={{ flexDirection: "row", gap: spacing.md }}>
-          <Pressable onPress={() => respond.mutate({ sessionId: session.id, accept: true })}>
-            <Text style={{ color: colors.brand, fontWeight: "700" }}>Confirm</Text>
-          </Pressable>
-          <Pressable onPress={() => respond.mutate({ sessionId: session.id, accept: false })}>
-            <Text style={{ color: colors.textMuted, fontWeight: "700" }}>Decline</Text>
-          </Pressable>
+    <View style={{ marginHorizontal: spacing.md, marginBottom: spacing.sm }}>
+      <Card style={{ flexDirection: "row", padding: 0, overflow: "hidden" }}>
+        {/* The accent left edge is its own inner view, not a border on the card —
+            keeps the glow-free "colored stripe" look consistent with other rails. */}
+        <View style={{ width: 2, backgroundColor: colors.accent }} />
+        <View style={{ flex: 1, padding: spacing.md, gap: spacing.sm }}>
+          <Text style={[type.bodyStrong, { color: colors.text }]}>
+            {session.status === "confirmed" ? "Playing " : "Proposed: "}
+            {label}
+          </Text>
+          {session.status === "pending" && !isProposer && (
+            <ButtonRow>
+              <Button
+                variant="ghost"
+                label="Confirm"
+                onPress={() => respond.mutate({ sessionId: session.id, accept: true })}
+              />
+              <Button
+                variant="ghost"
+                label="Decline"
+                onPress={() => respond.mutate({ sessionId: session.id, accept: false })}
+              />
+            </ButtonRow>
+          )}
+          {(session.status === "confirmed" || isProposer) && (
+            <Button variant="ghost" label="Cancel" onPress={() => cancel.mutate(session.id)} />
+          )}
         </View>
-      )}
-      {(session.status === "confirmed" || isProposer) && (
-        <Pressable onPress={() => cancel.mutate(session.id)}>
-          <Text style={{ color: colors.textMuted, fontSize: 12 }}>Cancel</Text>
-        </Pressable>
-      )}
+      </Card>
     </View>
   );
 }
@@ -186,42 +225,28 @@ function FeedbackModal({
   }
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.3)", justifyContent: "flex-end" }} onPress={onClose}>
-        <Pressable
-          style={{
-            backgroundColor: colors.background,
-            padding: spacing.lg,
-            gap: spacing.md,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-          }}
-        >
-          <Text style={{ ...type.title, color: colors.text }}>How was playing with {otherName}?</Text>
-          <Text style={{ color: colors.textMuted, fontSize: 13 }}>
-            Optional and private to how it shapes their reputation — pick anything that applies.
-          </Text>
-          <ChipSelect
-            options={MATCH_FEEDBACK_TAGS.map((value) => ({ value, label: MATCH_FEEDBACK_LABELS[value] }))}
-            selected={selected}
-            onToggle={toggle}
-          />
-          <Pressable
-            onPress={() => void handleSubmit()}
-            disabled={submit.isPending || selected.length === 0}
-            style={{
-              backgroundColor: colors.brand,
-              opacity: submit.isPending || selected.length === 0 ? 0.5 : 1,
-              borderRadius: 20,
-              paddingVertical: spacing.sm,
-              alignItems: "center",
-            }}
-          >
-            <Text style={{ color: "#fff", fontWeight: "700" }}>Submit</Text>
-          </Pressable>
-        </Pressable>
-      </Pressable>
-    </Modal>
+    // Carries a selection the user built up — a mis-tap on the scrim shouldn't
+    // throw it away, so this is the one sheet that opts out of tap-to-dismiss
+    // (matches ReportModal). It still needs its own way out — the Cancel button.
+    <Sheet visible={visible} onClose={onClose} title={`How was playing with ${otherName}?`} dismissable={false}>
+      <View style={{ gap: spacing.md }}>
+        <Text style={[type.caption, { color: colors.textMuted }]}>
+          Optional and private to how it shapes their reputation — pick anything that applies.
+        </Text>
+        <ChipSelect
+          options={MATCH_FEEDBACK_TAGS.map((value) => ({ value, label: MATCH_FEEDBACK_LABELS[value] }))}
+          selected={selected}
+          onToggle={toggle}
+        />
+        <Button
+          label="Submit"
+          onPress={() => void handleSubmit()}
+          disabled={selected.length === 0}
+          loading={submit.isPending}
+        />
+        <Button label="Cancel" variant="ghost" onPress={onClose} />
+      </View>
+    </Sheet>
   );
 }
 
@@ -236,30 +261,55 @@ function MessageBubble({
   readAt: string | null;
   hiddenWords: string[];
 }) {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, type, heroGradient } = useTheme();
   const [revealed, setRevealed] = useState(false);
   const isHidden = !isMine && !revealed && containsHiddenWord(content, hiddenWords);
+
+  const bubbleShape = {
+    // Bubble geometry has no token — 18 is the base radius, 6 is the tail corner.
+    borderRadius: 18,
+    ...(isMine ? { borderBottomRightRadius: 6 } : { borderBottomLeftRadius: 6 }),
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+  };
+
+  const inner = (
+    <>
+      <Text
+        style={[
+          type.body,
+          {
+            color: isMine ? colors.onFill : isHidden ? colors.textMuted : colors.text,
+            fontStyle: isHidden ? "italic" : "normal",
+          },
+        ]}
+      >
+        {isHidden ? "Message hidden — tap to reveal" : content}
+      </Text>
+      {isMine && (
+        <Text style={[type.caption, { color: colors.textMuted, textAlign: "right", marginTop: 2 }]}>
+          {readAt ? "Read" : "Sent"}
+        </Text>
+      )}
+    </>
+  );
 
   return (
     <Pressable
       disabled={!isHidden}
       onPress={() => setRevealed(true)}
-      style={{
-        alignSelf: isMine ? "flex-end" : "flex-start",
-        backgroundColor: isMine ? colors.brand : colors.surface,
-        borderRadius: 16,
-        paddingVertical: spacing.sm,
-        paddingHorizontal: spacing.md,
-        maxWidth: "80%",
-      }}
+      style={{ alignSelf: isMine ? "flex-end" : "flex-start", maxWidth: "80%" }}
     >
-      <Text style={{ color: isMine ? "#fff" : isHidden ? colors.textMuted : colors.text, fontStyle: isHidden ? "italic" : "normal" }}>
-        {isHidden ? "Message hidden — tap to reveal" : content}
-      </Text>
-      {isMine && (
-        <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 10, textAlign: "right", marginTop: 2 }}>
-          {readAt ? "Read" : "Sent"}
-        </Text>
+      {isMine ? (
+        // The 0.9 opacity lives on the gradient container itself, not the text —
+        // so the whole fill reads as a hair translucent, not the label alone.
+        <LinearGradient {...heroGradient} style={[bubbleShape, { opacity: 0.9 }]}>
+          {inner}
+        </LinearGradient>
+      ) : (
+        <View style={[bubbleShape, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}>
+          {inner}
+        </View>
       )}
     </Pressable>
   );
@@ -274,7 +324,7 @@ function DiscordShareBubble({
   sharedBy: string;
   isMine: boolean;
 }) {
-  const { colors, radius, spacing } = useTheme();
+  const { colors, radius, spacing, type } = useTheme();
   const myDiscordUsername = useSessionStore((s) => s.profile?.discord_username ?? null);
   const { data: revealedUsername, isLoading } = useSharedDiscordUsername(matchId, sharedBy, !isMine);
   const username = isMine ? myDiscordUsername : revealedUsername;
@@ -289,14 +339,16 @@ function DiscordShareBubble({
       style={{
         alignSelf: "center",
         backgroundColor: colors.surface,
-        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: colors.border,
+        borderRadius: radius.card,
         padding: spacing.md,
         gap: spacing.xs,
         maxWidth: "80%",
         marginVertical: spacing.sm,
       }}
     >
-      <Text style={{ color: colors.textMuted, fontSize: 12, textAlign: "center" }}>
+      <Text style={[type.caption, { color: colors.textMuted, textAlign: "center" }]}>
         {isMine ? "You shared your Discord" : "Shared their Discord"}
       </Text>
       {isLoading && !isMine ? (
@@ -306,18 +358,18 @@ function DiscordShareBubble({
           onPress={() => void handleCopy()}
           style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.sm }}
         >
-          <Text style={{ fontWeight: "700", color: colors.text }}>{username}</Text>
-          <Text style={{ color: colors.brand, fontSize: 12, fontWeight: "600" }}>Copy</Text>
+          <Text style={[type.bodyStrong, { color: colors.text }]}>{username}</Text>
+          <Text style={[type.caption, { color: colors.accentInk }]}>Copy</Text>
         </Pressable>
       ) : (
-        <Text style={{ color: colors.textMuted, fontSize: 12, textAlign: "center" }}>No longer available</Text>
+        <Text style={[type.caption, { color: colors.textMuted, textAlign: "center" }]}>No longer available</Text>
       )}
     </View>
   );
 }
 
 export default function ChatScreen() {
-  const { colors, spacing, type } = useTheme();
+  const { colors, spacing, radius, type, glow, heroGradient, solarGradient } = useTheme();
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const myId = useSessionStore((s) => s.session?.user.id);
   const { data: matches } = useMatches();
@@ -438,8 +490,13 @@ export default function ChatScreen() {
     );
   }
 
+  const canSend = !sendMessage.isPending && !!draft.trim();
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <AuroraBackground />
+      <GrainOverlay />
+
       <Stack.Screen
         options={{
           title: matchInfo?.other_display_name ?? "Chat",
@@ -450,9 +507,24 @@ export default function ChatScreen() {
           headerStyle: { backgroundColor: colors.surface },
           headerTitleStyle: { ...type.title, color: colors.text },
           headerShadowVisible: false,
+          // The name itself is the way into their profile — smallest change that
+          // keeps the native header chrome but makes the title tappable.
+          headerTitle: () => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="View profile"
+              disabled={!matchInfo}
+              onPress={() => matchInfo && router.push(`/profile/${matchInfo.other_profile_id}`)}
+              hitSlop={8}
+            >
+              <Name variant="title" style={{ color: colors.text }} numberOfLines={1}>
+                {matchInfo?.other_display_name ?? "Chat"}
+              </Name>
+            </Pressable>
+          ),
           headerRight: () => (
             <Pressable onPress={() => setMenuVisible(true)} hitSlop={12} accessibilityLabel="Chat options">
-              <Text style={{ color: colors.brandInk, fontSize: 20 }}>•••</Text>
+              <Ionicons name="ellipsis-horizontal" size={22} color={colors.brandInk} />
             </Pressable>
           ),
         }}
@@ -460,17 +532,18 @@ export default function ChatScreen() {
 
       {isLoading ? (
         <View style={{ padding: spacing.md, gap: spacing.sm }}>
-          <Skeleton width="60%" height={36} borderRadius={16} style={{ alignSelf: "flex-start" }} />
-          <Skeleton width="45%" height={36} borderRadius={16} style={{ alignSelf: "flex-end" }} />
-          <Skeleton width="70%" height={36} borderRadius={16} style={{ alignSelf: "flex-start" }} />
+          <Skeleton width="60%" height={36} borderRadius={radius.md} style={{ alignSelf: "flex-start" }} />
+          <Skeleton width="45%" height={36} borderRadius={radius.md} style={{ alignSelf: "flex-end" }} />
+          <Skeleton width="70%" height={36} borderRadius={radius.md} style={{ alignSelf: "flex-start" }} />
         </View>
       ) : error ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.sm }}>
-          <Text style={{ color: colors.text, fontWeight: "600" }}>Couldn&apos;t load this conversation</Text>
-          <Pressable onPress={() => void refetch()}>
-            <Text style={{ color: colors.brand, fontWeight: "600" }}>Try again</Text>
-          </Pressable>
-        </View>
+        <EmptyState
+          icon="cloud-offline"
+          title="Couldn't load this conversation"
+          subtitle="Check your connection and try again."
+          actionLabel="Try again"
+          onAction={() => void refetch()}
+        />
       ) : (
         <FlatList
           ref={listRef}
@@ -479,14 +552,11 @@ export default function ChatScreen() {
           contentContainerStyle={{ padding: spacing.md, gap: spacing.xs, flexGrow: 1 }}
           onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
           ListEmptyComponent={
-            <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.xs }}>
-              <Text style={{ fontWeight: "600", color: colors.text }}>
-                Say hi to {matchInfo?.other_display_name ?? "your match"}!
-              </Text>
-              <Text style={{ color: colors.textMuted, textAlign: "center" }}>
-                You matched — break the ice with a message about a game you both play.
-              </Text>
-            </View>
+            <EmptyState
+              icon="chatbubbles"
+              title={`Say hi to ${matchInfo?.other_display_name ?? "your match"}!`}
+              subtitle="You matched — break the ice with a message about a game you both play."
+            />
           }
           renderItem={({ item }: { item: ChatTimelineItem }) => {
             if (item.kind === "discord_share") {
@@ -507,7 +577,7 @@ export default function ChatScreen() {
       )}
 
       {otherIsTyping && (
-        <Text style={{ color: colors.textMuted, paddingHorizontal: spacing.md, fontSize: 12 }}>
+        <Text style={[type.caption, { color: colors.textMuted, paddingHorizontal: spacing.md }]}>
           {matchInfo?.other_display_name ?? "They"} are typing…
         </Text>
       )}
@@ -516,14 +586,23 @@ export default function ChatScreen() {
 
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
         {matchInfo?.is_locked ? (
-          <View style={{ padding: spacing.md, gap: spacing.sm, borderTopWidth: 1, borderColor: colors.border }}>
-            <Text style={{ color: colors.textMuted, textAlign: "center" }}>
-              This conversation is locked. Upgrade to DuoQueue+ for unlimited active conversations, or
-              unmatch an older one to free up a slot.
-            </Text>
-            <Pressable onPress={() => router.push("/paywall")} style={{ alignItems: "center" }}>
-              <Text style={{ color: colors.brand, fontWeight: "700" }}>Upgrade to DuoQueue+</Text>
-            </Pressable>
+          <View style={{ padding: spacing.md, borderTopWidth: 1, borderColor: colors.border }}>
+            <LinearGradient {...solarGradient} style={{ borderRadius: radius.card, padding: 1 }}>
+              <View
+                style={{
+                  backgroundColor: colors.surfaceSolid,
+                  borderRadius: radius.card - 1,
+                  padding: spacing.md,
+                  gap: spacing.sm,
+                  alignItems: "center",
+                }}
+              >
+                <Text style={[type.caption, { color: colors.textMuted, textAlign: "center" }]}>
+                  This conversation is locked — upgrade for unlimited active conversations.
+                </Text>
+                <Button variant="solar" label="Get DuoQueue+" onPress={() => router.push("/paywall")} />
+              </View>
+            </LinearGradient>
           </View>
         ) : (
           <View
@@ -544,86 +623,108 @@ export default function ChatScreen() {
               }}
               placeholder="Message..."
               placeholderTextColor={colors.textMuted}
-              style={{
-                flex: 1,
-                backgroundColor: colors.surface,
-                borderRadius: 20,
-                paddingHorizontal: spacing.md,
-                paddingVertical: spacing.sm,
-                color: colors.text,
-              }}
+              style={[
+                type.body,
+                {
+                  flex: 1,
+                  backgroundColor: colors.surface,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  borderRadius: radius.round,
+                  paddingHorizontal: spacing.md,
+                  paddingVertical: spacing.sm,
+                  color: colors.text,
+                },
+              ]}
               multiline
             />
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Send message"
               onPress={() => void handleSend()}
-              disabled={sendMessage.isPending || !draft.trim()}
-              style={{
-                backgroundColor: colors.brand,
-                opacity: sendMessage.isPending || !draft.trim() ? 0.5 : 1,
-                borderRadius: 20,
-                paddingHorizontal: spacing.md,
-                paddingVertical: spacing.sm,
-              }}
+              disabled={!canSend}
+              style={({ pressed }) => [
+                { width: 40, height: 40, borderRadius: radius.round },
+                canSend ? glow(colors.glowViolet, 12) : null,
+                { transform: [{ scale: pressed ? 0.94 : 1 }] },
+              ]}
             >
-              <Text style={{ color: "#fff", fontWeight: "700" }}>Send</Text>
+              {canSend ? (
+                <LinearGradient
+                  {...heroGradient}
+                  style={{ width: 40, height: 40, borderRadius: radius.round, alignItems: "center", justifyContent: "center" }}
+                >
+                  <Ionicons name="arrow-up" size={20} color={colors.onFill} />
+                </LinearGradient>
+              ) : (
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: radius.round,
+                    backgroundColor: colors.surface,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Ionicons name="arrow-up" size={20} color={colors.textMuted} />
+                </View>
+              )}
             </Pressable>
           </View>
         )}
       </KeyboardAvoidingView>
 
-      <Modal visible={menuVisible} animationType="fade" transparent onRequestClose={() => setMenuVisible(false)}>
-        <Pressable
-          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.3)", justifyContent: "flex-end" }}
-          onPress={() => setMenuVisible(false)}
-        >
-          <View style={{ backgroundColor: colors.background, padding: spacing.lg, gap: spacing.sm, borderTopLeftRadius: 20, borderTopRightRadius: 20 }}>
-            <Pressable onPress={() => void handlePlayNow()} style={{ padding: spacing.sm }}>
-              <Text style={{ color: colors.brand, fontWeight: "600" }}>Ping: I&apos;m free to play now</Text>
-            </Pressable>
-            <Pressable onPress={() => void handleInviteThird()} style={{ padding: spacing.sm }}>
-              <Text style={{ color: colors.brand, fontWeight: "600" }}>Invite a third to duo</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => {
-                setMenuVisible(false);
-                setScheduleVisible(true);
-              }}
-              style={{ padding: spacing.sm }}
-            >
-              <Text style={{ color: colors.brand, fontWeight: "600" }}>Schedule a session</Text>
-            </Pressable>
-            <Pressable onPress={handleShareDiscord} disabled={hasSharedDiscord} style={{ padding: spacing.sm }}>
-              <Text style={{ color: hasSharedDiscord ? colors.textMuted : colors.brand, fontWeight: "600" }}>
-                {hasSharedDiscord ? "Discord already shared" : "Share my Discord"}
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => {
-                setMenuVisible(false);
-                setFeedbackVisible(true);
-              }}
-              style={{ padding: spacing.sm }}
-            >
-              <Text style={{ color: colors.text, fontWeight: "600" }}>Rate this session</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => {
-                setMenuVisible(false);
-                setReportVisible(true);
-              }}
-              style={{ padding: spacing.sm }}
-            >
-              <Text style={{ color: colors.text, fontWeight: "600" }}>Report</Text>
-            </Pressable>
-            <Pressable onPress={handleBlock} style={{ padding: spacing.sm }}>
-              <Text style={{ color: colors.danger, fontWeight: "600" }}>Block</Text>
-            </Pressable>
-            <Pressable onPress={handleUnmatch} style={{ padding: spacing.sm }}>
-              <Text style={{ color: colors.danger, fontWeight: "600" }}>Unmatch</Text>
-            </Pressable>
-          </View>
-        </Pressable>
-      </Modal>
+      <Sheet visible={menuVisible} onClose={() => setMenuVisible(false)}>
+        <View style={{ gap: spacing.xs }}>
+          <SectionLabel>Play together</SectionLabel>
+          <ActionRow icon="flash" label="Ping I'm free now" onPress={() => void handlePlayNow()} />
+          <ActionRow icon="people" label="Invite a third" onPress={() => void handleInviteThird()} />
+          <ActionRow
+            icon="calendar"
+            label="Schedule a session"
+            onPress={() => {
+              setMenuVisible(false);
+              setScheduleVisible(true);
+            }}
+          />
+          <ActionRow
+            icon="logo-discord"
+            label={hasSharedDiscord ? "Discord already shared" : "Share my Discord"}
+            onPress={handleShareDiscord}
+            disabled={hasSharedDiscord}
+          />
+        </View>
+
+        <View style={{ marginTop: spacing.md, gap: spacing.xs }}>
+          <SectionLabel>After the session</SectionLabel>
+          <ActionRow
+            icon="star"
+            label="Rate this session"
+            onPress={() => {
+              setMenuVisible(false);
+              setFeedbackVisible(true);
+            }}
+          />
+        </View>
+
+        <View style={{ marginTop: spacing.lg, gap: spacing.xs }}>
+          <SectionLabel>Safety</SectionLabel>
+          <ActionRow
+            icon="flag"
+            label="Report"
+            danger
+            onPress={() => {
+              setMenuVisible(false);
+              setReportVisible(true);
+            }}
+          />
+          <ActionRow icon="ban" label="Block" danger onPress={handleBlock} />
+          <ActionRow icon="close-circle" label="Unmatch" danger onPress={handleUnmatch} />
+        </View>
+      </Sheet>
 
       <ReportModal visible={reportVisible} onClose={() => setReportVisible(false)} onSubmit={handleReportSubmit} />
       <FeedbackModal
