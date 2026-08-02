@@ -9,9 +9,9 @@ import { type ThemePreference, useThemeStore } from "@/store/theme-store";
 import { useTheme } from "@/theme/useTheme";
 
 const APPEARANCE_SUMMARY: Record<ThemePreference, string> = {
-  system: "Automatic",
-  light: "Light",
   dark: "Dark",
+  light: "Light",
+  system: "System",
 };
 
 /**

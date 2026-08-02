@@ -2,13 +2,14 @@ import { useState } from "react";
 import { Alert, FlatList, RefreshControl, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
+import { Card } from "@/components/Card";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { Skeleton } from "@/components/Skeleton";
 import { useBlockedUsers, useUnblockUser, type BlockedUser } from "@/features/settings/useBlockedUsers";
 import { useTheme } from "@/theme/useTheme";
 
 function BlockedRow({ item }: { item: BlockedUser }) {
-  const { colors, radius, spacing } = useTheme();
+  const { colors, spacing, type } = useTheme();
   const unblock = useUnblockUser();
 
   function handleUnblock() {
@@ -19,47 +20,32 @@ function BlockedRow({ item }: { item: BlockedUser }) {
   }
 
   return (
-    <View
+    <Card
       style={{
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
         padding: spacing.md,
-        backgroundColor: colors.surface,
-        borderRadius: radius.md,
-        borderWidth: 1,
-        borderColor: colors.border,
         marginBottom: spacing.sm,
       }}
     >
-      <Text style={{ color: colors.text, fontWeight: "600" }}>{item.display_name}</Text>
+      <Text style={[type.bodyStrong, { color: colors.text }]}>{item.display_name}</Text>
       <Button label="Unblock" variant="ghost" onPress={handleUnblock} loading={unblock.isPending} />
-    </View>
+    </Card>
   );
 }
 
 function BlockedRowSkeleton() {
-  const { colors, radius, spacing } = useTheme();
+  const { spacing } = useTheme();
   return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        padding: spacing.md,
-        backgroundColor: colors.surface,
-        borderRadius: radius.md,
-        borderWidth: 1,
-        borderColor: colors.border,
-        marginBottom: spacing.sm,
-      }}
-    >
+    <Card style={{ flexDirection: "row", alignItems: "center", padding: spacing.md, marginBottom: spacing.sm }}>
       <Skeleton width="50%" height={16} />
-    </View>
+    </Card>
   );
 }
 
 export default function BlockListScreen() {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, type } = useTheme();
   const { data: blocked, isLoading, error, refetch } = useBlockedUsers();
 
   const [refreshing, setRefreshing] = useState(false);
@@ -80,7 +66,7 @@ export default function BlockListScreen() {
         <RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} tintColor={colors.brand} />
       }
     >
-      <Text style={{ color: colors.textMuted, marginBottom: spacing.sm }}>
+      <Text style={[type.body, { color: colors.textMuted, marginBottom: spacing.sm }]}>
         People you&apos;ve blocked. Unblocking lets them appear in your deck again — they won&apos;t be notified
         either way.
       </Text>
@@ -93,11 +79,11 @@ export default function BlockListScreen() {
         </View>
       ) : error ? (
         <View style={{ gap: spacing.sm }}>
-          <Text style={{ color: colors.textMuted }}>Couldn&apos;t load your block list.</Text>
+          <Text style={[type.body, { color: colors.textMuted }]}>Couldn&apos;t load your block list.</Text>
           <Button label="Try again" variant="ghost" onPress={() => void refetch()} />
         </View>
       ) : !blocked || blocked.length === 0 ? (
-        <Text style={{ color: colors.textMuted }}>You haven&apos;t blocked anyone.</Text>
+        <Text style={[type.body, { color: colors.textMuted }]}>You haven&apos;t blocked anyone.</Text>
       ) : (
         <FlatList
           data={blocked}

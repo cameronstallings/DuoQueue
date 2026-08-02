@@ -62,7 +62,7 @@ function Row({
 }
 
 function RowSkeleton() {
-  const { spacing } = useTheme();
+  const { radius, spacing } = useTheme();
   return (
     <View
       style={{
@@ -76,7 +76,7 @@ function RowSkeleton() {
         <Skeleton width="45%" height={15} />
         <Skeleton width="70%" height={12} />
       </View>
-      <Skeleton width={44} height={26} borderRadius={13} />
+      <Skeleton width={44} height={26} borderRadius={radius.chip} />
     </View>
   );
 }

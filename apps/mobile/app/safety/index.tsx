@@ -16,15 +16,15 @@ const TOPIC_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 };
 
 export default function SafetyCenterScreen() {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, type } = useTheme();
 
   return (
     <ScreenContainer title="Safety Center" showClose>
-      <Text style={{ color: colors.textMuted, marginBottom: spacing.sm }}>
+      <Text style={[type.body, { color: colors.textMuted, marginBottom: spacing.sm }]}>
         Tips, guidelines, and resources for staying safe on DuoQueue.
       </Text>
 
-      <Card style={{ padding: 0 }}>
+      <Card style={{ padding: 0, overflow: "hidden" }}>
         {SAFETY_TOPICS.map((topic, i) => (
           <View key={topic.key}>
             {i > 0 && <View style={{ height: 1, backgroundColor: colors.border }} />}
@@ -39,8 +39,8 @@ export default function SafetyCenterScreen() {
             >
               <Ionicons name={TOPIC_ICONS[topic.key] ?? "information-circle"} size={22} color={colors.brand} />
               <View style={{ flex: 1 }}>
-                <Text style={{ color: colors.text, fontWeight: "600" }}>{topic.title}</Text>
-                <Text style={{ color: colors.textMuted, fontSize: 13 }} numberOfLines={1}>
+                <Text style={[type.bodyStrong, { color: colors.text }]}>{topic.title}</Text>
+                <Text style={[type.caption, { color: colors.textMuted }]} numberOfLines={1}>
                   {topic.summary}
                 </Text>
               </View>

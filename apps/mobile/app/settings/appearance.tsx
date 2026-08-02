@@ -8,18 +8,18 @@ import { type ThemePreference, useThemeStore } from "@/store/theme-store";
 import { useTheme } from "@/theme/useTheme";
 
 /**
- * "System" was the label here before, and it is jargon — it does not say what it
- * does. Each option now carries a line explaining it, which is the whole reason
- * this moved out of a row of chips: a chip has room for a word, not an answer.
+ * Each option carries a line explaining it, which is the whole reason this moved
+ * out of a row of chips: a chip has room for a word, not an answer. Dark is listed
+ * first — it's the default now, not a fallback to System.
  */
 const OPTIONS: { value: ThemePreference; label: string; hint: string }[] = [
+  { value: "dark", label: "Dark", hint: "Always dark, whatever your phone is set to." },
+  { value: "light", label: "Light", hint: "Always light, whatever your phone is set to." },
   {
     value: "system",
-    label: "Automatic",
+    label: "System",
     hint: "Follows your phone's light/dark setting, including any schedule you've set.",
   },
-  { value: "light", label: "Light", hint: "Always light, whatever your phone is set to." },
-  { value: "dark", label: "Dark", hint: "Always dark, whatever your phone is set to." },
 ];
 
 export default function AppearanceSettings() {
