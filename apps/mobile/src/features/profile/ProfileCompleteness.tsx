@@ -8,8 +8,13 @@ export interface CompletenessItem {
   done: boolean;
 }
 
+/**
+ * A single thin progress bar plus one hint sentence — the completeness meter used
+ * to spend a whole row on a "PROFILE STRENGTH" label and a separate percentage
+ * before saying anything useful. Self-hides once nothing is missing.
+ */
 export function ProfileCompleteness({ items }: { items: CompletenessItem[] }) {
-  const { colors, spacing, radius } = useTheme();
+  const { colors, spacing, radius, type } = useTheme();
   const doneCount = items.filter((i) => i.done).length;
   const pct = Math.round((doneCount / items.length) * 100);
   const missing = items.filter((i) => !i.done).map((i) => i.label);
@@ -18,19 +23,15 @@ export function ProfileCompleteness({ items }: { items: CompletenessItem[] }) {
 
   return (
     <View style={{ gap: spacing.xs, marginTop: spacing.sm }}>
-      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-        <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: "700" }}>PROFILE STRENGTH</Text>
-        <Text style={{ color: colors.brand, fontSize: 12, fontWeight: "700" }}>{pct}%</Text>
-      </View>
-      <View style={{ height: 6, borderRadius: radius.pill, backgroundColor: colors.surface, overflow: "hidden" }}>
+      <View style={{ height: 4, borderRadius: radius.round, backgroundColor: colors.surfaceAlt, overflow: "hidden" }}>
         <Animated.View
           entering={FadeIn.duration(300)}
-          style={{ width: `${pct}%`, height: "100%", backgroundColor: colors.brand, borderRadius: radius.pill }}
+          style={{ width: `${pct}%`, height: "100%", backgroundColor: colors.accent, borderRadius: radius.round }}
         />
       </View>
-      {missing.length > 0 && (
-        <Text style={{ color: colors.textMuted, fontSize: 12 }}>Add {missing.join(", ")} to finish your profile.</Text>
-      )}
+      <Text style={[type.caption, { color: colors.textMuted }]}>
+        {pct}% complete — add {missing.join(", ")} to finish your profile.
+      </Text>
     </View>
   );
 }

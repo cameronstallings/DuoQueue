@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
@@ -18,18 +17,27 @@ import Animated, {
 } from "react-native-reanimated";
 import { PROMPT_COUNT, type PhotoRole } from "@duoqueue/shared-types";
 
+import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
-import { InfoChip } from "@/components/InfoChip";
 import { Name } from "@/components/Name";
 import { Skeleton } from "@/components/Skeleton";
 import {
-  PLATFORM_ICONS,
   PLATFORM_LABELS,
   PLAYSTYLE_LABELS,
   REGION_LABELS,
   SKILL_LABELS,
+  formatPlayWindow,
 } from "@/features/onboarding/profile-labels";
 import { ProfileCompleteness } from "@/features/profile/ProfileCompleteness";
+import {
+  GamesSection,
+  HowIPlaySection,
+  MetaLine,
+  PromptsSection,
+  ShowsSection,
+  VibeSection,
+} from "@/features/profile/sections";
+import { useEditableProfileDetails } from "@/features/profile/useEditableProfileDetails";
 import { useOwnProfileDetails } from "@/features/profile/useOwnProfileDetails";
 import { useOwnProfilePhotos } from "@/features/profile/useOwnProfilePhotos";
 import { useOwnPrompts } from "@/features/profile/useOwnPrompts";
@@ -83,70 +91,19 @@ function EditBadge({ uploading }: { uploading: boolean }) {
   );
 }
 
-function DetailSection({
-  label,
-  icon,
-  isLoading,
-  isEmpty,
-  emptyText,
-  onEdit,
-  children,
-}: {
-  label: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  isLoading: boolean;
-  isEmpty: boolean;
-  emptyText: string;
-  onEdit: () => void;
-  children: ReactNode;
-}) {
-  const { colors, radius, spacing, type, hairline } = useTheme();
-
-  // Every section was previously a heading followed immediately by more chips, so the
-  // page read as one continuous run of text with no landmarks. A rule above each
-  // heading gives the eye somewhere to stop.
-  return (
-    <View style={{ marginTop: spacing.lg }}>
-      <View style={{ height: hairline, backgroundColor: colors.border, marginBottom: spacing.md }} />
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: spacing.sm,
-        }}
-      >
-        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
-          <Ionicons name={icon} size={15} color={colors.textMuted} />
-          <Text style={[type.label, { color: colors.textMuted }]}>{label}</Text>
-        </View>
-        <Pressable onPress={onEdit} accessibilityRole="button" hitSlop={8}>
-          <Text style={[type.label, { color: colors.brandInk }]}>Edit</Text>
-        </Pressable>
-      </View>
-      {isLoading ? (
-        <Skeleton height={32} borderRadius={radius.chip} />
-      ) : isEmpty ? (
-        <Text style={[type.body, { color: colors.textMuted }]}>{emptyText}</Text>
-      ) : (
-        <Animated.View
-          entering={FadeIn.duration(200)}
-          style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}
-        >
-          {children}
-        </Animated.View>
-      )}
-    </View>
-  );
-}
-
 export default function ProfileScreen() {
-  const { colors, radius, spacing, shadow, type, hairline } = useTheme();
+  const { colors, radius, spacing, shadow, type } = useTheme();
   const insets = useSafeAreaInsets();
   const profile = useSessionStore((s) => s.profile);
   const { data: photos, isLoading } = useOwnProfilePhotos(profile?.id);
   const { data: prompts, isLoading: promptsLoading } = useOwnPrompts(profile?.id);
   const { data: details, isLoading: detailsLoading } = useOwnProfileDetails(profile?.id);
+  // No dedicated own-profile vibe hook exists — useEditableProfileDetails (used by the
+  // edit-details screen) is the only existing query that reaches profile_vibe, so it's
+  // reused here for its `vibe` field alone rather than standing up a second fetch for
+  // the same table. Its games/shows/platforms/playstyles are ignored in favor of
+  // useOwnProfileDetails, which already has the shape these sections expect.
+  const { data: editableDetails, isLoading: vibeLoading } = useEditableProfileDetails(profile?.id);
   const updatePhoto = useUpdatePhoto(profile?.id);
 
   // Start downloading the actual image bytes the moment the signed URLs are known,
@@ -176,13 +133,17 @@ export default function ProfileScreen() {
     if (asset) updatePhoto.mutate({ uri: asset.uri, role });
   }
 
-  // Gate the whole page behind one combined flag instead of three independent
-  // skeleton/FadeIn boundaries (photos, prompts, details) — those resolved at
-  // slightly different times and popped in one after another, which read as choppy.
-  // Waiting for all three and revealing once, together, feels like a single load.
-  const pageReady = !isLoading && !promptsLoading && !detailsLoading;
+  // Gate the whole page behind one combined flag instead of independent
+  // skeleton/FadeIn boundaries per query — those resolved at slightly different times
+  // and popped in one after another, which read as choppy. Waiting for all of them and
+  // revealing once, together, feels like a single load.
+  const pageReady = !isLoading && !promptsLoading && !detailsLoading && !vibeLoading;
   const uploadingProfile = updatePhoto.isPending && updatePhoto.variables?.role === "profile";
   const uploadingHeader = updatePhoto.isPending && updatePhoto.variables?.role === "header";
+
+  const age = profile ? calculateAge(profile.dob) : null;
+  const regionLabel = profile ? (REGION_LABELS[profile.region] ?? profile.region) : null;
+  const playWindowLabel = profile ? formatPlayWindow(profile.usual_play_start_hour, profile.usual_play_end_hour) : null;
 
   const scrollY = useSharedValue(0);
   const scrollHandler = useAnimatedScrollHandler((event) => {
@@ -287,18 +248,21 @@ export default function ProfileScreen() {
                 <EditBadge uploading={uploadingProfile} />
               </Pressable>
 
-              <View style={{ marginTop: spacing.md, gap: 2 }}>
-                {profile?.display_name && (
-                  <Name variant="screenTitle" style={{ color: colors.text }}>
+              {profile && (
+                <Card luminous style={{ marginTop: spacing.md, gap: spacing.xs }}>
+                  <Name variant="cardName" style={{ color: colors.text }}>
                     {profile.display_name}
                   </Name>
-                )}
-                {profile?.dob && (
-                  <Text style={[type.stat, { color: colors.textMuted }]}>
-                    {calculateAge(profile.dob)} · {REGION_LABELS[profile.region] ?? profile.region}
-                  </Text>
-                )}
-              </View>
+                  {age !== null && regionLabel && (
+                    <Text style={[type.caption, { color: colors.textMuted }]}>
+                      {age} · {regionLabel}
+                    </Text>
+                  )}
+                  <View style={{ flexDirection: "row", marginTop: spacing.xs }}>
+                    <Button label="Edit profile" onPress={() => router.push("/edit-details")} />
+                  </View>
+                </Card>
+              )}
 
               <ProfileCompleteness
                 items={[
@@ -312,93 +276,49 @@ export default function ProfileScreen() {
                 ]}
               />
 
-              <View style={{ marginTop: spacing.lg }}>
-                <View style={{ height: hairline, backgroundColor: colors.border, marginBottom: spacing.md }} />
-                <View
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: spacing.sm,
-                  }}
-                >
-                  <Text style={[type.label, { color: colors.textMuted }]}>Prompts</Text>
-                  <Pressable onPress={() => router.push("/edit-prompts")} accessibilityRole="button" hitSlop={8}>
+              <View style={{ marginTop: spacing.lg, gap: spacing.lg }}>
+                {/* PromptsSection owns its own "Prompts" heading; the Edit link is laid
+                    on top rather than threaded into the shared component's props, so
+                    prompt editing (a separate screen from the rest of edit-details) stays
+                    a call-site concern instead of a section-component one. */}
+                <View style={{ position: "relative" }}>
+                  <PromptsSection prompts={prompts ?? []} />
+                  <Pressable
+                    onPress={() => router.push("/edit-prompts")}
+                    accessibilityRole="button"
+                    hitSlop={8}
+                    style={{ position: "absolute", top: 0, right: 0 }}
+                  >
                     <Text style={[type.label, { color: colors.brandInk }]}>Edit</Text>
                   </Pressable>
                 </View>
-                {(prompts ?? []).map((prompt) => (
-                  <Card key={prompt.position} style={{ gap: spacing.xs, marginBottom: spacing.sm }}>
-                    <Text style={[type.label, { color: colors.textMuted }]}>{prompt.question}</Text>
-                    {/* The answer is the one place a user's own writing appears at length,
-                        so it gets the quote size rather than body — it should read as
-                        something they said, not as a field value. */}
-                    <Text style={[type.quote, { color: colors.text }]}>{prompt.answer}</Text>
-                  </Card>
-                ))}
+
+                <GamesSection
+                  games={(details?.games ?? []).map((game) => ({
+                    name: game.name,
+                    skillLevel: SKILL_LABELS[game.skillLevel],
+                    rank: game.rankText,
+                  }))}
+                />
+
+                <HowIPlaySection
+                  platforms={(details?.platforms ?? []).map((platform) => PLATFORM_LABELS[platform])}
+                  playstyles={(details?.playstyles ?? []).map((tag) => PLAYSTYLE_LABELS[tag])}
+                />
+
+                <VibeSection vibe={editableDetails?.vibe ?? null} />
+
+                <MetaLine playWindow={playWindowLabel} />
+
+                {/* Voice intro intentionally omitted: no existing own-profile hook
+                    returns a signed, playable URL for the caller's own clip —
+                    useOwnVoiceIntro only exposes the raw profile_voice_intro row
+                    (moderation status, storage path) for the edit-details recorder
+                    card's status display. Wiring VoiceIntroPlayer here would mean
+                    standing up a new signing fetch, which is out of scope. */}
+
+                <ShowsSection shows={details?.shows ?? []} />
               </View>
-
-              <DetailSection
-                label="Games"
-                icon="game-controller"
-                isLoading={false}
-                isEmpty={(details?.games.length ?? 0) === 0}
-                emptyText="No games added yet."
-                onEdit={() => router.push("/edit-details")}
-              >
-                {(details?.games ?? []).map((game) => (
-                  <InfoChip
-                    key={game.name}
-                    label={game.name}
-                    sublabel={SKILL_LABELS[game.skillLevel]}
-                    icon="game-controller"
-                  />
-                ))}
-              </DetailSection>
-
-              <DetailSection
-                label="Shows & Movies"
-                icon="tv"
-                isLoading={false}
-                isEmpty={(details?.shows.length ?? 0) === 0}
-                emptyText="No shows added yet."
-                onEdit={() => router.push("/edit-details")}
-              >
-                {(details?.shows ?? []).map((show) => (
-                  <InfoChip key={show} label={show} icon="tv" />
-                ))}
-              </DetailSection>
-
-              <DetailSection
-                label="Platforms"
-                icon="hardware-chip"
-                isLoading={false}
-                isEmpty={(details?.platforms.length ?? 0) === 0}
-                emptyText="No platforms added yet."
-                onEdit={() => router.push("/edit-details")}
-              >
-                {(details?.platforms ?? []).map((platform) => (
-                  <InfoChip
-                    key={platform}
-                    label={PLATFORM_LABELS[platform]}
-                    icon={PLATFORM_ICONS[platform]}
-                    iconFamily="material-community"
-                  />
-                ))}
-              </DetailSection>
-
-              <DetailSection
-                label="Playstyle"
-                icon="people"
-                isLoading={false}
-                isEmpty={(details?.playstyles.length ?? 0) === 0}
-                emptyText="No playstyle tags added yet."
-                onEdit={() => router.push("/edit-details")}
-              >
-                {(details?.playstyles ?? []).map((tag) => (
-                  <InfoChip key={tag} label={PLAYSTYLE_LABELS[tag]} icon="people" />
-                ))}
-              </DetailSection>
             </View>
           </Animated.View>
         )}
