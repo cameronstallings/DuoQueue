@@ -5,7 +5,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, { FadeIn } from "react-native-reanimated";
 
+import { AuroraBackground } from "@/components/AuroraBackground";
 import { EmptyState } from "@/components/EmptyState";
+import { GrainOverlay } from "@/components/GrainOverlay";
 import { Skeleton } from "@/components/Skeleton";
 import { useAdmirersCount } from "@/features/matching/useAdmirers";
 import {
@@ -31,7 +33,7 @@ import { hapticLight, hapticSuccess } from "@/lib/haptics";
 import { useTheme } from "@/theme/useTheme";
 
 export default function DeckScreen() {
-  const { colors, spacing, type } = useTheme();
+  const { colors, spacing, type, radius } = useTheme();
   const insets = useSafeAreaInsets();
   const { cards, isLoading, error, popTop, refetch } = useDeck();
   const swipeAction = useSwipeAction();
@@ -148,6 +150,9 @@ export default function DeckScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <AuroraBackground />
+      <GrainOverlay />
+
       <View
         style={{
           flexDirection: "row",
@@ -166,23 +171,25 @@ export default function DeckScreen() {
             style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
           >
             <Ionicons name="rocket" size={16} color={colors.brand} />
-            <Text style={{ color: colors.brand, fontWeight: "600" }}>{credits?.boosts ?? 0}</Text>
+            <Text style={[type.caption, { color: colors.brand }]}>{credits?.boosts ?? 0}</Text>
           </Pressable>
           <Pressable onPress={() => router.push("/online-now")}>
-            <Text style={{ color: colors.brand, fontWeight: "600" }}>Online</Text>
+            <Text style={[type.caption, { color: colors.brand }]}>Online</Text>
           </Pressable>
           <Pressable onPress={() => router.push("/admirers")}>
-            <Text style={{ color: colors.brand, fontWeight: "600" }}>
+            <Text style={[type.caption, { color: colors.brand }]}>
               Likes{admirersCount ? ` (${admirersCount})` : ""}
             </Text>
           </Pressable>
           <Pressable onPress={() => router.push("/filters")}>
-            <Text style={{ color: colors.brand, fontWeight: "600" }}>Filters</Text>
+            <Text style={[type.caption, { color: colors.brand }]}>Filters</Text>
           </Pressable>
         </View>
       </View>
       {quotaLabel ? (
-        <Text style={{ color: colors.textMuted, paddingHorizontal: spacing.lg, paddingTop: spacing.xs }}>
+        <Text
+          style={[type.caption, { color: colors.textMuted, paddingHorizontal: spacing.lg, paddingTop: spacing.xs }]}
+        >
           {quotaLabel}
         </Text>
       ) : null}
@@ -193,7 +200,7 @@ export default function DeckScreen() {
 
       <View style={{ flex: 1, margin: spacing.lg }}>
         {isLoading ? (
-          <Skeleton style={{ flex: 1, borderRadius: 20 }} />
+          <Skeleton style={{ flex: 1, borderRadius: radius.card }} />
         ) : error ? (
           <EmptyState
             icon="cloud-offline"

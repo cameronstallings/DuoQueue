@@ -42,9 +42,9 @@ interface SwipeCardProps {
   externalTrigger: SwipeCardTrigger | null;
 }
 
-/** How many games you and this person both play, bucketed for the frame ink.
- *  This is a property of the pair, not a rating of the person — the same profile is
- *  a strong overlap to one viewer and a weak one to another, which is why it never
+/** How many games you and this person both play, bucketed for the shared-games chip
+ *  ink. This is a property of the pair, not a rating of the person — the same profile
+ *  is a strong overlap to one viewer and a weak one to another, which is why it never
  *  appears on your own profile and there is nothing to game. */
 function overlapBucket(count: number): "none" | "one" | "two" | "many" {
   if (count <= 0) return "none";
@@ -60,9 +60,9 @@ function overlapLabel(count: number): string {
 }
 
 export function SwipeCard({ card, isTop, onSwiped, externalTrigger }: SwipeCardProps) {
-  const { colors, radius, spacing, type, scrimRgb, shadowLifted, hairline } = useTheme();
+  const { colors, radius, spacing, type, scrimRgb, heroGradient } = useTheme();
   const bucket = overlapBucket(card.shared_games_count);
-  const frameColor = colors.overlap[bucket];
+  const overlapColor = colors.overlap[bucket];
   const [reportVisible, setReportVisible] = useState(false);
   const [detailVisible, setDetailVisible] = useState(false);
   const blockUser = useBlockUser();
@@ -169,140 +169,158 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger }: SwipeCardP
   return (
     <>
       <GestureDetector gesture={pan}>
-        <Animated.View
-          style={[
-            styles.card,
-            {
-              borderRadius: radius.lg,
-              // The card is a printed object: a coloured frame around an inset photo
-              // window, not a full-bleed photo with text floating on it.
-              backgroundColor: frameColor,
-              borderWidth: hairline,
-              borderColor: colors.ink,
-              // A narrower frame: 6pt of saturated colour around the whole photo was
-              // the loudest thing on screen, and the photo is what people are here for.
-              padding: 4,
-            },
-            shadowLifted,
-            cardStyle,
-          ]}
-        >
-          <View style={[styles.window, { borderRadius: radius.window, backgroundColor: colors.surfaceAlt }]}>
-            {card.headerPhotoUrl ? (
-              <Image
-                source={{ uri: card.headerPhotoUrl }}
-                style={styles.photo}
-                contentFit="cover"
-                cachePolicy="memory-disk"
-                transition={200}
-              />
-            ) : (
-              <View style={[styles.photo, { alignItems: "center", justifyContent: "center" }]}>
-                <Text style={[type.label, { color: colors.textMuted }]}>No photo</Text>
-              </View>
-            )}
+        <Animated.View style={[styles.card, { borderRadius: radius.card }, cardStyle]}>
+          {/* The luminous hero edge: a 1px hero-gradient sliver around a solid inner
+              mat. The mat used to be the overlap-tier frame colour — that idiom is
+              gone, so every card now shares the same edge regardless of overlap. */}
+          <LinearGradient {...heroGradient} style={[styles.edge, { borderRadius: radius.card, padding: 1 }]}>
+            <View
+              style={[
+                styles.frame,
+                { borderRadius: radius.card - 1, backgroundColor: colors.surfaceSolid, padding: spacing.xs },
+              ]}
+            >
+              <View style={[styles.window, { borderRadius: radius.window, backgroundColor: colors.surfaceAlt }]}>
+                {card.headerPhotoUrl ? (
+                  <Image
+                    source={{ uri: card.headerPhotoUrl }}
+                    style={styles.photo}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    transition={200}
+                  />
+                ) : (
+                  <View style={[styles.photo, { alignItems: "center", justifyContent: "center" }]}>
+                    <Text style={[type.label, { color: colors.textMuted }]}>No photo</Text>
+                  </View>
+                )}
 
-            {/* A real scrim rather than a flat 55% black bar — the type sits in a
-                gradient so the photo stays visible right up to the copy. */}
-            <LinearGradient
-              colors={[`rgba(${scrimRgb},0)`, `rgba(${scrimRgb},0.72)`, `rgba(${scrimRgb},0.94)`]}
-              locations={[0, 0.55, 1]}
-              style={styles.scrim}
-              pointerEvents="none"
-            />
-
-            {isTop && (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Report or block"
-                onPress={handleMenu}
-                style={[styles.menuButton, { borderRadius: radius.chip, backgroundColor: `rgba(${scrimRgb},0.7)` }]}
-              >
-                <Ionicons name="ellipsis-horizontal" size={18} color="#F5F1E8" />
-              </Pressable>
-            )}
-
-            <Animated.View style={[styles.stamp, styles.likeStamp, likeStampStyle]}>
-              <Text
-                style={[
-                  type.marquee,
-                  styles.stampText,
-                  { color: colors.onFill, backgroundColor: colors.accent, borderColor: colors.ink },
-                ]}
-              >
-                LIKE
-              </Text>
-            </Animated.View>
-            <Animated.View style={[styles.stamp, styles.passStamp, passStampStyle]}>
-              <Text
-                style={[
-                  type.marquee,
-                  styles.stampText,
-                  { color: "#F5F1E8", backgroundColor: `rgba(${scrimRgb},0.92)`, borderColor: "#F5F1E8" },
-                ]}
-              >
-                PASS
-              </Text>
-            </Animated.View>
-
-            <View style={[styles.infoOverlay, { padding: spacing.md, gap: spacing.xs }]}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
-                <PresenceAvatar
-                  uri={card.profilePhotoUrl}
-                  size={44}
-                  isActive={card.isRecentlyActive}
-                  backdropColor={`rgba(${scrimRgb},0.55)`}
-                  borderColor="#F5F1E8"
-                  borderWidth={2}
+                {/* A real scrim rather than a flat 55% black bar — the type sits in a
+                    gradient so the photo stays visible right up to the copy. */}
+                <LinearGradient
+                  colors={[`rgba(${scrimRgb},0)`, `rgba(${scrimRgb},0.72)`, `rgba(${scrimRgb},0.94)`]}
+                  locations={[0, 0.55, 1]}
+                  style={styles.scrim}
+                  pointerEvents="none"
                 />
-                <View style={{ flex: 1 }}>
-                  <Name variant="cardName" style={{ color: "#F5F1E8" }} numberOfLines={1}>
-                    {card.display_name}
-                  </Name>
-                  <Text style={[type.stat, { color: "rgba(245,241,232,0.75)" }]}>
-                    {card.age} · {REGION_LABELS[card.region] ?? card.region}
-                    {card.languages.length > 0 ? ` · ${card.languages.join(" ").toUpperCase()}` : ""}
+
+                {isTop && (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Report or block"
+                    onPress={handleMenu}
+                    style={[
+                      styles.menuButton,
+                      { borderRadius: radius.chip, backgroundColor: `rgba(${scrimRgb},0.7)` },
+                    ]}
+                  >
+                    <Ionicons name="ellipsis-horizontal" size={18} color="#F5F1E8" />
+                  </Pressable>
+                )}
+
+                {/* LIKE is filled with the hero gradient — the same "yes" ink as every
+                    primary action in the app. PASS stays a glass pill: present, not loud. */}
+                <Animated.View style={[styles.stamp, styles.likeStamp, likeStampStyle]}>
+                  <LinearGradient {...heroGradient} style={[styles.stampPill, { borderRadius: radius.chip }]}>
+                    <Text style={[type.marquee, { color: colors.onFill }]}>LIKE</Text>
+                  </LinearGradient>
+                </Animated.View>
+                <Animated.View style={[styles.stamp, styles.passStamp, passStampStyle]}>
+                  <Text
+                    style={[
+                      type.marquee,
+                      styles.stampPill,
+                      {
+                        borderRadius: radius.chip,
+                        color: colors.text,
+                        backgroundColor: colors.surface,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                  >
+                    PASS
                   </Text>
+                </Animated.View>
+
+                <View style={[styles.infoOverlay, { padding: spacing.md, gap: spacing.xs }]}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+                    <PresenceAvatar
+                      uri={card.profilePhotoUrl}
+                      size={44}
+                      isActive={card.isRecentlyActive}
+                      backdropColor={`rgba(${scrimRgb},0.55)`}
+                      borderColor="#F5F1E8"
+                      borderWidth={2}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Name variant="cardName" style={{ color: "#F5F1E8" }} numberOfLines={1}>
+                        {card.display_name}
+                      </Name>
+                      <Text style={[type.caption, { color: "rgba(245,241,232,0.75)" }]}>
+                        {card.age} · {REGION_LABELS[card.region] ?? card.region}
+                        {card.languages.length > 0 ? ` · ${card.languages.join(" ").toUpperCase()}` : ""}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {card.topGames[0] && (
+                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
+                      <SkillBadge gameName={card.topGames[0].name} skillLevel={card.topGames[0].skillLevel} />
+                    </View>
+                  )}
+
+                  {card.prompts[0] && (
+                    <View style={{ marginTop: 2 }}>
+                      <Text style={[type.label, { color: "rgba(245,241,232,0.6)" }]} numberOfLines={1}>
+                        {card.prompts[0].question}
+                      </Text>
+                      <Text style={[type.quote, { color: "#F5F1E8" }]} numberOfLines={2}>
+                        {card.prompts[0].answer}
+                      </Text>
+                    </View>
+                  )}
+
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="See full profile"
+                    onPress={() => setDetailVisible(true)}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 4,
+                      marginTop: 4,
+                    }}
+                  >
+                    <Text style={[type.label, { color: "rgba(245,241,232,0.85)" }]}>See full profile</Text>
+                    <Ionicons name="chevron-up" size={13} color="rgba(245,241,232,0.85)" />
+                  </Pressable>
                 </View>
               </View>
 
-              {card.topGames[0] && (
-                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
-                  <SkillBadge gameName={card.topGames[0].name} skillLevel={card.topGames[0].skillLevel} />
-                </View>
-              )}
-
-              {card.prompts[0] && (
-                <View style={{ marginTop: 2 }}>
-                  <Text style={[type.label, { color: "rgba(245,241,232,0.6)" }]} numberOfLines={1}>
-                    {card.prompts[0].question}
+              {/* The overlap read. Always spelled out in words so the ink is never the
+                  only thing carrying the meaning — it's a property of the pair, tinted
+                  onto a chip now instead of the whole card frame. */}
+              <View style={[styles.frameLabel, { paddingHorizontal: spacing.sm }]}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    borderRadius: radius.chip,
+                    borderWidth: 1,
+                    borderColor: overlapColor,
+                    backgroundColor: colors.surface,
+                    paddingVertical: spacing.sm - 1,
+                    paddingHorizontal: spacing.md - 2,
+                  }}
+                >
+                  <Text style={[type.caption, { color: overlapColor }]} numberOfLines={1}>
+                    {overlapLabel(card.shared_games_count)}
                   </Text>
-                  <Text style={[type.quote, { color: "#F5F1E8" }]} numberOfLines={2}>
-                    {card.prompts[0].answer}
-                  </Text>
                 </View>
-              )}
-
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="See full profile"
-                onPress={() => setDetailVisible(true)}
-                style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, marginTop: 4 }}
-              >
-                <Text style={[type.label, { color: "rgba(245,241,232,0.85)" }]}>See full profile</Text>
-                <Ionicons name="chevron-up" size={13} color="rgba(245,241,232,0.85)" />
-              </Pressable>
+              </View>
             </View>
-          </View>
-
-          {/* The overlap read. Always spelled out in words so the frame colour is never
-              the only thing carrying the meaning. It sits inside the photo window's
-              bottom edge rather than on the frame, so the frame can stay thin. */}
-          <View style={[styles.frameLabel, { paddingHorizontal: spacing.sm }]}>
-            <Text style={[type.statSm, { color: "rgba(240,236,227,0.75)" }]} numberOfLines={1}>
-              {overlapLabel(card.shared_games_count)}
-            </Text>
-          </View>
+          </LinearGradient>
         </Animated.View>
       </GestureDetector>
 
@@ -321,7 +339,15 @@ const styles = StyleSheet.create({
   card: {
     ...StyleSheet.absoluteFillObject,
   },
-  /** The inset photo window. Clipping lives here, not on the card, so the frame
+  /** The 1px hero-gradient edge — the luminous outline every hero surface shares. */
+  edge: {
+    flex: 1,
+  },
+  /** The solid mat between the edge and the photo window. */
+  frame: {
+    flex: 1,
+  },
+  /** The inset photo window. Clipping lives here, not on the card, so the mat
    *  and its printed label stay visible outside it. */
   window: {
     flex: 1,
@@ -371,13 +397,10 @@ const styles = StyleSheet.create({
     right: 18,
     transform: [{ rotate: "8deg" }],
   },
-  /** A stamped-on block, not outlined display text — it reads as ink applied to the
-   *  card rather than a floating label. */
-  stampText: {
-    borderWidth: 2,
+  /** LIKE/PASS pill geometry — a gradient-fill or glass pill, not a stamped block. */
+  stampPill: {
     paddingHorizontal: 9,
     paddingVertical: 2,
-    borderRadius: 4,
     overflow: "hidden",
   },
 });

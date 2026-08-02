@@ -11,7 +11,7 @@ import type { DeckCard } from "./types";
 import { useStandouts } from "./useStandouts";
 
 export function StandoutsRow() {
-  const { colors, radius, spacing, shadow } = useTheme();
+  const { colors, radius, spacing, type } = useTheme();
   const { cards, isLoading, removeCard } = useStandouts();
   const [openCard, setOpenCard] = useState<DeckCard | null>(null);
 
@@ -36,7 +36,8 @@ export function StandoutsRow() {
                     borderRadius: radius.md,
                     overflow: "hidden",
                     backgroundColor: colors.surface,
-                    ...shadow,
+                    borderWidth: 1,
+                    borderColor: colors.border,
                   }}
                 >
                   {card.profilePhotoUrl ? (
@@ -48,7 +49,7 @@ export function StandoutsRow() {
                     />
                   ) : null}
                 </View>
-                <Text numberOfLines={1} style={{ color: colors.text, fontSize: 12, fontWeight: "600" }}>
+                <Text numberOfLines={1} style={[type.caption, { color: colors.text }]}>
                   {card.display_name}
                 </Text>
               </Pressable>

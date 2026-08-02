@@ -2,10 +2,14 @@ import type { ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { StyleProp, ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 
 import { hapticLight } from "@/lib/haptics";
 import { useTheme } from "@/theme/useTheme";
+
+/** Shape of `useTheme().heroGradient` — a 2-stop gradient spec spreadable onto `LinearGradient`. */
+type GradientSpec = { colors: readonly [string, string]; start: { x: number; y: number }; end: { x: number; y: number } };
 
 interface LikePassButtonsProps {
   onLike: () => void;
@@ -25,6 +29,7 @@ function AnimatedIconButton({
   accessibilityLabel,
   onPress,
   style,
+  gradient,
   children,
 }: {
   size: number;
@@ -33,6 +38,8 @@ function AnimatedIconButton({
   accessibilityLabel: string;
   onPress: () => void;
   style?: StyleProp<ViewStyle>;
+  /** Fills the circle with the hero gradient instead of a flat/glass background. */
+  gradient?: GradientSpec;
   children: ReactNode;
 }) {
   const scale = useSharedValue(1);
@@ -72,6 +79,9 @@ function AnimatedIconButton({
       hitSlop={8}
     >
       <Animated.View style={[{ width: size, height: size }, style, { opacity: disabled ? 0.5 : 1 }, buttonStyle]}>
+        {gradient && (
+          <LinearGradient {...gradient} style={[StyleSheet.absoluteFillObject, { borderRadius: size / 2 }]} />
+        )}
         <Animated.View
           pointerEvents="none"
           style={[
@@ -87,7 +97,11 @@ function AnimatedIconButton({
 }
 
 export function LikePassButtons({ onLike, onPass, onSuperPing, onSendRose, disabled }: LikePassButtonsProps) {
-  const { colors, spacing, shadow } = useTheme();
+  const { colors, radius, spacing, type, glow, heroGradient } = useTheme();
+
+  // Glass: the shared surface+hairline pairing every non-primary circle uses now that
+  // the dead `shadow` shim is gone — flat colors.surface alone had no edge to read by.
+  const glassStyle = { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border };
 
   return (
     <View
@@ -105,7 +119,7 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, onSendRose, disab
         accessibilityLabel="Pass"
         onPress={onPass}
         disabled={disabled}
-        style={[styles.button, shadow, { backgroundColor: colors.surface }]}
+        style={[{ borderRadius: radius.round }, glassStyle]}
       >
         <Ionicons name="close" size={30} color={colors.danger} />
       </AnimatedIconButton>
@@ -118,11 +132,11 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, onSendRose, disab
             accessibilityLabel="Super Ping — notify them you liked their profile"
             onPress={onSuperPing}
             disabled={disabled}
-            style={[styles.smallButton, shadow, { backgroundColor: colors.surface }]}
+            style={[{ borderRadius: radius.round }, glassStyle]}
           >
             <Ionicons name="diamond" size={20} color={colors.success} />
           </AnimatedIconButton>
-          <Text style={[styles.caption, { color: colors.textMuted }]}>Ping</Text>
+          <Text style={[type.label, { color: colors.textMuted }]}>Ping</Text>
         </View>
       )}
 
@@ -132,9 +146,10 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, onSendRose, disab
         accessibilityLabel="Like"
         onPress={onLike}
         disabled={disabled}
-        style={[styles.button, shadow, { backgroundColor: colors.surface }]}
+        gradient={heroGradient}
+        style={[{ borderRadius: radius.round }, glow(colors.glowPink)]}
       >
-        <Ionicons name="flash" size={28} color={colors.info} />
+        <Ionicons name="flash" size={28} color={colors.onFill} />
       </AnimatedIconButton>
 
       {onSendRose && (
@@ -145,11 +160,11 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, onSendRose, disab
             accessibilityLabel="Send a Legendary Like — an extra-visible like from your Legendary Like credits"
             onPress={onSendRose}
             disabled={disabled}
-            style={[styles.smallButton, shadow, { backgroundColor: colors.surface }]}
+            style={[{ borderRadius: radius.round }, glassStyle]}
           >
             <Ionicons name="star" size={20} color={colors.warning} />
           </AnimatedIconButton>
-          <Text style={[styles.caption, { color: colors.textMuted }]}>Legendary</Text>
+          <Text style={[type.label, { color: colors.textMuted }]}>Legendary</Text>
         </View>
       )}
     </View>
@@ -157,20 +172,8 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, onSendRose, disab
 }
 
 const styles = StyleSheet.create({
-  button: {
-    borderRadius: 32,
-  },
-  smallButton: {
-    borderRadius: 24,
-  },
   smallButtonWrap: {
     alignItems: "center",
     gap: 2,
-  },
-  caption: {
-    fontSize: 10,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.3,
   },
 });
