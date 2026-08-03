@@ -9,9 +9,9 @@ interface ModalHeaderProps {
   onClose?: () => void;
 }
 
-/** The shared modal title row: a screen-title on the left, a round glass close
- * button on the right. Defaults `onClose` to `router.back()` since every current
- * caller is a pushed modal — pass an explicit handler for anything else. */
+/** The shared modal title row: a screen-title on the left, a round close button
+ * on the right. Defaults `onClose` to `router.back()` since every current caller
+ * is a pushed modal — pass an explicit handler for anything else. */
 export function ModalHeader({ title, onClose }: ModalHeaderProps) {
   const { colors, radius, spacing, type } = useTheme();
 
@@ -42,7 +42,7 @@ export function ModalHeader({ title, onClose }: ModalHeaderProps) {
           borderRadius: radius.round,
         }}
       >
-        <Ionicons name="close" size={19} color={colors.text} />
+        <Ionicons name="close" size={19} color={colors.textMuted} />
       </Pressable>
     </View>
   );

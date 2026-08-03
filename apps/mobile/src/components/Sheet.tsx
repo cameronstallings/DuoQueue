@@ -28,6 +28,8 @@ export function Sheet({ visible, onClose, title, children, dismissable = true }:
           onStartShouldSetResponder={() => true}
           style={{
             backgroundColor: colors.surfaceSolid,
+            borderTopWidth: 1,
+            borderColor: colors.border,
             borderTopLeftRadius: radius.sheet,
             borderTopRightRadius: radius.sheet,
             paddingTop: spacing.sm,
@@ -41,7 +43,7 @@ export function Sheet({ visible, onClose, title, children, dismissable = true }:
               width: 36,
               height: 4,
               borderRadius: radius.round,
-              backgroundColor: colors.surfaceAlt,
+              backgroundColor: colors.border,
               marginBottom: spacing.md,
             }}
           />

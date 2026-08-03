@@ -76,7 +76,7 @@ export function Slider({ value, onChange, leftLabel, rightLabel }: SliderProps) 
               overflow: "hidden",
             }}
           >
-            <Animated.View style={[{ height: TRACK_HEIGHT, backgroundColor: colors.accent }, fillStyle]} />
+            <Animated.View style={[{ height: TRACK_HEIGHT, backgroundColor: colors.volt }, fillStyle]} />
           </View>
           <Animated.View
             style={[
