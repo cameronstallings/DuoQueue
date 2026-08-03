@@ -13,8 +13,11 @@ export function Toast() {
   const { colors, radius, spacing, type } = useTheme();
   const insets = useSafeAreaInsets();
   const message = useToastStore((s) => s.message);
+  const status = useToastStore((s) => s.status);
 
   if (!message) return null;
+
+  const tint = status === "error" ? colors.danger : status === "info" ? colors.volt : colors.success;
 
   return (
     <View
@@ -39,14 +42,14 @@ export function Toast() {
           borderWidth: 1,
           borderColor: colors.border,
           borderLeftWidth: 2,
-          borderLeftColor: colors.success,
+          borderLeftColor: tint,
           paddingVertical: spacing.sm,
           paddingHorizontal: spacing.md,
           borderRadius: radius.md,
         }}
       >
-        <Ionicons name="checkmark-circle" size={16} color={colors.success} />
-        <Text style={[type.caption, { color: colors.success }]}>{message}</Text>
+        <Ionicons name="checkmark-circle" size={16} color={tint} />
+        <Text style={[type.caption, { color: tint }]}>{message}</Text>
       </Animated.View>
     </View>
   );
