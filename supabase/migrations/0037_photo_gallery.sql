@@ -1,16 +1,5 @@
--- Six-photo gallery per profile, layered onto the existing profile/header roles from
--- 0015 rather than replacing them: profile_media gets a third photo_role value
--- ('gallery') that, unlike profile/header, can appear many times per profile. Every
--- gallery photo goes through the exact same upload + Sightengine moderation pipeline
--- (moderate-photo Edge Function, moderation_status pending/approved/rejected) that
--- already governs the other two roles — moderate-photo operates purely on a mediaId
--- and never branches on photo_role, so it needs no changes for this.
-
--- 1. Add the new role. PG 12+ made ALTER TYPE ... ADD VALUE fully transactional and
---    lifted the old restriction on using the new value later in the same transaction,
---    so the rest of this migration can reference 'gallery' immediately. IF NOT EXISTS
---    makes the statement safe to re-run.
-alter type photo_role_enum add value if not exists 'gallery';
+-- Six-photo gallery, part 2 of 2: schema + reorder RPC + public view. Requires 0036
+-- (the 'gallery' enum value) to be committed first — see 0036 for why they are split.
 
 -- 2. photo_role's uniqueness used to be table-wide (0015: unique_profile_role ==
 --    unique (profile_id, photo_role)), which is exactly wrong for a role that must
