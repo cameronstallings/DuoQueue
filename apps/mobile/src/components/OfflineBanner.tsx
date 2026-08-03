@@ -30,12 +30,17 @@ export function OfflineBanner() {
           alignItems: "center",
           justifyContent: "flex-end",
           overflow: "hidden",
-          paddingBottom: spacing.xs,
+          // No padding on this container: Yoga treats padding as a height floor, so
+          // even at height 0 a padded box occupies its padding — which rendered as a
+          // permanent 4px seam above every screen. The text carries the spacing
+          // instead; overflow: hidden clips it away when collapsed.
         },
         animatedStyle,
       ]}
     >
-      <Text style={[type.caption, { color: colors.onFill }]}>No internet connection</Text>
+      <Text style={[type.caption, { color: colors.onFill, marginBottom: spacing.xs }]}>
+        No internet connection
+      </Text>
     </Animated.View>
   );
 }
