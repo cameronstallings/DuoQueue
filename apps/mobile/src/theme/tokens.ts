@@ -50,6 +50,7 @@ const OVERLAP_LIGHT = { none: "#66705C", one: "#4E7018", two: "#5A7A00", many: "
 const PLAYSTYLE_DARK = { casual: "#A8B096", intermediate: "#8FC46B", competitive: "#7FB7D9", ranked_grinder: "#E0A33E" } as const;
 const PLAYSTYLE_LIGHT = { casual: "#5E6650", intermediate: "#3E6B1E", competitive: "#2F5E80", ranked_grinder: "#8A5E10" } as const;
 
+// All pairs verified by scripts/audit-contrast.mjs (Task 12).
 export const darkColors = {
   background: "#0A0B09",
   surface: "#12140F",
