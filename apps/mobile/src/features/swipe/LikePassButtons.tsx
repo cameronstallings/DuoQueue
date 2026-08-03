@@ -2,14 +2,10 @@ import type { ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { StyleProp, ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 
 import { hapticLight } from "@/lib/haptics";
 import { useTheme } from "@/theme/useTheme";
-
-/** Shape of `useTheme().heroGradient` — a 2-stop gradient spec spreadable onto `LinearGradient`. */
-type GradientSpec = { colors: readonly [string, string]; start: { x: number; y: number }; end: { x: number; y: number } };
 
 interface LikePassButtonsProps {
   onLike: () => void;
@@ -29,7 +25,6 @@ function AnimatedIconButton({
   accessibilityLabel,
   onPress,
   style,
-  gradient,
   children,
 }: {
   size: number;
@@ -38,8 +33,6 @@ function AnimatedIconButton({
   accessibilityLabel: string;
   onPress: () => void;
   style?: StyleProp<ViewStyle>;
-  /** Fills the circle with the hero gradient instead of a flat/glass background. */
-  gradient?: GradientSpec;
   children: ReactNode;
 }) {
   const scale = useSharedValue(1);
@@ -79,9 +72,6 @@ function AnimatedIconButton({
       hitSlop={8}
     >
       <Animated.View style={[{ width: size, height: size }, style, { opacity: disabled ? 0.5 : 1 }, buttonStyle]}>
-        {gradient && (
-          <LinearGradient {...gradient} style={[StyleSheet.absoluteFillObject, { borderRadius: size / 2 }]} />
-        )}
         <Animated.View
           pointerEvents="none"
           style={[
@@ -97,7 +87,7 @@ function AnimatedIconButton({
 }
 
 export function LikePassButtons({ onLike, onPass, onSuperPing, onSendRose, disabled }: LikePassButtonsProps) {
-  const { colors, radius, spacing, type, glow, heroGradient } = useTheme();
+  const { colors, radius, spacing, type } = useTheme();
 
   // Glass: the shared surface+hairline pairing every non-primary circle uses now that
   // the dead `shadow` shim is gone — flat colors.surface alone had no edge to read by.
@@ -142,14 +132,13 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, onSendRose, disab
 
       <AnimatedIconButton
         size={64}
-        ringColor={colors.info}
+        ringColor={colors.volt}
         accessibilityLabel="Like"
         onPress={onLike}
         disabled={disabled}
-        gradient={heroGradient}
-        style={[{ borderRadius: radius.round }, glow(colors.glowPink)]}
+        style={[{ borderRadius: radius.round, backgroundColor: colors.volt }]}
       >
-        <Ionicons name="flash" size={28} color={colors.onFill} />
+        <Ionicons name="flash" size={28} color={colors.onVolt} />
       </AnimatedIconButton>
 
       {onSendRose && (

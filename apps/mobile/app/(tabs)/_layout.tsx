@@ -1,6 +1,5 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Redirect, Tabs } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -38,50 +37,32 @@ const TAB_CONFIG = {
 type TabIconConfig = (typeof TAB_CONFIG)[keyof typeof TAB_CONFIG];
 
 /**
- * The active tab reads as a small cartridge slotted into the bar: a gradient tile
- * with its own glow. Inactive tabs stay bare icons in the muted tint — the glow is
- * reserved for "where you are," not spent on every icon at once.
+ * The active tab used to slot into a gradient cartridge with its own glow. Now it
+ * just switches to volt — icon and label both — and grounds itself with a 2px
+ * underline bar instead. The bar renders (transparent when inactive) on every tab
+ * so the label never jumps up and down as focus moves between tabs.
  */
 function TabIcon({ config, focused, color }: { config: TabIconConfig; focused: boolean; color: string }) {
-  const { colors, radius, heroGradient, glow } = useTheme();
+  const { colors } = useTheme();
 
   const icon =
     config.family === "material-community" ? (
-      <MaterialCommunityIcons
-        name={focused ? config.active : config.inactive}
-        color={focused ? colors.onFill : color}
-        size={focused ? 19 : 22}
-      />
+      <MaterialCommunityIcons name={focused ? config.active : config.inactive} color={color} size={22} />
     ) : (
-      <Ionicons
-        name={focused ? config.active : config.inactive}
-        color={focused ? colors.onFill : color}
-        size={focused ? 19 : 22}
-      />
+      <Ionicons name={focused ? config.active : config.inactive} color={color} size={22} />
     );
 
-  if (!focused) return icon;
-
-  // The glow has to sit on a plain wrapper, not the gradient itself — a boxShadow
-  // on a LinearGradient gets clipped to the gradient's own bounds instead of
-  // spreading past them. Same split Button.tsx uses for its glow.
-  // Slimmer and quieter than the first pass (34×34 solid + heavy glow read as a thick
-  // slab crowding the label): shorter tile, gradient at partial opacity, softer glow,
-  // and a couple px of air above the label.
   return (
-    <View style={[{ width: 34, height: 28, borderRadius: radius.sm, marginBottom: 3 }, glow(colors.glowViolet, 9)]}>
-      <LinearGradient
-        {...heroGradient}
+    <View style={{ alignItems: "center" }}>
+      {icon}
+      <View
         style={{
-          flex: 1,
-          borderRadius: radius.sm,
-          alignItems: "center",
-          justifyContent: "center",
-          opacity: 0.82,
+          width: 16,
+          height: 2,
+          marginTop: 2,
+          backgroundColor: focused ? colors.volt : "transparent",
         }}
-      >
-        {icon}
-      </LinearGradient>
+      />
     </View>
   );
 }
@@ -89,7 +70,7 @@ function TabIcon({ config, focused, color }: { config: TabIconConfig; focused: b
 export default function TabsLayout() {
   const status = useSessionStore((s) => s.status);
   const profile = useSessionStore((s) => s.profile);
-  const { colors, fonts } = useTheme();
+  const { colors, type } = useTheme();
   const insets = useSafeAreaInsets();
 
   useHeartbeat();
@@ -101,19 +82,20 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.text,
+        tabBarActiveTintColor: colors.volt,
         tabBarInactiveTintColor: colors.textMuted,
         // Full-width and solid, not floating glass — a translucent bar over swipe
         // cards and chat threads muddied the content underneath. Separation comes
-        // from the color step against the scene, not a border or elevation.
+        // from the top seam against the scene, not blur or elevation.
         tabBarStyle: {
           backgroundColor: colors.surfaceSolid,
-          borderTopWidth: 0,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
           elevation: 0,
           height: 60 + insets.bottom,
           paddingTop: 6,
         },
-        tabBarLabelStyle: { fontFamily: fonts.bold, fontSize: 10, letterSpacing: 0 },
+        tabBarLabelStyle: type.tick,
         sceneStyle: { backgroundColor: colors.background },
       }}
     >

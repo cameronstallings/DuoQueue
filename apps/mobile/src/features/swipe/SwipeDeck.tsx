@@ -53,6 +53,7 @@ export const SwipeDeck = forwardRef<SwipeDeckHandle, SwipeDeckProps>(function Sw
               isTop={indexFromTop === 0}
               onSwiped={handleTopSwiped}
               externalTrigger={indexFromTop === 0 ? trigger : null}
+              index={indexFromTop}
             />
           </View>
         );
