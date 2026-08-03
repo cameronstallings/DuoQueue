@@ -19,8 +19,12 @@ export type Region = (typeof REGIONS)[number];
 export const PLATFORMS = ["pc", "playstation", "xbox", "switch", "mobile"] as const;
 export type Platform = (typeof PLATFORMS)[number];
 
-export const PHOTO_ROLES = ["profile", "header"] as const;
+export const PHOTO_ROLES = ["profile", "header", "gallery"] as const;
 export type PhotoRole = (typeof PHOTO_ROLES)[number];
+
+/** Gallery photos hold a "position" (0..5) that orders them and caps how many a
+ * profile can have — see supabase/migrations/0036_photo_gallery.sql. */
+export const MAX_GALLERY_PHOTOS = 6;
 
 export const SKILL_LEVELS = ["casual", "intermediate", "competitive", "ranked_grinder"] as const;
 export type SkillLevel = (typeof SKILL_LEVELS)[number];

@@ -20,6 +20,10 @@ export interface DeckCardVibe {
 export interface DeckCard extends DeckCandidate {
   profilePhotoUrl: string | null;
   headerPhotoUrl: string | null;
+  /** Approved gallery photos, ordered by position. The deck card and profile detail
+   * pagers page over [headerPhotoUrl, ...galleryUrls] (header first, falling back to
+   * plain single-photo display when this is empty). */
+  galleryUrls: string[];
   topGames: DeckCardGame[];
   topShows: string[];
   languages: string[];

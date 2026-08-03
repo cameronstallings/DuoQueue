@@ -10,6 +10,7 @@ interface PublicProfileMediaRow {
   profile_id: string;
   storage_path: string;
   photo_role: PhotoRole;
+  position: number | null;
 }
 interface PublicProfileGameRow {
   profile_id: string;
@@ -109,6 +110,11 @@ export async function enrichCandidates(rows: DeckCandidate[]): Promise<DeckCard[
     const ownMedia = media.filter((m) => m.profile_id === candidate.profile_id);
     const profilePhotoUrl = ownMedia.find((m) => m.photo_role === "profile");
     const headerPhotoUrl = ownMedia.find((m) => m.photo_role === "header");
+    const galleryUrls = ownMedia
+      .filter((m) => m.photo_role === "gallery")
+      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+      .map((m) => signedUrls.get(m.storage_path))
+      .filter((url): url is string => !!url);
 
     const topGames = games
       .filter((g) => g.profile_id === candidate.profile_id)
@@ -129,6 +135,7 @@ export async function enrichCandidates(rows: DeckCandidate[]): Promise<DeckCard[
       ...candidate,
       profilePhotoUrl: profilePhotoUrl ? (signedUrls.get(profilePhotoUrl.storage_path) ?? null) : null,
       headerPhotoUrl: headerPhotoUrl ? (signedUrls.get(headerPhotoUrl.storage_path) ?? null) : null,
+      galleryUrls,
       topGames,
       topShows,
       prompts: cardPrompts,

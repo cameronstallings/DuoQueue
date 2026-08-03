@@ -1,4 +1,6 @@
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { useState } from "react";
+import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
+import { FlatList, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -6,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Chip } from "@/components/Chip";
 import { Name } from "@/components/Name";
+import { PageDots } from "@/components/PageDots";
 import { PresenceAvatar } from "@/components/PresenceAvatar";
 import { SectionLabel } from "@/components/SectionLabel";
 import { Skeleton } from "@/components/Skeleton";
@@ -26,6 +29,7 @@ import { useTheme } from "@/theme/useTheme";
 import type { DeckCard } from "./types";
 
 const PROVIDER_LABELS = { steam: "Steam", riot: "Riot Games", xbox: "Xbox" } as const;
+const PHOTO_ASPECT = 0.85;
 
 interface ProfileDetailContentProps {
   card: DeckCard;
@@ -43,6 +47,7 @@ interface ProfileDetailContentProps {
 export function ProfileDetailContent({ card, onClose, readOnly = false }: ProfileDetailContentProps) {
   const { colors, spacing, radius, type } = useTheme();
   const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
   const { data: reputation, isLoading: reputationLoading } = usePublicReputation(card.profile_id);
   const { data: voiceIntro, isLoading: voiceIntroLoading } = usePublicVoiceIntro(card.profile_id);
   const { data: linkedAccounts, isLoading: linkedAccountsLoading } = usePublicLinkedAccounts(card.profile_id);
@@ -51,23 +56,60 @@ export function ProfileDetailContent({ card, onClose, readOnly = false }: Profil
   const reputationTags = reputation ?? [];
   const showReputation = reputationLoading || reputationTags.length > 0;
 
+  // Header photo first, then approved gallery photos by position — falls back to the
+  // plain blank photo box below when both are empty. Unlike the deck card, this pager
+  // uses a real horizontal FlatList: it sits in its own Modal with no competing pan
+  // gesture, so there's nothing for the scroll to fight.
+  const photos = [card.headerPhotoUrl, ...card.galleryUrls].filter((url): url is string => !!url);
+  const [photoIndex, setPhotoIndex] = useState(0);
+  const photoHeight = windowWidth / PHOTO_ASPECT;
+
+  function handlePageScrollEnd(event: NativeSyntheticEvent<NativeScrollEvent>) {
+    const index = Math.round(event.nativeEvent.contentOffset.x / windowWidth);
+    setPhotoIndex(Math.min(Math.max(index, 0), photos.length - 1));
+  }
+
   return (
     <ScrollView contentContainerStyle={{ paddingBottom: spacing.xl }}>
-      <View style={{ width: "100%", aspectRatio: 0.85, backgroundColor: colors.surface }}>
-        {card.headerPhotoUrl ? (
-          <Image
-            source={{ uri: card.headerPhotoUrl }}
-            style={{ width: "100%", height: "100%" }}
-            contentFit="cover"
-            cachePolicy="memory-disk"
-            transition={200}
+      <View style={{ width: "100%", aspectRatio: PHOTO_ASPECT, backgroundColor: colors.surface }}>
+        {photos.length > 0 && (
+          <FlatList
+            data={photos}
+            style={{ width: "100%", height: photoHeight }}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(url, index) => `${index}-${url}`}
+            onMomentumScrollEnd={handlePageScrollEnd}
+            onScrollEndDrag={handlePageScrollEnd}
+            renderItem={({ item }) => (
+              <Image
+                source={{ uri: item }}
+                style={{ width: windowWidth, height: photoHeight }}
+                contentFit="cover"
+                cachePolicy="memory-disk"
+                transition={200}
+              />
+            )}
           />
-        ) : null}
+        )}
         <LinearGradient
           colors={["rgba(0,0,0,0.45)", "rgba(0,0,0,0)"]}
           pointerEvents="none"
           style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top + 44 }}
         />
+        {photos.length > 1 && (
+          <>
+            <LinearGradient
+              colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.45)"]}
+              pointerEvents="none"
+              style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 56 }}
+            />
+            <View style={{ position: "absolute", left: 0, right: 0, bottom: spacing.sm }}>
+              <PageDots count={photos.length} activeIndex={photoIndex} />
+            </View>
+          </>
+        )}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Close"

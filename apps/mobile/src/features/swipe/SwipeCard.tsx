@@ -17,6 +17,7 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import { Chip } from "@/components/Chip";
 import { Name } from "@/components/Name";
+import { PageDots } from "@/components/PageDots";
 import { PresenceAvatar } from "@/components/PresenceAvatar";
 import { ReportModal } from "@/components/ReportModal";
 import { useBlockUser, useReportUser } from "@/features/chat/useMatchActions";
@@ -67,6 +68,23 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger }: SwipeCardP
   const [detailVisible, setDetailVisible] = useState(false);
   const blockUser = useBlockUser();
   const reportUser = useReportUser();
+
+  // Header photo first, then approved gallery photos by position — falls back to the
+  // single-photo "No photo" placeholder below when both are empty. This SwipeCard
+  // instance is keyed by profile_id in SwipeDeck, so a fresh card always mounts with
+  // photoIndex reset to 0 rather than carrying over the previous card's page.
+  const photos = [card.headerPhotoUrl, ...card.galleryUrls].filter((url): url is string => !!url);
+  const [photoIndex, setPhotoIndex] = useState(0);
+  const currentPhoto = photos[Math.min(photoIndex, photos.length - 1)] ?? null;
+
+  // Tap-to-page rather than a scroll gesture — a horizontal FlatList/ScrollView here
+  // would fight the card's own Pan gesture (used for the like/pass swipe), since both
+  // want to own horizontal drags. Left/right thirds is the standard dating-app idiom;
+  // the middle third is inert so it doesn't collide with taps meant for the like/pass
+  // gesture area.
+  function goToPhoto(next: number) {
+    setPhotoIndex(Math.min(Math.max(next, 0), photos.length - 1));
+  }
 
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -181,9 +199,9 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger }: SwipeCardP
               ]}
             >
               <View style={[styles.window, { borderRadius: radius.window, backgroundColor: colors.surfaceAlt }]}>
-                {card.headerPhotoUrl ? (
+                {currentPhoto ? (
                   <Image
-                    source={{ uri: card.headerPhotoUrl }}
+                    source={{ uri: currentPhoto }}
                     style={styles.photo}
                     contentFit="cover"
                     cachePolicy="memory-disk"
@@ -203,6 +221,23 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger }: SwipeCardP
                   style={styles.scrim}
                   pointerEvents="none"
                 />
+
+                {isTop && photos.length > 1 && (
+                  <>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Previous photo"
+                      onPress={() => goToPhoto(photoIndex - 1)}
+                      style={styles.tapZoneLeft}
+                    />
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Next photo"
+                      onPress={() => goToPhoto(photoIndex + 1)}
+                      style={styles.tapZoneRight}
+                    />
+                  </>
+                )}
 
                 {isTop && (
                   <Pressable
@@ -244,6 +279,11 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger }: SwipeCardP
                 </Animated.View>
 
                 <View style={[styles.infoOverlay, { padding: spacing.md, gap: spacing.xs }]}>
+                  {photos.length > 1 && (
+                    <View style={{ marginBottom: spacing.xs }}>
+                      <PageDots count={photos.length} activeIndex={photoIndex} />
+                    </View>
+                  )}
                   <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
                     <PresenceAvatar
                       uri={card.profilePhotoUrl}
@@ -355,6 +395,23 @@ const styles = StyleSheet.create({
   },
   photo: {
     ...StyleSheet.absoluteFillObject,
+  },
+  /** Tap targets for paging photos — left/right thirds of the window, full height so
+   *  they're easy to hit, sitting under the menu button/stamps/info overlay (all
+   *  rendered later, so their smaller hit areas take priority over these). */
+  tapZoneLeft: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: 0,
+    width: "34%",
+  },
+  tapZoneRight: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    right: 0,
+    width: "34%",
   },
   scrim: {
     position: "absolute",

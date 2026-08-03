@@ -30,6 +30,7 @@ import {
   SKILL_LABELS,
   formatPlayWindow,
 } from "@/features/onboarding/profile-labels";
+import { GalleryPanel } from "@/features/profile/GalleryPanel";
 import { ProfileCompleteness } from "@/features/profile/ProfileCompleteness";
 import {
   GamesSection,
@@ -323,6 +324,12 @@ export default function ProfileScreen() {
               )}
 
               <View style={{ marginTop: spacing.lg, gap: spacing.lg }}>
+                {/* Gallery management — rendered whenever we have a profile (unlike the
+                    sections below, which additionally gate on having data), since the
+                    add tile itself is the empty state; there's nothing to hide when a
+                    profile has zero gallery photos yet. */}
+                {profile && <GalleryPanel profileId={profile.id} />}
+
                 {/* PromptsSection already renders one glass Card per prompt — an outer
                     Card here would nest glass edges, so this stays the one section that
                     isn't wrapped. The Edit link is laid on top rather than threaded into
