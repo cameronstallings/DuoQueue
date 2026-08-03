@@ -19,6 +19,9 @@ export const fonts = {
   /** Unbounded — names, screen titles, hero moments ONLY. */
   display: "Unbounded_600SemiBold",
   displayBold: "Unbounded_700Bold",
+  /** IBM Plex Mono — the machine voice: labels, ticks, stats, statuses, indexes. */
+  mono: "IBMPlexMono_500Medium",
+  monoSemibold: "IBMPlexMono_600SemiBold",
 } as const;
 
 export const type = {
@@ -29,8 +32,11 @@ export const type = {
   body: { fontFamily: fonts.medium, fontSize: 15, lineHeight: 22, letterSpacing: 0 },
   bodyStrong: { fontFamily: fonts.bold, fontSize: 15, lineHeight: 21, letterSpacing: -0.1 },
   caption: { fontFamily: fonts.semibold, fontSize: 13, lineHeight: 18, letterSpacing: 0 },
-  /** The ONLY uppercase style. Section labels, sparingly. */
-  label: { fontFamily: fonts.extrabold, fontSize: 11, lineHeight: 14, letterSpacing: 1, textTransform: "uppercase" },
+  /** The ONLY uppercase styles. label = section headers; tick = timestamps, statuses,
+   * counters, index marks; chipText = chip labels. All Plex Mono. */
+  label: { fontFamily: fonts.monoSemibold, fontSize: 10, lineHeight: 14, letterSpacing: 1.2, textTransform: "uppercase" },
+  tick: { fontFamily: fonts.mono, fontSize: 9, lineHeight: 12, letterSpacing: 0.8, textTransform: "uppercase" },
+  chipText: { fontFamily: fonts.mono, fontSize: 10, lineHeight: 14, letterSpacing: 0.6, textTransform: "uppercase" },
 } as const satisfies Record<string, TextStyle>;
 
 export const radius = {
