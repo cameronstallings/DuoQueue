@@ -21,7 +21,6 @@ import { Name } from "@/components/Name";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { SectionLabel } from "@/components/SectionLabel";
 import { Skeleton } from "@/components/Skeleton";
-import { VoiceIntroPlayer } from "@/components/VoiceIntroPlayer";
 import {
   PLATFORM_LABELS,
   PLAYSTYLE_LABELS,
@@ -39,7 +38,6 @@ import { useOwnProfilePhotos } from "@/features/profile/useOwnProfilePhotos";
 import { useOwnPrompts } from "@/features/profile/useOwnPrompts";
 import { useUpdatePhoto } from "@/features/profile/usePhotoUpload";
 import { useVerifiedStats } from "@/features/profile/useVerifiedStats";
-import { useOwnVoiceIntro, useOwnVoiceIntroUrl } from "@/features/profile/useVoiceIntro";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
@@ -47,7 +45,7 @@ import { useTheme } from "@/theme/useTheme";
 // fill the row exactly (100% - gap) / 2 for ScreenContainer's spacing.lg side padding
 // across the phone widths this ships to. Span-2 tiles just use "100%".
 const HALF_TILE_WIDTH = "48.5%";
-const AVATAR_SIZE = 64;
+const AVATAR_SIZE = 88;
 
 function calculateAge(dob: string): number {
   const birthDate = new Date(dob);
@@ -118,14 +116,6 @@ export default function ProfileScreen() {
   // useOwnProfileDetails, which already has the shape these sections expect.
   const { data: editableDetails, isLoading: vibeLoading } = useEditableProfileDetails(profile?.id);
   const updatePhoto = useUpdatePhoto(profile?.id);
-
-  // Voice intro: sign the caller's own clip (whatever its moderation status) for
-  // playback, reusing the row useOwnVoiceIntro already fetches rather than
-  // re-querying profile_voice_intro. Not part of the pageReady gate — like the
-  // stranger-profile view, it resolves lazily and simply appears once signed rather
-  // than holding up the rest of the page.
-  const { data: ownVoiceIntroRow } = useOwnVoiceIntro(profile?.id);
-  const { data: ownVoiceIntro } = useOwnVoiceIntroUrl(ownVoiceIntroRow);
 
   // Verified rank/playtime, keyed by game name. Resolves to {} until sync-verified-stats
   // has run and found a linked account for this profile — GamesSection already treats a
@@ -316,14 +306,6 @@ export default function ProfileScreen() {
                       After a losing streak: {TILT_HANDLING_LABELS[vibe.tiltHandling]}
                     </Text>
                   </View>
-                </Card>
-              )}
-
-              {/* Voice intro — only when a clip exists. */}
-              {ownVoiceIntro && (
-                <Card style={{ width: HALF_TILE_WIDTH, padding: spacing.tight }}>
-                  <SectionLabel>Voice Intro</SectionLabel>
-                  <VoiceIntroPlayer url={ownVoiceIntro.url} durationSeconds={ownVoiceIntro.durationSeconds} />
                 </Card>
               )}
 

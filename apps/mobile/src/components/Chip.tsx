@@ -54,9 +54,15 @@ export function Chip({ label, detail, icon, selected, tone = "default", onPress,
   const content = (
     <>
       {icon}
-      <Text style={[type.caption, { color: textColor }]}>{label}</Text>
+      {/* Both texts shrink and ellipsize: a long "League of Legends · Unranked" must
+          truncate inside its container, never push the pill past a bento tile's edge. */}
+      <Text numberOfLines={1} style={[type.caption, { color: textColor, flexShrink: 1 }]}>
+        {label}
+      </Text>
       {detail && (
-        <Text style={[type.caption, { color: colors.textMuted }]}>· {detail}</Text>
+        <Text numberOfLines={1} style={[type.caption, { color: colors.textMuted, flexShrink: 1 }]}>
+          · {detail}
+        </Text>
       )}
     </>
   );
@@ -96,5 +102,7 @@ const styles = StyleSheet.create({
   base: {
     flexDirection: "row",
     alignItems: "center",
+    maxWidth: "100%",
+    flexShrink: 1,
   },
 });

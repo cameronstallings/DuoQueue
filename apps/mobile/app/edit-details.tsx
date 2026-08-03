@@ -15,7 +15,6 @@ import { Skeleton } from "@/components/Skeleton";
 import { Slider } from "@/components/Slider";
 import { TextField } from "@/components/TextField";
 import { CatalogPicker } from "@/features/onboarding/CatalogPicker";
-import { VoiceIntroRecorderCard } from "@/features/profile/VoiceIntroRecorderCard";
 import {
   PLATFORM_LABELS,
   PLAY_WINDOW_PRESETS,
@@ -299,11 +298,6 @@ export default function EditDetailsScreen() {
                 selected={[vibe.tiltHandling]}
                 onToggle={(value: TiltHandling) => setVibe((prev) => (prev ? { ...prev, tiltHandling: value } : prev))}
               />
-            </View>
-
-            <View style={{ gap: spacing.sm }}>
-              <SectionLabel>Voice Intro</SectionLabel>
-              <VoiceIntroRecorderCard profileId={profile.id} />
             </View>
 
             <View style={{ gap: spacing.sm }}>

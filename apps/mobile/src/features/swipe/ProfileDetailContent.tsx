@@ -12,7 +12,6 @@ import { PageDots } from "@/components/PageDots";
 import { PresenceAvatar } from "@/components/PresenceAvatar";
 import { SectionLabel } from "@/components/SectionLabel";
 import { Skeleton } from "@/components/Skeleton";
-import { VoiceIntroPlayer } from "@/components/VoiceIntroPlayer";
 import {
   MATCH_FEEDBACK_LABELS,
   PLATFORM_LABELS,
@@ -23,7 +22,6 @@ import {
 import { usePublicLinkedAccounts } from "@/features/profile/useLinkedAccounts";
 import { GamesSection, HowIPlaySection, MetaLine, PromptsSection, ShowsSection, VibeSection } from "@/features/profile/sections";
 import { useVerifiedStats } from "@/features/profile/useVerifiedStats";
-import { usePublicVoiceIntro } from "@/features/profile/useVoiceIntro";
 import { usePublicReputation } from "@/features/reputation/useReputation";
 import { useTheme } from "@/theme/useTheme";
 
@@ -50,7 +48,6 @@ export function ProfileDetailContent({ card, onClose, readOnly = false }: Profil
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
   const { data: reputation, isLoading: reputationLoading } = usePublicReputation(card.profile_id);
-  const { data: voiceIntro, isLoading: voiceIntroLoading } = usePublicVoiceIntro(card.profile_id);
   const { data: linkedAccounts, isLoading: linkedAccountsLoading } = usePublicLinkedAccounts(card.profile_id);
   const { data: verifiedByName } = useVerifiedStats(card.profile_id);
 
@@ -161,12 +158,6 @@ export function ProfileDetailContent({ card, onClose, readOnly = false }: Profil
               Verified: {linkedAccounts.map((a) => PROVIDER_LABELS[a.provider]).join(", ")}
             </Text>
           )
-        )}
-
-        {voiceIntroLoading ? (
-          <Skeleton width={160} height={40} borderRadius={radius.chip} />
-        ) : (
-          voiceIntro && <VoiceIntroPlayer url={voiceIntro.url} durationSeconds={voiceIntro.durationSeconds} />
         )}
 
         <View style={{ gap: spacing.lg, marginTop: spacing.xs }}>
