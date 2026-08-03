@@ -8,7 +8,13 @@ import { useNotificationSettings } from "@/features/settings/useNotificationSett
 import { hapticSelection } from "@/lib/haptics";
 import { useTheme } from "@/theme/useTheme";
 
-type NotificationCategory = "new_match" | "new_message" | "super_ping" | "daily_swipes_refreshed";
+type NotificationCategory =
+  | "new_match"
+  | "new_message"
+  | "super_ping"
+  | "daily_swipes_refreshed"
+  | "nudge_unread"
+  | "nudge_online";
 
 const CATEGORIES: { value: NotificationCategory; label: string; hint: string }[] = [
   { value: "new_match", label: "New match", hint: "When someone you liked likes you back." },
@@ -18,6 +24,16 @@ const CATEGORIES: { value: NotificationCategory; label: string; hint: string }[]
     value: "daily_swipes_refreshed",
     label: "Swipes refreshed",
     hint: "Once a day, when your free swipes reset.",
+  },
+  {
+    value: "nudge_unread",
+    label: "Your duo is waiting",
+    hint: "A gentle nudge when you haven't read a match's message.",
+  },
+  {
+    value: "nudge_online",
+    label: "Free to duo right now",
+    hint: "When a match turns on Online Now.",
   },
 ];
 

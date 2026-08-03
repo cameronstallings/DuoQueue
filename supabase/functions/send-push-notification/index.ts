@@ -11,7 +11,12 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const INTERNAL_TRIGGER_AUTH_TOKEN = requireSecret("INTERNAL_TRIGGER_AUTH_TOKEN");
 
-type NotificationCategory = "new_match" | "new_message" | "super_ping" | "daily_swipes_refreshed";
+type NotificationCategory =
+  | "new_match"
+  | "new_message"
+  | "super_ping"
+  | "daily_swipes_refreshed"
+  | "nudge_online";
 
 interface NewMatchEvent {
   type: "new_match";
@@ -30,7 +35,13 @@ interface SuperPingEvent {
   senderId: string;
   receiverId: string;
 }
-type NotificationEvent = NewMatchEvent | NewMessageEvent | SuperPingEvent;
+interface LookingNowEvent {
+  type: "looking_now";
+  matchId: string;
+  togglerId: string;
+  recipientId: string;
+}
+type NotificationEvent = NewMatchEvent | NewMessageEvent | SuperPingEvent | LookingNowEvent;
 
 function jsonResponse(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -106,6 +117,16 @@ Deno.serve(async (req) => {
     case "super_ping": {
       const senderName = await getDisplayName(event.senderId);
       await notifyProfile(event.receiverId, "super_ping", "Super Ping!", `${senderName} is very interested in you.`);
+      break;
+    }
+    case "looking_now": {
+      const togglerName = await getDisplayName(event.togglerId);
+      await notifyProfile(
+        event.recipientId,
+        "nudge_online",
+        `${togglerName} is free to duo right now`,
+        "Jump in before the window closes.",
+      );
       break;
     }
   }

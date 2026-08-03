@@ -268,4 +268,6 @@ export interface NotificationSettingsRow {
   new_message: boolean;
   super_ping: boolean;
   daily_swipes_refreshed: boolean;
+  nudge_unread: boolean;
+  nudge_online: boolean;
 }

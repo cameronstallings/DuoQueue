@@ -104,12 +104,13 @@ pnpm install
    automatically on `supabase db reset` for local dev, per `supabase/config.toml`).
 4. Deploy the Edge Functions: `supabase functions deploy <name>` for each of
    `send-message`, `revenuecat-webhook`, `moderate-photo`, `delete-account`,
-   `send-push-notification`, and `daily-swipes-refreshed`. All of them get
-   `SUPABASE_URL`/`SUPABASE_ANON_KEY`/`SUPABASE_SERVICE_ROLE_KEY` injected automatically.
-   `revenuecat-webhook` additionally needs `REVENUECAT_WEBHOOK_AUTH_TOKEN` (step 3
-   below), and `send-push-notification`/`daily-swipes-refreshed` need
+   `send-push-notification`, `daily-swipes-refreshed`, and `send-reengagement-nudges`.
+   All of them get `SUPABASE_URL`/`SUPABASE_ANON_KEY`/`SUPABASE_SERVICE_ROLE_KEY`
+   injected automatically. `revenuecat-webhook` additionally needs
+   `REVENUECAT_WEBHOOK_AUTH_TOKEN` (step 3 below), and
+   `send-push-notification`/`daily-swipes-refreshed`/`send-reengagement-nudges` need
    `INTERNAL_TRIGGER_AUTH_TOKEN` — set both with `supabase secrets set KEY=value`.
-   Those three refuse to start without their secret rather than running unauthenticated.
+   Those four refuse to start without their secret rather than running unauthenticated.
 
    `moderate-photo` takes `MODERATION_PROVIDER` (`sightengine` or `manual-review`) plus
    `SIGHTENGINE_API_USER`/`SIGHTENGINE_API_SECRET` when set to `sightengine`. Left unset
@@ -122,11 +123,12 @@ pnpm install
      ('edge_function_base_url', 'https://<project-ref>.supabase.co/functions/v1'),
      ('internal_trigger_token', '<same value as INTERNAL_TRIGGER_AUTH_TOKEN>');
    ```
-   Then set up something to call `daily-swipes-refreshed` hourly with
+   Then set up something to call `daily-swipes-refreshed` hourly and
+   `send-reengagement-nudges` every 30 minutes, both with
    `Authorization: Bearer <INTERNAL_TRIGGER_AUTH_TOKEN>` — a Supabase Cron Trigger
    (Dashboard → Edge Functions → your function → Cron) or any external scheduler works.
-   New-match/new-message/Super-Ping pushes need no scheduler; they fire immediately via
-   DB triggers.
+   New-match/new-message/Super-Ping/Online-Now pushes need no scheduler; they fire
+   immediately via DB triggers.
 6. Make yourself an admin (for the moderation page at `admin/index.html`):
    `update public.profiles set is_admin = true where id = '<your-user-id>';`
 7. In **Authentication → Providers**, enable **Apple** and **Google**, and add their
@@ -343,8 +345,9 @@ rather than faking:
   the queue rather than being rounded toward either mistake. Worth revisiting the
   thresholds in `provider.ts` against real traffic before a wide launch.
 - **Push notifications** need `eas init` for a real EAS project id, a physical device to
-  test on, and someone to actually schedule `daily-swipes-refreshed` (a Supabase Cron
-  Trigger or any external scheduler) — see README setup step 5.
+  test on, and someone to actually schedule `daily-swipes-refreshed` and
+  `send-reengagement-nudges` (a Supabase Cron Trigger or any external scheduler) — see
+  README setup step 5.
 - **RevenueCat / in-app purchases** need real App Store Connect / Play Console products,
   a RevenueCat project wired to them, and a sandbox/license tester account — purchases
   can't be exercised in a simulator.
