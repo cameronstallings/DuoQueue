@@ -3,7 +3,9 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useTheme } from "@/theme/useTheme";
 
-export type ChipTone = "default" | "accent" | "success" | "solar" | "danger";
+export type ChipTone = "default" | "volt" | "success" | "amber" | "danger" | "soft"
+  /** @deprecated Volt migration aliases — DELETE in Task 11 */
+  | "accent" | "solar";
 
 export interface ChipProps {
   label: string;
@@ -19,44 +21,49 @@ export interface ChipProps {
 }
 
 /**
- * The one chip idiom: a pill that either sits flat (informational) or presses
- * (selectable), with the same geometry either way so the two read as the same
- * object in different states.
+ * The one chip idiom: a sharp 3px mono tag that either sits flat (informational)
+ * or presses (selectable), with the same geometry either way so the two read as the
+ * same object in different states.
  */
 export function Chip({ label, detail, icon, selected, tone = "default", onPress, accessibilityLabel }: ChipProps) {
-  const { colors, radius, spacing, type, scheme, glow } = useTheme();
+  const { colors, radius, spacing, type } = useTheme();
 
-  const isAccent = selected || tone === "accent";
-  const solarColor = scheme === "dark" ? colors.solarA : colors.solarB;
+  const resolved = tone === "accent" ? "volt" : tone === "solar" ? "amber" : tone;
+  const isVolt = selected || resolved === "volt";
 
-  let backgroundColor: string = colors.surface;
+  let backgroundColor: string = "transparent";
   let borderColor: string = colors.border;
-  let textColor: string = colors.text;
+  let textColor: string = colors.textMuted;
 
-  if (isAccent) {
-    backgroundColor = colors.brandSoft;
-    borderColor = colors.accent;
-    textColor = colors.brandInk;
-  } else if (tone === "success") {
+  if (isVolt) {
+    borderColor = colors.volt;
+    textColor = colors.volt;
+  } else if (resolved === "soft") {
+    backgroundColor = colors.voltSoft;
+    borderColor = "transparent";
+    textColor = colors.volt;
+  } else if (resolved === "success") {
     backgroundColor = colors.successFill;
     borderColor = colors.success;
     textColor = colors.success;
-  } else if (tone === "solar") {
-    backgroundColor = colors.warningFill;
-    borderColor = solarColor;
-    textColor = solarColor;
-  } else if (tone === "danger") {
-    backgroundColor = "transparent";
+  } else if (resolved === "amber") {
+    backgroundColor = colors.amberSoft;
+    borderColor = colors.amber;
+    textColor = colors.amber;
+  } else if (resolved === "danger") {
     borderColor = colors.danger;
     textColor = colors.danger;
   }
+
+  // Paper mode: colors.volt resolves to olive (#4A6B00 on light) — exactly the "inks mark"
+  // rule; voltSoft's text pairs with colors.volt (olive ≈ #4A6B00). Nothing scheme-branched.
 
   const content = (
     <>
       {icon}
       {/* Both texts shrink and ellipsize: a long "League of Legends · Unranked" must
-          truncate inside its container, never push the pill past a bento tile's edge. */}
-      <Text numberOfLines={1} style={[type.caption, { color: textColor, flexShrink: 1 }]}>
+          truncate inside its container, never push the tag past a bento tile's edge. */}
+      <Text numberOfLines={1} style={[type.chipText, { color: textColor, flexShrink: 1 }]}>
         {label}
       </Text>
       {detail && (
@@ -71,14 +78,13 @@ export function Chip({ label, detail, icon, selected, tone = "default", onPress,
     styles.base,
     {
       borderRadius: radius.chip,
-      paddingVertical: spacing.sm - 1,
-      paddingHorizontal: spacing.md - 2,
+      paddingVertical: spacing.xs + 1,
+      paddingHorizontal: spacing.sm + 1,
       gap: spacing.xs,
       backgroundColor,
       borderWidth: 1,
       borderColor,
     },
-    selected ? glow(colors.glowViolet, 10) : null,
   ];
 
   if (onPress) {
