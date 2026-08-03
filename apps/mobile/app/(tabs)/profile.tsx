@@ -259,13 +259,13 @@ export default function ProfileScreen() {
                 coverDisabled={updatePhoto.isPending}
               />
 
-              {/* Games — stacked chips, not GamesSection's wrap, so each pill gets
-                  its own line in the narrower half-tile. Same data mapping (verified
-                  stat wins over self-reported rank/skill) as GamesSection. */}
+              {/* Games — span 2 so full titles + ranks are always visible ("League
+                  of Legends · Unranked" truncated in a half-tile). Chips wrap. Same
+                  data mapping (verified stat wins over self-reported) as GamesSection. */}
               {gamesList.length > 0 && (
-                <Card style={{ width: HALF_TILE_WIDTH, padding: spacing.tight }}>
+                <Card style={{ width: "100%", padding: spacing.tight }}>
                   <SectionLabel>Games</SectionLabel>
-                  <View style={{ gap: spacing.sm, alignItems: "flex-start" }}>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
                     {gamesList.map((game) => {
                       const verified = verifiedByName?.[game.name];
                       return verified ? (
@@ -278,14 +278,29 @@ export default function ProfileScreen() {
                 </Card>
               )}
 
-              {/* How I Play — pairs with Games in one row now that Voice Intro is
-                  gone (an orphaned half-tile left a hole in the grid). Play-window
-                  caption folded in at the bottom; gated on either having chips or a
-                  play window so neither fact silently disappears. */}
-              {(platformsList.length > 0 || playstylesList.length > 0 || playWindowLabel) && (
-                <Card style={{ width: HALF_TILE_WIDTH, padding: spacing.tight, gap: spacing.sm }}>
+              {/* How I Play + Schedule — the grid's half-tile pair: both reliably
+                  short (platform/playstyle chips; a play-window phrase). When no play
+                  window is set, How I Play stretches to full width instead of
+                  leaving an orphaned half-row. */}
+              {(platformsList.length > 0 || playstylesList.length > 0) && (
+                <Card
+                  style={{
+                    width: playWindowLabel ? HALF_TILE_WIDTH : "100%",
+                    padding: spacing.tight,
+                  }}
+                >
                   <HowIPlaySection platforms={platformsList} playstyles={playstylesList} />
-                  {playWindowLabel && <MetaLine playWindow={playWindowLabel} />}
+                </Card>
+              )}
+              {playWindowLabel && (
+                <Card
+                  style={{
+                    width: platformsList.length > 0 || playstylesList.length > 0 ? HALF_TILE_WIDTH : "100%",
+                    padding: spacing.tight,
+                  }}
+                >
+                  <SectionLabel>Schedule</SectionLabel>
+                  <MetaLine playWindow={playWindowLabel} />
                 </Card>
               )}
 
