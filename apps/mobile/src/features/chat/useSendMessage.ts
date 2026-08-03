@@ -55,6 +55,13 @@ export function useSendMessage(matchId: string) {
     onMutate: async (content: string) => {
       if (!myId) return { tempId: null };
 
+      // If the initial fetch hasn't resolved yet, there's no base cache to append
+      // onto — manufacturing one here would leave the cache truncated to just this
+      // message once the real fetch lands (staleTime keeps it from self-healing for
+      // 30s). Skip optimistic entirely; onSuccess falls back to invalidateQueries.
+      const existing = queryClient.getQueryData<ChatData>(queryKey);
+      if (!existing) return { tempId: null };
+
       const tempId = makeTempId();
       const optimisticMessage: MessageRow = {
         id: tempId,
@@ -86,6 +93,11 @@ export function useSendMessage(matchId: string) {
           const withoutDupe = withoutTemp.filter((m) => m.id !== message.id);
           return { ...old, messages: [...withoutDupe, message] };
         });
+      } else {
+        // No optimistic row was ever added (no session yet, or the cache wasn't
+        // warm) — fall back to a refetch so the sent message still shows up
+        // promptly instead of waiting on staleTime or a Realtime round trip.
+        void queryClient.invalidateQueries({ queryKey });
       }
       void queryClient.invalidateQueries({ queryKey: MATCHES_QUERY_KEY });
     },

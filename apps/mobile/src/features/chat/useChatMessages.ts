@@ -51,15 +51,29 @@ export function useChatMessages(matchId: string) {
         { event: "INSERT", schema: "public", table: "messages", filter: `match_id=eq.${matchId}` },
         (payload) => {
           const incoming = payload.new as MessageRow;
-          // Own sends already land instantly via the optimistic row in useSendMessage,
-          // and that same mutation reconciles the temp row to this real id on success.
-          // This event still fires for own sends (Realtime broadcasts to every
-          // participant, sender included) — dedupe by id instead of blind-appending so
-          // it never doubles a message that's already in the cache.
+          // Own sends already land instantly via the optimistic row in useSendMessage.
+          // That mutation's onSuccess reconciles the temp row to this real id once the
+          // HTTP response returns — but the Realtime echo for the same insert
+          // (broadcast to every participant, sender included) can arrive first, while
+          // the temp row is still in cache. Dedupe by real id (covers the common case:
+          // onSuccess already ran) AND, for own sends, drop the matching temp- row
+          // here too by content (covers the echo-arrives-first race) so the two paths
+          // can never both leave a copy behind regardless of which wins.
           queryClient.setQueryData<ChatData>(chatQueryKey(matchId), (old) => {
             if (!old) return { messages: [incoming], shares: [] };
             if (old.messages.some((m) => m.id === incoming.id)) return old;
-            return { ...old, messages: [...old.messages, incoming] };
+
+            let messages = old.messages;
+            if (myId && incoming.sender_id === myId) {
+              const tempIndex = messages.findIndex(
+                (m) => m.id.startsWith("temp-") && m.content === incoming.content,
+              );
+              if (tempIndex !== -1) {
+                messages = [...messages.slice(0, tempIndex), ...messages.slice(tempIndex + 1)];
+              }
+            }
+
+            return { ...old, messages: [...messages, incoming] };
           });
         },
       )
@@ -99,7 +113,7 @@ export function useChatMessages(matchId: string) {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [matchId, queryClient]);
+  }, [matchId, queryClient, myId]);
 
   const timeline = useMemo<ChatTimelineItem[]>(() => {
     if (!query.data) return [];
