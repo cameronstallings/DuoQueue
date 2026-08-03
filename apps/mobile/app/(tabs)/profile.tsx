@@ -207,6 +207,20 @@ export default function ProfileScreen() {
         scrollEventThrottle={16}
         contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}
       >
+        {/* Overscroll cover: anchored above the banner inside the scroll content so a
+            bounce (or any sub-pixel seam at the very top) shows banner-colored surface
+            instead of a flash of page background above the photo. */}
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            top: -300,
+            left: 0,
+            right: 0,
+            height: 300,
+            backgroundColor: colors.surface,
+          }}
+        />
         {!pageReady ? (
           <View>
             <Skeleton width="100%" height={150 + insets.top} borderRadius={0} />
