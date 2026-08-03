@@ -50,8 +50,10 @@ import { useOwnVoiceIntro, useOwnVoiceIntroUrl } from "@/features/profile/useVoi
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
-const BANNER_ASPECT = 3;
-const AVATAR_SIZE = 88;
+// 2.4 (was 3): the banner reaches further down the page — device-pass feedback said
+// the header felt shallow. Avatar up from 88 for the same reason.
+const BANNER_ASPECT = 2.4;
+const AVATAR_SIZE = 104;
 
 function calculateAge(dob: string): number {
   const birthDate = new Date(dob);
@@ -223,7 +225,7 @@ export default function ProfileScreen() {
         />
         {!pageReady ? (
           <View>
-            <Skeleton width="100%" height={150 + insets.top} borderRadius={0} />
+            <Skeleton width="100%" height={170 + insets.top} borderRadius={0} />
             <View style={{ paddingHorizontal: spacing.lg }}>
               <Skeleton
                 width={AVATAR_SIZE}
