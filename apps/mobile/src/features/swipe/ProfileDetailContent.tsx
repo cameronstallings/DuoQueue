@@ -22,6 +22,7 @@ import {
 } from "@/features/onboarding/profile-labels";
 import { usePublicLinkedAccounts } from "@/features/profile/useLinkedAccounts";
 import { GamesSection, HowIPlaySection, MetaLine, PromptsSection, ShowsSection, VibeSection } from "@/features/profile/sections";
+import { useVerifiedStats } from "@/features/profile/useVerifiedStats";
 import { usePublicVoiceIntro } from "@/features/profile/useVoiceIntro";
 import { usePublicReputation } from "@/features/reputation/useReputation";
 import { useTheme } from "@/theme/useTheme";
@@ -51,6 +52,7 @@ export function ProfileDetailContent({ card, onClose, readOnly = false }: Profil
   const { data: reputation, isLoading: reputationLoading } = usePublicReputation(card.profile_id);
   const { data: voiceIntro, isLoading: voiceIntroLoading } = usePublicVoiceIntro(card.profile_id);
   const { data: linkedAccounts, isLoading: linkedAccountsLoading } = usePublicLinkedAccounts(card.profile_id);
+  const { data: verifiedByName } = useVerifiedStats(card.profile_id);
 
   const regionLabel = REGION_LABELS[card.region] ?? card.region;
   const reputationTags = reputation ?? [];
@@ -170,6 +172,7 @@ export function ProfileDetailContent({ card, onClose, readOnly = false }: Profil
         <View style={{ gap: spacing.lg, marginTop: spacing.xs }}>
           <GamesSection
             games={card.topGames.map((g) => ({ name: g.name, skillLevel: SKILL_LABELS[g.skillLevel], rank: undefined }))}
+            verifiedByName={verifiedByName}
           />
 
           <HowIPlaySection

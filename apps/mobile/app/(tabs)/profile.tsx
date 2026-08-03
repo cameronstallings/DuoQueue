@@ -45,6 +45,7 @@ import { useOwnProfileDetails } from "@/features/profile/useOwnProfileDetails";
 import { useOwnProfilePhotos } from "@/features/profile/useOwnProfilePhotos";
 import { useOwnPrompts } from "@/features/profile/useOwnPrompts";
 import { useUpdatePhoto } from "@/features/profile/usePhotoUpload";
+import { useVerifiedStats } from "@/features/profile/useVerifiedStats";
 import { useOwnVoiceIntro, useOwnVoiceIntroUrl } from "@/features/profile/useVoiceIntro";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
@@ -117,6 +118,11 @@ export default function ProfileScreen() {
   // than holding up the rest of the page.
   const { data: ownVoiceIntroRow } = useOwnVoiceIntro(profile?.id);
   const { data: ownVoiceIntro } = useOwnVoiceIntroUrl(ownVoiceIntroRow);
+
+  // Verified rank/playtime, keyed by game name. Resolves to {} until sync-verified-stats
+  // has run and found a linked account for this profile — GamesSection already treats a
+  // missing entry as "nothing verified," so this never blocks or changes pageReady.
+  const { data: verifiedByName } = useVerifiedStats(profile?.id);
 
   // Start downloading the actual image bytes the moment the signed URLs are known,
   // instead of waiting for prompts/details too — those photo URLs resolving doesn't
@@ -353,7 +359,7 @@ export default function ProfileScreen() {
                     otherwise render null. */}
                 {gamesList.length > 0 && (
                   <Card>
-                    <GamesSection games={gamesList} />
+                    <GamesSection games={gamesList} verifiedByName={verifiedByName} />
                   </Card>
                 )}
 

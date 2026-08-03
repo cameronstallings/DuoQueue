@@ -11,6 +11,7 @@ import type {
   SubscriptionStatus,
   SwipeAction,
   TiltHandling,
+  VerifiedStatKind,
 } from "./enums";
 
 /**
@@ -74,6 +75,31 @@ export interface LinkedAccountRow {
   linked_at: string;
 }
 
+/** Row shape for `verified_stats` (see 0039_verified_stats.sql) — a platform-verified
+ * rank or playtime figure, written only by the `sync-verified-stats` Edge Function. */
+export interface VerifiedStatRow {
+  id: string;
+  profile_id: string;
+  provider: LinkedAccountProvider;
+  game_id: string | null;
+  stat_kind: VerifiedStatKind;
+  stat_value: string;
+  fetched_at: string;
+}
+
+/** Public-safe projection (backs the `public_verified_stats` view) — adds the game's
+ * name so a client can key straight off it, the same shape `public_profile_games`
+ * already uses for self-reported games. */
+export interface PublicVerifiedStatRow {
+  profile_id: string;
+  provider: LinkedAccountProvider;
+  game_id: string | null;
+  game_name: string | null;
+  stat_kind: VerifiedStatKind;
+  stat_value: string;
+  fetched_at: string;
+}
+
 /** Row shape for `match_sessions` (see 0023_match_sessions.sql). */
 export interface MatchSessionRow {
   id: string;
@@ -124,6 +150,13 @@ export interface GameRow {
   id: string;
   name: string;
   igdb_id: number | null;
+  /** Steam AppID, when this catalog game maps to a Steam title (see
+   * 0039_verified_stats.sql) — lets `sync-verified-stats` ask GetOwnedGames for exactly
+   * this game's playtime. Null for games with no Steam mapping. */
+  steam_app_id: number | null;
+  /** Riot ranked queue type (e.g. `RANKED_SOLO_5x5` for League), when this catalog game
+   * maps to a Riot title. Null for games with no Riot mapping. */
+  riot_queue: string | null;
   is_custom: boolean;
   created_by: string | null;
   created_at: string;

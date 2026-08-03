@@ -104,13 +104,17 @@ pnpm install
    automatically on `supabase db reset` for local dev, per `supabase/config.toml`).
 4. Deploy the Edge Functions: `supabase functions deploy <name>` for each of
    `send-message`, `revenuecat-webhook`, `moderate-photo`, `delete-account`,
-   `send-push-notification`, `daily-swipes-refreshed`, and `send-reengagement-nudges`.
-   All of them get `SUPABASE_URL`/`SUPABASE_ANON_KEY`/`SUPABASE_SERVICE_ROLE_KEY`
-   injected automatically. `revenuecat-webhook` additionally needs
-   `REVENUECAT_WEBHOOK_AUTH_TOKEN` (step 3 below), and
-   `send-push-notification`/`daily-swipes-refreshed`/`send-reengagement-nudges` need
-   `INTERNAL_TRIGGER_AUTH_TOKEN` — set both with `supabase secrets set KEY=value`.
-   Those four refuse to start without their secret rather than running unauthenticated.
+   `send-push-notification`, `daily-swipes-refreshed`, `send-reengagement-nudges`, and
+   `sync-verified-stats`. All of them get
+   `SUPABASE_URL`/`SUPABASE_ANON_KEY`/`SUPABASE_SERVICE_ROLE_KEY` injected automatically.
+   `revenuecat-webhook` additionally needs `REVENUECAT_WEBHOOK_AUTH_TOKEN` (step 3
+   below), and
+   `send-push-notification`/`daily-swipes-refreshed`/`send-reengagement-nudges`/`sync-verified-stats`
+   need `INTERNAL_TRIGGER_AUTH_TOKEN` — set both with `supabase secrets set KEY=value`.
+   Those five refuse to start without their secret rather than running unauthenticated.
+   `sync-verified-stats` additionally needs `STEAM_WEB_API_KEY`/`RIOT_API_KEY` to
+   actually fetch anything — see "Before a production launch" below; it's safe to
+   deploy without them.
 
    `moderate-photo` takes `MODERATION_PROVIDER` (`sightengine` or `manual-review`) plus
    `SIGHTENGINE_API_USER`/`SIGHTENGINE_API_SECRET` when set to `sightengine`. Left unset
@@ -367,3 +371,25 @@ rather than faking:
   trust & safety process might prefer retaining anonymized report records to prevent a
   report-then-delete evasion pattern — worth a deliberate product decision, not an
   oversight.
+- **Verified stats are wired but dormant.** `0039_verified_stats.sql` adds a
+  `verified_stats` table and `sync-verified-stats` Edge Function that pull real rank
+  (Riot) and playtime (Steam) for anyone with a linked account, so a game chip can show
+  "✓ Gold II" instead of a self-typed rank. Both provider calls are skipped — one log
+  line, no error — whenever their key is unset, so this ships invisibly until:
+  1. Get a **Steam Web API key** — instant, free, self-serve at
+     https://steamcommunity.com/dev/apikey.
+  2. Get a **Riot API key** — https://developer.riotgames.com. A personal dev key works
+     immediately for testing but expires every 24 hours; a production key needs Riot's
+     manual app-approval process (same tradeoff 0025 already made for Riot account
+     linking, which is why that linking flow is still a scaffold — this function has
+     nothing to sync for Riot until that flow exists too).
+  3. Set both as function secrets: `supabase secrets set STEAM_WEB_API_KEY=... RIOT_API_KEY=...`
+     (`RIOT_PLATFORM` is optional, defaults to `na1` — league-v4 is platform-routed and
+     this repo has no per-profile LoL platform yet, so multi-region is a deliberate
+     scope cut).
+  4. `sync-verified-stats` deploys with the rest of the functions (step 4 of Supabase
+     project setup above). Once the keys are set, schedule it the same way as
+     `daily-swipes-refreshed` / `send-reengagement-nudges` (a Supabase Cron Trigger or
+     any external scheduler), POSTing with `Authorization: Bearer
+     <INTERNAL_TRIGGER_AUTH_TOKEN>` — the same shared secret those two already use. It
+     can also be triggered manually with the same request for a one-off sync.

@@ -80,6 +80,12 @@ export type MatchSessionStatus = (typeof MATCH_SESSION_STATUSES)[number];
 export const LINKED_ACCOUNT_PROVIDERS = ["steam", "riot", "xbox"] as const;
 export type LinkedAccountProvider = (typeof LINKED_ACCOUNT_PROVIDERS)[number];
 
+/** Mirrors `verified_stat_kind_enum` (see 0039_verified_stats.sql) — a platform-verified
+ * fact about a profile's play, distinct from the self-reported `skill_level`/`rank_text`
+ * on `profile_games`. */
+export const VERIFIED_STAT_KINDS = ["rank", "playtime_hours"] as const;
+export type VerifiedStatKind = (typeof VERIFIED_STAT_KINDS)[number];
+
 export const TILT_HANDLING_OPTIONS = [
   "stays_calm",
   "gets_frustrated_sometimes",
