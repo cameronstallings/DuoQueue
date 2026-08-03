@@ -15,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { router, Stack, useLocalSearchParams } from "expo-router";
+import Animated, { FadeInUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MATCH_FEEDBACK_TAGS, type MatchFeedbackTag, type ReportReason } from "@duoqueue/shared-types";
 
@@ -41,6 +42,7 @@ import { MATCH_FEEDBACK_LABELS } from "@/features/onboarding/profile-labels";
 import { useCreateParty } from "@/features/party/useParty";
 import { useSubmitMatchFeedback } from "@/features/reputation/useReputation";
 import { containsHiddenWord, useHiddenWords } from "@/features/settings/useHiddenWords";
+import { hapticLight } from "@/lib/haptics";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
@@ -256,12 +258,14 @@ function FeedbackModal({
 function MessageBubble({
   content,
   isMine,
+  isSending,
   showReceipt,
   readAt,
   hiddenWords,
 }: {
   content: string;
   isMine: boolean;
+  isSending: boolean;
   showReceipt: boolean;
   readAt: string | null;
   hiddenWords: string[];
@@ -293,7 +297,10 @@ function MessageBubble({
   );
 
   return (
-    <View style={{ alignSelf: isMine ? "flex-end" : "flex-start", maxWidth: "78%" }}>
+    // Opacity dips while the optimistic row is still in flight (id starts with
+    // "temp-") — a perceptible "sending" lifecycle instead of a binary pop to
+    // full-strength once the server row swaps in.
+    <View style={{ alignSelf: isMine ? "flex-end" : "flex-start", maxWidth: "78%", opacity: isSending ? 0.75 : 1 }}>
       <Pressable disabled={!isHidden} onPress={() => setRevealed(true)}>
         {isMine ? (
           // The 0.9 opacity lives on the gradient container itself, not the text —
@@ -313,7 +320,7 @@ function MessageBubble({
           labels doesn't repeat down the screen. */}
       {isMine && showReceipt && (
         <Text style={[type.caption, { color: colors.textMuted, textAlign: "right", marginTop: 2 }]}>
-          {readAt ? "Read" : "Sent"}
+          {readAt ? "Read" : isSending ? "Sending…" : "Sent"}
         </Text>
       )}
     </View>
@@ -399,6 +406,9 @@ export default function ChatScreen() {
   const [scheduleVisible, setScheduleVisible] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const listRef = useRef<FlatList<ChatTimelineItem>>(null);
+  // Gates the entrance animation below: only rows that showed up after the screen
+  // mounted spring in. History loaded on open (or refetched later) must never replay it.
+  const mountedAt = useRef(Date.now()).current;
 
   useEffect(() => {
     void markAsRead();
@@ -445,6 +455,9 @@ export default function ChatScreen() {
     const content = draft.trim();
     if (!content) return;
     setDraft("");
+    // Fired right as the optimistic row goes out (mutateAsync triggers onMutate's
+    // cache append synchronously) — a tap you can feel, not just see.
+    hapticLight();
     try {
       await sendMessage.mutateAsync(content);
     } catch (err) {
@@ -625,16 +638,33 @@ export default function ChatScreen() {
             // the only contributor — symmetric spacing.sm on both sides of the bubble.
             const followsDiscordShare = previous?.kind === "discord_share";
             const marginTop = index === reversedTimeline.length - 1 ? 0 : followsDiscordShare ? 0 : isRunContinuation ? 3 : spacing.sm;
+            // Entrance animation is gated so it only plays for rows that showed up
+            // after this screen mounted — never for history loaded on open or pulled
+            // in by a refetch.
+            //   - Own sends: gate on the temp- id prefix, not created_at. The
+            //     optimistic row and its server replacement carry different ids, so
+            //     keyExtractor treats the swap as an unmount/remount of this cell —
+            //     without this the real row would replay the animation a second time
+            //     right after the temp row already played it once.
+            //   - Incoming rows (from the other person): they only ever arrive once,
+            //     as their real id, so created_at > mountedAt is sufficient.
+            const isSending = isMine && item.message.id.startsWith("temp-");
+            const isNewIncoming = !isMine && new Date(item.message.created_at).getTime() > mountedAt;
+            const isNew = isSending || isNewIncoming;
             return (
-              <View style={{ marginTop }}>
+              <Animated.View
+                style={{ marginTop }}
+                entering={isNew ? FadeInUp.springify().damping(16).stiffness(180) : undefined}
+              >
                 <MessageBubble
                   content={item.message.content}
                   isMine={isMine}
+                  isSending={isSending}
                   showReceipt={isMine && item.message.id === latestOwnMessageId}
                   readAt={item.message.read_at}
                   hiddenWords={hiddenWords ?? []}
                 />
-              </View>
+              </Animated.View>
             );
           }}
         />
