@@ -1,16 +1,19 @@
 import { useEffect } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
 
 import { useTheme } from "@/theme/useTheme";
+
+type Variant = "primary" | "secondary" | "ghost" | "premium"
+  /** @deprecated Volt migration alias — DELETE in Task 11 */
+  | "solar";
 
 interface ButtonProps {
   label: string;
   onPress: () => void;
   loading?: boolean;
   disabled?: boolean;
-  variant?: "primary" | "secondary" | "ghost" | "solar";
+  variant?: Variant;
   /** `sm` for buttons that live inside cards or rows — quieter padding, hugs its
    * label instead of stretching. `md` (default) is the full-size screen-level CTA. */
   size?: "sm" | "md";
@@ -35,25 +38,16 @@ function ButtonLabel({ label, color, loading }: { label: string; color: string; 
   return <Animated.Text style={[type.bodyStrong, { color }, animatedStyle]}>{label}</Animated.Text>;
 }
 
-/**
- * The Pressable is a bare shell — it only ever carries press scale, the glow, and
- * disabled opacity. The fill lives one level in: a gradient for primary/solar, a
- * glass tint for secondary, nothing for ghost. That split is what lets the glow
- * sit outside the gradient's own bounding box instead of getting clipped by it.
- */
+/** Solid fills only: volt = act, amber = pay. Paper resolves volt to olive ink, so no scheme branch here. */
 export function Button({ label, onPress, loading, disabled, variant = "primary", size = "md" }: ButtonProps) {
-  const { colors, radius, spacing, glow, heroGradient, solarGradient } = useTheme();
+  const { colors, radius, spacing } = useTheme();
   const isDisabled = disabled || loading;
+  const v = variant === "solar" ? "premium" : variant;
 
   const textColor =
-    variant === "primary" ? colors.onFill : variant === "solar" ? colors.onSolar : colors.text;
-
-  const glowStyle =
-    variant === "primary"
-      ? glow(colors.glowViolet)
-      : variant === "solar"
-        ? glow(colors.glowSolar)
-        : null;
+    v === "primary" ? colors.onVolt : v === "premium" ? colors.onAmber : colors.text;
+  const fill =
+    v === "primary" ? colors.volt : v === "premium" ? colors.amber : undefined;
 
   const contentStyle = {
     borderRadius: radius.button,
@@ -69,30 +63,19 @@ export function Button({ label, onPress, loading, disabled, variant = "primary",
       disabled={isDisabled}
       style={({ pressed }) => [
         { borderRadius: radius.button, opacity: isDisabled ? 0.45 : 1 },
-        !isDisabled ? glowStyle : null,
         { transform: [{ scale: pressed ? 0.97 : 1 }] },
       ]}
     >
-      {variant === "primary" || variant === "solar" ? (
-        <LinearGradient
-          {...(variant === "primary" ? heroGradient : solarGradient)}
-          style={[styles.content, contentStyle]}
-        >
-          <ButtonLabel label={label} color={textColor} loading={loading} />
-        </LinearGradient>
-      ) : (
-        <View
-          style={[
-            styles.content,
-            contentStyle,
-            variant === "secondary"
-              ? { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }
-              : null,
-          ]}
-        >
-          <ButtonLabel label={label} color={textColor} loading={loading} />
-        </View>
-      )}
+      <View
+        style={[
+          styles.content,
+          contentStyle,
+          fill ? { backgroundColor: fill } : null,
+          v === "secondary" ? { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border } : null,
+        ]}
+      >
+        <ButtonLabel label={label} color={textColor} loading={loading} />
+      </View>
     </Pressable>
   );
 }
