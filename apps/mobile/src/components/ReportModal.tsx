@@ -56,14 +56,15 @@ export function ReportModal({ visible, onClose, onSubmit }: ReportModalProps) {
           disabled={!reason}
           onPress={() => reason && onSubmit(reason, details)}
           style={{
-            backgroundColor: colors.dangerDark,
-            opacity: reason ? 1 : 0.5,
+            backgroundColor: reason ? colors.dangerDark : "transparent",
+            borderWidth: 1,
+            borderColor: reason ? colors.dangerDark : colors.danger,
             padding: spacing.md,
             borderRadius: radius.button,
             alignItems: "center",
           }}
         >
-          <Text style={[type.bodyStrong, { color: colors.onFill }]}>Submit report</Text>
+          <Text style={[type.bodyStrong, { color: reason ? colors.onFill : colors.danger }]}>Submit report</Text>
         </Pressable>
         <Pressable onPress={onClose} style={{ padding: spacing.sm, alignItems: "center" }}>
           <Text style={[type.body, { color: colors.textMuted }]}>Cancel</Text>

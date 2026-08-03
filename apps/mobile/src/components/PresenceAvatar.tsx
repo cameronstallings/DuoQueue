@@ -7,25 +7,23 @@ interface PresenceAvatarProps {
   uri: string | null | undefined;
   size: number;
   isActive?: boolean;
-  /** Color the notch is "cut" from — should match whatever the avatar sits on top of. */
+  /** @deprecated Volt migration — the presence dot's border is now a fixed
+   * `colors.background`, not a backdrop cutout. Kept for call-site compatibility. */
   backdropColor: string;
   borderColor?: string;
   borderWidth?: number;
 }
 
-/** An avatar with a Discord-style presence dot notched into its bottom-right edge,
+/** An avatar with a fixed 8px volt presence dot pinned to its bottom-right edge,
  * replacing a separate "Active recently" text badge — the dot alone carries the signal. */
 export function PresenceAvatar({
   uri,
   size,
   isActive,
-  backdropColor,
   borderColor,
   borderWidth = 0,
 }: PresenceAvatarProps) {
-  const { colors, glow } = useTheme();
-  const notchSize = Math.round(size * 0.36);
-  const dotSize = Math.round(size * 0.26);
+  const { colors } = useTheme();
 
   return (
     <View style={{ width: size, height: size }}>
@@ -58,28 +56,16 @@ export function PresenceAvatar({
         <View
           style={{
             position: "absolute",
-            bottom: -borderWidth,
-            right: -borderWidth,
-            width: notchSize,
-            height: notchSize,
-            borderRadius: notchSize / 2,
-            backgroundColor: backdropColor,
-            alignItems: "center",
-            justifyContent: "center",
+            bottom: 0,
+            right: 0,
+            width: 8,
+            height: 8,
+            borderRadius: 4,
+            backgroundColor: colors.volt,
+            borderWidth: 2,
+            borderColor: colors.background,
           }}
-        >
-          <View
-            style={[
-              {
-                width: dotSize,
-                height: dotSize,
-                borderRadius: dotSize / 2,
-                backgroundColor: colors.success,
-              },
-              glow(colors.glowSuccess, 8),
-            ]}
-          />
-        </View>
+        />
       )}
     </View>
   );

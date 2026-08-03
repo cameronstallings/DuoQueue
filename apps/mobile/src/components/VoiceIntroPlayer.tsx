@@ -36,14 +36,14 @@ export function VoiceIntroPlayer({ url, durationSeconds }: VoiceIntroPlayerProps
         flexDirection: "row",
         alignItems: "center",
         gap: spacing.sm,
-        backgroundColor: colors.brandSoft,
+        backgroundColor: colors.voltSoft,
         borderRadius: radius.chip,
         paddingVertical: spacing.sm,
         paddingHorizontal: spacing.md,
         alignSelf: "flex-start",
       }}
     >
-      <Ionicons name={status.playing ? "pause-circle" : "play-circle"} size={28} color={colors.brand} />
+      <Ionicons name={status.playing ? "pause-circle" : "play-circle"} size={28} color={colors.volt} />
       <Text style={[type.caption, { color: colors.text }]}>
         {status.playing ? `${remaining}s` : "Voice intro"}
       </Text>

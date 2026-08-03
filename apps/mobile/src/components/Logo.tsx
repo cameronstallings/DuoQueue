@@ -11,13 +11,13 @@ interface LogoProps {
 /**
  * The logo is drawn, not shipped as a bitmap.
  *
- * Aurora drops the old two-plate misregistration gag (that was a Cartridge-era
+ * Aurora dropped the old two-plate misregistration gag (that was a Cartridge-era
  * signature, and it fought the glow-based depth system everywhere else). What's
  * left is a single line of Unbounded, set lowercase for the wordmark — a
  * heavyweight display face read in lowercase is distinctive on its own, no trick
- * needed — with the "Q" / "queue" half carrying the accent color as a nested
- * `Text` span so the pairing idea (two halves, one word) survives in the type
- * itself instead of in a printing-press effect.
+ * needed. Volt keeps the accent only on the compact "Q" mark — small enough to
+ * read as a symbol; the full "queue" half of the wordmark reads as plain ink,
+ * same as the rest of the word.
  */
 export function Logo({ width = 64, variant = "mark" }: LogoProps) {
   const { colors, fonts } = useTheme();
@@ -44,11 +44,11 @@ export function Logo({ width = 64, variant = "mark" }: LogoProps) {
     >
       {variant === "mark" ? (
         <>
-          D<Text style={{ color: colors.accent }}>Q</Text>
+          D<Text style={{ color: colors.volt }}>Q</Text>
         </>
       ) : (
         <>
-          duo<Text style={{ color: colors.accent }}>queue</Text>
+          duo<Text style={{ color: colors.text }}>queue</Text>
         </>
       )}
     </Text>
