@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -14,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { router, Stack, useLocalSearchParams } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MATCH_FEEDBACK_TAGS, type MatchFeedbackTag, type ReportReason } from "@duoqueue/shared-types";
 
 import { AuroraBackground } from "@/components/AuroraBackground";
@@ -374,6 +376,7 @@ function DiscordShareBubble({
 export default function ChatScreen() {
   const { colors, spacing, radius, type, glow, heroGradient, solarGradient } = useTheme();
   const headerHeight = useHeaderHeight();
+  const insets = useSafeAreaInsets();
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const myId = useSessionStore((s) => s.session?.user.id);
   const { data: matches } = useMatches();
@@ -394,11 +397,30 @@ export default function ChatScreen() {
   const [reportVisible, setReportVisible] = useState(false);
   const [feedbackVisible, setFeedbackVisible] = useState(false);
   const [scheduleVisible, setScheduleVisible] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const listRef = useRef<FlatList<ChatTimelineItem>>(null);
 
   useEffect(() => {
     void markAsRead();
   }, [timeline.length, markAsRead]);
+
+  // Drives the composer's bottom padding below. When the keyboard is open,
+  // KeyboardAvoidingView already pads the composer up by the keyboard's own height —
+  // that height sits flush with the physical screen bottom, so there's no home-indicator
+  // gap left to protect. Collapsing to a plain spacing.md here (instead of stacking
+  // insets.bottom on top) keeps the raised-off-the-edge look without doubling the gap
+  // once the keyboard covers that edge itself. "will" events match what
+  // KeyboardAvoidingView itself listens for on iOS, so this flips in the same frame it does.
+  useEffect(() => {
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const showSub = Keyboard.addListener(showEvent, () => setKeyboardVisible(true));
+    const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   // `timeline` is chronological (oldest first) from the hook. The list below renders
   // it `inverted` (standard chat pattern — anchors to the bottom, keeps scroll-to-latest
@@ -656,7 +678,12 @@ export default function ChatScreen() {
               flexDirection: "row",
               alignItems: "center",
               gap: spacing.sm,
-              padding: spacing.md,
+              paddingHorizontal: spacing.lg,
+              paddingTop: spacing.md,
+              // Floated off the home-indicator edge when idle; collapses to just
+              // breathing room once the keyboard is up and already owns that space
+              // (see the keyboardVisible effect above for why).
+              paddingBottom: keyboardVisible ? spacing.md : insets.bottom + spacing.md,
               borderTopWidth: 1,
               borderColor: colors.border,
             }}

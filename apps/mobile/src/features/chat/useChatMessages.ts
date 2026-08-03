@@ -7,12 +7,13 @@ import { useSessionStore } from "@/store/session-store";
 
 import type { ChatTimelineItem } from "./types";
 
-interface ChatData {
+export interface ChatData {
   messages: MessageRow[];
   shares: DiscordShareRow[];
 }
 
-function chatQueryKey(matchId: string) {
+/** Exported so useSendMessage can read/write the same cache entry for optimistic sends. */
+export function chatQueryKey(matchId: string) {
   return ["chat-messages", matchId] as const;
 }
 
@@ -49,11 +50,17 @@ export function useChatMessages(matchId: string) {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages", filter: `match_id=eq.${matchId}` },
         (payload) => {
-          queryClient.setQueryData<ChatData>(chatQueryKey(matchId), (old) =>
-            old
-              ? { ...old, messages: [...old.messages, payload.new as MessageRow] }
-              : { messages: [payload.new as MessageRow], shares: [] },
-          );
+          const incoming = payload.new as MessageRow;
+          // Own sends already land instantly via the optimistic row in useSendMessage,
+          // and that same mutation reconciles the temp row to this real id on success.
+          // This event still fires for own sends (Realtime broadcasts to every
+          // participant, sender included) — dedupe by id instead of blind-appending so
+          // it never doubles a message that's already in the cache.
+          queryClient.setQueryData<ChatData>(chatQueryKey(matchId), (old) => {
+            if (!old) return { messages: [incoming], shares: [] };
+            if (old.messages.some((m) => m.id === incoming.id)) return old;
+            return { ...old, messages: [...old.messages, incoming] };
+          });
         },
       )
       .on(
