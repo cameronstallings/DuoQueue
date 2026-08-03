@@ -11,6 +11,9 @@ interface ButtonProps {
   loading?: boolean;
   disabled?: boolean;
   variant?: "primary" | "secondary" | "ghost" | "solar";
+  /** `sm` for buttons that live inside cards or rows — quieter padding, hugs its
+   * label instead of stretching. `md` (default) is the full-size screen-level CTA. */
+  size?: "sm" | "md";
 }
 
 /** The label while `loading` — pulses in place of a spinner so an in-flight button
@@ -38,7 +41,7 @@ function ButtonLabel({ label, color, loading }: { label: string; color: string; 
  * glass tint for secondary, nothing for ghost. That split is what lets the glow
  * sit outside the gradient's own bounding box instead of getting clipped by it.
  */
-export function Button({ label, onPress, loading, disabled, variant = "primary" }: ButtonProps) {
+export function Button({ label, onPress, loading, disabled, variant = "primary", size = "md" }: ButtonProps) {
   const { colors, radius, spacing, glow, heroGradient, solarGradient } = useTheme();
   const isDisabled = disabled || loading;
 
@@ -54,8 +57,8 @@ export function Button({ label, onPress, loading, disabled, variant = "primary" 
 
   const contentStyle = {
     borderRadius: radius.button,
-    paddingVertical: spacing.md + 2,
-    paddingHorizontal: spacing.xl,
+    paddingVertical: size === "sm" ? spacing.sm + 2 : spacing.md + 2,
+    paddingHorizontal: size === "sm" ? spacing.lg : spacing.xl,
   };
 
   return (

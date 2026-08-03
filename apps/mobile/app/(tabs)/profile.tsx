@@ -336,10 +336,11 @@ export default function ProfileScreen() {
                     ]}
                   />
 
-                  {/* Bare (no row wrapper) so it stretches to the card's full content
-                      width by default flex stretch, instead of shrinking beside dead
-                      space the way a row-wrapped button would. */}
-                  <Button label="Edit profile" onPress={() => router.push("/edit-details")} />
+                  {/* Compact and hugging its label — a full-width gradient bar here
+                      overpowered the card (Cameron's device-pass note). */}
+                  <View style={{ flexDirection: "row" }}>
+                    <Button size="sm" label="Edit profile" onPress={() => router.push("/edit-details")} />
+                  </View>
                 </Card>
               )}
 
