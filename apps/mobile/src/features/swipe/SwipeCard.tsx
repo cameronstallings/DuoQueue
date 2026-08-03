@@ -46,6 +46,17 @@ interface SwipeCardProps {
   index?: number;
 }
 
+/** How many games you and this person both play, bucketed for the shared-games chip
+ *  ink. This is a property of the pair, not a rating of the person — the same profile
+ *  is a strong overlap to one viewer and a weak one to another, which is why it never
+ *  appears on your own profile and there is nothing to game. */
+function overlapBucket(count: number): "none" | "one" | "two" | "many" {
+  if (count <= 0) return "none";
+  if (count === 1) return "one";
+  if (count === 2) return "two";
+  return "many";
+}
+
 function overlapLabel(count: number): string {
   if (count <= 0) return ">> NO GAMES IN COMMON";
   if (count === 1) return ">> 1 GAME IN COMMON";
@@ -54,6 +65,8 @@ function overlapLabel(count: number): string {
 
 export function SwipeCard({ card, isTop, onSwiped, externalTrigger, index }: SwipeCardProps) {
   const { colors, radius, spacing, type, scrimRgb } = useTheme();
+  const bucket = overlapBucket(card.shared_games_count);
+  const overlapColor = colors.overlap[bucket];
   const [reportVisible, setReportVisible] = useState(false);
   const [detailVisible, setDetailVisible] = useState(false);
   const blockUser = useBlockUser();
@@ -359,21 +372,22 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger, index }: Swi
           </View>
 
           {/* The overlap read. Always spelled out in words so the ink is never the
-              only thing carrying the meaning — a mono console line stamped along the
-              bottom edge now instead of a tinted, tier-colored chip. */}
+              only thing carrying the meaning — now a mono console line instead of a
+              tinted chip, but still keyed to the pair's none/one/two/many tier ink,
+              not a flat accent color. */}
           <View style={[styles.frameLabel, { paddingHorizontal: spacing.sm }]}>
             <View
               style={{
                 flexDirection: "row",
                 borderRadius: radius.chip,
                 borderWidth: 1,
-                borderColor: colors.volt,
+                borderColor: overlapColor,
                 backgroundColor: colors.surface,
                 paddingVertical: spacing.sm - 1,
                 paddingHorizontal: spacing.md - 2,
               }}
             >
-              <Text style={[type.tick, { color: colors.volt }]} numberOfLines={1}>
+              <Text style={[type.tick, { color: overlapColor }]} numberOfLines={1}>
                 {overlapLabel(card.shared_games_count)}
               </Text>
             </View>
