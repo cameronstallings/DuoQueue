@@ -26,12 +26,11 @@ import {
   PLAYSTYLE_LABELS,
   REGION_LABELS,
   SKILL_LABELS,
-  TILT_HANDLING_LABELS,
   formatPlayWindow,
 } from "@/features/onboarding/profile-labels";
 import { GalleryPanel } from "@/features/profile/GalleryPanel";
 import { ProfileCompleteness } from "@/features/profile/ProfileCompleteness";
-import { HowIPlaySection, MetaLine, PromptsSection, ShowsSection } from "@/features/profile/sections";
+import { HowIPlaySection, MetaLine, PromptsSection, ShowsSection, VibeSection } from "@/features/profile/sections";
 import { useEditableProfileDetails } from "@/features/profile/useEditableProfileDetails";
 import { useOwnProfileDetails } from "@/features/profile/useOwnProfileDetails";
 import { useOwnProfilePhotos } from "@/features/profile/useOwnProfilePhotos";
@@ -86,19 +85,6 @@ function EditBadge({ uploading }: { uploading: boolean }) {
       <Animated.View style={uploading ? animatedStyle : undefined}>
         <Ionicons name="camera" size={11} color="#fff" />
       </Animated.View>
-    </View>
-  );
-}
-
-/** A slim track-and-fill bar with no side labels — the compact stand-in for
- * VibeSection's three sliders, which carry a "Chill" / "Sweaty ranked grind" caption
- * on either end that doesn't fit a half-width bento tile. Same tokens (surfaceAlt
- * track, accent fill), just narrower. */
-function MiniVibeBar({ pct }: { pct: number }) {
-  const { colors, radius } = useTheme();
-  return (
-    <View style={{ height: 5, borderRadius: radius.round, backgroundColor: colors.surfaceAlt, overflow: "hidden" }}>
-      <View style={{ height: 5, width: `${pct}%`, backgroundColor: colors.accent, borderRadius: radius.round }} />
     </View>
   );
 }
@@ -199,8 +185,7 @@ export default function ProfileScreen() {
             <Skeleton width="100%" height={120} borderRadius={radius.card} />
             <Skeleton width={HALF_TILE_WIDTH} height={110} borderRadius={radius.card} />
             <Skeleton width={HALF_TILE_WIDTH} height={110} borderRadius={radius.card} />
-            <Skeleton width={HALF_TILE_WIDTH} height={90} borderRadius={radius.card} />
-            <Skeleton width={HALF_TILE_WIDTH} height={70} borderRadius={radius.card} />
+            <Skeleton width="100%" height={120} borderRadius={radius.card} />
             <Skeleton width="100%" height={80} borderRadius={radius.card} />
           </View>
         </>
@@ -293,31 +278,23 @@ export default function ProfileScreen() {
                 </Card>
               )}
 
-              {/* Vibe — inline mini-bars (no left/right captions; they don't fit a
-                  half-tile) plus the tilt sentence, capped at 2 lines. */}
-              {vibe && (
-                <Card style={{ width: HALF_TILE_WIDTH, padding: spacing.tight }}>
-                  <SectionLabel>Vibe</SectionLabel>
-                  <View style={{ gap: spacing.sm }}>
-                    <MiniVibeBar pct={vibe.intensity} />
-                    <MiniVibeBar pct={vibe.commsStyle} />
-                    <MiniVibeBar pct={vibe.coachingPref} />
-                    <Text style={[type.caption, { color: colors.textMuted }]} numberOfLines={2}>
-                      After a losing streak: {TILT_HANDLING_LABELS[vibe.tiltHandling]}
-                    </Text>
-                  </View>
-                </Card>
-              )}
-
-              {/* How I Play — platform + playstyle chips (HowIPlaySection's own wrap
-                  layout fits a half-tile fine), with the play-window caption folded
-                  in at the bottom instead of a separate Schedule tile. Gated on
-                  either having chips or a play window, so a profile with a play
-                  window but no platforms/playstyles yet doesn't lose that fact. */}
+              {/* How I Play — pairs with Games in one row now that Voice Intro is
+                  gone (an orphaned half-tile left a hole in the grid). Play-window
+                  caption folded in at the bottom; gated on either having chips or a
+                  play window so neither fact silently disappears. */}
               {(platformsList.length > 0 || playstylesList.length > 0 || playWindowLabel) && (
                 <Card style={{ width: HALF_TILE_WIDTH, padding: spacing.tight, gap: spacing.sm }}>
                   <HowIPlaySection platforms={platformsList} playstyles={playstylesList} />
                   {playWindowLabel && <MetaLine playWindow={playWindowLabel} />}
+                </Card>
+              )}
+
+              {/* Vibe — promoted to span 2 in the repack, which buys back the full
+                  VibeSection: labeled end-captions on each bar and the tilt footer,
+                  none of which fit the old half-tile mini-bars. */}
+              {vibe && (
+                <Card style={{ width: "100%", padding: spacing.tight }}>
+                  <VibeSection vibe={vibe} footerDivider />
                 </Card>
               )}
 
