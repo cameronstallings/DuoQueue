@@ -50,10 +50,12 @@ import { useOwnVoiceIntro, useOwnVoiceIntroUrl } from "@/features/profile/useVoi
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
-// 2.4 (was 3): the banner reaches further down the page — device-pass feedback said
-// the header felt shallow. Avatar up from 88 for the same reason.
-const BANNER_ASPECT = 2.4;
-const AVATAR_SIZE = 104;
+// 2.2 (was 3): the banner reaches well down the page — device-pass feedback said the
+// header felt shallow, twice. Avatar up from 88, and it tucks 3/4 under the banner
+// edge (Cameron: "till like 75% of the profile pic is covered").
+const BANNER_ASPECT = 2.2;
+const AVATAR_SIZE = 116;
+const AVATAR_OVERLAP = AVATAR_SIZE * 0.75;
 
 function calculateAge(dob: string): number {
   const birthDate = new Date(dob);
@@ -231,7 +233,7 @@ export default function ProfileScreen() {
                 width={AVATAR_SIZE}
                 height={AVATAR_SIZE}
                 borderRadius={AVATAR_SIZE / 2}
-                style={{ marginTop: -AVATAR_SIZE / 2, borderWidth: 4, borderColor: colors.background }}
+                style={{ marginTop: -AVATAR_OVERLAP, borderWidth: 4, borderColor: colors.background }}
               />
               <View style={{ marginTop: spacing.md }}>
                 {/* Hero card: name + meta, stat strip, completeness bar, edit button. */}
@@ -290,7 +292,7 @@ export default function ProfileScreen() {
                   width: AVATAR_SIZE,
                   height: AVATAR_SIZE,
                   borderRadius: AVATAR_SIZE / 2,
-                  marginTop: -AVATAR_SIZE / 2,
+                  marginTop: -AVATAR_OVERLAP,
                   borderWidth: 4,
                   borderColor: colors.background,
                   backgroundColor: colors.surface,
