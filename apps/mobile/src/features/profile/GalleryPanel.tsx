@@ -22,8 +22,25 @@ const FALLBACK_TILE_SIZE = 100;
  * badge — opens a Sheet to move it to the front or remove it. A photo still pending
  * moderation gets an "In review" chip; that's owner-only by construction, since
  * public_profile_media (what everyone else reads through) only ever exposes approved
- * rows, and this whole panel only renders on the own-profile screen. */
-export function GalleryPanel({ profileId }: { profileId: string }) {
+ * rows, and this whole panel only renders on the own-profile screen.
+ *
+ * The grid's first tile is the header/cover photo rather than a gallery photo — this
+ * is now the only way to manage the card cover, since the bento profile has no banner.
+ * Its data and upload handler live in the parent (useOwnProfilePhotos / useUpdatePhoto),
+ * not here, so it renders in its ready state from the moment this panel mounts. */
+export function GalleryPanel({
+  profileId,
+  headerUrl,
+  onPressCover,
+  coverUploading,
+  coverDisabled,
+}: {
+  profileId: string;
+  headerUrl: string | null;
+  onPressCover: () => void;
+  coverUploading: boolean;
+  coverDisabled: boolean;
+}) {
   const { colors, radius, spacing, type, scrimRgb } = useTheme();
   const { data: photos, isLoading, isError } = useOwnGalleryPhotos(profileId);
   const addPhoto = useAddGalleryPhoto(profileId);
@@ -67,101 +84,141 @@ export function GalleryPanel({ profileId }: { profileId: string }) {
   }
 
   return (
-    <Card>
+    <Card style={{ width: "100%", padding: spacing.tight }}>
       <SectionLabel>Photos</SectionLabel>
 
       <View onLayout={(e) => setGridWidth(e.nativeEvent.layout.width)}>
-        {isLoading ? (
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
-            {[0, 1, 2].map((i) => (
-              <Skeleton key={i} width={tileSize} height={tileSize} borderRadius={radius.sm} />
-            ))}
-          </View>
-        ) : (
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
-            {gallery.map((photo, index) => (
-              <Pressable
-                key={photo.id}
-                accessibilityRole="button"
-                accessibilityLabel={index === 0 ? "First gallery photo" : `Gallery photo ${index + 1}`}
-                onLongPress={() => setSelected(photo)}
-                style={{
-                  width: tileSize,
-                  height: tileSize,
-                  borderRadius: radius.sm,
-                  overflow: "hidden",
-                  backgroundColor: colors.surfaceAlt,
-                }}
-              >
-                <Image
-                  source={{ uri: photo.url }}
-                  style={{ width: "100%", height: "100%" }}
-                  contentFit="cover"
-                  cachePolicy="memory-disk"
-                />
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Change header picture"
+            onPress={onPressCover}
+            disabled={coverDisabled}
+            style={{
+              width: tileSize,
+              height: tileSize,
+              borderRadius: radius.sm,
+              overflow: "hidden",
+              backgroundColor: colors.surfaceAlt,
+              opacity: coverUploading ? 0.5 : 1,
+            }}
+          >
+            {headerUrl ? (
+              <Image
+                source={{ uri: headerUrl }}
+                style={{ width: "100%", height: "100%" }}
+                contentFit="cover"
+                cachePolicy="memory-disk"
+                transition={200}
+              />
+            ) : (
+              <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+                <Ionicons name="camera" size={22} color={colors.textMuted} />
+              </View>
+            )}
+            <View
+              style={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                bottom: 0,
+                paddingVertical: 3,
+                alignItems: "center",
+                backgroundColor: `rgba(${scrimRgb},0.65)`,
+              }}
+            >
+              <Text style={[type.label, { color: colors.onFill }]}>Cover</Text>
+            </View>
+          </Pressable>
 
-                {photo.moderationStatus === "pending" && (
-                  <View
-                    style={{
-                      position: "absolute",
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      paddingVertical: 3,
-                      alignItems: "center",
-                      backgroundColor: `rgba(${scrimRgb},0.65)`,
-                    }}
-                  >
-                    <Text style={[type.label, { color: colors.onFill }]}>In review</Text>
-                  </View>
-                )}
-
+          {isLoading ? (
+            [0, 1, 2].map((i) => <Skeleton key={i} width={tileSize} height={tileSize} borderRadius={radius.sm} />)
+          ) : (
+            <>
+              {gallery.map((photo, index) => (
                 <Pressable
+                  key={photo.id}
                   accessibilityRole="button"
-                  accessibilityLabel="Edit this photo"
-                  hitSlop={8}
-                  onPress={() => setSelected(photo)}
+                  accessibilityLabel={index === 0 ? "First gallery photo" : `Gallery photo ${index + 1}`}
+                  onLongPress={() => setSelected(photo)}
                   style={{
-                    position: "absolute",
-                    top: 4,
-                    right: 4,
-                    width: 22,
-                    height: 22,
-                    borderRadius: 11,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    backgroundColor: `rgba(${scrimRgb},0.55)`,
+                    width: tileSize,
+                    height: tileSize,
+                    borderRadius: radius.sm,
+                    overflow: "hidden",
+                    backgroundColor: colors.surfaceAlt,
                   }}
                 >
-                  <Ionicons name="ellipsis-horizontal" size={12} color="#fff" />
-                </Pressable>
-              </Pressable>
-            ))}
+                  <Image
+                    source={{ uri: photo.url }}
+                    style={{ width: "100%", height: "100%" }}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                  />
 
-            {canAddMore && (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Add a gallery photo"
-                onPress={() => void handleAdd()}
-                disabled={addPhoto.isPending}
-                style={{
-                  width: tileSize,
-                  height: tileSize,
-                  borderRadius: radius.sm,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: colors.surface,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderStyle: "dashed",
-                  opacity: addPhoto.isPending ? 0.5 : 1,
-                }}
-              >
-                <Ionicons name="camera" size={22} color={colors.textMuted} />
-              </Pressable>
-            )}
-          </View>
-        )}
+                  {photo.moderationStatus === "pending" && (
+                    <View
+                      style={{
+                        position: "absolute",
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        paddingVertical: 3,
+                        alignItems: "center",
+                        backgroundColor: `rgba(${scrimRgb},0.65)`,
+                      }}
+                    >
+                      <Text style={[type.label, { color: colors.onFill }]}>In review</Text>
+                    </View>
+                  )}
+
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Edit this photo"
+                    hitSlop={8}
+                    onPress={() => setSelected(photo)}
+                    style={{
+                      position: "absolute",
+                      top: 4,
+                      right: 4,
+                      width: 22,
+                      height: 22,
+                      borderRadius: 11,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: `rgba(${scrimRgb},0.55)`,
+                    }}
+                  >
+                    <Ionicons name="ellipsis-horizontal" size={12} color="#fff" />
+                  </Pressable>
+                </Pressable>
+              ))}
+
+              {canAddMore && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Add a gallery photo"
+                  onPress={() => void handleAdd()}
+                  disabled={addPhoto.isPending}
+                  style={{
+                    width: tileSize,
+                    height: tileSize,
+                    borderRadius: radius.sm,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: colors.surface,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderStyle: "dashed",
+                    opacity: addPhoto.isPending ? 0.5 : 1,
+                  }}
+                >
+                  <Ionicons name="camera" size={22} color={colors.textMuted} />
+                </Pressable>
+              )}
+            </>
+          )}
+        </View>
       </View>
 
       <Sheet visible={!!selected} onClose={() => setSelected(null)} title="Gallery photo">
