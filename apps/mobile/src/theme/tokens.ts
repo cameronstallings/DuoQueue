@@ -1,10 +1,11 @@
 import type { TextStyle } from "react-native";
 
 /**
- * DuoQueue design tokens — "Aurora".
- * Dark violet night, glass surfaces, one hero gradient (pink→violet), gold for money.
- * Depth = glow, never borders-and-plates. Texture = grain + aurora washes (see
- * components/GrainOverlay and components/AuroraBackground).
+ * DuoQueue design tokens — "Volt".
+ * Off-black with green warmth, solid panels split by 1px seams, ONE interactive
+ * accent (volt chartreuse; olive ink on paper), amber strictly for money.
+ * Depth = seams + edge-bars, never glow. Machine voice = IBM Plex Mono.
+ * Paper rule: inks fill, chartreuse marks. See 2026-08-03-volt-restyle-design.md.
  */
 
 export const spacing = {
@@ -40,150 +41,135 @@ export const type = {
 } as const satisfies Record<string, TextStyle>;
 
 export const radius = {
-  chip: 999, sm: 10, window: 16, input: 14, button: 16, md: 16, card: 20, lg: 20,
-  sheet: 28, round: 999,
+  chip: 3, sm: 4, window: 8, input: 6, button: 6, md: 8, card: 8, lg: 8,
+  sheet: 16, round: 999,
 } as const;
 
-/* Categorical inks — same anti-rarity-ladder rationale as before (word label always
- * accompanies; a property of the PAIR, not the person), re-hued for Aurora. */
-const OVERLAP_DARK = { none: "#8E86A3", one: "#7BC7A8", two: "#8FA7E8", many: "#E8B36B" } as const;
-const OVERLAP_LIGHT = { none: "#736A8C", one: "#2E7D5B", two: "#3B5BA8", many: "#A8690F" } as const;
-const PLAYSTYLE_DARK = { casual: "#B9B3CC", intermediate: "#9ED4B4", competitive: "#A6BCE8", ranked_grinder: "#E4C08E" } as const;
-const PLAYSTYLE_LIGHT = { casual: "#5E5878", intermediate: "#1F6E48", competitive: "#33518F", ranked_grinder: "#8F5E14" } as const;
+const OVERLAP_DARK = { none: "#8A927E", one: "#93B45C", two: "#B7DD3F", many: "#FFB627" } as const;
+const OVERLAP_LIGHT = { none: "#66705C", one: "#4E7018", two: "#5A7A00", many: "#8F5E00" } as const;
+const PLAYSTYLE_DARK = { casual: "#A8B096", intermediate: "#8FC46B", competitive: "#7FB7D9", ranked_grinder: "#E0A33E" } as const;
+const PLAYSTYLE_LIGHT = { casual: "#5E6650", intermediate: "#3E6B1E", competitive: "#2F5E80", ranked_grinder: "#8A5E10" } as const;
 
 export const darkColors = {
-  background: "#14101F",
-  surface: "rgba(255,255,255,0.06)",
-  surfaceSolid: "#1C1728",
-  surfaceAlt: "rgba(255,255,255,0.10)",
-  border: "rgba(255,255,255,0.09)",
-  text: "#F0ECF7",
-  textMuted: "#9C92B8",
+  background: "#0A0B09",
+  surface: "#12140F",
+  surfaceSolid: "#12140F",
+  surfaceAlt: "#1A1D15",
+  border: "#232720",
+  text: "#EDF1E6",
+  textMuted: "#98A18A",
 
-  // heroB (and brand, which mirrors it) is darkened one notch from the original
-  // hue-true violet so `onFill` (white) button/icon labels clear 4.5:1 against every
-  // point in the gradient — see contrast audit, task 23. heroA was ALSO darkened by
-  // that audit, but past the point of hue-true: #E00089 sits at 100% saturation,
-  // which reads as hot magenta rather than pink. Retuned to hue 335°/57% sat —
-  // white clears 4.5:1 at BOTH gradient endpoints (heroA 4.56:1, heroB 4.66:1), not
-  // just the midpoint (4.86:1) — chat bubbles start flush at heroA in their top-left
-  // corner, so the endpoint is the real binding constraint, not the midpoint.
-  heroA: "#CB427B", heroB: "#8452F5",
-  pink: "#FF6EC7",
-  brand: "#8452F5",
-  brandInk: "#C9B4FF",
-  brandDark: "#7C3AED",
-  brandSoft: "rgba(139,92,246,0.16)",
-  accent: "#A78BFA",
-  accentInk: "#B79CFF",
-  accentSoft: "rgba(167,139,250,0.14)",
-  p1Line: "#FF6EC7",
-  p2Line: "#A78BFA",
+  volt: "#CDFF3D",
+  voltDim: "#94BC2C",
+  voltSoft: "rgba(205,255,61,0.10)",
+  /** Raw chartreuse. Same as volt on dark; on paper this is the ONLY chartreuse,
+   * legal at ≤ chip scale with near-black text — volt itself becomes olive ink there. */
+  voltRaw: "#CDFF3D",
+  onVolt: "#0A0B09",
 
-  solarA: "#FFD98A", solarB: "#FF9D5C", onSolar: "#4A2A00",
+  amber: "#FFB627",
+  onAmber: "#201400",
+  amberSoft: "rgba(255,182,39,0.12)",
 
-  danger: "#FF5C7A",
-  /** Fill-only variant for `onFill`-on-danger surfaces (ReportModal, OfflineBanner).
-   * `danger` itself has to stay light enough to read as TEXT on this dark background —
-   * that and "dark enough for white text to read on top of it" are contradictory for a
-   * single value, so the fill gets its own darker shade of the same hue. */
-  dangerDark: "#E8002B",
-  success: "#4ADE9C",
-  warning: "#FFC864",
-  info: "#7FD4FF",
+  danger: "#FF5A48",
+  dangerDark: "#D8321F",
+  success: "#3FD68C",
+  warning: "#FFB627",
+  info: "#6EC8FF",
   onFill: "#FFFFFF",
-  successFill: "rgba(74,222,156,0.18)",
-  warningFill: "rgba(255,200,100,0.18)",
+  successFill: "rgba(63,214,140,0.14)",
+  warningFill: "rgba(255,182,39,0.14)",
 
-  glowViolet: "rgba(139,92,246,0.45)",
-  glowPink: "rgba(255,110,199,0.45)",
-  glowSolar: "rgba(255,157,92,0.35)",
-  glowSuccess: "rgba(74,222,156,0.6)",
+  p1Line: "#CDFF3D",
+  p2Line: "#F2F6EA",
 
   overlap: OVERLAP_DARK,
   playstyle: PLAYSTYLE_DARK,
+
+  // ——— DEPRECATED Aurora aliases: DELETE in Task 11. Values already render Volt. ———
+  /** @deprecated Volt migration — use volt */ brand: "#CDFF3D",
+  /** @deprecated Volt migration — use volt */ accent: "#CDFF3D",
+  /** @deprecated Volt migration — use voltDim */ brandInk: "#94BC2C",
+  /** @deprecated Volt migration — use voltDim */ accentInk: "#94BC2C",
+  /** @deprecated Volt migration — use voltDim */ brandDark: "#94BC2C",
+  /** @deprecated Volt migration — use voltSoft */ brandSoft: "rgba(205,255,61,0.10)",
+  /** @deprecated Volt migration — use voltSoft */ accentSoft: "rgba(205,255,61,0.10)",
+  /** @deprecated Volt migration — use volt/voltDim */ heroA: "#CDFF3D", heroB: "#CDFF3D",
+  /** @deprecated Volt migration — use voltRaw */ pink: "#CDFF3D",
+  /** @deprecated Volt migration — use amber */ solarA: "#FFB627", solarB: "#FFB627",
+  /** @deprecated Volt migration — use onAmber */ onSolar: "#201400",
+  /** @deprecated Volt migration — glow is dead */ glowViolet: "rgba(0,0,0,0)", glowPink: "rgba(0,0,0,0)", glowSolar: "rgba(0,0,0,0)", glowSuccess: "rgba(0,0,0,0)",
 } as const;
 
 export const lightColors = {
-  background: "#F7F4FC",
+  background: "#F2F4EB",
   surface: "#FFFFFF",
   surfaceSolid: "#FFFFFF",
-  surfaceAlt: "#EFEAF8",
-  border: "rgba(76,58,130,0.14)",
-  text: "#241A3D",
-  textMuted: "#6E6390",
+  surfaceAlt: "#E7EBDB",
+  border: "#C9CFBB",
+  text: "#161A0F",
+  textMuted: "#5C6450",
 
-  // heroA darkened one notch (same hue) so `onFill` white text/icons clear 4.5:1 at
-  // that end of the gradient — see contrast audit, task 23. heroB already passed.
-  // Like the dark scheme, that darkening drifted the hue toward magenta (~326°);
-  // retuned to hue 335°/57% sat (same value as the dark scheme — the endpoint
-  // constraint doesn't depend on heroB). White clears 4.5:1 at both endpoints
-  // (heroA 4.56:1, heroB 5.70:1) and the midpoint (5.36:1).
-  heroA: "#CB427B", heroB: "#7C3AED",
-  pink: "#C93A8C",
-  brand: "#7C3AED",
-  brandInk: "#6D28D9",
-  brandDark: "#5B21B6",
-  brandSoft: "rgba(124,58,237,0.10)",
-  accent: "#7C3AED",
-  accentInk: "#6D28D9",
-  accentSoft: "rgba(124,58,237,0.08)",
-  p1Line: "#C93A8C",
-  p2Line: "#7C3AED",
+  volt: "#4A6B00",
+  voltDim: "#3B5600",
+  voltSoft: "rgba(205,255,61,0.35)",
+  voltRaw: "#CDFF3D",
+  onVolt: "#F7F9F0",
 
-  // solarA/B darkened so `onSolar` (white, in light mode) clears 4.5:1 on the gold
-  // gradient, and so the Chip "solar" tone's text (solarA/solarB) clears 4.5:1 against
-  // `warningFill`. danger/success/warning/info darkened so each clears 4.5:1 as plain
-  // text on `background` (the stricter of background/surface) — see contrast audit.
-  solarA: "#AB6314", solarB: "#9D5604", onSolar: "#FFFFFF",
+  amber: "#8F5E00",
+  onAmber: "#FBF6EA",
+  amberSoft: "rgba(143,94,0,0.12)",
 
-  danger: "#D02A57",
-  /** No fill/text conflict in light mode (darkening helps both uses), so this can
-   * just equal `danger` — kept as a separate token for parity with dark mode, where
-   * the fill and text values genuinely have to diverge. */
-  dangerDark: "#D02A57",
-  // Darkened one notch past the "plain text on background" minimum — Toast renders
-  // `success` text directly on `successFill` composited over `background` (not
-  // `surface`, which is the easier case Chip.tsx uses), and that composite is the
-  // real bottleneck: it only clears 4.5:1 once `success` itself is dark enough.
-  success: "#1A704C",
-  warning: "#906400",
-  info: "#1B779D",
+  danger: "#C22E20",
+  dangerDark: "#C22E20",
+  success: "#17784C",
+  warning: "#8F5E00",
+  info: "#16688F",
   onFill: "#FFFFFF",
-  successFill: "rgba(26,112,76,0.14)",
-  warningFill: "rgba(144,100,0,0.14)",
+  successFill: "rgba(23,120,76,0.14)",
+  warningFill: "rgba(143,94,0,0.14)",
 
-  // Same hues as the dark-mode glows, opacity brought down to match — a colored
-  // blur this strong reads as a soft accent on near-black; over white it just
-  // looks muddy. See contrast audit, task 23.
-  glowViolet: "rgba(124,58,237,0.25)",
-  glowPink: "rgba(224,71,158,0.25)",
-  glowSolar: "rgba(255,157,92,0.20)",
-  glowSuccess: "rgba(74,222,156,0.33)",
+  p1Line: "#4A6B00",
+  p2Line: "#161A0F",
 
   overlap: OVERLAP_LIGHT,
   playstyle: PLAYSTYLE_LIGHT,
+
+  // ——— DEPRECATED Aurora aliases: DELETE in Task 11. ———
+  /** @deprecated Volt migration — use volt */ brand: "#4A6B00",
+  /** @deprecated Volt migration — use volt */ accent: "#4A6B00",
+  /** @deprecated Volt migration — use voltDim */ brandInk: "#3B5600",
+  /** @deprecated Volt migration — use voltDim */ accentInk: "#3B5600",
+  /** @deprecated Volt migration — use voltDim */ brandDark: "#3B5600",
+  /** @deprecated Volt migration — use voltSoft */ brandSoft: "rgba(205,255,61,0.35)",
+  /** @deprecated Volt migration — use voltSoft */ accentSoft: "rgba(205,255,61,0.35)",
+  /** @deprecated Volt migration — use volt/voltDim */ heroA: "#4A6B00", heroB: "#4A6B00",
+  /** @deprecated Volt migration — use voltRaw */ pink: "#4A6B00",
+  /** @deprecated Volt migration — use amber */ solarA: "#8F5E00", solarB: "#8F5E00",
+  /** @deprecated Volt migration — use onAmber */ onSolar: "#FBF6EA",
+  /** @deprecated Volt migration — glow is dead */ glowViolet: "rgba(0,0,0,0)", glowPink: "rgba(0,0,0,0)", glowSolar: "rgba(0,0,0,0)", glowSuccess: "rgba(0,0,0,0)",
 } as const;
 
 // Union, not `typeof darkColors` alone: both palettes are `as const` literal types,
 // and the gradient helpers below take whichever one the active scheme resolved.
 export type ThemeColors = typeof darkColors | typeof lightColors;
 
-/** Colored soft glow — the ONLY depth/emphasis channel. See Global Constraints for
- * the short list of things allowed to glow. */
-export function glow(color: string, r = 20) {
-  return { boxShadow: `0 0 ${r}px 0 ${color}` } as const;
+/** @deprecated Volt migration — glow is dead; returns nothing. DELETE in Task 11. */
+export function glow(_color: string, _r = 20) {
+  return {} as const;
 }
 
+/** @deprecated Volt migration — gradients retired; renders a solid volt fill. DELETE in Task 11. */
 export function heroGradient(c: ThemeColors) {
-  return { colors: [c.heroA, c.heroB] as const, start: { x: 0, y: 0 }, end: { x: 1, y: 1 } } as const;
+  return { colors: [c.volt, c.volt] as const, start: { x: 0, y: 0 }, end: { x: 1, y: 1 } } as const;
 }
+/** @deprecated Volt migration — renders a solid amber fill. DELETE in Task 11. */
 export function solarGradient(c: ThemeColors) {
-  return { colors: [c.solarA, c.solarB] as const, start: { x: 0, y: 0 }, end: { x: 1, y: 1 } } as const;
+  return { colors: [c.amber, c.amber] as const, start: { x: 0, y: 0 }, end: { x: 1, y: 1 } } as const;
 }
 
-/** Photo scrim black — violet-tinted, not #000. */
-export const SCRIM_RGB = "10,7,18";
+/** Photo scrim black — green-black, not #000. */
+export const SCRIM_RGB = "6,8,4";
 
 export const motion = { instant: 90, quick: 140, base: 200, deliberate: 260 } as const;
 

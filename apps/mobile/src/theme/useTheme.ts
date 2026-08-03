@@ -10,7 +10,7 @@ import {
 export function useTheme() {
   const systemScheme = useColorScheme();
   const preference = useThemeStore((s) => s.preference);
-  // Aurora is dark-first: an unreadable system scheme resolves dark.
+  // Volt is dark-first: an unreadable system scheme resolves dark.
   const scheme = preference === "system" ? (systemScheme ?? "dark") : preference;
   const colors = scheme === "dark" ? darkColors : lightColors;
   return {
