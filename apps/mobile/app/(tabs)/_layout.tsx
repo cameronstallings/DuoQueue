@@ -65,11 +65,20 @@ function TabIcon({ config, focused, color }: { config: TabIconConfig; focused: b
   // The glow has to sit on a plain wrapper, not the gradient itself — a boxShadow
   // on a LinearGradient gets clipped to the gradient's own bounds instead of
   // spreading past them. Same split Button.tsx uses for its glow.
+  // Slimmer and quieter than the first pass (34×34 solid + heavy glow read as a thick
+  // slab crowding the label): shorter tile, gradient at partial opacity, softer glow,
+  // and a couple px of air above the label.
   return (
-    <View style={[{ width: 34, height: 34, borderRadius: radius.sm }, glow(colors.glowViolet, 14)]}>
+    <View style={[{ width: 34, height: 28, borderRadius: radius.sm, marginBottom: 3 }, glow(colors.glowViolet, 9)]}>
       <LinearGradient
         {...heroGradient}
-        style={{ flex: 1, borderRadius: radius.sm, alignItems: "center", justifyContent: "center" }}
+        style={{
+          flex: 1,
+          borderRadius: radius.sm,
+          alignItems: "center",
+          justifyContent: "center",
+          opacity: 0.82,
+        }}
       >
         {icon}
       </LinearGradient>

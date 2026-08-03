@@ -285,30 +285,36 @@ export default function ProfileScreen() {
                   style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}
                 >
                   <Animated.View style={avatarPullStyle}>
+                    {/* The circular clip lives on an inner view so the camera badge —
+                        a sibling, not a child of the clipped photo — renders whole
+                        instead of getting sliced by the avatar's curve. */}
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel="Change profile picture"
                       onPress={() => void handlePick("profile")}
                       disabled={updatePhoto.isPending}
-                      style={{
-                        width: AVATAR_SIZE,
-                        height: AVATAR_SIZE,
-                        borderRadius: AVATAR_SIZE / 2,
-                        borderWidth: 2,
-                        borderColor: colors.accent,
-                        backgroundColor: colors.surface,
-                        overflow: "hidden",
-                      }}
+                      style={{ width: AVATAR_SIZE, height: AVATAR_SIZE }}
                     >
-                      {photos?.profileUrl && (
-                        <Image
-                          source={{ uri: photos.profileUrl }}
-                          style={{ width: "100%", height: "100%" }}
-                          contentFit="cover"
-                          cachePolicy="memory-disk"
-                          transition={200}
-                        />
-                      )}
+                      <View
+                        style={{
+                          flex: 1,
+                          borderRadius: AVATAR_SIZE / 2,
+                          borderWidth: 2,
+                          borderColor: colors.accent,
+                          backgroundColor: colors.surface,
+                          overflow: "hidden",
+                        }}
+                      >
+                        {photos?.profileUrl && (
+                          <Image
+                            source={{ uri: photos.profileUrl }}
+                            style={{ width: "100%", height: "100%" }}
+                            contentFit="cover"
+                            cachePolicy="memory-disk"
+                            transition={200}
+                          />
+                        )}
+                      </View>
                       <EditBadge uploading={uploadingProfile} />
                     </Pressable>
                   </Animated.View>
