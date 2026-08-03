@@ -51,11 +51,11 @@ import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
 // 2.2 (was 3): the banner reaches well down the page — device-pass feedback said the
-// header felt shallow, twice. Avatar up from 88, and it tucks 3/4 under the banner
-// edge (Cameron: "till like 75% of the profile pic is covered").
+// header felt shallow, twice. Avatar tuned by feel across three rounds: 88 → 104 →
+// 116 → 128, sitting 90% under the banner edge so just its chin clears the photo.
 const BANNER_ASPECT = 2.2;
-const AVATAR_SIZE = 116;
-const AVATAR_OVERLAP = AVATAR_SIZE * 0.75;
+const AVATAR_SIZE = 128;
+const AVATAR_OVERLAP = AVATAR_SIZE * 0.9;
 
 function calculateAge(dob: string): number {
   const birthDate = new Date(dob);
