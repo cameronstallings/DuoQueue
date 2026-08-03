@@ -6,7 +6,20 @@ import { MAX_GALLERY_PHOTOS, type PhotoRole } from "@duoqueue/shared-types";
 import { supabase } from "@/lib/supabase";
 import { useToastStore } from "@/store/toast-store";
 
+import type { OwnGalleryPhoto } from "./useOwnGalleryPhotos";
+
 const OWN_GALLERY_QUERY_KEY = "own-gallery-photos";
+
+/** Removes the item at `from` and reinserts it at `to`, leaving everything else in the
+ * same relative order — the client-side mirror of what reorder_gallery_photo does to
+ * "position" server-side. */
+function moveItem<T>(list: T[], from: number, to: number): T[] {
+  const next = list.slice();
+  const [item] = next.splice(from, 1);
+  if (item === undefined) return list;
+  next.splice(to, 0, item);
+  return next;
+}
 
 /** Uploads a local image URI to Storage and upserts the profile_media row for the given
  * role (profile/header) — shared by onboarding and the Profile tab's tap-to-replace
@@ -148,6 +161,56 @@ export function useMakeGalleryPhotoFirst(profileId: string | undefined) {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: [OWN_GALLERY_QUERY_KEY, profileId] });
+    },
+  });
+}
+
+/** Backs both the drag-to-reorder grid and the Sheet's "Move left/right" a11y actions —
+ * same RPC either way, just a different source for `newPosition`. Optimistic first
+ * (setQueryData reorders the cache immediately, matching what the drag gesture already
+ * shows on screen or what a screen-reader user just asked for) rather than waiting on
+ * the round trip, with a snapshot restored in onError so a failed reorder doesn't leave
+ * the grid showing an order the server never committed. */
+export function useReorderGalleryPhoto(profileId: string | undefined) {
+  const queryClient = useQueryClient();
+  const queryKey = [OWN_GALLERY_QUERY_KEY, profileId];
+
+  return useMutation<
+    void,
+    Error,
+    { mediaId: string; newPosition: number },
+    { previous: OwnGalleryPhoto[] | undefined }
+  >({
+    mutationFn: async ({ mediaId, newPosition }) => {
+      const { error } = await supabase.rpc("reorder_gallery_photo", {
+        p_media_id: mediaId,
+        p_new_position: newPosition,
+      });
+      if (error) throw error;
+    },
+    onMutate: async ({ mediaId, newPosition }) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<OwnGalleryPhoto[]>(queryKey);
+
+      if (previous) {
+        const fromIndex = previous.findIndex((p) => p.id === mediaId);
+        if (fromIndex !== -1 && fromIndex !== newPosition) {
+          const reordered = moveItem(previous, fromIndex, newPosition).map((photo, index) => ({
+            ...photo,
+            position: index,
+          }));
+          queryClient.setQueryData<OwnGalleryPhoto[]>(queryKey, reordered);
+        }
+      }
+
+      return { previous };
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey });
+    },
+    onError: (err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
+      useToastStore.getState().showToast(err instanceof Error ? err.message : "Couldn't reorder photos");
     },
   });
 }
