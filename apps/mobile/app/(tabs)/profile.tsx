@@ -19,7 +19,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { PROMPT_COUNT, type PhotoRole } from "@duoqueue/shared-types";
 
-import { AuroraBackground } from "@/components/AuroraBackground";
+import { GraticuleBackground } from "@/components/GraticuleBackground";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { Chip } from "@/components/Chip";
@@ -239,7 +239,7 @@ export default function ProfileScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, auroraDriftStyle]}>
-        <AuroraBackground />
+        <GraticuleBackground />
       </Animated.View>
       <GrainOverlay />
 

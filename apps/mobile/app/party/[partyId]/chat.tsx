@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from "react-native";
 import { Stack, useLocalSearchParams } from "expo-router";
 
-import { AuroraBackground } from "@/components/AuroraBackground";
+import { GraticuleBackground } from "@/components/GraticuleBackground";
 import { GrainOverlay } from "@/components/GrainOverlay";
 import { Skeleton } from "@/components/Skeleton";
 import { usePartyMembers } from "@/features/party/useParty";
@@ -57,7 +57,7 @@ export default function PartyChatScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <AuroraBackground />
+      <GraticuleBackground />
       <GrainOverlay />
 
       <Stack.Screen options={{ title: "Party chat", headerShown: true }} />

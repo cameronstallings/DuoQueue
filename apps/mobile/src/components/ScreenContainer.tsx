@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useTheme } from "@/theme/useTheme";
 
-import { AuroraBackground } from "./AuroraBackground";
+import { GraticuleBackground } from "./GraticuleBackground";
 import { GrainOverlay } from "./GrainOverlay";
 
 interface ScreenContainerProps extends PropsWithChildren {
@@ -57,7 +57,7 @@ export function ScreenContainer({
     >
       {aurora !== "none" && (
         <>
-          <AuroraBackground variant={aurora === "solar" ? "solar" : "default"} />
+          <GraticuleBackground variant={aurora === "solar" ? "solar" : "default"} />
           <GrainOverlay />
         </>
       )}

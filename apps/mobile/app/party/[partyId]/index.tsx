@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn } from "react-native-reanimated";
 
-import { AuroraBackground } from "@/components/AuroraBackground";
+import { GraticuleBackground } from "@/components/GraticuleBackground";
 import { EmptyState } from "@/components/EmptyState";
 import { GrainOverlay } from "@/components/GrainOverlay";
 import { Skeleton } from "@/components/Skeleton";
@@ -44,7 +44,7 @@ export default function PartyDeckScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <AuroraBackground />
+      <GraticuleBackground />
       <GrainOverlay />
 
       <View

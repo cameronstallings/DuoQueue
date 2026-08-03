@@ -4,7 +4,7 @@ import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import Animated, { FadeIn, FadeInDown, FadeInUp, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 
-import { AuroraBackground } from "@/components/AuroraBackground";
+import { GraticuleBackground } from "@/components/GraticuleBackground";
 import { Button } from "@/components/Button";
 import { GrainOverlay } from "@/components/GrainOverlay";
 import { ScreenContainer } from "@/components/ScreenContainer";
@@ -55,7 +55,7 @@ export default function MatchCelebrationScreen() {
 
   return (
     <ScreenContainer aurora="none">
-      <AuroraBackground variant="match" />
+      <GraticuleBackground variant="match" />
       <GrainOverlay />
 
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.lg }}>

@@ -14,7 +14,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AuroraBackground } from "@/components/AuroraBackground";
+import { GraticuleBackground } from "@/components/GraticuleBackground";
 import { Chip } from "@/components/Chip";
 import { GrainOverlay } from "@/components/GrainOverlay";
 import { Name } from "@/components/Name";
@@ -54,7 +54,7 @@ interface ProfileDetailContentProps {
  * the highlights at a glance. Built from the same section components as the own-profile
  * screen so a game/vibe/prompt reads identically whether it's yours or someone else's.
  *
- * Owns its own AuroraBackground + GrainOverlay (rather than leaving that to call
+ * Owns its own GraticuleBackground + GrainOverlay (rather than leaving that to call
  * sites) so every caller — the deck's swipe-to-detail modal, the Standouts modal, and
  * the /profile/[profileId] route — gets the same atmosphere and the same scroll-linked
  * motion for free, off one Animated.ScrollView. */
@@ -126,7 +126,7 @@ export function ProfileDetailContent({ card, onClose, readOnly = false }: Profil
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, auroraDriftStyle]}>
-        <AuroraBackground />
+        <GraticuleBackground />
       </Animated.View>
       <GrainOverlay />
 

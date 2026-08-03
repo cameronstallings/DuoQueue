@@ -19,7 +19,7 @@ import Animated, { FadeInUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MATCH_FEEDBACK_TAGS, type MatchFeedbackTag, type ReportReason } from "@duoqueue/shared-types";
 
-import { AuroraBackground } from "@/components/AuroraBackground";
+import { GraticuleBackground } from "@/components/GraticuleBackground";
 import { Button, ButtonRow } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ChipSelect } from "@/components/ChipSelect";
@@ -548,7 +548,7 @@ export default function ChatScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <AuroraBackground />
+      <GraticuleBackground />
       <GrainOverlay />
 
       <Stack.Screen
