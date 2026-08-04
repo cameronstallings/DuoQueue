@@ -7,10 +7,12 @@ import { Card } from "@/components/Card";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { SectionLabel } from "@/components/SectionLabel";
 import { useDeleteAccount } from "@/features/settings/useDeleteAccount";
+import { useRequireSession } from "@/hooks/useRequireSession";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
 export default function AccountSettings() {
+  useRequireSession();
   const { colors, spacing, type, hairline, radius } = useTheme();
   const signOut = useSessionStore((s) => s.signOut);
   const deleteAccount = useDeleteAccount();

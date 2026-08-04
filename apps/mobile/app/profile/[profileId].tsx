@@ -6,12 +6,14 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { Skeleton } from "@/components/Skeleton";
 import { useProfileCard } from "@/features/profile/useProfileCard";
 import { ProfileDetailContent } from "@/features/swipe/ProfileDetailContent";
+import { useRequireSession } from "@/hooks/useRequireSession";
 import { useTheme } from "@/theme/useTheme";
 
 /** Read-only profile view reached from Matches/Chat (a modal, not a deck swipe) —
  * renders the exact same `ProfileDetailContent` the deck uses, just without the
  * like/pass buttons and fed by `useProfileCard` instead of a deck query. */
 export default function ProfileScreen() {
+  useRequireSession();
   const { radius, spacing } = useTheme();
   const { profileId } = useLocalSearchParams<{ profileId: string }>();
   const { data, isPending, isError } = useProfileCard(profileId);

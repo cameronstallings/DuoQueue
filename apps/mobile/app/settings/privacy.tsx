@@ -3,8 +3,8 @@ import { Switch, Text, View } from "react-native";
 import { Card } from "@/components/Card";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { usePrivacyToggles } from "@/features/settings/usePrivacyToggles";
+import { useRequireSession } from "@/hooks/useRequireSession";
 import { hapticSelection } from "@/lib/haptics";
-import { useToastStore } from "@/store/toast-store";
 import { useTheme } from "@/theme/useTheme";
 
 function ToggleRow({
@@ -46,6 +46,7 @@ function ToggleRow({
 }
 
 export default function PrivacySettings() {
+  useRequireSession();
   const { colors, spacing } = useTheme();
   const { profile, setIsActive, setHideLastActive } = usePrivacyToggles();
 
@@ -56,20 +57,14 @@ export default function PrivacySettings() {
           label="Pause my profile"
           hint="Hide yourself from other people's decks and Standouts. Your matches and messages stay."
           value={!(profile?.is_active ?? true)}
-          onChange={(paused) => {
-            setIsActive.mutate(!paused);
-            useToastStore.getState().showToast(paused ? "Profile paused" : "Profile active again");
-          }}
+          onChange={(paused) => setIsActive.mutate(!paused)}
         />
         <View style={{ height: 1, backgroundColor: colors.border, marginLeft: spacing.md }} />
         <ToggleRow
           label="Hide last-active status"
           hint="Others won't see when you were last online."
           value={profile?.hide_last_active ?? false}
-          onChange={(next) => {
-            setHideLastActive.mutate(next);
-            useToastStore.getState().showToast("Settings saved");
-          }}
+          onChange={(next) => setHideLastActive.mutate(next)}
         />
       </Card>
     </ScreenContainer>

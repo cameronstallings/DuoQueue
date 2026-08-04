@@ -2,9 +2,11 @@ import { Switch, Text, View } from "react-native";
 import type { NotificationSettingsRow } from "@duoqueue/shared-types";
 
 import { Card } from "@/components/Card";
+import { EmptyState } from "@/components/EmptyState";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { Skeleton } from "@/components/Skeleton";
 import { useNotificationSettings } from "@/features/settings/useNotificationSettings";
+import { useRequireSession } from "@/hooks/useRequireSession";
 import { hapticSelection } from "@/lib/haptics";
 import { useTheme } from "@/theme/useTheme";
 
@@ -98,32 +100,44 @@ function RowSkeleton() {
 }
 
 export default function NotificationSettings() {
+  useRequireSession();
   const { colors, spacing } = useTheme();
-  const { settings, isLoading, update } = useNotificationSettings();
+  const { settings, isLoading, error, update, refetch } = useNotificationSettings();
 
   return (
     <ScreenContainer title="Notifications" showBack>
-      <Card style={{ padding: 0, overflow: "hidden" }}>
-        {isLoading || !settings
-          ? [0, 1, 2, 3].map((i) => (
-              <View key={i}>
-                {i > 0 && <View style={{ height: 1, backgroundColor: colors.border, marginLeft: spacing.md }} />}
-                <RowSkeleton />
-              </View>
-            ))
-          : CATEGORIES.map((c, i) => (
-              <View key={c.value}>
-                {i > 0 && <View style={{ height: 1, backgroundColor: colors.border, marginLeft: spacing.md }} />}
-                <Row
-                  category={c.value}
-                  label={c.label}
-                  hint={c.hint}
-                  settings={settings}
-                  onToggle={(category, value) => update.mutate({ [category]: value })}
-                />
-              </View>
-            ))}
-      </Card>
+      {error && !settings ? (
+        <EmptyState
+          icon="cloud-offline"
+          title="Couldn't load your settings"
+          subtitle="Check your connection and try again."
+          actionLabel="Try again"
+          onAction={() => void refetch()}
+          tick="OFFLINE"
+        />
+      ) : (
+        <Card style={{ padding: 0, overflow: "hidden" }}>
+          {isLoading || !settings
+            ? [0, 1, 2, 3].map((i) => (
+                <View key={i}>
+                  {i > 0 && <View style={{ height: 1, backgroundColor: colors.border, marginLeft: spacing.md }} />}
+                  <RowSkeleton />
+                </View>
+              ))
+            : CATEGORIES.map((c, i) => (
+                <View key={c.value}>
+                  {i > 0 && <View style={{ height: 1, backgroundColor: colors.border, marginLeft: spacing.md }} />}
+                  <Row
+                    category={c.value}
+                    label={c.label}
+                    hint={c.hint}
+                    settings={settings}
+                    onToggle={(category, value) => update.mutate({ [category]: value })}
+                  />
+                </View>
+              ))}
+        </Card>
+      )}
     </ScreenContainer>
   );
 }

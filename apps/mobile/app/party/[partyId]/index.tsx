@@ -14,10 +14,12 @@ import { usePartyDeck, usePartySwipeAction } from "@/features/party/usePartyDeck
 import { LikePassButtons } from "@/features/swipe/LikePassButtons";
 import { SwipeDeck, type SwipeDeckHandle } from "@/features/swipe/SwipeDeck";
 import type { DeckCard, SwipeDirection } from "@/features/swipe/types";
+import { useRequireSession } from "@/hooks/useRequireSession";
 import { hapticSuccess } from "@/lib/haptics";
 import { useTheme } from "@/theme/useTheme";
 
 export default function PartyDeckScreen() {
+  useRequireSession();
   const { colors, spacing, type, radius } = useTheme();
   const insets = useSafeAreaInsets();
   const { partyId } = useLocalSearchParams<{ partyId: string }>();

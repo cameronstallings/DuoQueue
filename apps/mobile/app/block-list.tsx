@@ -6,6 +6,7 @@ import { Card } from "@/components/Card";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { Skeleton } from "@/components/Skeleton";
 import { useBlockedUsers, useUnblockUser, type BlockedUser } from "@/features/settings/useBlockedUsers";
+import { useRequireSession } from "@/hooks/useRequireSession";
 import { useTheme } from "@/theme/useTheme";
 
 function BlockedRow({ item }: { item: BlockedUser }) {
@@ -45,6 +46,7 @@ function BlockedRowSkeleton() {
 }
 
 export default function BlockListScreen() {
+  useRequireSession();
   const { colors, spacing, type } = useTheme();
   const { data: blocked, isLoading, error, refetch } = useBlockedUsers();
 

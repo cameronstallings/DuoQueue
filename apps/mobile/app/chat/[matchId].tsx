@@ -41,6 +41,7 @@ import { MATCH_FEEDBACK_LABELS } from "@/features/onboarding/profile-labels";
 import { useCreateParty } from "@/features/party/useParty";
 import { useSubmitMatchFeedback } from "@/features/reputation/useReputation";
 import { containsHiddenWord, useHiddenWords } from "@/features/settings/useHiddenWords";
+import { useRequireSession } from "@/hooks/useRequireSession";
 import { hapticLight } from "@/lib/haptics";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
@@ -383,6 +384,7 @@ function DiscordShareBubble({
 }
 
 export default function ChatScreen() {
+  useRequireSession();
   const { colors, spacing, radius, type } = useTheme();
   const headerHeight = useHeaderHeight();
   const insets = useSafeAreaInsets();
@@ -827,7 +829,12 @@ export default function ChatScreen() {
         </View>
       </Sheet>
 
-      <ReportModal visible={reportVisible} onClose={() => setReportVisible(false)} onSubmit={handleReportSubmit} />
+      <ReportModal
+        visible={reportVisible}
+        onClose={() => setReportVisible(false)}
+        onSubmit={handleReportSubmit}
+        submitting={reportUser.isPending}
+      />
       <FeedbackModal
         visible={feedbackVisible}
         onClose={() => setFeedbackVisible(false)}

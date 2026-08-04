@@ -30,6 +30,7 @@ import {
   useEditableProfileDetails,
 } from "@/features/profile/useEditableProfileDetails";
 import { useSaveProfileDetails } from "@/features/profile/useSaveProfileDetails";
+import { useRequireSession } from "@/hooks/useRequireSession";
 import { useSessionStore } from "@/store/session-store";
 import { useToastStore } from "@/store/toast-store";
 import { useTheme } from "@/theme/useTheme";
@@ -37,6 +38,7 @@ import { useTheme } from "@/theme/useTheme";
 const MAX_PLAYSTYLES = 6;
 
 export default function EditDetailsScreen() {
+  useRequireSession();
   const { colors, radius, spacing, type } = useTheme();
   const insets = useSafeAreaInsets();
   const profile = useSessionStore((s) => s.profile);

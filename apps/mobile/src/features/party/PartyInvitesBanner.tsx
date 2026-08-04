@@ -1,4 +1,5 @@
 import { Pressable, Text, View } from "react-native";
+import { router } from "expo-router";
 
 import { useTheme } from "@/theme/useTheme";
 
@@ -10,6 +11,15 @@ function PartyInviteCard({ inviteId, partyId }: { inviteId: string; partyId: str
   const respond = useRespondPartyInvite();
 
   const names = (members ?? []).map((m) => m.display_name).join(" & ");
+
+  // respond_party_invite returns void, but the invite row this card is built from
+  // already carries party_id — no need to round-trip it back from the RPC.
+  function handleAccept() {
+    respond.mutate(
+      { inviteId, accept: true },
+      { onSuccess: () => router.push({ pathname: "/party/[partyId]", params: { partyId } }) },
+    );
+  }
 
   return (
     <View
@@ -28,7 +38,7 @@ function PartyInviteCard({ inviteId, partyId }: { inviteId: string; partyId: str
         You all liked each other while swiping together — accept to unlock a group chat.
       </Text>
       <View style={{ flexDirection: "row", gap: spacing.md }}>
-        <Pressable onPress={() => respond.mutate({ inviteId, accept: true })} disabled={respond.isPending}>
+        <Pressable onPress={handleAccept} disabled={respond.isPending}>
           <Text style={[type.bodyStrong, { color: colors.voltDim }]}>Accept</Text>
         </Pressable>
         <Pressable onPress={() => respond.mutate({ inviteId, accept: false })} disabled={respond.isPending}>

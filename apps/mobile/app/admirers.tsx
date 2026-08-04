@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/Skeleton";
 import { usePremiumStatus } from "@/features/matching/usePremiumStatus";
 import { useAdmirers, useAdmirersCount, type AdmirerListItem } from "@/features/matching/useAdmirers";
 import { useSwipeAction } from "@/features/swipe/useSwipeAction";
+import { useRequireSession } from "@/hooks/useRequireSession";
 import { useTheme } from "@/theme/useTheme";
 
 function AdmirerRow({ item }: { item: AdmirerListItem }) {
@@ -64,6 +65,7 @@ function AdmirerRowSkeleton() {
 }
 
 export default function AdmirersScreen() {
+  useRequireSession();
   const { colors, radius, spacing, type } = useTheme();
   const { isPremium, isLoading: premiumLoading } = usePremiumStatus();
   const { data: count } = useAdmirersCount();

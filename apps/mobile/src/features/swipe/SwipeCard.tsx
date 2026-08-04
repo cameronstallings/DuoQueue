@@ -399,7 +399,12 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger, index }: Swi
         </Animated.View>
       </GestureDetector>
 
-      <ReportModal visible={reportVisible} onClose={() => setReportVisible(false)} onSubmit={handleReportSubmit} />
+      <ReportModal
+        visible={reportVisible}
+        onClose={() => setReportVisible(false)}
+        onSubmit={handleReportSubmit}
+        submitting={reportUser.isPending}
+      />
 
       <Modal visible={detailVisible} animationType="slide" onRequestClose={() => setDetailVisible(false)}>
         <View style={{ flex: 1, backgroundColor: colors.background }}>

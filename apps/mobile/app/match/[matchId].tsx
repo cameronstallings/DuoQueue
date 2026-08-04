@@ -18,6 +18,7 @@ import { GraticuleBackground } from "@/components/GraticuleBackground";
 import { Button } from "@/components/Button";
 import { GrainOverlay } from "@/components/GrainOverlay";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { useRequireSession } from "@/hooks/useRequireSession";
 import { useTheme } from "@/theme/useTheme";
 
 const AVATAR_SIZE = 160;
@@ -82,6 +83,7 @@ function BracketGlyph({
 }
 
 export default function MatchCelebrationScreen() {
+  useRequireSession();
   const { colors, spacing, type } = useTheme();
   const { matchId, name, photo } = useLocalSearchParams<{ matchId: string; name?: string; photo?: string }>();
   const flashOpacity = useSharedValue(0);

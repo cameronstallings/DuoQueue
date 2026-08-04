@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { Card } from "@/components/Card";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { useRequireSession } from "@/hooks/useRequireSession";
 import { hapticSelection } from "@/lib/haptics";
 import { type ThemePreference, useThemeStore } from "@/store/theme-store";
 import { useTheme } from "@/theme/useTheme";
@@ -23,6 +24,7 @@ const OPTIONS: { value: ThemePreference; label: string; hint: string }[] = [
 ];
 
 export default function AppearanceSettings() {
+  useRequireSession();
   const { colors, spacing, type, radius, hairline } = useTheme();
   const preference = useThemeStore((s) => s.preference);
   const setPreference = useThemeStore((s) => s.setPreference);

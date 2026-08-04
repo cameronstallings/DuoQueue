@@ -3,18 +3,22 @@ import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { Button } from "@/components/Button";
+import { EmptyState } from "@/components/EmptyState";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { Skeleton } from "@/components/Skeleton";
 import { TextField } from "@/components/TextField";
 import {
   useAddHiddenWord,
   useHiddenWords,
   useRemoveHiddenWord,
 } from "@/features/settings/useHiddenWords";
+import { useRequireSession } from "@/hooks/useRequireSession";
 import { useTheme } from "@/theme/useTheme";
 
 export default function HiddenWordsScreen() {
+  useRequireSession();
   const { colors, radius, spacing, type } = useTheme();
-  const { data: words, isLoading } = useHiddenWords();
+  const { data: words, isLoading, error, refetch } = useHiddenWords();
   const addWord = useAddHiddenWord();
   const removeWord = useRemoveHiddenWord();
   const [input, setInput] = useState("");
@@ -44,7 +48,22 @@ export default function HiddenWordsScreen() {
         <Button label="Add" onPress={handleAdd} loading={addWord.isPending} disabled={!input.trim()} />
       </View>
 
-      {!isLoading && (words ?? []).length === 0 ? (
+      {isLoading ? (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginTop: spacing.sm }}>
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} width={72} height={32} borderRadius={radius.chip} />
+          ))}
+        </View>
+      ) : error ? (
+        <EmptyState
+          icon="cloud-offline"
+          title="Couldn't load hidden words"
+          subtitle="Check your connection and try again."
+          actionLabel="Try again"
+          onAction={() => void refetch()}
+          tick="OFFLINE"
+        />
+      ) : (words ?? []).length === 0 ? (
         <Text style={[type.body, { color: colors.textMuted, marginTop: spacing.sm }]}>No hidden words yet.</Text>
       ) : (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginTop: spacing.sm }}>

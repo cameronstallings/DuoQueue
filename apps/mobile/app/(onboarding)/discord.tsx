@@ -10,7 +10,7 @@ import { useTheme } from "@/theme/useTheme";
 
 export default function DiscordStep() {
   const { colors, type } = useTheme();
-  const { discordUsername, setDiscordUsername, submit, submitting } = useOnboardingStore();
+  const { discordUsername, setDiscordUsername, submit, submitting, reset } = useOnboardingStore();
   const [error, setError] = useState<string | null>(null);
 
   async function handleFinish() {
@@ -24,6 +24,10 @@ export default function DiscordStep() {
     setError(null);
     try {
       await submit();
+      // A second onboarding pass in the same app session (delete account -> sign up
+      // again, or QA testing back-to-back) should start blank, not pre-filled with
+      // this account's photos/games/prompts.
+      reset();
       // Refreshing the session profile happens on the welcome screen instead of here —
       // (onboarding)/_layout.tsx redirects away the instant onboarding_completed flips
       // true, which would skip this celebratory screen entirely if we refreshed now.

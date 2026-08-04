@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Switch, Text, View } from "react-native";
+import { Alert, Switch, Text, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import {
@@ -36,6 +36,7 @@ import { TextField } from "@/components/TextField";
 import { CatalogPicker } from "@/features/onboarding/CatalogPicker";
 import { usePremiumStatus } from "@/features/matching/usePremiumStatus";
 import { usePreferences } from "@/features/matching/usePreferences";
+import { useRequireSession } from "@/hooks/useRequireSession";
 import { supabase } from "@/lib/supabase";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
@@ -60,10 +61,11 @@ function FilterSection({ label, hint, children }: { label: string; hint?: string
 }
 
 export default function FiltersScreen() {
+  useRequireSession();
   const { colors, radius, spacing, type } = useTheme();
   const session = useSessionStore((s) => s.session);
   const { preferences, isLoading, save } = usePreferences();
-  const { isPremium } = usePremiumStatus();
+  const { isPremium, isLoading: premiumLoading } = usePremiumStatus();
 
   const [minAge, setMinAge] = useState(String(MIN_AGE));
   const [maxAge, setMaxAge] = useState("99");
@@ -128,23 +130,27 @@ export default function FiltersScreen() {
     }
     setError(null);
 
-    await save.mutateAsync({
-      min_age: min,
-      max_age: max,
-      preferred_genders: genders.length > 0 ? genders : null,
-      preferred_regions: regions.length > 0 ? regions : null,
-      required_language: language,
-      filter_game_id: isPremium ? filterGame?.id ?? null : preferences?.filter_game_id ?? null,
-      filter_platform: isPremium ? platform : (preferences?.filter_platform ?? null),
-      filter_skill_level: isPremium ? skillLevel : (preferences?.filter_skill_level ?? null),
-      filter_playstyle: isPremium ? playstyle : (preferences?.filter_playstyle ?? null),
-      filter_show_id: isPremium ? (filterShow?.id ?? null) : (preferences?.filter_show_id ?? null),
-      filter_recently_active: isPremium ? recentlyActive : (preferences?.filter_recently_active ?? false),
-    });
-    router.back();
+    try {
+      await save.mutateAsync({
+        min_age: min,
+        max_age: max,
+        preferred_genders: genders.length > 0 ? genders : null,
+        preferred_regions: regions.length > 0 ? regions : null,
+        required_language: language,
+        filter_game_id: isPremium ? filterGame?.id ?? null : preferences?.filter_game_id ?? null,
+        filter_platform: isPremium ? platform : (preferences?.filter_platform ?? null),
+        filter_skill_level: isPremium ? skillLevel : (preferences?.filter_skill_level ?? null),
+        filter_playstyle: isPremium ? playstyle : (preferences?.filter_playstyle ?? null),
+        filter_show_id: isPremium ? (filterShow?.id ?? null) : (preferences?.filter_show_id ?? null),
+        filter_recently_active: isPremium ? recentlyActive : (preferences?.filter_recently_active ?? false),
+      });
+      router.back();
+    } catch (err) {
+      Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
+    }
   }
 
-  if (isLoading || !session) {
+  if (isLoading || premiumLoading || !session) {
     return (
       <ScreenContainer title="Filters" showClose>
         <Skeleton width="90%" height={13} />

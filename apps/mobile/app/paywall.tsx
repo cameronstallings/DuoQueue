@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/Skeleton";
 import { usePremiumStatus } from "@/features/matching/usePremiumStatus";
 import { useConsumableCredits } from "@/features/premium/useConsumables";
 import { useOfferings, usePurchasePackage, useRestorePurchases } from "@/features/premium/useOfferings";
+import { useRequireSession } from "@/hooks/useRequireSession";
 import { useTheme } from "@/theme/useTheme";
 
 // Consumable (non-subscription) store product identifiers — see README's RevenueCat
@@ -126,8 +127,9 @@ function savingsVsWeekly(pkg: PurchasesPackage, weeklyPricePerWeek: number | nul
 }
 
 export default function PaywallScreen() {
+  useRequireSession();
   const { colors, spacing, radius, type } = useTheme();
-  const { isPremium } = usePremiumStatus();
+  const { isPremium, isLoading: premiumLoading } = usePremiumStatus();
   const { data: offering, isLoading, error } = useOfferings();
   const purchase = usePurchasePackage();
   const restore = useRestorePurchases();
@@ -203,6 +205,19 @@ export default function PaywallScreen() {
       />
     </View>
   );
+
+  if (premiumLoading) {
+    return (
+      <ScreenContainer title="DuoQueue+" showClose>
+        <View style={{ gap: spacing.sm }}>
+          <Skeleton height={64} borderRadius={radius.card} />
+          <Skeleton height={64} borderRadius={radius.card} />
+          <Skeleton height={64} borderRadius={radius.card} />
+          <Skeleton height={64} borderRadius={radius.card} />
+        </View>
+      </ScreenContainer>
+    );
+  }
 
   if (isPremium) {
     return (

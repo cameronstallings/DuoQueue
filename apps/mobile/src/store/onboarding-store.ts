@@ -58,6 +58,7 @@ interface OnboardingState {
   clearPromptAt: (index: number) => void;
   setDiscordUsername: (value: string) => void;
   submit: () => Promise<void>;
+  reset: () => void;
 }
 
 function toggleInArray<T>(list: T[], value: T): T[] {
@@ -83,21 +84,29 @@ function toUserMessage(err: unknown, fallback: string): string {
   return err instanceof Error ? err.message : fallback;
 }
 
+/** Re-called on every reset() so a fresh array is created each time, rather than
+ * sharing one `prompts` array reference across every onboarding pass. */
+function initialState() {
+  return {
+    displayName: "",
+    profilePhotoUri: null,
+    headerPhotoUri: null,
+    gender: null,
+    region: null,
+    languages: [],
+    platforms: [],
+    games: [],
+    shows: [],
+    playstyles: [],
+    prompts: Array.from({ length: PROMPT_COUNT }, () => null),
+    discordUsername: "",
+    submitting: false,
+    submitError: null,
+  };
+}
+
 export const useOnboardingStore = create<OnboardingState>((set, get) => ({
-  displayName: "",
-  profilePhotoUri: null,
-  headerPhotoUri: null,
-  gender: null,
-  region: null,
-  languages: [],
-  platforms: [],
-  games: [],
-  shows: [],
-  playstyles: [],
-  prompts: Array.from({ length: PROMPT_COUNT }, () => null),
-  discordUsername: "",
-  submitting: false,
-  submitError: null,
+  ...initialState(),
 
   setDisplayName: (value) => set({ displayName: value }),
   setProfilePhotoUri: (uri) => set({ profilePhotoUri: uri }),
@@ -134,6 +143,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
     })),
   clearPromptAt: (index) => set((s) => ({ prompts: s.prompts.map((p, i) => (i === index ? null : p)) })),
   setDiscordUsername: (value) => set({ discordUsername: value }),
+  reset: () => set(initialState()),
 
   submit: async () => {
     const state = get();

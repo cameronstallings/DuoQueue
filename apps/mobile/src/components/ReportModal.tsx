@@ -19,9 +19,12 @@ interface ReportModalProps {
   visible: boolean;
   onClose: () => void;
   onSubmit: (reason: ReportReason, details: string) => void;
+  /** True while the caller's report mutation is in flight — disables Submit so a
+   * double-tap before the sheet closes can't fire a second insert. */
+  submitting?: boolean;
 }
 
-export function ReportModal({ visible, onClose, onSubmit }: ReportModalProps) {
+export function ReportModal({ visible, onClose, onSubmit, submitting }: ReportModalProps) {
   const { colors, radius, spacing, type } = useTheme();
   const [reason, setReason] = useState<ReportReason | null>(null);
   const [details, setDetails] = useState("");
@@ -53,7 +56,7 @@ export function ReportModal({ visible, onClose, onSubmit }: ReportModalProps) {
           ]}
         />
         <Pressable
-          disabled={!reason}
+          disabled={!reason || submitting}
           onPress={() => reason && onSubmit(reason, details)}
           style={{
             backgroundColor: reason ? colors.dangerDark : "transparent",
@@ -62,9 +65,12 @@ export function ReportModal({ visible, onClose, onSubmit }: ReportModalProps) {
             padding: spacing.md,
             borderRadius: radius.button,
             alignItems: "center",
+            opacity: submitting ? 0.6 : 1,
           }}
         >
-          <Text style={[type.bodyStrong, { color: reason ? colors.onFill : colors.danger }]}>Submit report</Text>
+          <Text style={[type.bodyStrong, { color: reason ? colors.onFill : colors.danger }]}>
+            {submitting ? "Submitting…" : "Submit report"}
+          </Text>
         </Pressable>
         <Pressable onPress={onClose} style={{ padding: spacing.sm, alignItems: "center" }}>
           <Text style={[type.body, { color: colors.textMuted }]}>Cancel</Text>

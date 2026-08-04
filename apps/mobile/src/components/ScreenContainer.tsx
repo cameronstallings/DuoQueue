@@ -10,6 +10,13 @@ import { useTheme } from "@/theme/useTheme";
 import { GraticuleBackground } from "./GraticuleBackground";
 import { GrainOverlay } from "./GrainOverlay";
 
+// A screen opened as the app's cold-start/deep-link entry has no history to pop —
+// router.back() would be a silent no-op, stranding the user with a dead button.
+function goBack() {
+  if (router.canGoBack()) router.back();
+  else router.replace("/(tabs)");
+}
+
 interface ScreenContainerProps extends PropsWithChildren {
   refreshControl?: ReactElement<RefreshControlProps>;
   /** Renders a fixed (non-scrolling) title row above the content. */
@@ -78,7 +85,7 @@ export function ScreenContainer({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Go back"
-              onPress={() => router.back()}
+              onPress={goBack}
               hitSlop={8}
               style={{
                 width: 34,
@@ -103,7 +110,7 @@ export function ScreenContainer({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Close"
-              onPress={() => router.back()}
+              onPress={goBack}
               hitSlop={8}
               style={{
                 width: 34,
@@ -126,7 +133,7 @@ export function ScreenContainer({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={showClose ? "Close" : "Go back"}
-            onPress={() => router.back()}
+            onPress={goBack}
             hitSlop={8}
             style={{
               width: 34,

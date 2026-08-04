@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/Skeleton";
 import { useLookingNow } from "@/features/online-now/useLookingNow";
 import { type OnlineNowCard, useOnlineNow } from "@/features/online-now/useOnlineNow";
 import { useSwipeAction } from "@/features/swipe/useSwipeAction";
+import { useRequireSession } from "@/hooks/useRequireSession";
 import { useTheme } from "@/theme/useTheme";
 
 function timeAgo(iso: string | null): string {
@@ -74,6 +75,7 @@ function OnlineNowRowSkeleton() {
 }
 
 export default function OnlineNowScreen() {
+  useRequireSession();
   const { colors, radius, spacing, type } = useTheme();
   const { isLookingNow, setLookingNow } = useLookingNow();
   const { data: people, isLoading, error, refetch } = useOnlineNow();

@@ -3,6 +3,7 @@ import { Pressable, Text, View } from "react-native";
 import { Card } from "@/components/Card";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { useLinkedAccounts, useLinkSteamAccount, useUnlinkAccount } from "@/features/profile/useLinkedAccounts";
+import { useRequireSession } from "@/hooks/useRequireSession";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
@@ -49,6 +50,7 @@ function ProviderRow({
 }
 
 export default function ConnectionsSettings() {
+  useRequireSession();
   const { colors, spacing, type } = useTheme();
   const profile = useSessionStore((s) => s.profile);
   const { data: linked } = useLinkedAccounts(profile?.id);

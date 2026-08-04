@@ -4,7 +4,9 @@ import { create } from "zustand";
 
 import { supabase } from "@/lib/supabase";
 import { registerForPushNotifications } from "@/lib/notifications";
+import { queryClient } from "@/lib/query-client";
 import { configurePurchases, logOutPurchases } from "@/lib/revenuecat";
+import { useOnboardingStore } from "@/store/onboarding-store";
 
 export type SessionStatus = "loading" | "signed_out" | "signed_in";
 
@@ -88,5 +90,11 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       console.warn("logOutPurchases failed:", err);
     }
     set({ session: null, profile: null, status: "signed_out" });
+    // Account-scoped query cache (matches, deck, standouts, admirers, etc.) must not
+    // leak to whoever signs in next on this same JS runtime.
+    queryClient.clear();
+    // Leftover onboarding wizard state (photos, games, prompts) shouldn't resurface
+    // if this device onboards a different account next.
+    useOnboardingStore.getState().reset();
   },
 }));

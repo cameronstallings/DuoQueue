@@ -8,6 +8,7 @@ import { GrainOverlay } from "@/components/GrainOverlay";
 import { Skeleton } from "@/components/Skeleton";
 import { usePartyMembers } from "@/features/party/useParty";
 import { usePartyMessages, useSendPartyMessage } from "@/features/party/usePartyMessages";
+import { useRequireSession } from "@/hooks/useRequireSession";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
@@ -37,6 +38,7 @@ function MessageBubble({ content, isMine, senderName }: { content: string; isMin
 }
 
 export default function PartyChatScreen() {
+  useRequireSession();
   const { colors, radius, spacing, type } = useTheme();
   const { partyId } = useLocalSearchParams<{ partyId: string }>();
   const myId = useSessionStore((s) => s.session?.user.id);

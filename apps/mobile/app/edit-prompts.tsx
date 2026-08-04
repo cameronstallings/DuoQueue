@@ -13,11 +13,13 @@ import { TextField } from "@/components/TextField";
 import { usePromptCatalog } from "@/features/onboarding/usePromptCatalog";
 import { useOwnPrompts } from "@/features/profile/useOwnPrompts";
 import { type PromptSlot, useSavePrompts } from "@/features/profile/useSavePrompts";
+import { useRequireSession } from "@/hooks/useRequireSession";
 import { useSessionStore } from "@/store/session-store";
 import { useToastStore } from "@/store/toast-store";
 import { useTheme } from "@/theme/useTheme";
 
 export default function EditPromptsScreen() {
+  useRequireSession();
   const { colors, spacing, type, radius } = useTheme();
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();

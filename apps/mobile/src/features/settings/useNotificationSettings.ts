@@ -39,5 +39,5 @@ export function useNotificationSettings() {
     },
   });
 
-  return { settings: query.data, isLoading: query.isLoading, update };
+  return { settings: query.data, isLoading: query.isLoading, error: query.error, update, refetch: query.refetch };
 }

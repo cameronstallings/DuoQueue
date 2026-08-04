@@ -33,6 +33,7 @@ export function useBlockUser() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: MATCHES_QUERY_KEY });
       void queryClient.invalidateQueries({ queryKey: ["deck"] });
+      void queryClient.invalidateQueries({ queryKey: ["blocked-users"] });
     },
   });
 }
