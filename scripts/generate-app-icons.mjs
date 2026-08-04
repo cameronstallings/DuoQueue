@@ -1,9 +1,11 @@
-// scripts/generate-app-icons.mjs — regenerates DuoQueue's Aurora app icon set.
+// scripts/generate-app-icons.mjs — regenerates DuoQueue's Volt app icon set.
 //
-// The mark: two soft glowing orbs — pink up-left, violet down-right — overlapping
-// about 40% in the center, with a faint lighter highlight where they blend. This
-// mirrors AuroraBackground.tsx's pink/violet pairing (src/components/AuroraBackground.tsx)
-// but bolder/bigger, since an icon has to read at 60px instead of filling a screen.
+// The mark: two volt double chevrons, "»" — queue-forward. Each chevron is a
+// solid right-pointing wedge polygon (`M x0,y0 L x0+w,yMid L x0,y1 Z`); the
+// second sits offset right of the first at reduced opacity, echoing the
+// forward-motion "next in queue" idea. Flat and geometric — no glow, no
+// gradient blend — in line with the rest of the Volt restyle (see
+// docs/superpowers/plans/2026-08-03-volt-restyle.md).
 //
 // Run: node scripts/generate-app-icons.mjs
 import sharp from "sharp";
@@ -14,62 +16,58 @@ import path from "node:path";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ASSETS = path.join(__dirname, "..", "apps", "mobile", "assets");
 
-const BG = "#14101F";
-const PINK = "#CB427B";
-const VIOLET = "#8452F5";
-const HIGHLIGHT = "#F3ECFF";
+const BG = "#0A0B09";
+const VOLT = "#CDFF3D";
 
 const CANVAS = 1024;
 const CENTER = CANVAS / 2;
 
-/** A radial-gradient disc def: solid-ish core, soft glow falloff at the rim. */
-function glowGradientDef(id, color) {
-  return `<radialGradient id="${id}" cx="50%" cy="50%" r="50%">
-    <stop offset="0%" stop-color="${color}" stop-opacity="1" />
-    <stop offset="55%" stop-color="${color}" stop-opacity="0.92" />
-    <stop offset="85%" stop-color="${color}" stop-opacity="0.45" />
-    <stop offset="100%" stop-color="${color}" stop-opacity="0" />
-  </radialGradient>`;
-}
+// Full-bleed (base icon.png / splash-icon.png) vs adaptive-icon safe-zone
+// (android-icon-foreground.png / android-icon-monochrome.png) scale, carried
+// over from the previous aurora sizing matrix: Android adaptive icons only
+// guarantee the center 66% circle (radius 338 on a 1024 canvas) is never
+// masked off, so the safe-zone mark is scaled down from the full-bleed one
+// by the same 320/416 ratio the old reach-based sizing used.
+const FULL_SCALE = 1;
+const SAFE_SCALE = 320 / 416;
 
 /**
- * The duo mark: two overlapping glow discs + a soft highlight at the blend point.
- * `radius`/`offset` control size and how far apart the two centers sit — offset is
- * derived elsewhere from radius to keep ~40% overlap between the two circles.
+ * Geometry for one instance of the double-chevron mark at a given scale.
+ * `w` (chevron weight) is ~18% of the canvas at full scale; height is 2x
+ * weight for a tall, bold wedge. The pair is nudged ~2% left of true center
+ * because two right-pointing wedges read right-heavy — the offset corrects
+ * the optical imbalance.
  */
-function duoMark({ size = CANVAS, radius, offset, highlightOpacity = 0.5 }) {
-  const c = size / 2;
-  const pink = { x: c - offset, y: c - offset };
-  const violet = { x: c + offset, y: c + offset };
-  const highlightR = radius * 0.55;
-  return `<defs>
-      ${glowGradientDef("pinkGlow", PINK)}
-      ${glowGradientDef("violetGlow", VIOLET)}
-      <radialGradient id="highlight" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stop-color="${HIGHLIGHT}" stop-opacity="${highlightOpacity}" />
-        <stop offset="100%" stop-color="${HIGHLIGHT}" stop-opacity="0" />
-      </radialGradient>
-    </defs>
-    <circle cx="${pink.x}" cy="${pink.y}" r="${radius}" fill="url(#pinkGlow)" />
-    <circle cx="${violet.x}" cy="${violet.y}" r="${radius}" fill="url(#violetGlow)" opacity="0.94" />
-    <circle cx="${c}" cy="${c}" r="${highlightR}" fill="url(#highlight)" />`;
+function chevronGeometry(scale) {
+  const w = CANVAS * 0.18 * scale;
+  const h = w * 2;
+  const gap = w * 0.55;
+  const nudge = CANVAS * 0.02;
+  const x0 = CENTER - nudge - (w + gap) / 2;
+  return { x0, w, h, gap, yMid: CENTER };
 }
 
-/** Given a target "reach" (max distance from canvas center a disc may extend to),
- * returns {radius, offset} that keep ~40% overlap between the two discs.
- * Derivation: offset = 0.4243 * radius (for 40% overlap), reach = offset*sqrt(2) + radius = 1.6 * radius. */
-function sizeForReach(reach) {
-  const radius = Math.round(reach / 1.6);
-  const offset = Math.round(radius * 0.4243);
-  return { radius, offset };
+/** A single chevron: a solid right-pointing wedge polygon. */
+function chevronPath(x0, w, h, yMid) {
+  const y0 = yMid - h / 2;
+  const y1 = yMid + h / 2;
+  return `M ${x0} ${y0} L ${x0 + w} ${yMid} L ${x0} ${y1} Z`;
 }
 
-// Bold/full-bleed sizing for the base icon and splash (no adaptive-icon safe-zone
-// constraint) — reach ~416px on a 1024 canvas, ~9% margin to the edge.
-const ICON_SIZING = sizeForReach(416);
-// Android adaptive icons only guarantee the center 66% circle is never masked off —
-// diameter 1024*0.66 = 676, radius 338. Keep a small buffer under that.
-const SAFE_SIZING = sizeForReach(320);
+/** The queue-forward mark in volt, at the given scale. */
+function chevronMark(scale = FULL_SCALE) {
+  const { x0, w, h, gap, yMid } = chevronGeometry(scale);
+  return `<path d="${chevronPath(x0, w, h, yMid)}" fill="${VOLT}" />
+    <path d="${chevronPath(x0 + gap, w, h, yMid)}" fill="${VOLT}" opacity="0.55" />`;
+}
+
+/** Same geometry, solid white — for the Android themed-icon silhouette, which
+ * the OS tints with a single system color. */
+function chevronMarkMono(scale = SAFE_SCALE) {
+  const { x0, w, h, gap, yMid } = chevronGeometry(scale);
+  return `<path d="${chevronPath(x0, w, h, yMid)}" fill="#FFFFFF" />
+    <path d="${chevronPath(x0 + gap, w, h, yMid)}" fill="#FFFFFF" opacity="0.55" />`;
+}
 
 function svgDoc(inner, { background } = {}) {
   const bg = background ? `<rect width="${CANVAS}" height="${CANVAS}" fill="${background}" />` : "";
@@ -82,7 +80,7 @@ function svgDoc(inner, { background } = {}) {
 async function main() {
   // 1. icon.png — mark on the dark field, plus a whisper of grain (same noise.png
   //    tile GrainOverlay.tsx uses, mirrored here since Image can't be used at build time).
-  const iconSvg = svgDoc(duoMark(ICON_SIZING), { background: BG });
+  const iconSvg = svgDoc(chevronMark(FULL_SCALE), { background: BG });
   const noiseTile = readFileSync(path.join(ASSETS, "noise.png"));
   const iconBuffer = await sharp(Buffer.from(iconSvg))
     .resize(CANVAS, CANVAS)
@@ -94,44 +92,28 @@ async function main() {
 
   // 2. android-icon-foreground.png — mark only, transparent, sized within the
   //    adaptive-icon safe zone (center 66% circle).
-  const foregroundSvg = svgDoc(duoMark(SAFE_SIZING));
+  const foregroundSvg = svgDoc(chevronMark(SAFE_SCALE));
   const foregroundBuffer = await sharp(Buffer.from(foregroundSvg)).resize(CANVAS, CANVAS).png().toBuffer();
   writeFileSync(path.join(ASSETS, "android-icon-foreground.png"), foregroundBuffer);
   console.log("wrote android-icon-foreground.png");
 
-  // 3. android-icon-background.png — solid field with a faint corner wash (pink
-  //    up-left, violet down-right — same pairing as the mark, just much fainter).
-  const backgroundInner = `<defs>
-      <radialGradient id="washPink" cx="12%" cy="12%" r="60%">
-        <stop offset="0%" stop-color="${PINK}" stop-opacity="0.16" />
-        <stop offset="100%" stop-color="${PINK}" stop-opacity="0" />
-      </radialGradient>
-      <radialGradient id="washViolet" cx="88%" cy="88%" r="60%">
-        <stop offset="0%" stop-color="${VIOLET}" stop-opacity="0.16" />
-        <stop offset="100%" stop-color="${VIOLET}" stop-opacity="0" />
-      </radialGradient>
-    </defs>
-    <rect width="${CANVAS}" height="${CANVAS}" fill="url(#washPink)" />
-    <rect width="${CANVAS}" height="${CANVAS}" fill="url(#washViolet)" />`;
-  const backgroundSvg = svgDoc(backgroundInner, { background: BG });
+  // 3. android-icon-background.png — flat background field, no wash or glow
+  //    (Volt drops the aurora-era gradient blends everywhere else too).
+  const backgroundSvg = svgDoc("", { background: BG });
   const backgroundBuffer = await sharp(Buffer.from(backgroundSvg)).resize(CANVAS, CANVAS).png().toBuffer();
   writeFileSync(path.join(ASSETS, "android-icon-background.png"), backgroundBuffer);
   console.log("wrote android-icon-background.png");
 
-  // 4. android-icon-monochrome.png — solid white-alpha silhouette, no gradients.
+  // 4. android-icon-monochrome.png — solid white-alpha silhouette, no color.
   //    Same geometry as the foreground so the themed-icon silhouette matches the mark.
-  const c = CENTER;
-  const { radius, offset } = SAFE_SIZING;
-  const monoInner = `<circle cx="${c - offset}" cy="${c - offset}" r="${radius}" fill="#FFFFFF" />
-    <circle cx="${c + offset}" cy="${c + offset}" r="${radius}" fill="#FFFFFF" />`;
-  const monoSvg = svgDoc(monoInner);
+  const monoSvg = svgDoc(chevronMarkMono(SAFE_SCALE));
   const monoBuffer = await sharp(Buffer.from(monoSvg)).resize(CANVAS, CANVAS).png().toBuffer();
   writeFileSync(path.join(ASSETS, "android-icon-monochrome.png"), monoBuffer);
   console.log("wrote android-icon-monochrome.png");
 
   // 5. splash-icon.png — the mark, transparent bg, full bold sizing (no adaptive
   //    safe-zone constraint here — it sits centered on the splash backgroundColor).
-  const splashSvg = svgDoc(duoMark(ICON_SIZING));
+  const splashSvg = svgDoc(chevronMark(FULL_SCALE));
   const splashBuffer = await sharp(Buffer.from(splashSvg)).resize(CANVAS, CANVAS).png().toBuffer();
   writeFileSync(path.join(ASSETS, "splash-icon.png"), splashBuffer);
   console.log("wrote splash-icon.png");

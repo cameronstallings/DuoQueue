@@ -7,7 +7,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "backgroundColor": "#14101F",
+    "backgroundColor": "#0A0B09",
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.duoqueue.app",
@@ -20,7 +20,7 @@
     "android": {
       "package": "com.duoqueue.app",
       "adaptiveIcon": {
-        "backgroundColor": "#14101F",
+        "backgroundColor": "#0A0B09",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -57,10 +57,10 @@
           "image": "./assets/splash-icon.png",
           "imageWidth": 180,
           "resizeMode": "contain",
-          "backgroundColor": "#14101F",
+          "backgroundColor": "#0A0B09",
           "dark": {
             "image": "./assets/splash-icon.png",
-            "backgroundColor": "#14101F"
+            "backgroundColor": "#0A0B09"
           }
         }
       ],
