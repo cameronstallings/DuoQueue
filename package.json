@@ -18,7 +18,7 @@
     "@duoqueue/shared-types": "workspace:*",
     "@faker-js/faker": "^9.0.3",
     "@supabase/supabase-js": "^2.45.4",
-    "dotenv": "^16.4.5"
+    "dotenv": "^17.4.2"
   },
   "devDependencies": {
     "@types/node": "^22.7.4",
