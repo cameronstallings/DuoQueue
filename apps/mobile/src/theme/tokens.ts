@@ -113,8 +113,8 @@ export const lightColors = {
 
   danger: "#C22E20",
   dangerDark: "#C22E20",
-  success: "#17784C",
-  warning: "#8F5E00",
+  success: "#167047",
+  warning: "#875800",
   info: "#16688F",
   onFill: "#FFFFFF",
   successFill: "rgba(23,120,76,0.14)",

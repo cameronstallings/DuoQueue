@@ -11,7 +11,8 @@
     "typecheck": "pnpm -r run typecheck",
     "lint": "pnpm -r run lint",
     "seed:profiles": "tsx scripts/generate-fake-profiles.ts",
-    "seed:build-sql": "tsx scripts/build-seed-sql.ts"
+    "seed:build-sql": "tsx scripts/build-seed-sql.ts",
+    "audit:contrast": "node scripts/audit-contrast.mjs"
   },
   "dependencies": {
     "@duoqueue/shared-types": "workspace:*",
