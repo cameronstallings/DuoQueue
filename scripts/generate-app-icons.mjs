@@ -123,6 +123,15 @@ async function main() {
   const faviconBuffer = await sharp(iconBuffer).resize(48, 48).png().toBuffer();
   writeFileSync(path.join(ASSETS, "favicon.png"), faviconBuffer);
   console.log("wrote favicon.png");
+
+  // 7. notification-icon.png — Android status-bar icon: the OS renders ONLY the
+  //    alpha channel (tinted with expo-notifications' `color`), so this must be
+  //    white-on-transparent, not the colored adaptive-icon foreground. 96x96 is
+  //    the xxhdpi reference size; the plugin downscales for lower densities.
+  const notificationSvg = svgDoc(chevronMarkMono(FULL_SCALE));
+  const notificationBuffer = await sharp(Buffer.from(notificationSvg)).resize(96, 96).png().toBuffer();
+  writeFileSync(path.join(ASSETS, "notification-icon.png"), notificationBuffer);
+  console.log("wrote notification-icon.png");
 }
 
 main().catch((err) => {

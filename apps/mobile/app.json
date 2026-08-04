@@ -14,7 +14,8 @@
       "usesAppleSignIn": true,
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "DuoQueue needs access to your photos so you can add pictures to your profile.",
-        "NSCameraUsageDescription": "DuoQueue needs access to your camera so you can take a new profile photo."
+        "NSCameraUsageDescription": "DuoQueue needs access to your camera so you can take a new profile photo.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -47,7 +48,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/android-icon-foreground.png",
+          "icon": "./assets/notification-icon.png",
           "color": "#CDFF3D"
         }
       ],

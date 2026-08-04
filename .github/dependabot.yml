@@ -17,6 +17,27 @@ updates:
       # rather than having Dependabot push an incompatible React/RN pair.
       - dependency-name: "react"
       - dependency-name: "react-dom"
+      # SDK-managed natives: the SDK pins exact versions (expo install --check is
+      # the authority); any Dependabot bump fights the pin. Updated on SDK upgrades.
+      - dependency-name: "@react-native-community/*"
+      # A major bump across the expo group is an SDK migration in disguise —
+      # those happen deliberately via `expo install expo@^NN` + `expo install --fix`,
+      # never as a version-edit PR. Minors/patches within the SDK still flow.
+      - dependency-name: "expo"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "expo-*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-native"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-native-*"
+        update-types: ["version-update:semver-major"]
+      # SDK-locked tooling: eslint-config-expo versions in lockstep with the SDK,
+      # and typescript/eslint majors outrun what the SDK's config supports.
+      - dependency-name: "eslint-config-expo"
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: "/"
