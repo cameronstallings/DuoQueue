@@ -151,7 +151,7 @@ export default function FiltersScreen() {
         filter_show_id: isPremium ? (filterShow?.id ?? null) : (preferences?.filter_show_id ?? null),
         filter_recently_active: isPremium ? recentlyActive : (preferences?.filter_recently_active ?? false),
       });
-      router.back();
+      goBack();
     } catch (err) {
       Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
     }
