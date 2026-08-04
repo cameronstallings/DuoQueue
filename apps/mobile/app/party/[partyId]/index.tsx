@@ -18,6 +18,13 @@ import { useRequireSession } from "@/hooks/useRequireSession";
 import { hapticSuccess } from "@/lib/haptics";
 import { useTheme } from "@/theme/useTheme";
 
+// A screen opened as the app's cold-start/deep-link entry has no history to pop —
+// router.back() would be a silent no-op, stranding the user with a dead button.
+function goBack() {
+  if (router.canGoBack()) router.back();
+  else router.replace("/(tabs)");
+}
+
 export default function PartyDeckScreen() {
   useRequireSession();
   const { colors, spacing, type, radius } = useTheme();
@@ -63,7 +70,7 @@ export default function PartyDeckScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Go back"
-          onPress={() => router.back()}
+          onPress={goBack}
           hitSlop={8}
           style={{
             width: 34,

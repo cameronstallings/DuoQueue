@@ -41,6 +41,13 @@ import { supabase } from "@/lib/supabase";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
+// A screen opened as the app's cold-start/deep-link entry has no history to pop —
+// router.back() would be a silent no-op, stranding the user with a dead button.
+function goBack() {
+  if (router.canGoBack()) router.back();
+  else router.replace("/(tabs)");
+}
+
 function toggleSingle<T>(current: T | null, value: T, setter: (value: T | null) => void) {
   setter(current === value ? null : value);
 }
@@ -292,7 +299,7 @@ export default function FiltersScreen() {
       {error ? <Text style={[type.body, { color: colors.danger }]}>{error}</Text> : null}
 
       <Button label="Save filters" onPress={() => void handleSave()} loading={save.isPending} />
-      <Button label="Cancel" variant="ghost" onPress={() => router.back()} />
+      <Button label="Cancel" variant="ghost" onPress={goBack} />
     </ScreenContainer>
   );
 }
