@@ -140,7 +140,7 @@ export function useAddGalleryPhoto(profileId: string | undefined) {
       useToastStore.getState().showToast("Photo added");
     },
     onError: (err) => {
-      useToastStore.getState().showToast(err instanceof Error ? err.message : "Couldn't add that photo");
+      useToastStore.getState().showToast(err instanceof Error ? err.message : "Couldn't add that photo", "error");
     },
   });
 }
@@ -210,7 +210,7 @@ export function useReorderGalleryPhoto(profileId: string | undefined) {
     },
     onError: (err, _vars, context) => {
       if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
-      useToastStore.getState().showToast(err instanceof Error ? err.message : "Couldn't reorder photos");
+      useToastStore.getState().showToast(err instanceof Error ? err.message : "Couldn't reorder photos", "error");
     },
   });
 }

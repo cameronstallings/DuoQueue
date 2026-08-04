@@ -34,7 +34,7 @@ function AdmirerRow({ item }: { item: AdmirerListItem }) {
 
   return (
     <Card style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md, marginBottom: spacing.sm }}>
-      <PresenceAvatar uri={item.photoUrl} size={56} backdropColor={colors.surface} />
+      <PresenceAvatar uri={item.photoUrl} size={56} />
       <View style={{ flex: 1 }}>
         <Text style={[type.bodyStrong, { color: colors.text }]}>
           {item.display_name}, {item.age}
@@ -125,6 +125,7 @@ export default function AdmirersScreen() {
           icon="sparkles"
           title="No admirers yet"
           subtitle="Keep your profile fresh — new likes will show up here."
+          tick="NO ADMIRERS"
         />
       ) : (
         <Animated.View entering={FadeIn.duration(220)}>

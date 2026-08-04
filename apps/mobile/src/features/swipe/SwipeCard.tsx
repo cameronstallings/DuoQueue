@@ -313,7 +313,12 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger, index }: Swi
             <View style={[styles.infoOverlay, { padding: spacing.md, gap: spacing.xs }]}>
               {photos.length > 1 && (
                 <View style={{ marginBottom: spacing.xs }}>
-                  <PageDots count={photos.length} activeIndex={photoIndex} />
+                  <PageDots
+                    count={photos.length}
+                    activeIndex={photoIndex}
+                    color="#FFFFFF"
+                    inactiveColor="rgba(255,255,255,0.4)"
+                  />
                 </View>
               )}
               <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
@@ -321,7 +326,6 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger, index }: Swi
                   uri={card.profilePhotoUrl}
                   size={44}
                   isActive={card.isRecentlyActive}
-                  backdropColor={`rgba(${scrimRgb},0.55)`}
                   borderColor="#F5F1E8"
                   borderWidth={2}
                 />

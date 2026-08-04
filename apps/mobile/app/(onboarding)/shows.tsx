@@ -55,8 +55,8 @@ export default function ShowsStep() {
               backgroundColor: colors.volt,
             }}
           >
-            <Text style={[type.caption, { color: colors.onFill }]}>{show.name}</Text>
-            <Ionicons name="close" size={13} color={colors.onFill} />
+            <Text style={[type.caption, { color: colors.onVolt }]}>{show.name}</Text>
+            <Ionicons name="close" size={13} color={colors.onVolt} />
           </Pressable>
         ))}
       </View>

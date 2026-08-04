@@ -105,6 +105,7 @@ export default function PartyDeckScreen() {
             subtitle="Check your connection and try again."
             actionLabel="Try again"
             onAction={() => void refetch()}
+            tick="OFFLINE"
           />
         ) : cards.length === 0 ? (
           <EmptyState
@@ -113,6 +114,7 @@ export default function PartyDeckScreen() {
             subtitle="Check back later for more people to consider together."
             actionLabel="Refresh"
             onAction={() => void refetch()}
+            tick="QUEUE CLEAR"
           />
         ) : (
           <Animated.View entering={FadeIn.duration(220)} style={{ flex: 1 }}>

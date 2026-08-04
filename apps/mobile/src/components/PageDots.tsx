@@ -5,16 +5,19 @@ import { useTheme } from "@/theme/useTheme";
 interface PageDotsProps {
   count: number;
   activeIndex: number;
-  /** Overrides both dots to one flat tone (opacity-differentiated) instead of the
-   *  default volt-active / border-inactive pair — an escape hatch for a photo scrim
-   *  that doesn't suit those two colors. Unused by any caller today. */
+  /** Active-dot color override. Pairs with `inactiveColor` for callers rendering over
+   *  a photo scrim, where the default volt-active / border-inactive pair doesn't have
+   *  enough contrast (olive-on-scrim in Paper, near-invisible border in dark). Defaults
+   *  to `colors.volt`. */
   color?: string;
+  /** Inactive-dot color override. Defaults to `colors.border`. */
+  inactiveColor?: string;
 }
 
 /** Small dot row marking position in a horizontal photo pager. Renders nothing for 0
  * or 1 page, since there's nothing to page between — callers don't need to gate on
  * count themselves. */
-export function PageDots({ count, activeIndex, color }: PageDotsProps) {
+export function PageDots({ count, activeIndex, color, inactiveColor }: PageDotsProps) {
   const { colors, radius, spacing } = useTheme();
   if (count <= 1) return null;
 
@@ -29,8 +32,7 @@ export function PageDots({ count, activeIndex, color }: PageDotsProps) {
               width: 6,
               height: 6,
               borderRadius: radius.round,
-              backgroundColor: color ?? (active ? colors.volt : colors.border),
-              opacity: color ? (active ? 1 : 0.4) : 1,
+              backgroundColor: active ? (color ?? colors.volt) : (inactiveColor ?? colors.border),
             }}
           />
         );

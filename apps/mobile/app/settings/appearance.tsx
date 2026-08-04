@@ -63,7 +63,7 @@ export default function AppearanceSettings() {
                     marginTop: 2,
                   }}
                 >
-                  {selected && <Ionicons name="checkmark" size={14} color={colors.onFill} />}
+                  {selected && <Ionicons name="checkmark" size={14} color={colors.onVolt} />}
                 </View>
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text style={[type.bodyStrong, { color: colors.text }]}>{option.label}</Text>

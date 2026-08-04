@@ -592,6 +592,7 @@ export default function ChatScreen() {
           subtitle="Check your connection and try again."
           actionLabel="Try again"
           onAction={() => void refetch()}
+          tick="OFFLINE"
         />
       ) : (
         <FlatList
@@ -611,6 +612,7 @@ export default function ChatScreen() {
               icon="chatbubbles"
               title={`Say hi to ${matchInfo?.other_display_name ?? "your match"}!`}
               subtitle="You matched — break the ice with a message about a game you both play."
+              tick="SAY HI"
             />
           }
           renderItem={({ item, index }: { item: ChatTimelineItem; index: number }) => {

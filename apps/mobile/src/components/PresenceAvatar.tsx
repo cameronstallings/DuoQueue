@@ -7,9 +7,6 @@ interface PresenceAvatarProps {
   uri: string | null | undefined;
   size: number;
   isActive?: boolean;
-  /** @deprecated Volt migration — the presence dot's border is now a fixed
-   * `colors.background`, not a backdrop cutout. Kept for call-site compatibility. */
-  backdropColor: string;
   borderColor?: string;
   borderWidth?: number;
 }

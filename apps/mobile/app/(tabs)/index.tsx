@@ -208,6 +208,7 @@ export default function DeckScreen() {
             subtitle="Check your connection and try again."
             actionLabel="Try again"
             onAction={() => void refetch()}
+            tick="OFFLINE"
           />
         ) : cards.length === 0 ? (
           <EmptyState
@@ -216,6 +217,7 @@ export default function DeckScreen() {
             subtitle="Check back later, or adjust your filters to see more people."
             actionLabel="Refresh"
             onAction={() => void refetch()}
+            tick="QUEUE CLEAR"
           />
         ) : (
           <Animated.View entering={FadeIn.duration(220)} style={{ flex: 1 }}>

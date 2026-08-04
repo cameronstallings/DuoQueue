@@ -92,7 +92,7 @@ export function VoiceIntroRecorderCard({ profileId }: { profileId: string }) {
                 backgroundColor: recorder.isRecording ? colors.dangerDark : colors.volt,
               }}
             >
-              <Ionicons name={recorder.isRecording ? "stop" : "mic"} size={22} color={colors.onFill} />
+              <Ionicons name={recorder.isRecording ? "stop" : "mic"} size={22} color={colors.onVolt} />
             </Pressable>
             <Text style={{ color: colors.textMuted }}>
               {recorder.isRecording

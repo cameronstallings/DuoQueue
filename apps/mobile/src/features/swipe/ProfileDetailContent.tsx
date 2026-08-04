@@ -182,7 +182,12 @@ export function ProfileDetailContent({ card, onClose, readOnly = false }: Profil
                 ]}
               />
               <View style={{ position: "absolute", left: 0, right: 0, bottom: spacing.sm }}>
-                <PageDots count={photos.length} activeIndex={photoIndex} />
+                <PageDots
+                  count={photos.length}
+                  activeIndex={photoIndex}
+                  color="#FFFFFF"
+                  inactiveColor="rgba(255,255,255,0.4)"
+                />
               </View>
             </>
           )}
@@ -212,7 +217,6 @@ export function ProfileDetailContent({ card, onClose, readOnly = false }: Profil
               uri={card.profilePhotoUrl}
               size={48}
               isActive={card.isRecentlyActive}
-              backdropColor={colors.background}
               borderColor={colors.background}
               borderWidth={2}
             />

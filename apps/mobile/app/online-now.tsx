@@ -43,7 +43,7 @@ function OnlineNowRow({ item }: { item: OnlineNowCard }) {
 
   return (
     <Card style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md }}>
-      <PresenceAvatar uri={item.profilePhotoUrl} size={56} isActive backdropColor={colors.surface} />
+      <PresenceAvatar uri={item.profilePhotoUrl} size={56} isActive />
       <View style={{ flex: 1 }}>
         <Text style={[type.bodyStrong, { color: colors.text }]}>
           {item.display_name}, {item.age}
@@ -138,6 +138,7 @@ export default function OnlineNowScreen() {
           icon="flash"
           title="No one's online right now"
           subtitle="Turn on the toggle above so others can find you when they are."
+          tick="NONE ONLINE"
         />
       ) : (
         <View style={{ gap: spacing.sm }}>

@@ -193,12 +193,14 @@ export default function MatchesScreen() {
           subtitle="Check your connection and try again."
           actionLabel="Try again"
           onAction={() => void refetch()}
+          tick="OFFLINE"
         />
       ) : !matches || matches.length === 0 ? (
         <EmptyState
           icon="heart"
           title="No matches yet"
           subtitle="Keep swiping in the Deck tab — mutual likes show up here."
+          tick="NO DUOS YET"
         />
       ) : (
         <Animated.View entering={FadeIn.duration(220)} style={{ flex: 1 }}>

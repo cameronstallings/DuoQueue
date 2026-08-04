@@ -42,6 +42,7 @@ export default function ProfileScreen() {
           icon="cloud-offline"
           title="Couldn't load this profile"
           subtitle="It may have been removed, or something went wrong."
+          tick="OFFLINE"
         />
       )}
     </ScreenContainer>

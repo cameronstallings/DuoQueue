@@ -18,6 +18,7 @@ export function Toast() {
   if (!message) return null;
 
   const tint = status === "error" ? colors.danger : status === "info" ? colors.volt : colors.success;
+  const icon = status === "error" ? "close-circle" : status === "info" ? "information-circle" : "checkmark-circle";
 
   return (
     <View
@@ -48,7 +49,7 @@ export function Toast() {
           borderRadius: radius.md,
         }}
       >
-        <Ionicons name="checkmark-circle" size={16} color={tint} />
+        <Ionicons name={icon} size={16} color={tint} />
         <Text style={[type.caption, { color: tint }]}>{message}</Text>
       </Animated.View>
     </View>
