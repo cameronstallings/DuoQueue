@@ -164,6 +164,20 @@ function SessionBanner({ matchId, myId }: { matchId: string; myId: string | unde
 
   const isProposer = session.proposed_by === myId;
   const label = SESSION_TIME_FORMAT.format(new Date(session.scheduled_at));
+  const isBusy = respond.isPending || cancel.isPending;
+
+  const handleRespond = (accept: boolean) => {
+    respond.mutate(
+      { sessionId: session.id, accept },
+      { onError: (err) => Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.") },
+    );
+  };
+
+  const handleCancel = () => {
+    cancel.mutate(session.id, {
+      onError: (err) => Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again."),
+    });
+  };
 
   return (
     <View style={{ marginHorizontal: spacing.md, marginBottom: spacing.sm }}>
@@ -178,20 +192,12 @@ function SessionBanner({ matchId, myId }: { matchId: string; myId: string | unde
           </Text>
           {session.status === "pending" && !isProposer && (
             <ButtonRow>
-              <Button
-                variant="ghost"
-                label="Confirm"
-                onPress={() => respond.mutate({ sessionId: session.id, accept: true })}
-              />
-              <Button
-                variant="ghost"
-                label="Decline"
-                onPress={() => respond.mutate({ sessionId: session.id, accept: false })}
-              />
+              <Button variant="ghost" label="Confirm" onPress={() => handleRespond(true)} disabled={isBusy} />
+              <Button variant="ghost" label="Decline" onPress={() => handleRespond(false)} disabled={isBusy} />
             </ButtonRow>
           )}
           {(session.status === "confirmed" || isProposer) && (
-            <Button variant="ghost" label="Cancel" onPress={() => cancel.mutate(session.id)} />
+            <Button variant="ghost" label="Cancel" onPress={handleCancel} disabled={isBusy} />
           )}
         </View>
       </Card>
@@ -458,6 +464,7 @@ export default function ChatScreen() {
       await sendMessage.mutateAsync(content);
     } catch (err) {
       if (err instanceof ConversationLockedError) {
+        setDraft(content);
         Alert.alert("Conversation locked", err.message, [
           { text: "Not now" },
           { text: "Upgrade", onPress: () => router.push("/paywall") },

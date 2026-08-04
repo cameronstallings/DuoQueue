@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { DiscordShareRow, MessageRow } from "@duoqueue/shared-types";
 
@@ -65,9 +65,17 @@ export function useChatMessages(matchId: string) {
 
             let messages = old.messages;
             if (myId && incoming.sender_id === myId) {
-              const tempIndex = messages.findIndex(
+              const contentIndex = messages.findIndex(
                 (m) => m.id.startsWith("temp-") && m.content === incoming.content,
               );
+              // send-message can rewrite `content` before storing it (profanity
+              // masking), so an exact match misses the optimistic row it belongs to.
+              // Fall back to the oldest pending temp- row instead: the composer
+              // disables sending while a message is in flight, so there's normally at
+              // most one to match, and onSuccess's own id-based cleanup (which still
+              // runs) protects against picking a wrong one.
+              const tempIndex =
+                contentIndex !== -1 ? contentIndex : messages.findIndex((m) => m.id.startsWith("temp-"));
               if (tempIndex !== -1) {
                 messages = [...messages.slice(0, tempIndex), ...messages.slice(tempIndex + 1)];
               }
@@ -132,13 +140,13 @@ export function useChatMessages(matchId: string) {
 
   const hasUnread = query.data?.messages.some((m) => m.sender_id !== myId && !m.read_at) ?? false;
 
-  async function markAsRead() {
+  const markAsRead = useCallback(async () => {
     if (!myId || !hasUnread) return;
     await supabase.from("messages").update({ read_at: new Date().toISOString() }).eq("match_id", matchId).neq(
       "sender_id",
       myId,
     ).is("read_at", null);
-  }
+  }, [matchId, myId, hasUnread]);
 
   return {
     timeline,

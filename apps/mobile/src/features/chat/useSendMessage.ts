@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import type { MessageRow, SendMessageResponse } from "@duoqueue/shared-types";
 
 import { supabase } from "@/lib/supabase";
@@ -43,7 +44,20 @@ export function useSendMessage(matchId: string) {
       const { data, error } = await supabase.functions.invoke<SendMessageResponse>("send-message", {
         body: { matchId, content },
       });
-      if (error) throw error;
+      if (error) {
+        // The edge function replies with a non-2xx status for every rejection (locked
+        // conversation, missing match, too-long message, ...), so supabase-js throws a
+        // FunctionsHttpError before `data` is ever populated — the body has to be read
+        // back off the error itself, per the SDK's own documented pattern.
+        if (error instanceof FunctionsHttpError) {
+          const body = (await error.context.json().catch(() => null)) as SendMessageResponse | null;
+          if (body?.error === "conversation_locked") {
+            throw new ConversationLockedError(body.details ?? "This conversation is locked.");
+          }
+          throw new Error(body?.details ?? body?.error ?? error.message);
+        }
+        throw error;
+      }
       if (data?.error) {
         if (data.error === "conversation_locked") {
           throw new ConversationLockedError(data.details ?? "This conversation is locked.");
