@@ -89,7 +89,7 @@ export default function MatchCelebrationScreen() {
   const flashStyle = useAnimatedStyle(() => ({ opacity: flashOpacity.value }));
 
   return (
-    <ScreenContainer aurora="none">
+    <ScreenContainer atmosphere="none">
       <GraticuleBackground variant="match" />
       <GrainOverlay />
 

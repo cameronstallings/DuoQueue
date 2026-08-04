@@ -107,7 +107,7 @@ export default function ProfileScreen() {
   // ScreenContainer's ScrollView is a plain, un-ref'd RN ScrollView — there's no way
   // to read its offset on the UI thread from here, so this screen grows its own
   // Animated.ScrollView (same bespoke-background shape chat/[matchId].tsx uses)
-  // instead of the shared container, to drive the aurora drift and avatar-pull
+  // instead of the shared container, to drive the atmosphere drift and avatar-pull
   // effects below purely off worklets.
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const scrollY = useScrollViewOffset(scrollRef);
@@ -224,7 +224,7 @@ export default function ProfileScreen() {
 
   // The atmosphere lags a beat behind the content — 0.15x scroll rate, capped at a
   // 40px drift so it reads as depth, not a second scrolling layer.
-  const auroraDriftStyle = useAnimatedStyle(() => {
+  const atmosphereDriftStyle = useAnimatedStyle(() => {
     const translateY = interpolate(scrollY.value, [0, 267], [0, -40], Extrapolation.CLAMP);
     return { transform: [{ translateY }] };
   });
@@ -238,7 +238,7 @@ export default function ProfileScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, auroraDriftStyle]}>
+      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, atmosphereDriftStyle]}>
         <GraticuleBackground />
       </Animated.View>
       <GrainOverlay />

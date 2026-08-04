@@ -83,7 +83,7 @@ export function ProfileDetailContent({ card, onClose, readOnly = false }: Profil
 
   // Atmosphere drifts a beat behind the content — same 0.15x rate, 40px cap as the
   // own-profile screen, so both places share one "depth" language.
-  const auroraDriftStyle = useAnimatedStyle(() => {
+  const atmosphereDriftStyle = useAnimatedStyle(() => {
     const translateY = interpolate(scrollY.value, [0, 267], [0, -40], Extrapolation.CLAMP);
     return { transform: [{ translateY }] };
   });
@@ -125,7 +125,7 @@ export function ProfileDetailContent({ card, onClose, readOnly = false }: Profil
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, auroraDriftStyle]}>
+      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, atmosphereDriftStyle]}>
         <GraticuleBackground />
       </Animated.View>
       <GrainOverlay />

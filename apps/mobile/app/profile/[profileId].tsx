@@ -17,7 +17,7 @@ export default function ProfileScreen() {
   const { data, isPending, isError } = useProfileCard(profileId);
 
   if (!isPending && !isError && data) {
-    // ProfileDetailContent is already full-bleed with its own scroll view, aurora +
+    // ProfileDetailContent is already full-bleed with its own scroll view, atmosphere +
     // grain backdrop, padding, and floating close button — wrapping it in
     // ScreenContainer would double all of that (nested scroll views, doubled
     // atmosphere, two close buttons). Render it bare instead.

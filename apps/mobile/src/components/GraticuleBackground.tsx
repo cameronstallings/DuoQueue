@@ -9,7 +9,7 @@ interface GraticuleBackgroundProps {
 }
 
 /** Volt's atmosphere: a static engineering graticule — 24px grid of hairlines with
- * sparse crosshair ticks. Replaces Aurora's drifting washes; grain supplies life. */
+ * sparse crosshair ticks. Replaces the old drifting-wash treatment; grain supplies life. */
 export function GraticuleBackground({ variant = "default" }: GraticuleBackgroundProps) {
   const { scheme } = useTheme();
   const strength = variant === "match" ? 1.6 : 1;

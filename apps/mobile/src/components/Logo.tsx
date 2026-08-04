@@ -11,9 +11,10 @@ interface LogoProps {
 /**
  * The logo is drawn, not shipped as a bitmap.
  *
- * Aurora dropped the old two-plate misregistration gag (that was a Cartridge-era
- * signature, and it fought the glow-based depth system everywhere else). What's
- * left is a single line of Unbounded, set lowercase for the wordmark — a
+ * The redesign before this one dropped the old two-plate misregistration gag (that
+ * was a Cartridge-era signature, and it fought the glow-based depth system used
+ * everywhere else at the time). What's left is a single line of Unbounded, set
+ * lowercase for the wordmark — a
  * heavyweight display face read in lowercase is distinctive on its own, no trick
  * needed. Volt keeps the accent only on the compact "Q" mark — small enough to
  * read as a symbol; the full "queue" half of the wordmark reads as plain ink,

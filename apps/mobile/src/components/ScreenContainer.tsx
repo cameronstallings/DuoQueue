@@ -26,8 +26,8 @@ interface ScreenContainerProps extends PropsWithChildren {
    * it the only way back is the OS swipe gesture, which does not exist on Android.
    */
   showBack?: boolean;
-  /** Which aurora wash sits behind the content. "none" opts out of the atmosphere. */
-  aurora?: "default" | "none";
+  /** Which atmosphere wash sits behind the content. "none" opts out of it entirely. */
+  atmosphere?: "default" | "none";
 }
 
 export function ScreenContainer({
@@ -36,7 +36,7 @@ export function ScreenContainer({
   title,
   showClose,
   showBack,
-  aurora = "default",
+  atmosphere = "default",
 }: ScreenContainerProps) {
   const { colors, spacing, type, radius } = useTheme();
   const insets = useSafeAreaInsets();
@@ -55,7 +55,7 @@ export function ScreenContainer({
       style={{ flex: 1, backgroundColor: colors.background }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      {aurora !== "none" && (
+      {atmosphere !== "none" && (
         <>
           <GraticuleBackground />
           <GrainOverlay />

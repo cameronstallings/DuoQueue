@@ -7,6 +7,16 @@ Built as a monorepo: Expo (React Native, TypeScript, managed workflow) + Supabas
 (Postgres, Auth, Realtime, Storage, Edge Functions) + RevenueCat (Apple/Google
 subscriptions).
 
+## Design
+
+The app's visual language is **Volt**: off-black surfaces with a faint green warmth,
+solid panels separated by 1px seams instead of glass or glow, and a single chartreuse
+accent (`#CDFF3D`) reserved for interactive state and identity. IBM Plex Mono is the
+machine voice for metadata (labels, ticks, chip text); Unbounded still speaks names and
+Manrope still carries body copy. Full rationale, token tables, and component treatments
+are in
+[`docs/superpowers/specs/2026-08-03-volt-restyle-design.md`](docs/superpowers/specs/2026-08-03-volt-restyle-design.md).
+
 ## Status
 
 This repo implements the **full build plan, Phases 1-6**:
@@ -35,8 +45,9 @@ This repo implements the **full build plan, Phases 1-6**:
 - Phase 5: push notifications (new match, new message, Super Ping, daily swipes
   refreshed) driven by Postgres triggers + `pg_net` calling `send-push-notification`, a
   per-category notification settings screen, photo moderation (`moderate-photo` — a
-  pluggable NSFW-check interface with an always-approve stub; wire in a real provider
-  before production) with `moderation_status` now unwritable by clients, account
+  Sightengine-backed check for explicit content, gore, and apparent-minor faces; missing
+  or unset provider credentials degrade to the admin manual-review queue, never to
+  auto-approve) with `moderation_status` now unwritable by clients, account
   deletion (`delete-account` — wipes Storage then cascades through every table via FKs),
   and a standalone admin moderation web page (`admin/index.html`) for triaging reports.
 - Phase 6: polish — pulsing loading-skeleton placeholders (deck, matches, chat,
@@ -320,9 +331,10 @@ pnpm lint        # eslint across all workspace packages
   0006_moderation_and_notifications.sql once photo moderation existed) — only the
   `moderate-photo` Edge Function, using the service role, can flip a photo from
   `pending` to `approved`/`rejected`. Its actual NSFW check
-  (`supabase/functions/moderate-photo/provider.ts`) is a stub that always approves —
-  wire in a real provider before a production launch; the admin moderation queue is the
-  manual-review backstop either way.
+  (`supabase/functions/moderate-photo/provider.ts`) runs through Sightengine (nudity,
+  gore, and a per-face apparent-minor score) — there is deliberately no
+  approve-everything mode, so the admin moderation queue is the manual-review backstop
+  for anything undetermined or below the confidence threshold.
 - `app_config` and `swipe_refresh_notifications` have no grants to `authenticated`/`anon`
   at all (not even RLS — there's no privilege to query them via the API); they're
   read/written only by `SECURITY DEFINER` functions running as the table owner, same
@@ -357,15 +369,15 @@ rather than faking:
   can't be exercised in a simulator.
 - **Apple / Google sign-in** need real provider credentials configured in Supabase Auth
   and (for Apple) a real Apple Developer account; neither works in Expo Go.
-- **Email confirmation is built but not switched on in the hosted project.** The app
-  side is done — `signUp()` handles a null session, `app/(auth)/confirm-email.tsx` takes
-  a 6-digit code, and `0028_require_verified_email.sql` is the in-database backstop — and
-  local dev exercises it via `config.toml` + Inbucket. What remains is operational: a
-  sending domain verified with an email provider, custom SMTP configured in the
-  Dashboard, the raised rate limit, the template pasted in, and then the toggle. Until
-  that's done, anyone can register under someone else's address and `0028`'s gate is
-  vacuous, because Supabase stamps `email_confirmed_at` at signup when confirmation is
-  off. See setup step 7 for the ordered checklist.
+- **Email confirmation is live.** `signUp()` handles a null session,
+  `app/(auth)/confirm-email.tsx` takes a 6-digit code, `0028_require_verified_email.sql`
+  is the in-database backstop, and local dev exercises the same flow via `config.toml` +
+  Inbucket. A new deployment needs its own sending domain verified with an email
+  provider, custom SMTP configured in the Dashboard, the raised rate limit, the template
+  pasted in, and then the toggle flipped — see setup step 7 for the ordered checklist.
+  Until all of that's done for a given project, anyone can register under someone else's
+  address and `0028`'s gate is vacuous, because Supabase stamps `email_confirmed_at` at
+  signup when confirmation is off.
 - **Account deletion cascades reports filed against the deleted user, not just their own
   data.** That's the literal reading of "fully removes personal data," but a production
   trust & safety process might prefer retaining anonymized report records to prevent a
