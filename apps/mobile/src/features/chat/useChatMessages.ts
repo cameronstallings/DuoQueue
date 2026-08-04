@@ -70,12 +70,22 @@ export function useChatMessages(matchId: string) {
               );
               // send-message can rewrite `content` before storing it (profanity
               // masking), so an exact match misses the optimistic row it belongs to.
-              // Fall back to the oldest pending temp- row instead: the composer
-              // disables sending while a message is in flight, so there's normally at
-              // most one to match, and onSuccess's own id-based cleanup (which still
-              // runs) protects against picking a wrong one.
+              // Fall back to the pending temp- row instead — but only when there's
+              // exactly one candidate. The composer and the overflow menu's "Ping I'm
+              // free now" both send through this same mutation, and either one alone
+              // guarantees at most one in-flight temp row, but together they can leave
+              // two — picking a temp row by position in that case risks dropping the
+              // wrong message (and briefly showing its raw, unmasked content next to
+              // the other's masked echo). With 2+ candidates, skip the fallback and let
+              // onSuccess's own id-based cleanup (which still runs) resolve it — the
+              // bounded, original duplicate-until-onSuccess behavior.
+              const tempCandidates = messages.filter((m) => m.id.startsWith("temp-"));
               const tempIndex =
-                contentIndex !== -1 ? contentIndex : messages.findIndex((m) => m.id.startsWith("temp-"));
+                contentIndex !== -1
+                  ? contentIndex
+                  : tempCandidates.length === 1
+                    ? messages.findIndex((m) => m.id === tempCandidates[0]?.id)
+                    : -1;
               if (tempIndex !== -1) {
                 messages = [...messages.slice(0, tempIndex), ...messages.slice(tempIndex + 1)];
               }

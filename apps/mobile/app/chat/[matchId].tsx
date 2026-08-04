@@ -776,7 +776,12 @@ export default function ChatScreen() {
       <Sheet visible={menuVisible} onClose={() => setMenuVisible(false)}>
         <View style={{ gap: spacing.xs }}>
           <SectionLabel>Play together</SectionLabel>
-          <ActionRow icon="flash" label="Ping I'm free now" onPress={() => void handlePlayNow()} />
+          <ActionRow
+            icon="flash"
+            label="Ping I'm free now"
+            onPress={() => void handlePlayNow()}
+            disabled={sendMessage.isPending}
+          />
           <ActionRow icon="people" label="Invite a third" onPress={() => void handleInviteThird()} />
           <ActionRow
             icon="calendar"
