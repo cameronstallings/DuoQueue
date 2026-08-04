@@ -74,11 +74,18 @@ export function useLinkSteamAccount(profileId: string | undefined) {
 
 export function useUnlinkAccount(profileId: string | undefined) {
   const queryClient = useQueryClient();
+  const [unlinking, setUnlinking] = useState(false);
   return {
+    unlinking,
     unlink: async (provider: LinkedAccountProvider) => {
       if (!profileId) return;
-      await supabase.from("linked_accounts").delete().eq("profile_id", profileId).eq("provider", provider);
-      void queryClient.invalidateQueries({ queryKey: ["linked-accounts", profileId] });
+      setUnlinking(true);
+      try {
+        await supabase.from("linked_accounts").delete().eq("profile_id", profileId).eq("provider", provider);
+        void queryClient.invalidateQueries({ queryKey: ["linked-accounts", profileId] });
+      } finally {
+        setUnlinking(false);
+      }
     },
   };
 }

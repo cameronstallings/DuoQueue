@@ -31,6 +31,12 @@ export function useDeck() {
     setQueue((prev) => prev.slice(1));
   }, []);
 
+  // Re-inserts a card at the front of the queue — used to undo an optimistic
+  // popTop() when the swipe RPC behind it fails, so the card isn't lost.
+  const restoreTop = useCallback((card: DeckCard) => {
+    setQueue((prev) => [card, ...prev]);
+  }, []);
+
   // Render-time sync (not an effect) so swipes can pop the local queue optimistically
   // without waiting on a refetch — see the useState docs on storing info from previous
   // renders. Guarded by reference equality so it only re-syncs when react-query hands
@@ -51,6 +57,7 @@ export function useDeck() {
     isLoading: query.isLoading,
     error: query.error,
     popTop,
+    restoreTop,
     refetch,
   };
 }

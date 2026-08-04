@@ -53,7 +53,7 @@ export default function ConnectionsSettings() {
   const profile = useSessionStore((s) => s.profile);
   const { data: linked } = useLinkedAccounts(profile?.id);
   const { startLink, linking, error } = useLinkSteamAccount(profile?.id);
-  const { unlink } = useUnlinkAccount(profile?.id);
+  const { unlink, unlinking } = useUnlinkAccount(profile?.id);
 
   const steamLink = linked?.find((a) => a.provider === "steam");
 
@@ -68,9 +68,9 @@ export default function ConnectionsSettings() {
         <ProviderRow
           name="Steam"
           status={steamLink ? `Verified as ${steamLink.display_name}` : "Not connected"}
-          action={steamLink ? "Unlink" : linking ? "Connecting…" : "Connect"}
+          action={steamLink ? (unlinking ? "Unlinking…" : "Unlink") : linking ? "Connecting…" : "Connect"}
           onPress={steamLink ? () => void unlink("steam") : () => void startLink()}
-          disabled={linking}
+          disabled={steamLink ? unlinking : linking}
           destructive={!!steamLink}
         />
         <View style={{ height: 1, backgroundColor: colors.border, marginLeft: spacing.md }} />

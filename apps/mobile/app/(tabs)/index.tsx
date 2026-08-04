@@ -35,7 +35,7 @@ import { useTheme } from "@/theme/useTheme";
 export default function DeckScreen() {
   const { colors, spacing, type, radius } = useTheme();
   const insets = useSafeAreaInsets();
-  const { cards, isLoading, error, popTop, refetch } = useDeck();
+  const { cards, isLoading, error, popTop, restoreTop, refetch } = useDeck();
   const swipeAction = useSwipeAction();
   const superPing = useSuperPing();
   const activateBoost = useActivateBoost();
@@ -61,6 +61,9 @@ export default function DeckScreen() {
         });
       }
     } catch (err) {
+      // The card already animated off — the RPC failed, so put it back at the
+      // front of the deck instead of silently discarding an unrecorded swipe.
+      restoreTop(card);
       if (err instanceof SwipeLimitReachedError) {
         Alert.alert(
           "Daily limit reached",
@@ -168,20 +171,27 @@ export default function DeckScreen() {
             accessibilityRole="button"
             accessibilityLabel="Activate Power-Up"
             onPress={() => void handleActivateBoost()}
-            style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+            disabled={activateBoost.isPending}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 4,
+              opacity: activateBoost.isPending ? 0.5 : pressed ? 0.7 : 1,
+            })}
           >
             <Ionicons name="rocket" size={16} color={colors.volt} />
             <Text style={[type.caption, { color: colors.voltDim }]}>{credits?.boosts ?? 0}</Text>
           </Pressable>
-          <Pressable onPress={() => router.push("/online-now")}>
+          <Pressable onPress={() => router.push("/online-now")} hitSlop={8}>
             <Text style={[type.caption, { color: colors.voltDim }]}>Online</Text>
           </Pressable>
-          <Pressable onPress={() => router.push("/admirers")}>
+          <Pressable onPress={() => router.push("/admirers")} hitSlop={8}>
             <Text style={[type.caption, { color: colors.voltDim }]}>
               Likes{admirersCount ? ` (${admirersCount})` : ""}
             </Text>
           </Pressable>
-          <Pressable onPress={() => router.push("/filters")}>
+          <Pressable onPress={() => router.push("/filters")} hitSlop={8}>
             <Text style={[type.caption, { color: colors.voltDim }]}>Filters</Text>
           </Pressable>
         </View>
@@ -234,6 +244,7 @@ export default function DeckScreen() {
           onSendRose={
             credits && (credits.free_rose_available || credits.roses > 0) ? () => void handleSendRose() : undefined
           }
+          disabled={swipeAction.isPending || superPing.isPending || sendRose.isPending}
         />
       )}
     </View>

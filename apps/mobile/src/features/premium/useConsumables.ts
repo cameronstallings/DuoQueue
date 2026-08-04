@@ -73,6 +73,9 @@ export function useSendRose() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: CONSUMABLE_CREDITS_QUERY_KEY });
       void queryClient.invalidateQueries({ queryKey: ["swipe-quota"] });
+      // A rose can match/remove someone from the admirers list.
+      void queryClient.invalidateQueries({ queryKey: ["admirers"] });
+      void queryClient.invalidateQueries({ queryKey: ["admirers-count"] });
     },
   });
 }
