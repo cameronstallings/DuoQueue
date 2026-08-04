@@ -57,6 +57,8 @@ export const darkColors = {
   surfaceSolid: "#12140F",
   surfaceAlt: "#1A1D15",
   border: "#232720",
+  /** Own chat-bubble fill — a volt-tinted dark surface, distinct from surfaceAlt. */
+  bubbleOwn: "#202817",
   text: "#EDF1E6",
   textMuted: "#98A18A",
 
@@ -108,6 +110,8 @@ export const lightColors = {
   surfaceSolid: "#FFFFFF",
   surfaceAlt: "#E7EBDB",
   border: "#C9CFBB",
+  /** Own chat-bubble fill — a volt-tinted light surface, distinct from surfaceAlt. */
+  bubbleOwn: "#E4EDC8",
   text: "#161A0F",
   textMuted: "#5C6450",
 

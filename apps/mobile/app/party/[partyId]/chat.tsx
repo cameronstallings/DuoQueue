@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams } from "expo-router";
 
 import { GraticuleBackground } from "@/components/GraticuleBackground";
@@ -14,18 +15,22 @@ function MessageBubble({ content, isMine, senderName }: { content: string; isMin
   const { colors, radius, spacing, type } = useTheme();
   return (
     <View style={{ alignSelf: isMine ? "flex-end" : "flex-start", maxWidth: "80%", gap: 2 }}>
+      {/* p2Line — this label only ever names someone other than the reader ("them");
+          the reader's own messages carry no name caption, so p1Line ("you") has no
+          text to attach to here. */}
       {!isMine && (
-        <Text style={[type.caption, { color: colors.textMuted, marginLeft: spacing.sm }]}>{senderName}</Text>
+        <Text style={[type.caption, { color: colors.p2Line, marginLeft: spacing.sm }]}>{senderName}</Text>
       )}
       <View
         style={{
-          backgroundColor: isMine ? colors.brand : colors.surface,
+          backgroundColor: isMine ? colors.bubbleOwn : colors.surface,
           borderRadius: radius.md,
+          ...(isMine ? null : { borderWidth: 1, borderColor: colors.border }),
           paddingVertical: spacing.sm,
           paddingHorizontal: spacing.md,
         }}
       >
-        <Text style={[type.body, { color: isMine ? colors.onFill : colors.text }]}>{content}</Text>
+        <Text style={[type.body, { color: colors.text }]}>{content}</Text>
       </View>
     </View>
   );
@@ -105,28 +110,40 @@ export default function PartyChatScreen() {
             onChangeText={setDraft}
             placeholder="Message the party..."
             placeholderTextColor={colors.textMuted}
-            style={{
-              flex: 1,
-              backgroundColor: colors.surface,
-              borderRadius: radius.card,
-              paddingHorizontal: spacing.md,
-              paddingVertical: spacing.sm,
-              color: colors.text,
-            }}
+            style={[
+              type.body,
+              {
+                flex: 1,
+                backgroundColor: colors.surfaceAlt,
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: radius.input,
+                paddingHorizontal: spacing.md,
+                paddingVertical: spacing.sm,
+                color: colors.text,
+              },
+            ]}
             multiline
           />
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Send message"
             onPress={() => void handleSend()}
             disabled={sendMessage.isPending || !draft.trim()}
-            style={{
-              backgroundColor: colors.brand,
-              opacity: sendMessage.isPending || !draft.trim() ? 0.5 : 1,
-              borderRadius: radius.card,
-              paddingHorizontal: spacing.md,
-              paddingVertical: spacing.sm,
-            }}
+            style={({ pressed }) => [
+              {
+                width: 40,
+                height: 40,
+                borderRadius: radius.round,
+                backgroundColor: colors.volt,
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: sendMessage.isPending || !draft.trim() ? 0.45 : 1,
+              },
+              { transform: [{ scale: pressed ? 0.94 : 1 }] },
+            ]}
           >
-            <Text style={[type.bodyStrong, { color: colors.onFill }]}>Send</Text>
+            <Ionicons name="arrow-up" size={20} color={colors.onVolt} />
           </Pressable>
         </View>
       </KeyboardAvoidingView>

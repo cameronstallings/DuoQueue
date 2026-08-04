@@ -12,7 +12,6 @@ import {
 } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import Animated, { FadeInUp } from "react-native-reanimated";
@@ -169,9 +168,9 @@ function SessionBanner({ matchId, myId }: { matchId: string; myId: string | unde
   return (
     <View style={{ marginHorizontal: spacing.md, marginBottom: spacing.sm }}>
       <Card style={{ flexDirection: "row", padding: 0, overflow: "hidden" }}>
-        {/* The accent left edge is its own inner view, not a border on the card —
+        {/* The volt left edge is its own inner view, not a border on the card —
             keeps the glow-free "colored stripe" look consistent with other rails. */}
-        <View style={{ width: 2, backgroundColor: colors.accent }} />
+        <View style={{ width: 2, backgroundColor: colors.volt }} />
         <View style={{ flex: 1, padding: spacing.md, gap: spacing.sm }}>
           <Text style={[type.bodyStrong, { color: colors.text }]}>
             {session.status === "confirmed" ? "Playing " : "Proposed: "}
@@ -270,14 +269,15 @@ function MessageBubble({
   readAt: string | null;
   hiddenWords: string[];
 }) {
-  const { colors, spacing, type, heroGradient } = useTheme();
+  const { colors, spacing, radius, type } = useTheme();
   const [revealed, setRevealed] = useState(false);
   const isHidden = !isMine && !revealed && containsHiddenWord(content, hiddenWords);
 
   const bubbleShape = {
-    // Bubble geometry has no token — 20 is the base radius, 6 is the tail corner.
-    borderRadius: 20,
-    ...(isMine ? { borderBottomRightRadius: 6 } : { borderBottomLeftRadius: 6 }),
+    // radius.md is the base; the tail corner tightens to 3 so the bubble still
+    // points toward its sender instead of reading as a uniform rounded rect.
+    borderRadius: radius.md,
+    ...(isMine ? { borderBottomRightRadius: 3 } : { borderBottomLeftRadius: 3 }),
     paddingVertical: spacing.sm + 1,
     paddingHorizontal: spacing.md - 2,
   };
@@ -287,7 +287,7 @@ function MessageBubble({
       style={[
         type.body,
         {
-          color: isMine ? colors.onFill : isHidden ? colors.textMuted : colors.text,
+          color: isHidden ? colors.textMuted : colors.text,
           fontStyle: isHidden ? "italic" : "normal",
         },
       ]}
@@ -303,11 +303,7 @@ function MessageBubble({
     <View style={{ alignSelf: isMine ? "flex-end" : "flex-start", maxWidth: "78%", opacity: isSending ? 0.75 : 1 }}>
       <Pressable disabled={!isHidden} onPress={() => setRevealed(true)}>
         {isMine ? (
-          // The 0.9 opacity lives on the gradient container itself, not the text —
-          // so the whole fill reads as a hair translucent, not the label alone.
-          <LinearGradient {...heroGradient} style={[bubbleShape, { opacity: 0.9 }]}>
-            {text}
-          </LinearGradient>
+          <View style={[bubbleShape, { backgroundColor: colors.bubbleOwn }]}>{text}</View>
         ) : (
           <View style={[bubbleShape, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}>
             {text}
@@ -319,7 +315,7 @@ function MessageBubble({
           on the latest own message (computed by the caller) so a whole run of "Sent"
           labels doesn't repeat down the screen. */}
       {isMine && showReceipt && (
-        <Text style={[type.caption, { color: colors.textMuted, textAlign: "right", marginTop: 2 }]}>
+        <Text style={[type.tick, { color: colors.voltDim, textAlign: "right", marginTop: 2 }]}>
           {readAt ? "Read" : isSending ? "Sending…" : "Sent"}
         </Text>
       )}
@@ -371,7 +367,7 @@ function DiscordShareBubble({
           style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.sm }}
         >
           <Text style={[type.bodyStrong, { color: colors.text }]}>{username}</Text>
-          <Text style={[type.caption, { color: colors.accentInk }]}>Copy</Text>
+          <Text style={[type.caption, { color: colors.voltDim }]}>Copy</Text>
         </Pressable>
       ) : (
         <Text style={[type.caption, { color: colors.textMuted, textAlign: "center" }]}>No longer available</Text>
@@ -381,7 +377,7 @@ function DiscordShareBubble({
 }
 
 export default function ChatScreen() {
-  const { colors, spacing, radius, type, glow, heroGradient, solarGradient } = useTheme();
+  const { colors, spacing, radius, type } = useTheme();
   const headerHeight = useHeaderHeight();
   const insets = useSafeAreaInsets();
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
@@ -557,7 +553,7 @@ export default function ChatScreen() {
           // Without this iOS labels the back button with the previous route's name,
           // which here is the literal route group "(tabs)".
           headerBackTitle: "Matches",
-          headerTintColor: colors.brandInk,
+          headerTintColor: colors.voltDim,
           headerStyle: { backgroundColor: colors.surfaceSolid },
           headerShadowVisible: false,
           // The name itself is the way into their profile — smallest change that
@@ -577,7 +573,7 @@ export default function ChatScreen() {
           ),
           headerRight: () => (
             <Pressable onPress={() => setMenuVisible(true)} hitSlop={12} accessibilityLabel="Chat options">
-              <Ionicons name="ellipsis-horizontal" size={22} color={colors.brandInk} />
+              <Ionicons name="ellipsis-horizontal" size={22} color={colors.voltDim} />
             </Pressable>
           ),
         }}
@@ -684,23 +680,23 @@ export default function ChatScreen() {
       >
         {matchInfo?.is_locked ? (
           <View style={{ padding: spacing.md, borderTopWidth: 1, borderColor: colors.border }}>
-            <LinearGradient {...solarGradient} style={{ borderRadius: radius.card, padding: 1 }}>
-              <View
-                style={{
-                  backgroundColor: colors.surfaceSolid,
-                  borderRadius: radius.card - 1,
-                  padding: spacing.md,
-                  gap: spacing.sm,
-                  alignItems: "center",
-                }}
-              >
-                <Text style={[type.caption, { color: colors.textMuted, textAlign: "center" }]}>
-                  This conversation is locked — upgrade for unlimited active conversations, or unmatch an
-                  older conversation to free up a slot.
-                </Text>
-                <Button variant="solar" label="Get DuoQueue+" onPress={() => router.push("/paywall")} />
-              </View>
-            </LinearGradient>
+            <View
+              style={{
+                backgroundColor: colors.surfaceSolid,
+                borderRadius: radius.card,
+                borderWidth: 1,
+                borderColor: colors.amber,
+                padding: spacing.md,
+                gap: spacing.sm,
+                alignItems: "center",
+              }}
+            >
+              <Text style={[type.caption, { color: colors.textMuted, textAlign: "center" }]}>
+                This conversation is locked — upgrade for unlimited active conversations, or unmatch an
+                older conversation to free up a slot.
+              </Text>
+              <Button variant="solar" label="Get DuoQueue+" onPress={() => router.push("/paywall")} />
+            </View>
           </View>
         ) : (
           <View
@@ -730,10 +726,10 @@ export default function ChatScreen() {
                 type.body,
                 {
                   flex: 1,
-                  backgroundColor: colors.surface,
+                  backgroundColor: colors.surfaceAlt,
                   borderWidth: 1,
                   borderColor: colors.border,
-                  borderRadius: radius.round,
+                  borderRadius: radius.input,
                   paddingHorizontal: spacing.md,
                   paddingVertical: spacing.sm,
                   color: colors.text,
@@ -750,34 +746,19 @@ export default function ChatScreen() {
               onPress={() => void handleSend()}
               disabled={!canSend}
               style={({ pressed }) => [
-                { width: 40, height: 40, borderRadius: radius.round },
-                canSend ? glow(colors.glowViolet, 12) : null,
+                {
+                  width: 40,
+                  height: 40,
+                  borderRadius: radius.round,
+                  backgroundColor: colors.volt,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  opacity: canSend ? 1 : 0.45,
+                },
                 { transform: [{ scale: pressed ? 0.94 : 1 }] },
               ]}
             >
-              {canSend ? (
-                <LinearGradient
-                  {...heroGradient}
-                  style={{ width: 40, height: 40, borderRadius: radius.round, alignItems: "center", justifyContent: "center" }}
-                >
-                  <Ionicons name="arrow-up" size={20} color={colors.onFill} />
-                </LinearGradient>
-              ) : (
-                <View
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: radius.round,
-                    backgroundColor: colors.surface,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Ionicons name="arrow-up" size={20} color={colors.textMuted} />
-                </View>
-              )}
+              <Ionicons name="arrow-up" size={20} color={colors.onVolt} />
             </Pressable>
           </View>
         )}
