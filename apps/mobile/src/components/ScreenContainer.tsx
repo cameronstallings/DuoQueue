@@ -27,7 +27,7 @@ interface ScreenContainerProps extends PropsWithChildren {
    */
   showBack?: boolean;
   /** Which aurora wash sits behind the content. "none" opts out of the atmosphere. */
-  aurora?: "default" | "solar" | "none";
+  aurora?: "default" | "none";
 }
 
 export function ScreenContainer({
@@ -57,7 +57,7 @@ export function ScreenContainer({
     >
       {aurora !== "none" && (
         <>
-          <GraticuleBackground variant={aurora === "solar" ? "solar" : "default"} />
+          <GraticuleBackground />
           <GrainOverlay />
         </>
       )}

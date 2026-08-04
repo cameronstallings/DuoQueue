@@ -39,7 +39,7 @@ function ToggleRow({
           hapticSelection();
           onChange(next);
         }}
-        trackColor={{ true: colors.brand }}
+        trackColor={{ true: colors.volt }}
       />
     </View>
   );

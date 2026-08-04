@@ -30,7 +30,7 @@ function LocalPreviewPlayer({ uri }: { uri: string }) {
       }}
       hitSlop={8}
     >
-      <Ionicons name={status.playing ? "pause-circle" : "play-circle"} size={32} color={colors.brand} />
+      <Ionicons name={status.playing ? "pause-circle" : "play-circle"} size={32} color={colors.volt} />
     </Pressable>
   );
 }
@@ -76,7 +76,7 @@ export function VoiceIntroRecorderCard({ profileId }: { profileId: string }) {
               <Text style={[type.bodyStrong, { color: colors.textMuted }]}>Discard</Text>
             </Pressable>
             <Pressable onPress={() => void handleSave()} disabled={upload.isPending}>
-              <Text style={[type.bodyStrong, { color: colors.brandInk }]}>{upload.isPending ? "Saving…" : "Save"}</Text>
+              <Text style={[type.bodyStrong, { color: colors.voltDim }]}>{upload.isPending ? "Saving…" : "Save"}</Text>
             </Pressable>
           </View>
         ) : (
@@ -89,7 +89,7 @@ export function VoiceIntroRecorderCard({ profileId }: { profileId: string }) {
                 borderRadius: 24,
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: recorder.isRecording ? colors.dangerDark : colors.brand,
+                backgroundColor: recorder.isRecording ? colors.dangerDark : colors.volt,
               }}
             >
               <Ionicons name={recorder.isRecording ? "stop" : "mic"} size={22} color={colors.onFill} />

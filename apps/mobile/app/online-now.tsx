@@ -103,7 +103,7 @@ export default function OnlineNowScreen() {
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-between",
-          backgroundColor: colors.brandSoft,
+          backgroundColor: colors.voltSoft,
           borderRadius: radius.lg,
           padding: spacing.md,
         }}
@@ -118,7 +118,7 @@ export default function OnlineNowScreen() {
           value={lookingNowSwitchValue}
           onValueChange={handleToggleLookingNow}
           disabled={setLookingNow.isPending}
-          trackColor={{ true: colors.brand }}
+          trackColor={{ true: colors.volt }}
         />
       </View>
 

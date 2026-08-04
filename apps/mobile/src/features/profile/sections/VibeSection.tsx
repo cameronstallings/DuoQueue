@@ -27,7 +27,7 @@ function VibeBar({ left, right, pct }: { left: string; right: string; pct: numbe
           overflow: "hidden",
         }}
       >
-        <View style={{ height: 6, width: `${pct}%`, backgroundColor: colors.accent, borderRadius: radius.round }} />
+        <View style={{ height: 6, width: `${pct}%`, backgroundColor: colors.volt, borderRadius: radius.round }} />
       </View>
     </View>
   );

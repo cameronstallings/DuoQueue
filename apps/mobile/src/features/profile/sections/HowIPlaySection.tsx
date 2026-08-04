@@ -6,7 +6,7 @@ import { useTheme } from "@/theme/useTheme";
 
 /**
  * Platforms and playstyles in one shared wrap — platform chips carry the default
- * tone, playstyle chips carry accent, so the two families stay visually distinct
+ * tone, playstyle chips carry volt, so the two families stay visually distinct
  * without needing a rule or a second heading between them.
  */
 export function HowIPlaySection({ platforms, playstyles }: { platforms: string[]; playstyles: string[] }) {
@@ -22,7 +22,7 @@ export function HowIPlaySection({ platforms, playstyles }: { platforms: string[]
           <Chip key={`platform-${platform}`} label={platform} tone="default" />
         ))}
         {playstyles.map((playstyle) => (
-          <Chip key={`playstyle-${playstyle}`} label={playstyle} tone="accent" />
+          <Chip key={`playstyle-${playstyle}`} label={playstyle} tone="volt" />
         ))}
       </View>
     </View>

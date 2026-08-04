@@ -87,10 +87,10 @@ export function CatalogPicker({ table, placeholder, profileId, selectedIds, onSe
             borderRadius: radius.sm,
             borderWidth: 1,
             borderStyle: "dashed",
-            borderColor: colors.brand,
+            borderColor: colors.volt,
           }}
         >
-          <Text style={[type.caption, { color: colors.brandInk }]}>
+          <Text style={[type.caption, { color: colors.voltDim }]}>
             {creating ? "Adding…" : `+ Add "${trimmed}"`}
           </Text>
         </Pressable>

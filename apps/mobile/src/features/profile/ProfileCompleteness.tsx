@@ -26,7 +26,7 @@ export function ProfileCompleteness({ items }: { items: CompletenessItem[] }) {
       <View style={{ height: 4, borderRadius: radius.round, backgroundColor: colors.surfaceAlt, overflow: "hidden" }}>
         <Animated.View
           entering={FadeIn.duration(300)}
-          style={{ width: `${pct}%`, height: "100%", backgroundColor: colors.accent, borderRadius: radius.round }}
+          style={{ width: `${pct}%`, height: "100%", backgroundColor: colors.volt, borderRadius: radius.round }}
         />
       </View>
       <Text style={[type.caption, { color: colors.textMuted }]}>

@@ -269,7 +269,6 @@ export function GalleryPanel({
                 gap={spacing.sm}
                 slotByIndex={slotByIndex}
                 activeIndex={activeIndex}
-                isLifted={draggingIndex === index}
                 onLift={() => setDraggingIndex(index)}
                 onOpenSheet={setSelected}
                 onDrop={handleTileDropped}
@@ -337,7 +336,7 @@ export function GalleryPanel({
 }
 
 /** One draggable gallery tile. Tap opens the Sheet; holding for ~250ms lifts it (scale
- * + glow + haptic) and a Pan gesture takes over, following the finger while the other
+ * + haptic) and a Pan gesture takes over, following the finger while the other
  * tiles animate out of the way. `Gesture.Race` plus Pan's own `activateAfterLongPress`
  * is what makes a quick tap and a hold-then-drag mutually exclusive without any manual
  * timer bookkeeping: if the finger moves before the long-press duration elapses, Pan
@@ -350,7 +349,6 @@ function GalleryTile({
   gap,
   slotByIndex,
   activeIndex,
-  isLifted,
   onLift,
   onOpenSheet,
   onDrop,
@@ -362,12 +360,11 @@ function GalleryTile({
   gap: number;
   slotByIndex: SharedValue<number[]>;
   activeIndex: SharedValue<number>;
-  isLifted: boolean;
   onLift: () => void;
   onOpenSheet: (photo: OwnGalleryPhoto) => void;
   onDrop: (mediaId: string, fromIndex: number, toIndex: number) => void;
 }) {
-  const { colors, radius, type, scrimRgb, glow, motion } = useTheme();
+  const { colors, radius, type, scrimRgb, motion } = useTheme();
   const dragX = useSharedValue(0);
   const dragY = useSharedValue(0);
 
@@ -466,7 +463,6 @@ function GalleryTile({
       <Animated.View
         style={[
           { position: "absolute", top: 0, left: 0, width: tileSize, height: tileSize, borderRadius: radius.sm },
-          isLifted ? glow(colors.glowViolet, 16) : null,
           animatedStyle,
         ]}
       >

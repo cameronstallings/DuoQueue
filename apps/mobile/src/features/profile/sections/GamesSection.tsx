@@ -11,7 +11,7 @@ import { useTheme } from "@/theme/useTheme";
  *
  * When a game has a platform-verified stat (rank or playtime, keyed by game name —
  * see useVerifiedStats), it wins over the self-reported rank/skill entirely: the chip
- * shows a checkmark-prefixed verified value in accent tone instead. Absent an entry,
+ * shows a checkmark-prefixed verified value in volt tone instead. Absent an entry,
  * rendering is byte-for-byte what it was before verified stats existed.
  */
 export function GamesSection({
@@ -32,7 +32,7 @@ export function GamesSection({
         {games.map((game) => {
           const verified = verifiedByName?.[game.name];
           if (verified) {
-            return <Chip key={game.name} label={game.name} detail={`✓ ${verified}`} tone="accent" />;
+            return <Chip key={game.name} label={game.name} detail={`✓ ${verified}`} tone="volt" />;
           }
           return <Chip key={game.name} label={game.name} detail={game.rank ?? game.skillLevel ?? undefined} />;
         })}

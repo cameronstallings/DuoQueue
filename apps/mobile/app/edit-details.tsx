@@ -230,7 +230,7 @@ export default function EditDetailsScreen() {
                     selected
                     onPress={() => removeShow(show.showId)}
                     accessibilityLabel={`Remove ${show.name}`}
-                    icon={<Ionicons name="close" size={13} color={colors.brandInk} />}
+                    icon={<Ionicons name="close" size={13} color={colors.voltDim} />}
                   />
                 ))}
               </View>

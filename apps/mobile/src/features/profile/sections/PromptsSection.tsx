@@ -20,7 +20,7 @@ export function PromptsSection({ prompts }: { prompts: { question: string; answe
       <View style={{ gap: spacing.sm }}>
         {prompts.map((prompt) => (
           <Card key={prompt.question} style={{ gap: spacing.xs }}>
-            <Text style={[type.caption, { color: colors.accentInk }]}>{prompt.question}</Text>
+            <Text style={[type.caption, { color: colors.voltDim }]}>{prompt.question}</Text>
             <Text style={[type.quote, { color: colors.text }]}>{prompt.answer}</Text>
           </Card>
         ))}

@@ -3,9 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useTheme } from "@/theme/useTheme";
 
-export type ChipTone = "default" | "volt" | "success" | "amber" | "danger" | "soft"
-  /** @deprecated Volt migration aliases — DELETE in Task 11 */
-  | "accent" | "solar";
+export type ChipTone = "default" | "volt" | "success" | "amber" | "danger" | "soft";
 
 export interface ChipProps {
   label: string;
@@ -28,8 +26,7 @@ export interface ChipProps {
 export function Chip({ label, detail, icon, selected, tone = "default", onPress, accessibilityLabel }: ChipProps) {
   const { colors, radius, spacing, type } = useTheme();
 
-  const resolved = tone === "accent" ? "volt" : tone === "solar" ? "amber" : tone;
-  const isVolt = selected || resolved === "volt";
+  const isVolt = selected || tone === "volt";
 
   let backgroundColor: string = "transparent";
   let borderColor: string = colors.border;
@@ -38,19 +35,19 @@ export function Chip({ label, detail, icon, selected, tone = "default", onPress,
   if (isVolt) {
     borderColor = colors.volt;
     textColor = colors.volt;
-  } else if (resolved === "soft") {
+  } else if (tone === "soft") {
     backgroundColor = colors.voltSoft;
     borderColor = "transparent";
     textColor = colors.volt;
-  } else if (resolved === "success") {
+  } else if (tone === "success") {
     backgroundColor = colors.successFill;
     borderColor = colors.success;
     textColor = colors.success;
-  } else if (resolved === "amber") {
+  } else if (tone === "amber") {
     backgroundColor = colors.amberSoft;
     borderColor = colors.amber;
     textColor = colors.amber;
-  } else if (resolved === "danger") {
+  } else if (tone === "danger") {
     borderColor = colors.danger;
     textColor = colors.danger;
   }

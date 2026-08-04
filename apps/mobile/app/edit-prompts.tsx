@@ -83,7 +83,7 @@ export default function EditPromptsScreen() {
                   <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                     <Text style={[type.bodyStrong, { color: colors.text, flex: 1 }]}>{slot.question}</Text>
                     <Pressable onPress={() => clearAt(index)}>
-                      <Text style={[type.caption, { color: colors.brandInk }]}>Change</Text>
+                      <Text style={[type.caption, { color: colors.voltDim }]}>Change</Text>
                     </Pressable>
                   </View>
                   <TextField
@@ -103,7 +103,7 @@ export default function EditPromptsScreen() {
                   onPress={() => setPickerIndex(index)}
                   style={{ alignItems: "center", paddingVertical: spacing.sm }}
                 >
-                  <Text style={[type.bodyStrong, { color: colors.brandInk }]}>+ Select a prompt</Text>
+                  <Text style={[type.bodyStrong, { color: colors.voltDim }]}>+ Select a prompt</Text>
                 </Pressable>
               )}
             </Card>

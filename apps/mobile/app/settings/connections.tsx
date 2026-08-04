@@ -39,7 +39,7 @@ function ProviderRow({
       {action &&
         (onPress ? (
           <Pressable onPress={onPress} disabled={disabled} accessibilityRole="button" hitSlop={8}>
-            <Text style={[type.label, { color: destructive ? colors.danger : colors.brandInk }]}>{action}</Text>
+            <Text style={[type.label, { color: destructive ? colors.danger : colors.voltDim }]}>{action}</Text>
           </Pressable>
         ) : (
           <Text style={[type.label, { color: colors.textMuted }]}>{action}</Text>

@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import type { PurchasesPackage } from "react-native-purchases";
 
 import { Button } from "@/components/Button";
@@ -36,14 +35,14 @@ function PlanRow({
   badge?: string;
   subCaption?: string;
 }) {
-  const { colors, radius, spacing, type, solarGradient } = useTheme();
+  const { colors, radius, spacing, type } = useTheme();
 
   const rowContent = (
     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: spacing.md }}>
       <View style={{ gap: 2, flex: 1 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
           <Text style={[type.bodyStrong, { color: colors.text }]}>{title}</Text>
-          {badge ? <Chip label={badge} tone="solar" /> : null}
+          {badge ? <Chip label={badge} tone="amber" /> : null}
         </View>
         {subCaption ? <Text style={[type.caption, { color: colors.textMuted }]}>{subCaption}</Text> : null}
         {pkg.product.introPrice ? (
@@ -62,9 +61,16 @@ function PlanRow({
       style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
     >
       {selected ? (
-        <LinearGradient {...solarGradient} style={{ borderRadius: radius.card, padding: 1 }}>
-          <View style={{ backgroundColor: colors.surfaceSolid, borderRadius: radius.card - 1 }}>{rowContent}</View>
-        </LinearGradient>
+        <View
+          style={{
+            borderRadius: radius.card,
+            borderWidth: 1,
+            borderColor: colors.amber,
+            backgroundColor: colors.surfaceSolid,
+          }}
+        >
+          {rowContent}
+        </View>
       ) : (
         <Card style={{ padding: 0 }}>{rowContent}</Card>
       )}
@@ -103,7 +109,7 @@ function ConsumableRow({
         <Text style={[type.caption, { color: colors.textMuted }]}>{description}</Text>
       </View>
       <Pressable onPress={onBuy} disabled={!pkg || buying} hitSlop={8}>
-        <Text style={[type.bodyStrong, { color: colors.brandInk, opacity: !pkg || buying ? 0.5 : 1 }]}>
+        <Text style={[type.bodyStrong, { color: colors.voltDim, opacity: !pkg || buying ? 0.5 : 1 }]}>
           {pkg ? pkg.product.priceString : "N/A"}
         </Text>
       </Pressable>
@@ -177,7 +183,7 @@ export default function PaywallScreen() {
       <Text style={[type.bodyStrong, { color: colors.text }]}>Power-Ups & Legendary Likes</Text>
       <ConsumableRow
         icon="rocket"
-        iconColor={colors.brand}
+        iconColor={colors.volt}
         title="Power-Up"
         description="30 minutes near the top of other people's decks"
         count={credits?.boosts ?? 0}
@@ -200,7 +206,7 @@ export default function PaywallScreen() {
 
   if (isPremium) {
     return (
-      <ScreenContainer title="You're on DuoQueue+" showClose aurora="solar">
+      <ScreenContainer title="You're on DuoQueue+" showClose>
         <Text style={[type.body, { color: colors.textMuted }]}>
           Unlimited swipes, unlimited conversations, advanced filters, admirers, and a daily Super Ping are
           all unlocked.
@@ -212,7 +218,7 @@ export default function PaywallScreen() {
   }
 
   return (
-    <ScreenContainer title="DuoQueue+" showClose aurora="solar">
+    <ScreenContainer title="DuoQueue+" showClose>
       <Logo width={44} />
       <Text style={[type.body, { color: colors.textMuted, marginBottom: spacing.sm }]}>
         Unlimited swipes, unlimited conversations, advanced filters, see everyone who liked you at once, and
@@ -301,7 +307,7 @@ export default function PaywallScreen() {
             onPress={() => void handleSubscribe()}
             loading={purchase.isPending}
             disabled={!selectedPackage}
-            variant="solar"
+            variant="premium"
           />
         </>
       )}

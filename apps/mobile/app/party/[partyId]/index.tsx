@@ -87,7 +87,7 @@ export default function PartyDeckScreen() {
           onPress={() => router.push({ pathname: "/party/[partyId]/chat", params: { partyId } })}
           hitSlop={8}
         >
-          <Ionicons name="chatbubbles" size={24} color={colors.brandInk} />
+          <Ionicons name="chatbubbles" size={24} color={colors.voltDim} />
         </Pressable>
       </View>
 

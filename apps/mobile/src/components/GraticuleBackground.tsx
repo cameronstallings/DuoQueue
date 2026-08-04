@@ -4,15 +4,14 @@ import Svg, { Circle, Defs, Line, Pattern, Rect } from "react-native-svg";
 import { useTheme } from "@/theme/useTheme";
 
 interface GraticuleBackgroundProps {
-  /** "match" draws slightly stronger lines for the moment screens.
-   * "solar" is a deprecated Aurora alias (Task 11 removes it) — renders default. */
-  variant?: "default" | "match" | "solar";
+  /** "match" draws slightly stronger lines for the moment screens. */
+  variant?: "default" | "match";
 }
 
 /** Volt's atmosphere: a static engineering graticule — 24px grid of hairlines with
  * sparse crosshair ticks. Replaces Aurora's drifting washes; grain supplies life. */
 export function GraticuleBackground({ variant = "default" }: GraticuleBackgroundProps) {
-  const { colors, scheme } = useTheme();
+  const { scheme } = useTheme();
   const strength = variant === "match" ? 1.6 : 1;
   const lineColor = scheme === "dark" ? "rgba(205,255,61," : "rgba(74,107,0,";
   const lineAlpha = (scheme === "dark" ? 0.035 : 0.05) * strength;

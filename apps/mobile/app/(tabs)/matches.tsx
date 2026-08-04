@@ -54,7 +54,7 @@ function timeAgo(iso: string | null): string {
 }
 
 function MatchRow({ item }: { item: MatchListItem }) {
-  const { colors, spacing, type, radius, glow } = useTheme();
+  const { colors, spacing, type, radius } = useTheme();
   const unread = item.unread_count > 0;
 
   const unreadLabel = unread ? `, ${item.unread_count} unread` : "";
@@ -75,24 +75,19 @@ function MatchRow({ item }: { item: MatchListItem }) {
       })}
     >
       {/* A round avatar, own Pressable so a tap opens the profile without also
-          opening the chat underneath it. Ring glows pink — the one unread signal. */}
+          opening the chat underneath it. Border brightens to volt — the one unread signal. */}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="View profile"
         onPress={() => router.push(`/profile/${item.other_profile_id}`)}
         hitSlop={8}
-        style={[
-          {
-            width: 54,
-            height: 54,
-            borderRadius: radius.round,
-            borderWidth: unread ? 2 : 1,
-            borderColor: unread ? colors.pink : colors.border,
-          },
-          // The glow (boxShadow) is a ViewStyle-only prop — it goes on this
-          // Pressable wrapper, not on expo-image's Image, which doesn't type it.
-          unread ? glow(colors.glowPink, 10) : null,
-        ]}
+        style={{
+          width: 54,
+          height: 54,
+          borderRadius: radius.round,
+          borderWidth: unread ? 2 : 1,
+          borderColor: unread ? colors.voltRaw : colors.border,
+        }}
       >
         {item.otherPhotoUrl ? (
           <Image
@@ -132,7 +127,7 @@ function MatchRow({ item }: { item: MatchListItem }) {
         </Text>
       </View>
 
-      {item.is_locked && <Chip tone="solar" label="Locked" />}
+      {item.is_locked && <Chip tone="amber" label="Locked" />}
     </Pressable>
   );
 }
@@ -225,7 +220,7 @@ export default function MatchesScreen() {
             )}
             stickySectionHeadersEnabled={false}
             refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} tintColor={colors.brand} />
+              <RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} tintColor={colors.volt} />
             }
           />
         </Animated.View>

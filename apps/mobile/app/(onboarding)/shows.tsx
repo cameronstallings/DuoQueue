@@ -52,7 +52,7 @@ export default function ShowsStep() {
               paddingVertical: spacing.sm,
               paddingHorizontal: spacing.md,
               borderRadius: radius.chip,
-              backgroundColor: colors.brand,
+              backgroundColor: colors.volt,
             }}
           >
             <Text style={[type.caption, { color: colors.onFill }]}>{show.name}</Text>

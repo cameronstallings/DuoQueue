@@ -695,7 +695,7 @@ export default function ChatScreen() {
                 This conversation is locked — upgrade for unlimited active conversations, or unmatch an
                 older conversation to free up a slot.
               </Text>
-              <Button variant="solar" label="Get DuoQueue+" onPress={() => router.push("/paywall")} />
+              <Button variant="premium" label="Get DuoQueue+" onPress={() => router.push("/paywall")} />
             </View>
           </View>
         ) : (

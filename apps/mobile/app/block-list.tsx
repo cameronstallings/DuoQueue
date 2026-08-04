@@ -63,7 +63,7 @@ export default function BlockListScreen() {
       title="Block List"
       showClose
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} tintColor={colors.brand} />
+        <RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} tintColor={colors.volt} />
       }
     >
       <Text style={[type.body, { color: colors.textMuted, marginBottom: spacing.sm }]}>

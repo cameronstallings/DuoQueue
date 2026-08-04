@@ -300,7 +300,7 @@ export default function ProfileScreen() {
                           flex: 1,
                           borderRadius: AVATAR_SIZE / 2,
                           borderWidth: 2,
-                          borderColor: colors.accent,
+                          borderColor: colors.volt,
                           backgroundColor: colors.surface,
                           overflow: "hidden",
                         }}
@@ -362,7 +362,7 @@ export default function ProfileScreen() {
                           {gamesList.map((game) => {
                             const verified = verifiedByName?.[game.name];
                             return verified ? (
-                              <Chip key={game.name} label={game.name} detail={`✓ ${verified}`} tone="accent" />
+                              <Chip key={game.name} label={game.name} detail={`✓ ${verified}`} tone="volt" />
                             ) : (
                               <Chip key={game.name} label={game.name} detail={game.rank ?? game.skillLevel ?? undefined} />
                             );
@@ -431,7 +431,7 @@ export default function ProfileScreen() {
                       hitSlop={8}
                       style={{ position: "absolute", top: 0, right: 0 }}
                     >
-                      <Text style={[type.label, { color: colors.brandInk }]}>Edit</Text>
+                      <Text style={[type.label, { color: colors.voltDim }]}>Edit</Text>
                     </Pressable>
                   </Animated.View>
                 </View>

@@ -37,7 +37,7 @@ export default function SafetyCenterScreen() {
                 padding: spacing.md,
               }}
             >
-              <Ionicons name={TOPIC_ICONS[topic.key] ?? "information-circle"} size={22} color={colors.brand} />
+              <Ionicons name={TOPIC_ICONS[topic.key] ?? "information-circle"} size={22} color={colors.volt} />
               <View style={{ flex: 1 }}>
                 <Text style={[type.bodyStrong, { color: colors.text }]}>{topic.title}</Text>
                 <Text style={[type.caption, { color: colors.textMuted }]} numberOfLines={1}>

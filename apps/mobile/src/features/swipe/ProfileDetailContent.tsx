@@ -220,7 +220,7 @@ export function ProfileDetailContent({ card, onClose, readOnly = false }: Profil
               {`${card.display_name}, ${card.age}`}
             </Name>
             {!linkedAccountsLoading && linkedAccounts && linkedAccounts.length > 0 && (
-              <Ionicons name="shield-checkmark" size={20} color={colors.brand} />
+              <Ionicons name="shield-checkmark" size={20} color={colors.volt} />
             )}
           </View>
 

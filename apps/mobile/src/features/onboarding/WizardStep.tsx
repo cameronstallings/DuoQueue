@@ -19,7 +19,7 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
           style={{ flex: 1, height: 4, borderRadius: radius.chip, backgroundColor: colors.border, overflow: "hidden" }}
         >
           {i < current && (
-            <Animated.View entering={FadeIn.duration(250)} style={{ flex: 1, backgroundColor: colors.brand }} />
+            <Animated.View entering={FadeIn.duration(250)} style={{ flex: 1, backgroundColor: colors.volt }} />
           )}
         </View>
       ))}

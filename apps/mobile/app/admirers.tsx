@@ -101,7 +101,7 @@ export default function AdmirersScreen() {
       title="Who liked you"
       showClose
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} tintColor={colors.brand} />
+        <RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} tintColor={colors.volt} />
       }
     >
       {!isPremium && (
@@ -140,7 +140,7 @@ export default function AdmirersScreen() {
       {hiddenCount > 0 && (
         <View
           style={{
-            backgroundColor: colors.brandSoft,
+            backgroundColor: colors.voltSoft,
             borderRadius: radius.lg,
             padding: spacing.md,
             gap: spacing.sm,
@@ -152,7 +152,7 @@ export default function AdmirersScreen() {
           <Text style={[type.caption, { color: colors.textMuted }]}>
             DuoQueue+ shows you everyone at once — no waiting for tomorrow&apos;s set.
           </Text>
-          <Button variant="solar" label="See them all with DuoQueue+" onPress={() => router.push("/paywall")} />
+          <Button variant="premium" label="See them all with DuoQueue+" onPress={() => router.push("/paywall")} />
         </View>
       )}
     </ScreenContainer>

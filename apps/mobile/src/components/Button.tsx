@@ -4,9 +4,7 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTim
 
 import { useTheme } from "@/theme/useTheme";
 
-type Variant = "primary" | "secondary" | "ghost" | "premium"
-  /** @deprecated Volt migration alias — DELETE in Task 11 */
-  | "solar";
+type Variant = "primary" | "secondary" | "ghost" | "premium";
 
 interface ButtonProps {
   label: string;
@@ -42,12 +40,11 @@ function ButtonLabel({ label, color, loading }: { label: string; color: string; 
 export function Button({ label, onPress, loading, disabled, variant = "primary", size = "md" }: ButtonProps) {
   const { colors, radius, spacing } = useTheme();
   const isDisabled = disabled || loading;
-  const v = variant === "solar" ? "premium" : variant;
 
   const textColor =
-    v === "primary" ? colors.onVolt : v === "premium" ? colors.onAmber : colors.text;
+    variant === "primary" ? colors.onVolt : variant === "premium" ? colors.onAmber : colors.text;
   const fill =
-    v === "primary" ? colors.volt : v === "premium" ? colors.amber : undefined;
+    variant === "primary" ? colors.volt : variant === "premium" ? colors.amber : undefined;
 
   const contentStyle = {
     borderRadius: radius.button,
@@ -71,7 +68,7 @@ export function Button({ label, onPress, loading, disabled, variant = "primary",
           styles.content,
           contentStyle,
           fill ? { backgroundColor: fill } : null,
-          v === "secondary" ? { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border } : null,
+          variant === "secondary" ? { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border } : null,
         ]}
       >
         <ButtonLabel label={label} color={textColor} loading={loading} />

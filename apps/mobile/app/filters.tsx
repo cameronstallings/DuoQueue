@@ -214,7 +214,7 @@ export default function FiltersScreen() {
               Filter by a specific game or show, platform, skill level, playstyle, and recent activity with
               DuoQueue+.
             </Text>
-            <Button variant="solar" label="Unlock DuoQueue+" onPress={() => router.push("/paywall")} />
+            <Button variant="premium" label="Unlock DuoQueue+" onPress={() => router.push("/paywall")} />
           </Card>
         ) : (
           <Card style={{ gap: spacing.md }}>
@@ -277,7 +277,7 @@ export default function FiltersScreen() {
 
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
               <Text style={[type.bodyStrong, { color: colors.text }]}>Recently active only</Text>
-              <Switch value={recentlyActive} onValueChange={setRecentlyActive} trackColor={{ true: colors.brand }} />
+              <Switch value={recentlyActive} onValueChange={setRecentlyActive} trackColor={{ true: colors.volt }} />
             </View>
           </Card>
         )}

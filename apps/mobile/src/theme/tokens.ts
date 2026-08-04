@@ -88,20 +88,6 @@ export const darkColors = {
 
   overlap: OVERLAP_DARK,
   playstyle: PLAYSTYLE_DARK,
-
-  // ——— DEPRECATED Aurora aliases: DELETE in Task 11. Values already render Volt. ———
-  /** @deprecated Volt migration — use volt */ brand: "#CDFF3D",
-  /** @deprecated Volt migration — use volt */ accent: "#CDFF3D",
-  /** @deprecated Volt migration — use voltDim */ brandInk: "#94BC2C",
-  /** @deprecated Volt migration — use voltDim */ accentInk: "#94BC2C",
-  /** @deprecated Volt migration — use voltDim */ brandDark: "#94BC2C",
-  /** @deprecated Volt migration — use voltSoft */ brandSoft: "rgba(205,255,61,0.10)",
-  /** @deprecated Volt migration — use voltSoft */ accentSoft: "rgba(205,255,61,0.10)",
-  /** @deprecated Volt migration — use volt/voltDim */ heroA: "#CDFF3D", heroB: "#CDFF3D",
-  /** @deprecated Volt migration — use voltRaw */ pink: "#CDFF3D",
-  /** @deprecated Volt migration — use amber */ solarA: "#FFB627", solarB: "#FFB627",
-  /** @deprecated Volt migration — use onAmber */ onSolar: "#201400",
-  /** @deprecated Volt migration — glow is dead */ glowViolet: "rgba(0,0,0,0)", glowPink: "rgba(0,0,0,0)", glowSolar: "rgba(0,0,0,0)", glowSuccess: "rgba(0,0,0,0)",
 } as const;
 
 export const lightColors = {
@@ -139,39 +125,10 @@ export const lightColors = {
 
   overlap: OVERLAP_LIGHT,
   playstyle: PLAYSTYLE_LIGHT,
-
-  // ——— DEPRECATED Aurora aliases: DELETE in Task 11. ———
-  /** @deprecated Volt migration — use volt */ brand: "#4A6B00",
-  /** @deprecated Volt migration — use volt */ accent: "#4A6B00",
-  /** @deprecated Volt migration — use voltDim */ brandInk: "#3B5600",
-  /** @deprecated Volt migration — use voltDim */ accentInk: "#3B5600",
-  /** @deprecated Volt migration — use voltDim */ brandDark: "#3B5600",
-  /** @deprecated Volt migration — use voltSoft */ brandSoft: "rgba(205,255,61,0.35)",
-  /** @deprecated Volt migration — use voltSoft */ accentSoft: "rgba(205,255,61,0.35)",
-  /** @deprecated Volt migration — use volt/voltDim */ heroA: "#4A6B00", heroB: "#4A6B00",
-  /** @deprecated Volt migration — use voltRaw */ pink: "#4A6B00",
-  /** @deprecated Volt migration — use amber */ solarA: "#8F5E00", solarB: "#8F5E00",
-  /** @deprecated Volt migration — use onAmber */ onSolar: "#FBF6EA",
-  /** @deprecated Volt migration — glow is dead */ glowViolet: "rgba(0,0,0,0)", glowPink: "rgba(0,0,0,0)", glowSolar: "rgba(0,0,0,0)", glowSuccess: "rgba(0,0,0,0)",
 } as const;
 
-// Union, not `typeof darkColors` alone: both palettes are `as const` literal types,
-// and the gradient helpers below take whichever one the active scheme resolved.
+// Union, not `typeof darkColors` alone: both palettes are `as const` literal types.
 export type ThemeColors = typeof darkColors | typeof lightColors;
-
-/** @deprecated Volt migration — glow is dead; returns nothing. DELETE in Task 11. */
-export function glow(_color: string, _r = 20) {
-  return {} as const;
-}
-
-/** @deprecated Volt migration — gradients retired; renders a solid volt fill. DELETE in Task 11. */
-export function heroGradient(c: ThemeColors) {
-  return { colors: [c.volt, c.volt] as const, start: { x: 0, y: 0 }, end: { x: 1, y: 1 } } as const;
-}
-/** @deprecated Volt migration — renders a solid amber fill. DELETE in Task 11. */
-export function solarGradient(c: ThemeColors) {
-  return { colors: [c.amber, c.amber] as const, start: { x: 0, y: 0 }, end: { x: 1, y: 1 } } as const;
-}
 
 /** Photo scrim black — green-black, not #000. */
 export const SCRIM_RGB = "6,8,4";
