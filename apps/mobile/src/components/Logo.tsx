@@ -11,9 +11,9 @@ interface LogoProps {
 }
 
 /**
- * The brand mark: an O-ring and a Q-ring woven together — the duo, locked.
- * The Q is a round-capped arc opening toward the O; one ink, two strengths.
- * mask, so the mark sits on any surface. Geometry mirrors
+ * The brand mark: an O-ring and a Q-ring — the duo, locked. The Q is a
+ * round-capped arc opening toward the O; one ink at two strengths, so the
+ * mark sits on any surface and any colorway. Geometry mirrors
  * scripts/generate-app-icons.mjs (the icon set's source of truth) — keep the
  * constants in sync when tuning either.
  */
