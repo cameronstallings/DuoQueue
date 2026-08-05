@@ -331,6 +331,19 @@ export default function PaywallScreen() {
 
       {consumableSection}
 
+      {/* Guideline 3.1.2 / Schedule 2: auto-renewal terms have to be stated on the
+          purchase screen itself, not buried in the linked Terms. Apple rejects for the
+          absence of exactly this paragraph more often than for almost anything else on
+          a subscription paywall. Wording follows Apple's required disclosures: renewal
+          is automatic, the cancellation window, where to cancel, and that Apple bills. */}
+      <Text style={[type.caption, { color: colors.textMuted, marginTop: spacing.md }]}>
+        DuoQueue+ is an auto-renewing subscription. Payment is charged to your Apple ID at
+        confirmation of purchase, and renews automatically for the same price and period unless
+        you cancel at least 24 hours before the current period ends. Your account is charged for
+        renewal within 24 hours before the period ends. Manage or cancel anytime in your device&apos;s
+        Account Settings. Power-Ups and Legendary Likes are one-time purchases, not subscriptions.
+      </Text>
+
       <View style={{ flexDirection: "row", justifyContent: "center", gap: spacing.sm, marginTop: spacing.sm }}>
         <Text
           style={[type.caption, { color: colors.textMuted }]}
