@@ -19,7 +19,7 @@ type NotificationCategory =
   | "nudge_online";
 
 const CATEGORIES: { value: NotificationCategory; label: string; hint: string }[] = [
-  { value: "new_match", label: "New match", hint: "When someone you liked likes you back." },
+  { value: "new_match", label: "New match", hint: "When someone you picked wants to duo with you too." },
   { value: "new_message", label: "New message", hint: "When a match sends you something." },
   { value: "super_ping", label: "Super Ping", hint: "When someone sends you a Super Ping." },
   {

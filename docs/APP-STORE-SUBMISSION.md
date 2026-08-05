@@ -14,7 +14,7 @@ trusted:
 
 | Claim | Verified |
 |---|---|
-| `src/lib/legal.ts` created, single source for legal URLs | Yes — placeholder `duoqueue.com` domain, clearly marked `TODO(Cameron)` |
+| `src/lib/legal.ts` created, single source for legal URLs | Yes — real `duoqueue.io` domain, but nothing is hosted there yet — marked `TODO(Cameron)` |
 | Legal links added to Settings, sign-up, paywall | Yes — all three render and call `WebBrowser.openBrowserAsync` / `mailto:` correctly |
 | Remaining "admirers"/"liked you" strings fixed | Yes — zero user-facing matches left; `admirers`/`Admirer` only survive as internal query keys, RPC names, and code comments |
 | Gender dating-filter removed from Filters screen | Yes — `FilterSection`, state, save payload, and the `GENDERS`/`Gender`/`GENDER_LABELS` imports are gone from `app/filters.tsx` |
@@ -89,7 +89,7 @@ Do these first — App Store Connect fields in §2B depend on some of them exist
    platonic-but-swipe-mechanic UGC app for adults.
 
 2. **Publish the two legal docs as real, public web pages.** You already own `duoqueue.io`
-   (verified live for email) — use that, not the `duoqueue.com` placeholder in the code. Simplest
+   (verified live for email) — the code now points at duoqueue.io; the pages still need publishing. Simplest
    options: GitHub Pages (Settings → Pages → deploy `/docs` from `main`, add a Jekyll front-matter
    line `---\n---` to the top of each `.md` so it renders instead of downloading as raw text), or
    drop them as static HTML on Cloudflare Pages / Netlify pointed at `duoqueue.io`. Either way you
@@ -97,7 +97,7 @@ Do these first — App Store Connect fields in §2B depend on some of them exist
    `https://duoqueue.io/terms-of-service`.
 
 3. **Update `apps/mobile/src/lib/legal.ts`** with the three real values: the two hosted URLs from
-   step 2, and a real monitored support email (not `support@duoqueue.com`). This is the only file
+   step 2, and a real monitored support email (support@duoqueue.io, once the inbox exists). This is the only file
    that needs editing — every screen reads from it.
 
 4. **Seed reviewer-visible content.** Per your project memory, the live deck is currently empty by
@@ -236,7 +236,7 @@ Contact: [support email] for anything App Review needs during evaluation.
 
 1. **Missing or placeholder Privacy Policy URL in App Store Connect (Guideline 1.2 / 5.1.1 /
    3.1.2(c)).** This is the single most common instant rejection for any app with accounts or
-   UGC, and this app currently has a placeholder domain (`duoqueue.com`, not the real
+   UGC, and this app points at `duoqueue.io` but has nothing published there (not the
    `duoqueue.io`) sitting in `legal.ts` until you host the real pages and update it.
    *Mitigation*: §2A steps 1-3, done before you touch App Store Connect at all.
 

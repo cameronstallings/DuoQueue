@@ -201,7 +201,7 @@ export default function MatchesScreen() {
         <EmptyState
           icon="game-controller"
           title="No matches yet"
-          subtitle="Keep swiping in the Deck tab — mutual likes show up here."
+          subtitle="Keep swiping in the Deck tab — when you both want to duo, they show up here."
           tick="NO DUOS YET"
         />
       ) : (
