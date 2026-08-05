@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { MESSAGE_MAX_LENGTH } from "@duoqueue/shared-types";
 
 import { GraticuleBackground } from "@/components/GraticuleBackground";
 import { GrainOverlay } from "@/components/GrainOverlay";
@@ -177,6 +178,7 @@ export default function PartyChatScreen() {
             onChangeText={setDraft}
             placeholder="Message the party..."
             placeholderTextColor={colors.textMuted}
+            maxLength={MESSAGE_MAX_LENGTH}
             style={[
               type.body,
               {

@@ -1,3 +1,8 @@
+/** Mirrors messages.messages_content_check / party_messages.party_messages_content_check
+ * (both 1-2000 chars, see supabase/migrations/0004_chat.sql, 0026_parties.sql, and the
+ * control-character guard added in 0049_input_constraints.sql). */
+export const MESSAGE_MAX_LENGTH = 2000;
+
 /** Row shape returned by the `get_matches_summary` Postgres RPC (0004_chat.sql). */
 export interface MatchSummary {
   match_id: string;

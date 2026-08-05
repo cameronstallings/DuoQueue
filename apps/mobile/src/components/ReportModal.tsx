@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
-import { REPORT_REASONS, type ReportReason } from "@duoqueue/shared-types";
+import { REPORT_DETAILS_MAX_LENGTH, REPORT_REASONS, type ReportReason } from "@duoqueue/shared-types";
 
 import { useTheme } from "@/theme/useTheme";
 
@@ -43,6 +43,7 @@ export function ReportModal({ visible, onClose, onSubmit, submitting }: ReportMo
           value={details}
           onChangeText={setDetails}
           multiline
+          maxLength={REPORT_DETAILS_MAX_LENGTH}
           style={[
             type.body,
             {

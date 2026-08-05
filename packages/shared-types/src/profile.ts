@@ -7,6 +7,12 @@ import { GENDERS, PLATFORMS, PLAYSTYLE_TAGS, REGIONS, SKILL_LEVELS } from "./enu
 export const BIO_MAX_LENGTH = 300;
 export const PROMPT_ANSWER_MAX_LENGTH = 150;
 export const PROMPT_COUNT = 3;
+/** Mirrors profile_games.rank_text_length in supabase/migrations/0049_input_constraints.sql. */
+export const RANK_TEXT_MAX_LENGTH = 40;
+/** Mirrors hidden_words.hidden_word_max_length in supabase/migrations/0049_input_constraints.sql. */
+export const HIDDEN_WORD_MAX_LENGTH = 50;
+/** Mirrors reports.report_details_length in supabase/migrations/0049_input_constraints.sql. */
+export const REPORT_DETAILS_MAX_LENGTH = 1000;
 export const MIN_AGE = 18;
 /** Kept equal to MIN_AGE for now — the app is 18+ only. If a lower age band is
  * reintroduced later, this is the boundary same_age_band()/is_minor() in the matching
@@ -58,7 +64,7 @@ export const profileGameInputSchema = z.object({
   gameId: z.string().uuid().optional(),
   customName: z.string().trim().min(1).max(80).optional(),
   skillLevel: skillLevelSchema,
-  rankText: z.string().trim().max(40).optional(),
+  rankText: z.string().trim().max(RANK_TEXT_MAX_LENGTH).optional(),
   priority: z.number().int().min(0),
 });
 

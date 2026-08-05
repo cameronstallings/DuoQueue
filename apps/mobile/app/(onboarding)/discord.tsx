@@ -53,6 +53,7 @@ export default function DiscordStep() {
         onChangeText={setDiscordUsername}
         autoCapitalize="none"
         placeholder="yourname"
+        maxLength={32}
       />
       <Text style={[type.caption, { color: colors.textMuted }]}>
         Your Discord is never shown automatically — only when you tap &quot;Share my Discord&quot; in a

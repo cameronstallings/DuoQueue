@@ -10,6 +10,30 @@ import type { OwnGalleryPhoto } from "./useOwnGalleryPhotos";
 
 const OWN_GALLERY_QUERY_KEY = "own-gallery-photos";
 
+/** Matches the profile-photos bucket's file_size_limit (0002_storage.sql) and
+ * MAX_IMAGE_BYTES in supabase/functions/moderate-photo/sanitize.ts. Checked client-side
+ * before upload so a too-large photo fails with one friendly message here, instead of
+ * uploading successfully (Storage's own limit rejects it) or uploading and only failing
+ * later inside moderate-photo's re-encode step. */
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+
+class PhotoTooLargeError extends Error {
+  constructor() {
+    super("That photo is too large — please choose one under 5MB.");
+    this.name = "PhotoTooLargeError";
+  }
+}
+
+async function assertPhotoWithinSizeLimit(uri: string): Promise<void> {
+  const info = await FileSystem.getInfoAsync(uri);
+  // `exists` narrows FileInfo so `.size` is present; a picker-returned uri that somehow
+  // doesn't exist on disk is a different failure the upload call below will surface on
+  // its own — this check only guards the size case.
+  if (info.exists && info.size > MAX_PHOTO_BYTES) {
+    throw new PhotoTooLargeError();
+  }
+}
+
 /** Removes the item at `from` and reinserts it at `to`, leaving everything else in the
  * same relative order — the client-side mirror of what reorder_gallery_photo does to
  * "position" server-side. */
@@ -25,6 +49,7 @@ function moveItem<T>(list: T[], from: number, to: number): T[] {
  * role (profile/header) — shared by onboarding and the Profile tab's tap-to-replace
  * tiles, since both need the exact same upload-then-record-then-moderate sequence. */
 export async function uploadProfilePhoto(profileId: string, uri: string, role: PhotoRole): Promise<void> {
+  await assertPhotoWithinSizeLimit(uri);
   const extension = uri.split(".").pop()?.toLowerCase() ?? "jpg";
   const storagePath = `${profileId}/${role}-${Date.now()}.${extension}`;
   const base64 = await FileSystem.readAsStringAsync(uri, { encoding: "base64" });
@@ -81,6 +106,9 @@ export function useUpdatePhoto(profileId: string | undefined) {
       void queryClient.invalidateQueries({ queryKey: ["own-profile-photos", profileId] });
       useToastStore.getState().showToast("Photo updated");
     },
+    onError: (err) => {
+      useToastStore.getState().showToast(err instanceof Error ? err.message : "Couldn't update that photo", "error");
+    },
   });
 }
 
@@ -100,6 +128,7 @@ function nextFreeGalleryPosition(usedPositions: number[]): number | null {
  * per profile (unlike the single-row profile/header roles), so there's no existing row
  * to update-in-place. Goes through the same upload-then-record-then-moderate sequence. */
 export async function uploadGalleryPhoto(profileId: string, uri: string, position: number): Promise<void> {
+  await assertPhotoWithinSizeLimit(uri);
   const extension = uri.split(".").pop()?.toLowerCase() ?? "jpg";
   const storagePath = `${profileId}/gallery-${Date.now()}.${extension}`;
   const base64 = await FileSystem.readAsStringAsync(uri, { encoding: "base64" });

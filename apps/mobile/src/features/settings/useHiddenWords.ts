@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { HIDDEN_WORD_MAX_LENGTH } from "@duoqueue/shared-types";
 
 import { supabase } from "@/lib/supabase";
 import { useSessionStore } from "@/store/session-store";
@@ -25,6 +26,11 @@ export function useAddHiddenWord() {
       if (!profileId) throw new Error("Not authenticated");
       const trimmed = word.trim().toLowerCase();
       if (!trimmed) return;
+      // Mirrors hidden_words.hidden_word_max_length (0049_input_constraints.sql) so a
+      // too-long word fails with a clean message here instead of a raw DB error.
+      if (trimmed.length > HIDDEN_WORD_MAX_LENGTH) {
+        throw new Error(`Hidden words must be ${HIDDEN_WORD_MAX_LENGTH} characters or fewer.`);
+      }
       const { error } = await supabase.from("hidden_words").insert({ profile_id: profileId, word: trimmed });
       if (error) throw error;
     },

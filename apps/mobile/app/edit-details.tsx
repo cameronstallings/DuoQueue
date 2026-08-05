@@ -3,7 +3,14 @@ import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { PLATFORMS, PLAYSTYLE_TAGS, SKILL_LEVELS, TILT_HANDLING_OPTIONS, type TiltHandling } from "@duoqueue/shared-types";
+import {
+  PLATFORMS,
+  PLAYSTYLE_TAGS,
+  RANK_TEXT_MAX_LENGTH,
+  SKILL_LEVELS,
+  TILT_HANDLING_OPTIONS,
+  type TiltHandling,
+} from "@duoqueue/shared-types";
 
 import { Button, ButtonRow } from "@/components/Button";
 import { Card } from "@/components/Card";
@@ -209,6 +216,7 @@ export default function EditDetailsScreen() {
                       value={game.rankText}
                       onChangeText={(text) => updateGameRank(game.gameId, text)}
                       placeholder="e.g. Diamond II"
+                      maxLength={RANK_TEXT_MAX_LENGTH}
                     />
                   </Card>
                 ))}

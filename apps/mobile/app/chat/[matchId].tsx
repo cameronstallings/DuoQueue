@@ -16,7 +16,7 @@ import { useHeaderHeight } from "@react-navigation/elements";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import Animated, { FadeInUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MATCH_FEEDBACK_TAGS, type MatchFeedbackTag, type ReportReason } from "@duoqueue/shared-types";
+import { MATCH_FEEDBACK_TAGS, MESSAGE_MAX_LENGTH, type MatchFeedbackTag, type ReportReason } from "@duoqueue/shared-types";
 
 import { GraticuleBackground } from "@/components/GraticuleBackground";
 import { Button, ButtonRow } from "@/components/Button";
@@ -754,6 +754,7 @@ export default function ChatScreen() {
               }}
               placeholder="Message..."
               placeholderTextColor={colors.textMuted}
+              maxLength={MESSAGE_MAX_LENGTH}
               style={[
                 type.body,
                 {

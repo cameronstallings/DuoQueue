@@ -51,12 +51,16 @@ export function useReportUser() {
   return useMutation({
     mutationFn: async ({ reportedId, matchId, reason, details }: ReportInput) => {
       if (!myId) throw new Error("Not authenticated");
+      // An all-whitespace details box should read as "no details", not fail the
+      // report_details_no_control_chars/blank check at the DB layer with a confusing
+      // error over something the user never meant to submit.
+      const trimmedDetails = details?.trim();
       const { error } = await supabase.from("reports").insert({
         reporter_id: myId,
         reported_id: reportedId,
         match_id: matchId ?? null,
         reason,
-        details: details ?? null,
+        details: trimmedDetails ? trimmedDetails : null,
       });
       if (error) throw error;
     },

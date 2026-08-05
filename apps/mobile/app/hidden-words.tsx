@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { HIDDEN_WORD_MAX_LENGTH } from "@duoqueue/shared-types";
 
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
@@ -13,6 +14,7 @@ import {
   useRemoveHiddenWord,
 } from "@/features/settings/useHiddenWords";
 import { useRequireSession } from "@/hooks/useRequireSession";
+import { useToastStore } from "@/store/toast-store";
 import { useTheme } from "@/theme/useTheme";
 
 export default function HiddenWordsScreen() {
@@ -25,7 +27,12 @@ export default function HiddenWordsScreen() {
 
   function handleAdd() {
     if (!input.trim()) return;
-    addWord.mutate(input, { onSuccess: () => setInput("") });
+    addWord.mutate(input, {
+      onSuccess: () => setInput(""),
+      onError: (err) => {
+        useToastStore.getState().showToast(err instanceof Error ? err.message : "Couldn't add that word", "error");
+      },
+    });
   }
 
   return (
@@ -43,6 +50,7 @@ export default function HiddenWordsScreen() {
             autoCapitalize="none"
             onSubmitEditing={handleAdd}
             returnKeyType="done"
+            maxLength={HIDDEN_WORD_MAX_LENGTH}
           />
         </View>
         <Button label="Add" onPress={handleAdd} loading={addWord.isPending} disabled={!input.trim()} />
