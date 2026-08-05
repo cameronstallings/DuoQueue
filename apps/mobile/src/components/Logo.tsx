@@ -41,9 +41,11 @@ const VB_H = CY + R + W / 2 - VB_Y + PAD;
 export const LOGO_MARK_ASPECT = VB_H / VB_W;
 
 function LogoMark({ width }: { width: number }) {
-  const { colors, scheme } = useTheme();
-  // Ring B is the "them" ink: near-white on dark (p2Line), text-ink on paper.
-  const ringB = scheme === "dark" ? colors.p2Line : colors.text;
+  const { colors } = useTheme();
+  // Deliberately hue-free (the mark doubles as the umbrella company brand):
+  // one ink at two strengths — text color full for the front ring, ~58% for
+  // the Q ring — so it sits on Volt and on any future app's colorway alike.
+  const ink = colors.text;
 
   return (
     <View accessibilityRole="image" accessibilityLabel="DuoQueue">
@@ -53,11 +55,11 @@ function LogoMark({ width }: { width: number }) {
           <Circle cx={CXA} cy={CY} r={R} fill="none" stroke="#000000" strokeWidth={W + HALO * 2} />
           <Circle cx={CXA} cy={CY} r={R - W / 2 + HALO} fill="#000000" />
         </Mask>
-        <G mask="url(#weave)">
-          <Circle cx={CXB} cy={CY} r={R} fill="none" stroke={ringB} strokeWidth={W} />
-          <Circle cx={NUB.cx} cy={NUB.cy} r={NUB.r} fill={ringB} />
+        <G mask="url(#weave)" opacity={0.58}>
+          <Circle cx={CXB} cy={CY} r={R} fill="none" stroke={ink} strokeWidth={W} />
+          <Circle cx={NUB.cx} cy={NUB.cy} r={NUB.r} fill={ink} />
         </G>
-        <Circle cx={CXA} cy={CY} r={R} fill="none" stroke={colors.volt} strokeWidth={W} />
+        <Circle cx={CXA} cy={CY} r={R} fill="none" stroke={ink} strokeWidth={W} />
       </Svg>
     </View>
   );

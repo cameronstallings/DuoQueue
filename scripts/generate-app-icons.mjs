@@ -56,25 +56,32 @@ function ringGeometry(scale) {
   return { R, W, cxA, cxB, cy: CENTER, halo, tail };
 }
 
-/** The rings mark. ringA/ringB are fill colors; the weave gap is transparent. */
-function ringsMark(scale = FULL_SCALE, ringA = VOLT, ringB = "#F2F6EA", maskId = "weave") {
+/** The rings mark — deliberately hue-free: DuoQueue doubles as the umbrella
+ * dev-company brand, so the mark is one warm ink at two strengths (front ring
+ * full, Q ring ~58%) and sits on any app's colorway. The weave gap is
+ * transparent. */
+const INK = "#F5F3EE";
+const DUO_OPACITY = 0.58;
+
+function ringsMark(scale = FULL_SCALE, ink = INK, maskId = "weave", duoOpacity = DUO_OPACITY) {
   const { R, W, cxA, cxB, cy, halo, tail } = ringGeometry(scale);
   return `<mask id="${maskId}">
       <rect width="${CANVAS}" height="${CANVAS}" fill="#FFFFFF" />
       <circle cx="${cxA}" cy="${cy}" r="${R}" fill="none" stroke="#000000" stroke-width="${W + halo * 2}" />
       <circle cx="${cxA}" cy="${cy}" r="${R - W / 2 + halo}" fill="#000000" />
     </mask>
-    <g mask="url(#${maskId})">
-      <circle cx="${cxB}" cy="${cy}" r="${R}" fill="none" stroke="${ringB}" stroke-width="${W}" />
-      <circle cx="${tail.cx}" cy="${tail.cy}" r="${tail.r}" fill="${ringB}" />
+    <g mask="url(#${maskId})" opacity="${duoOpacity}">
+      <circle cx="${cxB}" cy="${cy}" r="${R}" fill="none" stroke="${ink}" stroke-width="${W}" />
+      <circle cx="${tail.cx}" cy="${tail.cy}" r="${tail.r}" fill="${ink}" />
     </g>
-    <circle cx="${cxA}" cy="${cy}" r="${R}" fill="none" stroke="${ringA}" stroke-width="${W}" />`;
+    <circle cx="${cxA}" cy="${cy}" r="${R}" fill="none" stroke="${ink}" stroke-width="${W}" />`;
 }
 
-/** Solid-white silhouette variant for the Android themed icon: same weave,
- * both rings white — the mask still cuts the gaps so the silhouette reads. */
+/** Solid-white silhouette variant for the Android themed icon + notification
+ * icon: both rings full-strength — these render as alpha masks, and a faded
+ * ring would tint weakly. The weave gaps still carry the interlock. */
 function ringsMarkMono(scale = SAFE_SCALE) {
-  return ringsMark(scale, "#FFFFFF", "#FFFFFF", "weaveMono");
+  return ringsMark(scale, "#FFFFFF", "weaveMono", 1);
 }
 
 function svgDoc(inner, { background } = {}) {
