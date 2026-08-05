@@ -88,8 +88,8 @@ export function ProfileHeaderPhotoPicker({
         onChange={onChangeProfilePhoto}
       />
       <PhotoSlot
-        label="Header picture"
-        sublabel="The big image on your card while people swipe"
+        label="Cover photo"
+        sublabel="The main photo people see on your card — and your profile cover"
         uri={headerPhotoUri}
         aspect={[3, 4]}
         width="100%"

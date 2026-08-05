@@ -202,7 +202,7 @@ export default function ProfileScreen() {
 
   const completenessItems = [
     { label: "a profile picture", done: !!photos?.profileUrl },
-    { label: "a header picture", done: !!photos?.headerUrl },
+    { label: "a cover photo", done: !!photos?.headerUrl },
     { label: "a game", done: (details?.games.length ?? 0) > 0 },
     { label: "a show", done: (details?.shows.length ?? 0) > 0 },
     { label: "a platform", done: (details?.platforms.length ?? 0) > 0 },

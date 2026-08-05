@@ -169,7 +169,7 @@ export function GalleryPanel({
       <Pressable
         key="cover"
         accessibilityRole="button"
-        accessibilityLabel="Change header picture"
+        accessibilityLabel="Change cover photo"
         onPress={onPressCover}
         disabled={coverDisabled}
         style={[

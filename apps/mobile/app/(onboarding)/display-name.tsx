@@ -20,7 +20,7 @@ export default function DisplayNameStep() {
       return;
     }
     if (!profilePhotoUri || !headerPhotoUri) {
-      setError("Add a profile picture and a header picture.");
+      setError("Add a profile picture and a cover photo.");
       return;
     }
     setError(null);
@@ -31,7 +31,7 @@ export default function DisplayNameStep() {
     <WizardStep
       step="display-name"
       title="Let's set up your profile"
-      subtitle="Add a profile picture, a header picture, and pick a display name."
+      subtitle="Add a profile picture, a cover photo, and pick a display name."
       onContinue={handleContinue}
       error={error}
     >
