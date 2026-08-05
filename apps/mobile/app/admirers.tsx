@@ -150,7 +150,7 @@ export default function AdmirersScreen() {
           }}
         >
           <Text style={[type.bodyStrong, { color: colors.text }]}>
-            {hiddenCount} more {hiddenCount === 1 ? "person" : "people"} liked you
+            {hiddenCount} more {hiddenCount === 1 ? "person wants" : "people want"} to duo with you
           </Text>
           <Text style={[type.caption, { color: colors.textMuted }]}>
             DuoQueue+ shows you everyone at once — no waiting for tomorrow&apos;s set.

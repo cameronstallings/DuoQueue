@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import { Text } from "react-native";
 import * as Localization from "expo-localization";
 import { router, useLocalSearchParams } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 
 import { Button } from "@/components/Button";
 import { Logo } from "@/components/Logo";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { TextField } from "@/components/TextField";
 import { isCaptchaConfigured, TurnstileCaptcha } from "@/features/auth/TurnstileCaptcha";
+import { LEGAL_URLS } from "@/lib/legal";
 import { supabase } from "@/lib/supabase";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
@@ -129,6 +131,19 @@ export default function SignUp() {
       />
       <TurnstileCaptcha onToken={setCaptchaToken} />
       {error ? <Text style={[type.caption, { color: colors.danger }]}>{error}</Text> : null}
+
+      <Text style={[type.caption, { color: colors.textMuted }]}>
+        By creating an account, you agree to our{" "}
+        <Text style={{ color: colors.voltDim }} onPress={() => void WebBrowser.openBrowserAsync(LEGAL_URLS.termsOfService)}>
+          Terms of Service
+        </Text>{" "}
+        and{" "}
+        <Text style={{ color: colors.voltDim }} onPress={() => void WebBrowser.openBrowserAsync(LEGAL_URLS.privacyPolicy)}>
+          Privacy Policy
+        </Text>
+        . We&apos;ll also notify you about new matches, messages, and reminders when a duo&apos;s waiting on
+        you — fine-tune or turn any of these off anytime in Settings.
+      </Text>
 
       <Button label="Create account" onPress={() => void handleSignUp()} loading={loading} />
     </ScreenContainer>

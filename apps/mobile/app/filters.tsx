@@ -3,14 +3,12 @@ import { Alert, Switch, Text, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import {
-  GENDERS,
   LANGUAGE_CODES,
   MIN_AGE,
   PLATFORMS,
   PLAYSTYLE_TAGS,
   REGIONS,
   SKILL_LEVELS,
-  type Gender,
   type LanguageCode,
   type Platform,
   type PlaystyleTag,
@@ -19,7 +17,6 @@ import {
 } from "@duoqueue/shared-types";
 import { LANGUAGE_LABELS } from "@/features/onboarding/language-labels";
 import {
-  GENDER_LABELS,
   PLATFORM_LABELS,
   PLAYSTYLE_LABELS,
   REGION_LABELS,
@@ -76,7 +73,6 @@ export default function FiltersScreen() {
 
   const [minAge, setMinAge] = useState(String(MIN_AGE));
   const [maxAge, setMaxAge] = useState("99");
-  const [genders, setGenders] = useState<Gender[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
   const [language, setLanguage] = useState<LanguageCode | null>(null);
   const [filterGame, setFilterGame] = useState<{ id: string; name: string } | null>(null);
@@ -95,7 +91,6 @@ export default function FiltersScreen() {
     setLoadedForProfile(preferences.profile_id);
     setMinAge(String(preferences.min_age));
     setMaxAge(String(preferences.max_age));
-    setGenders(preferences.preferred_genders ?? []);
     setRegions(preferences.preferred_regions ?? []);
     setLanguage((preferences.required_language as LanguageCode | null) ?? null);
     setPlatform(preferences.filter_platform);
@@ -141,7 +136,6 @@ export default function FiltersScreen() {
       await save.mutateAsync({
         min_age: min,
         max_age: max,
-        preferred_genders: genders.length > 0 ? genders : null,
         preferred_regions: regions.length > 0 ? regions : null,
         required_language: language,
         filter_game_id: isPremium ? filterGame?.id ?? null : preferences?.filter_game_id ?? null,
@@ -161,7 +155,7 @@ export default function FiltersScreen() {
     return (
       <ScreenContainer title="Filters" showClose>
         <Skeleton width="90%" height={13} />
-        {["Age range", "Gender", "Region", "Language"].map((label) => (
+        {["Age range", "Region", "Language"].map((label) => (
           <View key={label}>
             <SectionLabel>{label}</SectionLabel>
             <Card style={{ gap: spacing.sm }}>
@@ -193,14 +187,6 @@ export default function FiltersScreen() {
             <TextField label="Max" value={maxAge} onChangeText={setMaxAge} keyboardType="number-pad" />
           </View>
         </View>
-      </FilterSection>
-
-      <FilterSection label="Gender" hint="Pick any that apply — empty means all genders.">
-        <ChipSelect
-          options={GENDERS.map((value) => ({ value, label: GENDER_LABELS[value] }))}
-          selected={genders}
-          onToggle={(value) => setGenders((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]))}
-        />
       </FilterSection>
 
       <FilterSection label="Region" hint="Pick any that apply — empty means all regions.">

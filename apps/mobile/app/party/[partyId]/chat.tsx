@@ -14,17 +14,56 @@ import { Ionicons } from "@expo/vector-icons";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MESSAGE_MAX_LENGTH } from "@duoqueue/shared-types";
+import { MESSAGE_MAX_LENGTH, type ReportReason } from "@duoqueue/shared-types";
 
 import { GraticuleBackground } from "@/components/GraticuleBackground";
 import { GrainOverlay } from "@/components/GrainOverlay";
+import { ReportModal } from "@/components/ReportModal";
+import { SectionLabel } from "@/components/SectionLabel";
+import { Sheet } from "@/components/Sheet";
 import { Skeleton } from "@/components/Skeleton";
-import { usePartyMembers } from "@/features/party/useParty";
+import { useBlockUser, useReportUser } from "@/features/chat/useMatchActions";
+import { type PartyMemberProfile, usePartyMembers } from "@/features/party/useParty";
 import { usePartyMessages, useSendPartyMessage } from "@/features/party/usePartyMessages";
 import { containsHiddenWord, useHiddenWords } from "@/features/settings/useHiddenWords";
 import { useRequireSession } from "@/hooks/useRequireSession";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
+
+/**
+ * One tappable row: icon + label. Mirrors chat/[matchId].tsx's overflow-sheet rows —
+ * party chat needed the same Report/Block affordance the 1:1 thread already had, just
+ * scoped per-member since a party can hold more than one other person.
+ */
+function ActionRow({
+  icon,
+  label,
+  onPress,
+  danger,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+  danger?: boolean;
+}) {
+  const { colors, spacing, type } = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flexDirection: "row",
+        alignItems: "center",
+        gap: spacing.md,
+        paddingVertical: spacing.sm + 2,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <Ionicons name={icon} size={18} color={danger ? colors.danger : colors.textMuted} />
+      <Text style={[type.body, { color: danger ? colors.danger : colors.text }]}>{label}</Text>
+    </Pressable>
+  );
+}
 
 function MessageBubble({
   content,
@@ -107,7 +146,17 @@ export default function PartyChatScreen() {
   const { data: hiddenWords } = useHiddenWords();
   const [draft, setDraft] = useState("");
   const listRef = useRef<FlatList>(null);
+  const blockUser = useBlockUser();
+  const reportUser = useReportUser();
 
+  // Safety actions are per-member, not per-match — a party can hold someone neither
+  // existing member has an individual match with, so this can't reuse chat/[matchId]'s
+  // single "other person" menu. Two-level sheet: pick a member, then pick an action.
+  const [membersSheetVisible, setMembersSheetVisible] = useState(false);
+  const [actionsFor, setActionsFor] = useState<PartyMemberProfile | null>(null);
+  const [reportTarget, setReportTarget] = useState<PartyMemberProfile | null>(null);
+
+  const otherMembers = (members ?? []).filter((m) => m.profile_id !== myId);
   const nameById = new Map((members ?? []).map((m) => [m.profile_id, m.display_name]));
 
   async function handleSend() {
@@ -122,12 +171,66 @@ export default function PartyChatScreen() {
     }
   }
 
+  function handleBlockMember(member: PartyMemberProfile) {
+    setActionsFor(null);
+    Alert.alert("Block this user?", "They will be removed from your matches and deck.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Block",
+        style: "destructive",
+        onPress: () => blockUser.mutate(member.profile_id),
+      },
+    ]);
+  }
+
+  function handleReportSubmit(reason: ReportReason, details: string) {
+    if (!reportTarget) return;
+    reportUser.mutate(
+      { reportedId: reportTarget.profile_id, reason, details },
+      {
+        onSuccess: () => {
+          setReportTarget(null);
+          Alert.alert("Report submitted", "Thanks — our team will review this.");
+        },
+        onError: () => Alert.alert("Something went wrong", "Please try again."),
+      },
+    );
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <GraticuleBackground />
       <GrainOverlay />
 
-      <Stack.Screen options={{ title: "Party chat", headerShown: true }} />
+      <Stack.Screen
+        options={{
+          title: "Party chat",
+          headerShown: true,
+          headerRight: () => (
+            <Pressable
+              onPress={() => setMembersSheetVisible(true)}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="Party options"
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: radius.round,
+                backgroundColor: colors.surfaceAlt,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Ionicons
+                name="ellipsis-horizontal"
+                size={18}
+                color={colors.voltDim}
+                style={{ textAlign: "center", lineHeight: 18, includeFontPadding: false }}
+              />
+            </Pressable>
+          ),
+        }}
+      />
 
       {isLoading ? (
         <View style={{ padding: spacing.md, gap: spacing.sm }}>
@@ -219,6 +322,50 @@ export default function PartyChatScreen() {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
+
+      <Sheet visible={membersSheetVisible} onClose={() => setMembersSheetVisible(false)} title="Party members">
+        <View style={{ gap: spacing.xs }}>
+          {otherMembers.length === 0 ? (
+            <Text style={[type.body, { color: colors.textMuted }]}>No one else here yet.</Text>
+          ) : (
+            otherMembers.map((member) => (
+              <ActionRow
+                key={member.profile_id}
+                icon="person-circle-outline"
+                label={member.display_name}
+                onPress={() => {
+                  setMembersSheetVisible(false);
+                  setActionsFor(member);
+                }}
+              />
+            ))
+          )}
+        </View>
+      </Sheet>
+
+      <Sheet visible={!!actionsFor} onClose={() => setActionsFor(null)} title={actionsFor?.display_name}>
+        <View style={{ gap: spacing.xs }}>
+          <SectionLabel>Safety</SectionLabel>
+          <ActionRow
+            icon="flag"
+            label="Report"
+            danger
+            onPress={() => {
+              if (!actionsFor) return;
+              setReportTarget(actionsFor);
+              setActionsFor(null);
+            }}
+          />
+          <ActionRow icon="ban" label="Block" danger onPress={() => actionsFor && handleBlockMember(actionsFor)} />
+        </View>
+      </Sheet>
+
+      <ReportModal
+        visible={!!reportTarget}
+        onClose={() => setReportTarget(null)}
+        onSubmit={handleReportSubmit}
+        submitting={reportUser.isPending}
+      />
     </View>
   );
 }

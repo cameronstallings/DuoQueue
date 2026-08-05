@@ -19,7 +19,7 @@ export function StandoutsRow() {
 
   return (
     <View style={{ marginBottom: spacing.sm }}>
-      <SectionLabel>Standouts</SectionLabel>
+      <SectionLabel>Highlights</SectionLabel>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}

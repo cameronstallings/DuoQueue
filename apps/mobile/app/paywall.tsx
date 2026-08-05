@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import * as WebBrowser from "expo-web-browser";
 import type { PurchasesPackage } from "react-native-purchases";
 
 import { Button } from "@/components/Button";
@@ -14,6 +15,7 @@ import { usePremiumStatus } from "@/features/matching/usePremiumStatus";
 import { useConsumableCredits } from "@/features/premium/useConsumables";
 import { useOfferings, usePurchasePackage, useRestorePurchases } from "@/features/premium/useOfferings";
 import { useRequireSession } from "@/hooks/useRequireSession";
+import { LEGAL_URLS } from "@/lib/legal";
 import { useTheme } from "@/theme/useTheme";
 
 // Consumable (non-subscription) store product identifiers — see README's RevenueCat
@@ -223,8 +225,8 @@ export default function PaywallScreen() {
     return (
       <ScreenContainer title="You're on DuoQueue+" showClose>
         <Text style={[type.body, { color: colors.textMuted }]}>
-          Unlimited swipes, unlimited conversations, advanced filters, admirers, and a daily Super Ping are
-          all unlocked.
+          Unlimited swipes, unlimited conversations, advanced filters, duo requests, and a daily Super Ping
+          are all unlocked.
         </Text>
         {consumableSection}
         <Button label="Done" onPress={() => router.back()} />
@@ -236,8 +238,8 @@ export default function PaywallScreen() {
     <ScreenContainer title="DuoQueue+" showClose>
       <Logo width={44} />
       <Text style={[type.body, { color: colors.textMuted, marginBottom: spacing.sm }]}>
-        Unlimited swipes, unlimited conversations, advanced filters, see everyone who liked you at once, and
-        a daily Super Ping.
+        Unlimited swipes, unlimited conversations, advanced filters, see everyone who wants to duo at once,
+        and a daily Super Ping.
       </Text>
 
       {isLoading ? (
@@ -328,6 +330,22 @@ export default function PaywallScreen() {
       )}
 
       {consumableSection}
+
+      <View style={{ flexDirection: "row", justifyContent: "center", gap: spacing.sm, marginTop: spacing.sm }}>
+        <Text
+          style={[type.caption, { color: colors.textMuted }]}
+          onPress={() => void WebBrowser.openBrowserAsync(LEGAL_URLS.termsOfService)}
+        >
+          Terms of Use
+        </Text>
+        <Text style={[type.caption, { color: colors.textMuted }]}>·</Text>
+        <Text
+          style={[type.caption, { color: colors.textMuted }]}
+          onPress={() => void WebBrowser.openBrowserAsync(LEGAL_URLS.privacyPolicy)}
+        >
+          Privacy Policy
+        </Text>
+      </View>
 
       <Button label="Restore purchases" variant="ghost" onPress={() => void handleRestore()} loading={restore.isPending} />
 

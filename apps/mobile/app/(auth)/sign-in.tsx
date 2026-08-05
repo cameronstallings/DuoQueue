@@ -76,9 +76,12 @@ export default function SignIn() {
   return (
     <ScreenContainer>
       <Logo width={56} />
-      <Text style={[type.screenTitle, { color: colors.text }]}>Welcome back</Text>
+      {/* Not "Welcome back": app/index.tsx redirects every signed-out user straight
+          here, so this is a first-time visitor's opening screen as often as a returning
+          user's. The greeting has to work for someone who has never seen the app. */}
+      <Text style={[type.screenTitle, { color: colors.text }]}>Welcome to DuoQueue</Text>
       <Text style={[type.body, { color: colors.textMuted, marginBottom: spacing.md }]}>
-        Sign in to find your next gaming duo.
+        Sign in to find your next gaming duo — or create an account below.
       </Text>
 
       <TextField
@@ -141,9 +144,16 @@ export default function SignIn() {
           showing this button only when that specific case occurs would itself leak
           which case occurred. See the comment in handleSignIn. */}
       <Button
-        label="Enter confirmation code"
+        label="I have a confirmation code"
         variant="ghost"
-        onPress={() => router.push({ pathname: "/(auth)/confirm-email", params: { email } })}
+        onPress={() =>
+          router.push({
+            pathname: "/(auth)/confirm-email",
+            // Only pass it when there is something to pass — an empty string would make
+            // confirm-email think it was handed an address and hide its own email field.
+            params: email.trim() ? { email: email.trim() } : {},
+          })
+        }
       />
     </ScreenContainer>
   );

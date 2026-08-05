@@ -199,7 +199,7 @@ export default function MatchesScreen() {
         />
       ) : !matches || matches.length === 0 ? (
         <EmptyState
-          icon="heart"
+          icon="game-controller"
           title="No matches yet"
           subtitle="Keep swiping in the Deck tab — mutual likes show up here."
           tick="NO DUOS YET"

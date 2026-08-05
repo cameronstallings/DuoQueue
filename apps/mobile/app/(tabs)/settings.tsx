@@ -1,10 +1,12 @@
-import { View } from "react-native";
+import { Linking, View } from "react-native";
 import { router } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 
 import { Card } from "@/components/Card";
 import { NavRow, RowDivider } from "@/components/NavRow";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { SectionLabel } from "@/components/SectionLabel";
+import { LEGAL_URLS } from "@/lib/legal";
 import { type ThemePreference, useThemeStore } from "@/store/theme-store";
 import { useTheme } from "@/theme/useTheme";
 
@@ -96,6 +98,29 @@ export default function SettingsScreen() {
             icon="log-out-outline"
             label="Sign out or delete account"
             onPress={() => router.push("/settings/account")}
+          />
+        </Card>
+      </View>
+
+      <View style={{ marginTop: spacing.md }}>
+        <SectionLabel>Legal</SectionLabel>
+        <Card style={{ padding: 0, overflow: "hidden" }}>
+          <NavRow
+            icon="document-text-outline"
+            label="Privacy Policy"
+            onPress={() => void WebBrowser.openBrowserAsync(LEGAL_URLS.privacyPolicy)}
+          />
+          <RowDivider />
+          <NavRow
+            icon="reader-outline"
+            label="Terms of Service"
+            onPress={() => void WebBrowser.openBrowserAsync(LEGAL_URLS.termsOfService)}
+          />
+          <RowDivider />
+          <NavRow
+            icon="mail-outline"
+            label="Contact Support"
+            onPress={() => void Linking.openURL(`mailto:${LEGAL_URLS.supportEmail}`)}
           />
         </Card>
       </View>

@@ -28,8 +28,14 @@ const RESEND_COOLDOWN_SECONDS = 60;
  */
 export default function ConfirmEmail() {
   const { colors, spacing, type } = useTheme();
-  const { email } = useLocalSearchParams<{ email?: string }>();
+  const { email: emailParam } = useLocalSearchParams<{ email?: string }>();
 
+  // Editable rather than read from the param alone. This screen is reachable from the
+  // sign-in screen's always-visible "confirmation code" button, which passes whatever is
+  // in its email field — usually nothing, since a user arriving to finish a signup has
+  // no reason to have typed it there first. Bouncing them back (the old behavior) just
+  // looked like the button was broken.
+  const [email, setEmail] = useState(emailParam ?? "");
   const [code, setCode] = useState("");
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   // A Turnstile token is single-use, and the widget only mints one per mount — so a
@@ -53,14 +59,15 @@ export default function ConfirmEmail() {
     };
   }, [cooldown]);
 
-  useEffect(() => {
-    if (!email) router.replace("/(auth)/sign-in");
-  }, [email]);
 
   async function handleVerify() {
-    if (!email) return;
     setError(null);
     setNotice(null);
+
+    if (!email.trim()) {
+      setError("Enter the email you signed up with.");
+      return;
+    }
 
     if (code.length !== CODE_LENGTH) {
       setError(`Enter the ${CODE_LENGTH}-digit code from your email.`);
@@ -84,9 +91,14 @@ export default function ConfirmEmail() {
   }
 
   async function handleResend() {
-    if (!email || cooldown > 0) return;
+    if (cooldown > 0) return;
     setError(null);
     setNotice(null);
+
+    if (!email.trim()) {
+      setError("Enter the email you signed up with.");
+      return;
+    }
 
     if (isCaptchaConfigured && !captchaToken) {
       setError("Please complete the verification check.");
@@ -117,8 +129,21 @@ export default function ConfirmEmail() {
       <Logo width={56} />
       <Text style={[type.screenTitle, { color: colors.text }]}>Check your email</Text>
       <Text style={[type.body, { color: colors.textMuted, marginBottom: spacing.md }]}>
-        We sent a {CODE_LENGTH}-digit code to {email}. Enter it below to finish creating your account.
+        {email
+          ? `We sent a ${CODE_LENGTH}-digit code to ${email}. Enter it below to finish creating your account.`
+          : `Enter the email you signed up with and the ${CODE_LENGTH}-digit code we sent you.`}
       </Text>
+
+      {!emailParam && (
+        <TextField
+          label="Email"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          textContentType="emailAddress"
+        />
+      )}
 
       <TextField
         label="Confirmation code"
