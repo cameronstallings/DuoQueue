@@ -5,7 +5,12 @@ import { Skeleton } from "@/components/Skeleton";
 import { TextField } from "@/components/TextField";
 import { useTheme } from "@/theme/useTheme";
 
-import { createCustomCatalogEntry, useCatalogSearch, type CatalogItem } from "./useCatalogSearch";
+import {
+  CATALOG_MIN_QUERY,
+  createCustomCatalogEntry,
+  useCatalogSearch,
+  type CatalogItem,
+} from "./useCatalogSearch";
 
 interface CatalogPickerProps {
   table: "games" | "shows";
@@ -22,6 +27,9 @@ export function CatalogPicker({ table, placeholder, profileId, selectedIds, onSe
   const { data: results, isLoading } = useCatalogSearch(table, query);
 
   const trimmed = query.trim();
+  // Nothing renders until there's a real query — the catalog is too big to browse, and
+  // an unprompted A-to-Z list under a "type to search" caption reads as the whole set.
+  const searching = trimmed.length >= CATALOG_MIN_QUERY;
   const hasExactMatch = (results ?? []).some((item) => item.name.toLowerCase() === trimmed.toLowerCase());
 
   async function handleCreateCustom() {
@@ -42,24 +50,24 @@ export function CatalogPicker({ table, placeholder, profileId, selectedIds, onSe
     <View style={{ gap: spacing.sm }}>
       <TextField label={placeholder} value={query} onChangeText={setQuery} autoCapitalize="words" />
 
-      {trimmed.length <= 1 && (
+      {!searching && (
         <Text style={[type.caption, { color: colors.textMuted }]}>
           Type at least 2 characters to search — or add your own if it&apos;s not listed.
         </Text>
       )}
 
-      {isLoading && (
+      {searching && isLoading && (
         <View style={{ gap: spacing.sm }}>
           <Skeleton width="80%" height={16} borderRadius={radius.sm} />
           <Skeleton width="60%" height={16} borderRadius={radius.sm} />
         </View>
       )}
 
-      {trimmed.length > 1 && !isLoading && (results ?? []).length === 0 && (
+      {searching && !isLoading && (results ?? []).length === 0 && (
         <Text style={[type.caption, { color: colors.textMuted }]}>No matches — add it as a custom entry below.</Text>
       )}
 
-      {(results ?? [])
+      {searching && (results ?? [])
         .filter((item) => !selectedIds.includes(item.id))
         .map((item) => (
           <Pressable
@@ -78,7 +86,7 @@ export function CatalogPicker({ table, placeholder, profileId, selectedIds, onSe
           </Pressable>
         ))}
 
-      {trimmed.length > 1 && !hasExactMatch && !isLoading && (
+      {searching && !hasExactMatch && !isLoading && (
         <Pressable
           onPress={() => void handleCreateCustom()}
           disabled={creating}
