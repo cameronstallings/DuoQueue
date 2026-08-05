@@ -37,9 +37,18 @@ export default function PromptsStep() {
         <Card key={index} style={{ gap: spacing.sm }}>
           {prompt ? (
             <>
-              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+              {/* gap, not just space-between: the question is flex:1, so a long one
+                  grows until it touches "Change" and the two read as one run of text. */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  gap: spacing.md,
+                }}
+              >
                 <Text style={[type.bodyStrong, { color: colors.text, flex: 1 }]}>{prompt.question}</Text>
-                <Pressable onPress={() => clearPromptAt(index)}>
+                <Pressable onPress={() => clearPromptAt(index)} hitSlop={8}>
                   <Text style={[type.caption, { color: colors.voltDim }]}>Change</Text>
                 </Pressable>
               </View>

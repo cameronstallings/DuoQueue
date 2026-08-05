@@ -82,9 +82,18 @@ export default function EditPromptsScreen() {
             <Card key={index} style={{ gap: spacing.sm }}>
               {slot ? (
                 <>
-                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                  {/* Matches the onboarding prompts row — gap keeps a long question
+                      from running straight into "Change". */}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                      gap: spacing.md,
+                    }}
+                  >
                     <Text style={[type.bodyStrong, { color: colors.text, flex: 1 }]}>{slot.question}</Text>
-                    <Pressable onPress={() => clearAt(index)}>
+                    <Pressable onPress={() => clearAt(index)} hitSlop={8}>
                       <Text style={[type.caption, { color: colors.voltDim }]}>Change</Text>
                     </Pressable>
                   </View>
