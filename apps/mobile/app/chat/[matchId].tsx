@@ -805,7 +805,12 @@ export default function ChatScreen() {
             onPress={() => void handlePlayNow()}
             disabled={sendMessage.isPending}
           />
-          <ActionRow icon="people" label="Invite a third" onPress={() => void handleInviteThird()} />
+          <ActionRow
+            icon="people"
+            label="Invite a third"
+            onPress={() => void handleInviteThird()}
+            disabled={createParty.isPending}
+          />
           <ActionRow
             icon="calendar"
             label="Schedule a session"

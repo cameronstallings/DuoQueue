@@ -20,12 +20,29 @@ import { GrainOverlay } from "@/components/GrainOverlay";
 import { Skeleton } from "@/components/Skeleton";
 import { usePartyMembers } from "@/features/party/useParty";
 import { usePartyMessages, useSendPartyMessage } from "@/features/party/usePartyMessages";
+import { containsHiddenWord, useHiddenWords } from "@/features/settings/useHiddenWords";
 import { useRequireSession } from "@/hooks/useRequireSession";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
-function MessageBubble({ content, isMine, senderName }: { content: string; isMine: boolean; senderName: string }) {
+function MessageBubble({
+  content,
+  isMine,
+  senderName,
+  hiddenWords,
+}: {
+  content: string;
+  isMine: boolean;
+  senderName: string;
+  hiddenWords: string[];
+}) {
   const { colors, radius, spacing, type } = useTheme();
+  // Mirrors the 1:1 chat's per-device hidden-word filter (chat/[matchId].tsx) — party
+  // chat had no equivalent, so a masked word there stayed unmasked here even though
+  // it's the same reader with the same hidden-word list.
+  const [revealed, setRevealed] = useState(false);
+  const isHidden = !isMine && !revealed && containsHiddenWord(content, hiddenWords);
+
   return (
     <View style={{ alignSelf: isMine ? "flex-end" : "flex-start", maxWidth: "80%", gap: 2 }}>
       {/* p2Line — this label only ever names someone other than the reader ("them");
@@ -34,17 +51,26 @@ function MessageBubble({ content, isMine, senderName }: { content: string; isMin
       {!isMine && (
         <Text style={[type.caption, { color: colors.p2Line, marginLeft: spacing.sm }]}>{senderName}</Text>
       )}
-      <View
-        style={{
-          backgroundColor: isMine ? colors.bubbleOwn : colors.surface,
-          borderRadius: radius.md,
-          ...(isMine ? null : { borderWidth: 1, borderColor: colors.border }),
-          paddingVertical: spacing.sm,
-          paddingHorizontal: spacing.md,
-        }}
-      >
-        <Text style={[type.body, { color: colors.text }]}>{content}</Text>
-      </View>
+      <Pressable disabled={!isHidden} onPress={() => setRevealed(true)}>
+        <View
+          style={{
+            backgroundColor: isMine ? colors.bubbleOwn : colors.surface,
+            borderRadius: radius.md,
+            ...(isMine ? null : { borderWidth: 1, borderColor: colors.border }),
+            paddingVertical: spacing.sm,
+            paddingHorizontal: spacing.md,
+          }}
+        >
+          <Text
+            style={[
+              type.body,
+              { color: isHidden ? colors.textMuted : colors.text, fontStyle: isHidden ? "italic" : "normal" },
+            ]}
+          >
+            {isHidden ? "Message hidden — tap to reveal" : content}
+          </Text>
+        </View>
+      </Pressable>
     </View>
   );
 }
@@ -77,6 +103,7 @@ export default function PartyChatScreen() {
   const { data: members } = usePartyMembers(partyId);
   const { messages, isLoading } = usePartyMessages(partyId);
   const sendMessage = useSendPartyMessage(partyId);
+  const { data: hiddenWords } = useHiddenWords();
   const [draft, setDraft] = useState("");
   const listRef = useRef<FlatList>(null);
 
@@ -123,6 +150,7 @@ export default function PartyChatScreen() {
               content={item.content}
               isMine={item.sender_id === myId}
               senderName={nameById.get(item.sender_id) ?? "Someone"}
+              hiddenWords={hiddenWords ?? []}
             />
           )}
         />

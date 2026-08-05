@@ -27,6 +27,13 @@ export function usePartyDeck(partyId: string | undefined) {
 
   const popTop = useCallback(() => setQueue((prev) => prev.slice(1)), []);
 
+  // Re-inserts a card at the front of the queue — mirrors useDeck's restoreTop, used to
+  // undo an optimistic popTop() when perform_party_swipe fails, so the card isn't lost
+  // for the rest of the party session.
+  const restoreTop = useCallback((card: DeckCard) => {
+    setQueue((prev) => [card, ...prev]);
+  }, []);
+
   const [syncedData, setSyncedData] = useState<DeckCard[] | null>(null);
   if (query.data && query.data !== syncedData) {
     setSyncedData(query.data);
@@ -37,7 +44,7 @@ export function usePartyDeck(partyId: string | undefined) {
     await queryClient.invalidateQueries({ queryKey: ["party-deck", partyId] });
   }, [queryClient, partyId]);
 
-  return { cards: queue, isLoading: query.isLoading, error: query.error, popTop, refetch };
+  return { cards: queue, isLoading: query.isLoading, error: query.error, popTop, restoreTop, refetch };
 }
 
 export function usePartySwipeAction(partyId: string | undefined) {

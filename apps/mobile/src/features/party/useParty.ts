@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { PartyInviteSummary, PartyMemberRow } from "@duoqueue/shared-types";
+import type { PartyInviteSummary, PartyMemberRow, PartySummary } from "@duoqueue/shared-types";
 
 import { supabase } from "@/lib/supabase";
+import { useToastStore } from "@/store/toast-store";
 
 export interface PartyMemberProfile {
   profile_id: string;
@@ -61,6 +62,28 @@ export function useRespondPartyInvite() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["party-invites"] });
+      void queryClient.invalidateQueries({ queryKey: ["my-parties"] });
+    },
+    onError: (err) => {
+      // A stale invite (already responded to, or its party cascaded away) fails the RPC
+      // with no other signal — without this the card just goes tappable-again forever.
+      // Refetch so a dead invite disappears instead of staying stuck on screen.
+      useToastStore.getState().showToast(err instanceof Error ? err.message : "Couldn't respond to that invite", "error");
+      void queryClient.invalidateQueries({ queryKey: ["party-invites"] });
+    },
+  });
+}
+
+/** Parties the caller already belongs to (see `get_my_parties`, 0026_parties.sql) —
+ * previously dead: the RPC existed and was granted but nothing in the app called it, so
+ * there was no way back into a party once you navigated away from it. */
+export function useMyParties() {
+  return useQuery({
+    queryKey: ["my-parties"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_my_parties");
+      if (error) throw error;
+      return (data ?? []) as PartySummary[];
     },
   });
 }

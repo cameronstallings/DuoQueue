@@ -31,7 +31,7 @@ export default function PartyDeckScreen() {
   const insets = useSafeAreaInsets();
   const { partyId } = useLocalSearchParams<{ partyId: string }>();
   const { data: members } = usePartyMembers(partyId);
-  const { cards, isLoading, error, popTop, refetch } = usePartyDeck(partyId);
+  const { cards, isLoading, error, popTop, restoreTop, refetch } = usePartyDeck(partyId);
   const swipeAction = usePartySwipeAction(partyId);
   const deckRef = useRef<SwipeDeckHandle>(null);
 
@@ -47,6 +47,9 @@ export default function PartyDeckScreen() {
         );
       }
     } catch (err) {
+      // The card already animated off — the RPC failed, so put it back at the
+      // front of the deck instead of silently discarding an unrecorded swipe.
+      restoreTop(card);
       Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
     }
   }

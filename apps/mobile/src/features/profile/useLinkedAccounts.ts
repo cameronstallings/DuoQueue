@@ -26,7 +26,13 @@ export function useLinkedAccounts(profileId: string | undefined) {
   return useQuery({
     queryKey: ["linked-accounts", profileId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("linked_accounts").select("*").eq("profile_id", profileId);
+      // Named columns, not `*`: `raw_data` holds the provider's profile payload, which
+      // nothing here reads — selecting it would ship that data to the device for no
+      // reason. Collect and expose only what's actually used.
+      const { data, error } = await supabase
+        .from("linked_accounts")
+        .select("profile_id, provider, external_id, display_name, rank_tier, avatar_url, linked_at")
+        .eq("profile_id", profileId);
       if (error) throw error;
       return (data ?? []) as LinkedAccountRow[];
     },

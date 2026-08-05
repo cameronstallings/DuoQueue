@@ -163,25 +163,49 @@ requires preservation of the reported content and associated records (for a defi
 window) after a CyberTipline report is made. Preservation, not deletion, is the default the
 instant suspicion exists.
 
-**This is a real, live conflict with the current system, flagged by the audit:**
-`reports.reporter_id` and `reports.reported_id` both reference `profiles(id) on delete cascade`,
-and `delete-account` (`supabase/functions/delete-account/index.ts`) permanently deletes the
-`auth.users` row — which cascades through `profiles` and destroys every report filed against that
-user, along with their storage objects, the moment they hit "Delete account" themselves. Today, a
-user under suspicion (or under an open report) can self-delete and erase the evidence before any
-admin acts on it. This is a dependency that must be fixed, and it is being tracked as one — self-
-service deletion cannot be allowed to complete normally for an account with an open `underage`
-report or a `minor`-band-flagged photo pending review.
+**Current state (migrations 0042 and 0043 are applied live):** `0042_audit_hardening.sql` changed
+`reports.reported_id` from `on delete cascade` to `on delete set null`, and added a non-FK
+`reported_profile_id` copy taken at insert time. That means the report row and its content now
+survive the *reported* user deleting their own account — the specific hole the prior audit flagged
+(a harasser erasing every report filed against them by self-deleting) is closed. Two related gaps
+remain open, and both are still live conflicts with this section's preservation requirement:
+
+**GAP 1 — storage objects still delete unconditionally.**
+`delete-account` (`supabase/functions/delete-account/index.ts`) still lists and removes every
+object in `profile-photos`/`voice-intros` for the deleting user with no exception for
+`rejected`/minor-flagged media — 0042 did not touch this Edge Function. A minor-flagged photo is
+still permanently destroyed from storage the moment its uploader hits "Delete account," even
+though the `reports` row referencing it now survives. — *Proposed fix (engineering, no legal
+sign-off needed): before running the storage-removal loop, check for (i) any `reports` row against
+this user with `reason = 'underage'` and `status != 'dismissed'`, or (ii) any `profile_media` row
+for this user with a `rejected` status whose rejection reason indicates the minor threshold. If
+either exists, skip deleting that user's storage objects (or route the whole deletion to a hold
+state) rather than executing it normally, and surface a message directing the user to contact
+support.*
+
+**GAP 2 — `reports.reporter_id` still cascades, so a victim can destroy their own filed report.**
+`0042` only changed `reported_id`; `reporter_id` still references `profiles(id) on delete cascade`
+unchanged. So if the **reporter** — not the reported user — deletes their own account, the entire
+`reports` row is destroyed, including the `reported_id`/`reported_profile_id` and all content
+about the person they reported. Concretely: a user who reports someone for `underage` content and
+then deletes their own account (for any reason, including simply moving on) erases the very report
+that triggered this section's escalation path. This is the mirror image of the hole 0042 closed —
+it protects against the *reported* person erasing evidence against themselves, but does nothing if
+the *reporter* is the one who leaves. — *Proposed fix (engineering, no legal sign-off needed):
+change `reports.reporter_id` to `on delete set null` the same way 0042 did for `reported_id` (with
+its own non-FK `reporter_profile_id` copy if we want to keep correlating reports by the same
+reporter after they've left), so a report survives its filer's account deletion the same way it
+now survives its subject's.*
+
+Until both gaps are closed, self-service deletion cannot be allowed to complete normally — by
+either party — for an account tied to an open `underage` report or a `minor`-band-flagged photo
+pending review. The Duty Officer's fallback until then is to suspend the account (4a) the moment a
+minor-flag or `underage` report appears, specifically so neither the reported user nor the
+reporter can out-run review by self-deleting first.
 
 **GAP:** `delete-account` has no exception for flagged/reported accounts and no quarantine
-mechanism. — *Proposed fix (engineering, no legal sign-off needed): before running the deletion
-path, check for (i) any `reports` row against this user with `reason = 'underage'` and
-`status != 'dismissed'`, or (ii) any `profile_media` row for this user with a `rejected` status
-whose rejection reason indicates the minor threshold. If either exists, refuse the self-service
-deletion (or route it to a hold state) rather than executing it, and surface a message directing
-the user to contact support. Until this ships, the Duty Officer's fallback is to suspend the
-account (4a) the moment a minor-flag or `underage` report appears, specifically so the user
-cannot out-run review by self-deleting first.*
+mechanism (GAP 1 above), and `reports.reporter_id` has no preservation path independent of the
+reporter's own account lifecycle (GAP 2 above).
 
 **(c) Do not view, download, forward, or re-share beyond what is strictly necessary.**
 Do not download the flagged image to a local device, do not forward it by email/Slack/message to
@@ -329,10 +353,13 @@ Until the `admin_audit_log` table (sections 2.3, 6) ships, the Duty Officer keep
 3. **GAP** (§2.3, §6): no `admin_audit_log` table — no record of who reviewed/viewed what, when.
 4. **GAP** (§3): no published support/contact email in-app or in store metadata.
 5. **GAP** (§4a): no admin "suspend account" UI action — requires a direct DB edit today.
-6. **GAP / dependency** (§4b): self-service account deletion cascades and destroys `reports` rows
-   (and storage) with no exception for flagged/reported accounts — must be fixed before this
-   procedure's preservation step can be technically guaranteed rather than merely a race against
-   the user.
+6. **GAP / dependency** (§4b): two remaining halves of the preservation problem, now that 0042/0043
+   are applied live. (i) `delete-account`'s storage-removal loop still deletes flagged/minor media
+   unconditionally, with no exception for a `rejected`/minor-flagged item. (ii) `reports.reporter_id`
+   still cascades (unlike `reported_id`, fixed by 0042), so a reporter deleting their own account
+   destroys the report they filed, including the record of who they reported. Both must be fixed
+   before this procedure's preservation step can be technically guaranteed rather than merely a
+   race against either party self-deleting.
 7. **TODO(lawyer)** (§4d): NCMEC CyberTipline registration and submission process — not built,
    must not be built without counsel.
 8. **GAP** (§5): no admin action to redact a single message or bio/prompt field short of full

@@ -129,7 +129,14 @@ Deno.serve(async (req) => {
       external_id: steamId64,
       display_name: player?.personaname ?? `Steam user ${steamId64}`,
       avatar_url: player?.avatarfull ?? null,
-      raw_data: player ?? null,
+      // GetPlayerSummaries can return realname, loccountrycode/locstatecode, timecreated,
+      // profileurl, personastate, and more depending on the Steam user's privacy
+      // settings — none of which the app reads or discloses anywhere. Collect only what
+      // we actually use and disclose (the fields already mirrored into the columns
+      // above) instead of holding the rest of that payload indefinitely.
+      raw_data: player
+        ? { steamid: steamId64, personaname: player.personaname ?? null, avatarfull: player.avatarfull ?? null }
+        : null,
       linked_at: new Date().toISOString(),
     },
     { onConflict: "profile_id,provider" },

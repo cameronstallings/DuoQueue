@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/Skeleton";
 import { SectionLabel } from "@/components/SectionLabel";
 import { useMatches, type MatchListItem } from "@/features/chat/useMatches";
 import { PartyInvitesBanner } from "@/features/party/PartyInvitesBanner";
+import { PartyListSection } from "@/features/party/PartyListSection";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
@@ -179,6 +180,7 @@ export default function MatchesScreen() {
       </Text>
 
       <PartyInvitesBanner />
+      <PartyListSection />
 
       {isLoading ? (
         <View>
