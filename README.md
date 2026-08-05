@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="apps/mobile/assets/icon.png" alt="DuoQueue — interlocked rings mark" width="120" />
+</p>
+
 # DuoQueue
 
 A swipe-based matching app for finding gaming friends — match on shared games, shows,

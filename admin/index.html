@@ -32,7 +32,8 @@
     color: var(--text);
   }
   #app { max-width: 960px; margin: 0 auto; padding: 24px 16px 64px; }
-  h1 { font-size: 22px; margin-bottom: 4px; }
+  h1 { font-size: 22px; margin-bottom: 4px; display: flex; align-items: center; gap: 10px; }
+  h1 svg { flex: none; }
   .muted { color: var(--muted); font-size: 13px; }
   .card {
     background: var(--surface);
@@ -110,6 +111,15 @@
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const app = document.getElementById("app");
 
+  // The rings mark (see scripts/generate-app-icons.mjs for the geometry's source
+  // of truth): O in the page text color, Q in muted — same chain weave as the app.
+  const MARK = `<svg width="32" height="20" viewBox="69.9 243.5 859.6 537" aria-hidden="true">
+    <circle cx="660.99" cy="512" r="215.04" fill="none" stroke="var(--muted)" stroke-width="98.92" />
+    <circle cx="842.43" cy="693.44" r="55.4" fill="var(--muted)" />
+    <circle cx="338.43" cy="512" r="215.04" fill="none" stroke="currentColor" stroke-width="98.92" />
+    <path d="M 583.57 712.63 A 215.04 215.04 0 0 1 452.24 563.70" fill="none" stroke="var(--muted)" stroke-width="98.92" />
+  </svg>`;
+
   const REASON_LABELS = {
     harassment: "Harassment",
     spam: "Spam",
@@ -157,7 +167,7 @@
 
   function renderLogin() {
     app.innerHTML = `
-      <h1>DuoQueue Moderation</h1>
+      <h1>${MARK}DuoQueue Moderation</h1>
       <p class="muted">Sign in with an admin account.</p>
       <div class="card" style="max-width:360px">
         <input id="email" type="email" placeholder="Email" autocomplete="username" />
@@ -182,7 +192,7 @@
 
   function renderNotAuthorized() {
     app.innerHTML = `
-      <h1>DuoQueue Moderation</h1>
+      <h1>${MARK}DuoQueue Moderation</h1>
       <div class="card">
         <p>This account isn't an admin. Ask an operator to set <code>profiles.is_admin = true</code> for your account.</p>
         <button class="secondary" id="signout">Sign out</button>
@@ -253,7 +263,7 @@
 
   async function renderDashboard(adminName) {
     app.innerHTML = `
-      <h1>DuoQueue Moderation</h1>
+      <h1>${MARK}DuoQueue Moderation</h1>
       <p class="muted">Signed in as ${escapeHtml(adminName)}</p>
       <div class="card">
         <div class="filters">
