@@ -35,9 +35,11 @@ export function useSwipeAction() {
       performSwipe(targetId, direction),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["swipe-quota"] });
-      // A like-back here can match/remove someone from the admirers list.
+      // A duo-back here can match/remove someone from the requests list…
       void queryClient.invalidateQueries({ queryKey: ["admirers"] });
       void queryClient.invalidateQueries({ queryKey: ["admirers-count"] });
+      // …and from Highlights, which is a separate query and stayed stale otherwise.
+      void queryClient.invalidateQueries({ queryKey: ["standouts"] });
     },
   });
 }

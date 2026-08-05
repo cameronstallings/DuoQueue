@@ -33,9 +33,11 @@ export function useSuperPing() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["swipe-quota"] });
-      // A super ping can match/remove someone from the admirers list.
+      // A Super Ping can match/remove someone from the requests list…
       void queryClient.invalidateQueries({ queryKey: ["admirers"] });
       void queryClient.invalidateQueries({ queryKey: ["admirers-count"] });
+      // …and from Highlights, same as the other swipe-style actions.
+      void queryClient.invalidateQueries({ queryKey: ["standouts"] });
     },
   });
 }

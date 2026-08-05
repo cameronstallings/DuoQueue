@@ -73,9 +73,12 @@ export function useSendRose() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: CONSUMABLE_CREDITS_QUERY_KEY });
       void queryClient.invalidateQueries({ queryKey: ["swipe-quota"] });
-      // A rose can match/remove someone from the admirers list.
+      // A Legendary Like can match/remove someone from the requests list…
       void queryClient.invalidateQueries({ queryKey: ["admirers"] });
       void queryClient.invalidateQueries({ queryKey: ["admirers-count"] });
+      // …and from Highlights, which is its own list and was never refreshed — so
+      // someone you had just acted on stayed on screen, still tappable.
+      void queryClient.invalidateQueries({ queryKey: ["standouts"] });
     },
   });
 }
