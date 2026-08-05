@@ -46,7 +46,7 @@ function AdmirerRow({ item }: { item: AdmirerListItem }) {
           </Text>
         ) : null}
       </View>
-      <Button label="Like back" onPress={() => void handleLikeBack()} loading={swipeAction.isPending} />
+      <Button label="Duo Up" onPress={() => void handleLikeBack()} loading={swipeAction.isPending} />
     </Card>
   );
 }
@@ -84,7 +84,7 @@ export default function AdmirersScreen() {
 
   if (premiumLoading) {
     return (
-      <ScreenContainer title="Who liked you" showClose>
+      <ScreenContainer title="Who wants to duo" showClose>
         <View>
           {[0, 1, 2].map((i) => (
             <AdmirerRowSkeleton key={i} />
@@ -100,7 +100,7 @@ export default function AdmirersScreen() {
 
   return (
     <ScreenContainer
-      title="Who liked you"
+      title="Who wants to duo"
       showClose
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} tintColor={colors.volt} />
@@ -108,7 +108,7 @@ export default function AdmirersScreen() {
     >
       {!isPremium && (
         <Text style={[type.body, { color: colors.textMuted }]}>
-          Here are 3 people who liked you — a new set appears every day.
+          Here are 3 players who want to duo with you — a new set appears every day.
         </Text>
       )}
       {isLoading ? (
@@ -119,15 +119,15 @@ export default function AdmirersScreen() {
         </View>
       ) : error ? (
         <View style={{ gap: spacing.sm }}>
-          <Text style={[type.body, { color: colors.textMuted }]}>Couldn&apos;t load your admirers.</Text>
+          <Text style={[type.body, { color: colors.textMuted }]}>Couldn&apos;t load your requests.</Text>
           <Button label="Try again" variant="ghost" onPress={() => void refetch()} />
         </View>
       ) : !admirers || admirers.length === 0 ? (
         <EmptyState
           icon="sparkles"
-          title="No admirers yet"
-          subtitle="Keep your profile fresh — new likes will show up here."
-          tick="NO ADMIRERS"
+          title="Nobody's asked to duo yet"
+          subtitle="Keep your profile fresh — new requests will show up here."
+          tick="NO REQUESTS"
         />
       ) : (
         <Animated.View entering={FadeIn.duration(220)}>

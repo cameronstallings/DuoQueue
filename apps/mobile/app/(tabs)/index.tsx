@@ -188,7 +188,7 @@ export default function DeckScreen() {
           </Pressable>
           <Pressable onPress={() => router.push("/admirers")} hitSlop={8}>
             <Text style={[type.caption, { color: colors.voltDim }]}>
-              Likes{admirersCount ? ` (${admirersCount})` : ""}
+              Requests{admirersCount ? ` (${admirersCount})` : ""}
             </Text>
           </Pressable>
           <Pressable onPress={() => router.push("/filters")} hitSlop={8}>

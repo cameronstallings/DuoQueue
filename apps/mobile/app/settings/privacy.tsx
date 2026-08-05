@@ -55,7 +55,7 @@ export default function PrivacySettings() {
       <Card style={{ padding: 0, overflow: "hidden" }}>
         <ToggleRow
           label="Pause my profile"
-          hint="Hide yourself from other people's decks and Standouts. Your matches and messages stay."
+          hint="Hide yourself from other people's decks and highlights. Your matches and messages stay."
           value={!(profile?.is_active ?? true)}
           onChange={(paused) => setIsActive.mutate(!paused)}
         />
