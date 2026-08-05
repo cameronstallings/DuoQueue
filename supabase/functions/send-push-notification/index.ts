@@ -6,6 +6,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 import { sendExpoPush } from "../_shared/expo-push.ts";
 import { checkBearerAuth, requireSecret } from "../_shared/require-secret-auth.ts";
+import { isUuid, readJsonBody } from "../_shared/validation.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -47,6 +48,29 @@ function jsonResponse(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
 
+// This function only ever runs behind checkBearerAuth — its callers are Postgres
+// triggers (via pg_net) and other server-side code, never the client directly — but
+// "holds the right bearer token" isn't the same guarantee as "sent well-formed IDs",
+// and every field below ends up in a query (get_display_name, a push-token lookup) that
+// would otherwise surface a malformed value as a raw 500 deep in that lookup instead of
+// a clean 400 here.
+function isValidEvent(data: unknown): data is NotificationEvent {
+  if (!data || typeof data !== "object") return false;
+  const d = data as Record<string, unknown>;
+  switch (d.type) {
+    case "new_match":
+      return isUuid(d.matchId) && isUuid(d.userAId) && isUuid(d.userBId);
+    case "new_message":
+      return isUuid(d.matchId) && isUuid(d.messageId) && isUuid(d.senderId);
+    case "super_ping":
+      return isUuid(d.senderId) && isUuid(d.receiverId);
+    case "looking_now":
+      return isUuid(d.matchId) && isUuid(d.togglerId) && isUuid(d.recipientId);
+    default:
+      return false;
+  }
+}
+
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 async function getDisplayName(profileId: string): Promise<string> {
@@ -84,10 +108,12 @@ Deno.serve(async (req) => {
   const unauthorized = await checkBearerAuth(req, INTERNAL_TRIGGER_AUTH_TOKEN);
   if (unauthorized) return unauthorized;
 
-  const event = (await req.json().catch(() => null)) as NotificationEvent | null;
-  if (!event?.type) {
+  const bodyResult = await readJsonBody(req);
+  if (!bodyResult.ok) return bodyResult.response;
+  if (!isValidEvent(bodyResult.data)) {
     return jsonResponse({ error: "Invalid payload" }, 400);
   }
+  const event = bodyResult.data;
 
   switch (event.type) {
     case "new_match": {

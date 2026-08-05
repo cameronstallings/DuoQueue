@@ -230,25 +230,30 @@
     }));
   }
 
+  // Both the status write and the audit-log entry happen inside resolve_report
+  // (0047_admin_audit_log.sql), in the same transaction — the client no longer has a
+  // direct write path to `reports` at all (that grant was revoked in the same
+  // migration), so there's no way to change a report's status without it being logged.
   async function updateReportStatus(reportId, status) {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const { error } = await supabase
-      .from("reports")
-      .update({ status, reviewed_by: session.user.id, reviewed_at: new Date().toISOString() })
-      .eq("id", reportId);
+    const { error } = await supabase.rpc("resolve_report", {
+      p_report_id: reportId,
+      p_status: status,
+    });
     if (error) alert(error.message);
   }
 
-  async function loadConversation(containerEl, matchId) {
+  // Reads AND logs the access in one RPC (admin_view_conversation, 0047_admin_audit_log.sql)
+  // rather than reading directly and separately calling a logger — a logger call made
+  // from here, after the fact, could simply be skipped. messages_select_admin (the RLS
+  // policy that used to let this query the table directly) was dropped in the same
+  // migration, so this RPC is now the only way to read a conversation this admin isn't a
+  // participant in.
+  async function loadConversation(containerEl, matchId, reportId) {
     containerEl.innerHTML = "Loading...";
-    const { data: messages, error } = await supabase
-      .from("messages")
-      .select("sender_id, content, created_at")
-      .eq("match_id", matchId)
-      .order("created_at")
-      .limit(100);
+    const { data: messages, error } = await supabase.rpc("admin_view_conversation", {
+      p_match_id: matchId,
+      p_report_id: reportId ?? null,
+    });
     if (error) {
       containerEl.textContent = error.message;
       return;
@@ -530,7 +535,7 @@
               const convoEl = row.querySelector(".convo");
               const isHidden = convoEl.style.display === "none";
               convoEl.style.display = isHidden ? "block" : "none";
-              if (isHidden) await loadConversation(convoEl, report.match_id);
+              if (isHidden) await loadConversation(convoEl, report.match_id, report.id);
             });
           }
         });

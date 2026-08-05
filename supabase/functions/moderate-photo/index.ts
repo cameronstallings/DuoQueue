@@ -13,6 +13,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 import { checkImage } from "./provider.ts";
 import { ImageRejectedError, sanitizeImage } from "./sanitize.ts";
+import { checkRateLimit, RateLimitedError, rateLimitResponse } from "../_shared/rate-limit.ts";
+import { isUuid, readJsonBody } from "../_shared/validation.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -44,10 +46,23 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Not authenticated" }, 401);
   }
 
-  const body = (await req.json().catch(() => ({}))) as { mediaId?: string };
-  const mediaId = body.mediaId;
-  if (!mediaId) {
-    return jsonResponse({ error: "mediaId is required" }, 400);
+  const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  // A real upload flow calls this once per photo (up to 6 gallery slots plus a cover
+  // photo); this is generous enough to cover a full gallery re-upload plus retries in
+  // one sitting while still catching a script that skips the client entirely.
+  try {
+    await checkRateLimit(serviceClient, user.id, "edge:moderate-photo", 20, 300);
+  } catch (err) {
+    if (err instanceof RateLimitedError) return rateLimitResponse(err.bucket);
+    throw err;
+  }
+
+  const bodyResult = await readJsonBody<{ mediaId?: string }>(req);
+  if (!bodyResult.ok) return bodyResult.response;
+  const { mediaId } = bodyResult.data;
+  if (!isUuid(mediaId)) {
+    return jsonResponse({ error: "mediaId must be a valid UUID" }, 400);
   }
 
   // RLS (profile_media_all_own) means this only succeeds if the media ROW belongs to
@@ -72,8 +87,6 @@ Deno.serve(async (req) => {
     console.error("media row path does not belong to the caller", { mediaId, userId: user.id });
     return jsonResponse({ error: "Invalid media" }, 403);
   }
-
-  const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   // --- Sanitize: strip EXIF and validate the real bytes, then overwrite in place. ---
   const { data: originalBlob, error: downloadError } = await serviceClient.storage

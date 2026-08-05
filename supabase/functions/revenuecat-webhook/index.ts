@@ -7,6 +7,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 import { CONSUMABLE_GRANTS, mapEventToStatus, mapStore, type RevenueCatEvent } from "./mapping.ts";
 import { checkBearerAuth, requireSecret } from "../_shared/require-secret-auth.ts";
+import { isBoundedString, readJsonBody } from "../_shared/validation.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -21,6 +22,35 @@ function jsonResponse(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
 
+// RevenueCat's own docs don't publish a hard format for app_user_id/product_id/event
+// id (app_user_id in particular can be a RevenueCat-generated anonymous id like
+// "$RCAnonymousID:..." rather than a Supabase uuid — see the "unmappable app_user_id"
+// handling below, which already expects that), so this is a bounded-length type check,
+// not a format check: catch an absent/oversized/wrong-typed field before it reaches a
+// query, without guessing at a character-class RevenueCat hasn't documented.
+function isValidWebhookBody(data: unknown): data is RevenueCatWebhookBody {
+  if (!data || typeof data !== "object") return false;
+  const event = (data as Record<string, unknown>).event;
+  if (!event || typeof event !== "object") return false;
+  const e = event as Record<string, unknown>;
+
+  if (!isBoundedString(e.id, 200)) return false;
+  if (!isBoundedString(e.type, 50)) return false;
+  if (!isBoundedString(e.app_user_id, 200)) return false;
+  if (!isBoundedString(e.product_id, 200)) return false;
+  if (e.period_type !== undefined && !isBoundedString(e.period_type, 50)) return false;
+  if (e.store !== undefined && !isBoundedString(e.store, 50)) return false;
+  if (e.expiration_at_ms !== undefined && e.expiration_at_ms !== null && typeof e.expiration_at_ms !== "number") {
+    return false;
+  }
+  if (e.entitlement_ids !== undefined) {
+    if (!Array.isArray(e.entitlement_ids) || !e.entitlement_ids.every((x) => isBoundedString(x, 100))) {
+      return false;
+    }
+  }
+  return true;
+}
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") {
     return jsonResponse({ error: "Method not allowed" }, 405);
@@ -29,11 +59,12 @@ Deno.serve(async (req) => {
   const unauthorized = await checkBearerAuth(req, WEBHOOK_AUTH_TOKEN);
   if (unauthorized) return unauthorized;
 
-  const body = (await req.json().catch(() => null)) as RevenueCatWebhookBody | null;
-  const event = body?.event;
-  if (!event?.app_user_id || !event.type) {
+  const bodyResult = await readJsonBody(req);
+  if (!bodyResult.ok) return bodyResult.response;
+  if (!isValidWebhookBody(bodyResult.data)) {
     return jsonResponse({ error: "Invalid payload" }, 400);
   }
+  const event = bodyResult.data.event as RevenueCatEvent;
 
   const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 

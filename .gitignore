@@ -7,11 +7,17 @@ apps/mobile/.expo/
 apps/mobile/dist/
 apps/mobile/web-build/
 *.jks
+*.keystore
 *.p8
 *.p12
 *.key
 *.mobileprovision
 *.orig.*
+
+# EAS / native app-signing config that will appear once builds are configured
+credentials.json
+google-services.json
+GoogleService-Info.plist
 
 # Native
 apps/mobile/ios/

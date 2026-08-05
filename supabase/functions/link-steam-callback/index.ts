@@ -8,6 +8,8 @@
 //   APP_DEEP_LINK_SCHEME (optional, defaults to "duoqueue")
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+import { checkRateLimit, RateLimitedError } from "../_shared/rate-limit.ts";
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const STEAM_WEB_API_KEY = Deno.env.get("STEAM_WEB_API_KEY");
@@ -112,6 +114,21 @@ Deno.serve(async (req) => {
   });
   if (stateError || !profileId) {
     return redirectToApp("error", "state_expired");
+  }
+
+  // No JWT reaches this endpoint at all (it's a browser redirect from Steam, see the
+  // verify_jwt=false comment in supabase/config.toml) — `profileId` above is the
+  // trustworthy, server-resolved identity here instead: consume_steam_link_state()
+  // just deleted the one-time token that tied it to this specific flow, so it can't
+  // have come from anything the request itself claims. Throttling on it bounds how
+  // many times a given profile completes/relinks Steam per hour, mainly to cap the
+  // external GetPlayerSummaries calls below rather than defend a per-request budget
+  // (each state token is already single-use, so simple replay isn't the risk).
+  try {
+    await checkRateLimit(serviceClient, profileId as string, "edge:link-steam-callback", 10, 3600);
+  } catch (err) {
+    if (err instanceof RateLimitedError) return redirectToApp("error", "rate_limited");
+    throw err;
   }
 
   const summaryRes = await fetch(

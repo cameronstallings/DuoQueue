@@ -6,6 +6,8 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 import { filterProfanity } from "./profanity.ts";
+import { isCleanText, isUuid, readJsonBody } from "../_shared/validation.ts";
+import { checkRateLimit, RateLimitedError, rateLimitResponse } from "../_shared/rate-limit.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -48,16 +50,36 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Not authenticated" }, 401);
     }
 
-    const body = (await req.json().catch(() => ({}))) as SendMessageBody;
-    const matchId = body.matchId;
-    const rawContent = body.content?.trim();
+    const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    if (!matchId || !rawContent) {
-      return jsonResponse({ error: "matchId and content are required" }, 400);
+    // Loose on purpose: public.enforce_message_send_guard() (migration 0042) already
+    // rate-limits actual inserts into `messages` at 8/10s and 300/hour, which is the
+    // carefully-tuned constraint for real chatting. This outer check exists only to
+    // stop the function invocation itself (auth lookup, match lookup, profanity
+    // filter) from being hammered by something that never gets far enough to hit the
+    // DB-level guard — set well above it so it never binds before that one does.
+    try {
+      await checkRateLimit(serviceClient, user.id, "edge:send-message", 20, 10);
+    } catch (err) {
+      if (err instanceof RateLimitedError) return rateLimitResponse(err.bucket);
+      throw err;
     }
-    if (rawContent.length > 2000) {
-      return jsonResponse({ error: "Message is too long" }, 400);
+
+    const bodyResult = await readJsonBody<SendMessageBody>(req);
+    if (!bodyResult.ok) return bodyResult.response;
+    const body = bodyResult.data;
+
+    if (!isUuid(body.matchId)) {
+      return jsonResponse({ error: "matchId must be a valid UUID" }, 400);
     }
+    // Mirrors the messages_content_no_control_chars / messages_content_check bounds
+    // added in 0049_input_constraints.sql exactly, so a bad message gets a clean 400
+    // here instead of a raw constraint-violation 500 from the insert below.
+    if (!isCleanText(body.content, { maxLength: 2000, allowNewlines: true })) {
+      return jsonResponse({ error: "content must be 1-2000 characters with no control characters" }, 400);
+    }
+    const matchId = body.matchId;
+    const rawContent = body.content.trim();
 
     const { data: match, error: matchError } = await userClient
       .from("matches")
@@ -95,7 +117,6 @@ Deno.serve(async (req) => {
 
     const { content, isFlagged } = filterProfanity(rawContent);
 
-    const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { data: message, error: insertError } = await serviceClient
       .from("messages")
       .insert({ match_id: matchId, sender_id: user.id, content, is_flagged: isFlagged })
