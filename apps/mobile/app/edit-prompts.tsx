@@ -54,9 +54,6 @@ export default function EditPromptsScreen() {
   function setAnswerAt(index: number, answer: string) {
     setSlots((prev) => (prev ?? []).map((s, i) => (i === index && s ? { ...s, answer } : s)));
   }
-  function clearAt(index: number) {
-    setSlots((prev) => (prev ?? []).map((s, i) => (i === index ? null : s)));
-  }
 
   async function handleSave() {
     if (!slots) return;
@@ -100,7 +97,9 @@ export default function EditPromptsScreen() {
                     }}
                   >
                     <Text style={[type.bodyStrong, { color: colors.text, flex: 1 }]}>{slot.question}</Text>
-                    <Pressable onPress={() => clearAt(index)} hitSlop={8}>
+                    {/* Reopens the picker for this slot rather than clearing it — see
+                        the onboarding prompts screen for the same fix. */}
+                    <Pressable onPress={() => setPickerIndex(index)} hitSlop={8}>
                       <Text style={[type.caption, { color: colors.voltDim }]}>Change</Text>
                     </Pressable>
                   </View>

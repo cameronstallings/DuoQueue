@@ -14,7 +14,7 @@ import { useTheme } from "@/theme/useTheme";
 
 export default function PromptsStep() {
   const { colors, spacing, type } = useTheme();
-  const { prompts, setPromptAt, setPromptAnswerAt, clearPromptAt } = useOnboardingStore();
+  const { prompts, setPromptAt, setPromptAnswerAt } = useOnboardingStore();
   const { data: catalog, isLoading } = usePromptCatalog();
   const [pickerIndex, setPickerIndex] = useState<number | null>(null);
   // The slot whose answer field should take focus. Picking a prompt swaps that card's
@@ -54,7 +54,10 @@ export default function PromptsStep() {
                 }}
               >
                 <Text style={[type.bodyStrong, { color: colors.text, flex: 1 }]}>{prompt.question}</Text>
-                <Pressable onPress={() => clearPromptAt(index)} hitSlop={8}>
+                {/* Reopens the picker for this slot. It used to clear the slot instead,
+                    which threw the answer away and dumped you back on "+ Select a
+                    prompt" — and cost you the prompt even if you then cancelled. */}
+                <Pressable onPress={() => setPickerIndex(index)} hitSlop={8}>
                   <Text style={[type.caption, { color: colors.voltDim }]}>Change</Text>
                 </Pressable>
               </View>
