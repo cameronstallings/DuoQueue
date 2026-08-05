@@ -8,6 +8,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ModalHeader } from "@/components/ModalHeader";
 import { Sheet } from "@/components/Sheet";
+import { KeyboardAwareScrollView } from "@/components/KeyboardAwareScrollView";
 import { Skeleton } from "@/components/Skeleton";
 import { TextField } from "@/components/TextField";
 import { usePromptCatalog } from "@/features/onboarding/usePromptCatalog";
@@ -74,12 +75,7 @@ export default function EditPromptsScreen() {
       {/* This screen owns its own ScrollView rather than going through
           ScreenContainer, so it needs the same keyboard handling explicitly: inset for
           the keyboard and scroll the focused answer field above it. */}
-      <ScrollView
-        contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}
-        keyboardShouldPersistTaps="handled"
-        automaticallyAdjustKeyboardInsets
-        keyboardDismissMode="interactive"
-      >
+      <KeyboardAwareScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
         <ModalHeader title="Edit Prompts" />
         {slots === null || loadingCatalog ? (
           Array.from({ length: PROMPT_COUNT }, (_, index) => (
@@ -141,7 +137,7 @@ export default function EditPromptsScreen() {
           loading={save.isPending}
         />
         <Button label="Cancel" variant="ghost" onPress={() => router.back()} />
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       <View
         pointerEvents="none"

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,6 +18,7 @@ import { Chip } from "@/components/Chip";
 import { ChipSelect } from "@/components/ChipSelect";
 import { ModalHeader } from "@/components/ModalHeader";
 import { SectionLabel } from "@/components/SectionLabel";
+import { KeyboardAwareScrollView } from "@/components/KeyboardAwareScrollView";
 import { Skeleton } from "@/components/Skeleton";
 import { Slider } from "@/components/Slider";
 import { TextField } from "@/components/TextField";
@@ -143,12 +144,7 @@ export default function EditDetailsScreen() {
           empty space. */}
       {/* Own ScrollView rather than ScreenContainer's, so keyboard handling is explicit
           here too — this screen has the rank fields and the game/show search boxes. */}
-      <ScrollView
-        contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}
-        keyboardShouldPersistTaps="handled"
-        automaticallyAdjustKeyboardInsets
-        keyboardDismissMode="interactive"
-      >
+      <KeyboardAwareScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>
         <ModalHeader title="Edit Details" />
 
         {!loaded || !profile ? (
@@ -343,7 +339,7 @@ export default function EditDetailsScreen() {
             </ButtonRow>
           </>
         )}
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       <View
         pointerEvents="none"

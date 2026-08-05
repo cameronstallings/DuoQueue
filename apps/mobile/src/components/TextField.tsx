@@ -1,8 +1,10 @@
-import { useState } from "react";
-import type { TextInputProps } from "react-native";
+import { useRef, useState } from "react";
+import type { TextInputProps, View as ViewType } from "react-native";
 import { Text, TextInput, View } from "react-native";
 
 import { useTheme } from "@/theme/useTheme";
+
+import { useScrollIntoView } from "./KeyboardAwareScrollView";
 
 interface TextFieldProps extends TextInputProps {
   label: string;
@@ -20,6 +22,8 @@ interface TextFieldProps extends TextInputProps {
 export function TextField({ label, error, style, onFocus, onBlur, ...inputProps }: TextFieldProps) {
   const { colors, radius, spacing, type } = useTheme();
   const [focused, setFocused] = useState(false);
+  const inputRef = useRef<TextInput | null>(null);
+  const scrollIntoView = useScrollIntoView();
 
   const strokeColor = error ? colors.danger : focused ? colors.volt : colors.border;
 
@@ -27,9 +31,13 @@ export function TextField({ label, error, style, onFocus, onBlur, ...inputProps 
     <View style={{ gap: spacing.xs }}>
       <Text style={[type.label, { color: colors.textMuted }]}>{label}</Text>
       <TextInput
+        ref={inputRef}
         placeholderTextColor={colors.textMuted}
         onFocus={(e) => {
           setFocused(true);
+          // Ask the enclosing scroll container to bring this field above the keyboard.
+          // No-op outside one, so this stays safe for fields rendered anywhere else.
+          scrollIntoView(inputRef.current as unknown as ViewType | null);
           onFocus?.(e);
         }}
         onBlur={(e) => {

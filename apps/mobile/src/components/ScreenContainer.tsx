@@ -1,5 +1,5 @@
 import type { PropsWithChildren, ReactElement } from "react";
-import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { KeyboardAvoidingView, Pressable, StyleSheet, Text, View } from "react-native";
 import type { RefreshControlProps } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/theme/useTheme";
 
 import { GraticuleBackground } from "./GraticuleBackground";
+import { KeyboardAwareScrollView } from "./KeyboardAwareScrollView";
 import { GrainOverlay } from "./GrainOverlay";
 
 // A screen opened as the app's cold-start/deep-link entry has no history to pop —
@@ -156,7 +157,7 @@ export function ScreenContainer({
         </View>
       )}
 
-      <ScrollView
+      <KeyboardAwareScrollView
         contentContainerStyle={[
           styles.content,
           {
@@ -165,15 +166,10 @@ export function ScreenContainer({
             paddingHorizontal: spacing.lg,
           },
         ]}
-        keyboardShouldPersistTaps="handled"
-        // Insets the content by the keyboard AND scrolls the focused input into view.
-        automaticallyAdjustKeyboardInsets
-        // Drag the keyboard away instead of hunting for a Done button.
-        keyboardDismissMode="interactive"
         refreshControl={refreshControl}
       >
         <View style={{ gap: spacing.md }}>{children}</View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Fixed, non-scrolling backdrop so content never passes directly behind the status
           bar icons with nothing behind it once the user scrolls past the initial padding. */}
