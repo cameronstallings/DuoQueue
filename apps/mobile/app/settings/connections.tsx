@@ -51,7 +51,7 @@ function ProviderRow({
 
 export default function ConnectionsSettings() {
   useRequireSession();
-  const { colors, spacing, type } = useTheme();
+  const { colors, type } = useTheme();
   const profile = useSessionStore((s) => s.profile);
   const { data: linked } = useLinkedAccounts(profile?.id);
   const { startLink, linking, error } = useLinkSteamAccount(profile?.id);
@@ -66,6 +66,11 @@ export default function ConnectionsSettings() {
         claim.
       </Text>
 
+      {/* Steam only. Riot and Xbox rows used to sit here marked "Coming soon" — App
+          Review reads placeholder features as an incomplete app (Guideline 2.1), and
+          an empty promise is worse than no row. The providers stay in the enum and the
+          sync function still understands them; when one is genuinely wired, its row
+          comes back. */}
       <Card style={{ padding: 0, overflow: "hidden" }}>
         <ProviderRow
           name="Steam"
@@ -75,10 +80,6 @@ export default function ConnectionsSettings() {
           disabled={steamLink ? unlinking : linking}
           destructive={!!steamLink}
         />
-        <View style={{ height: 1, backgroundColor: colors.border, marginLeft: spacing.md }} />
-        <ProviderRow name="Riot Games" status="Coming soon" action="Connect" />
-        <View style={{ height: 1, backgroundColor: colors.border, marginLeft: spacing.md }} />
-        <ProviderRow name="Xbox" status="Coming soon" action="Connect" />
       </Card>
 
       {error && <Text style={[type.caption, { color: colors.danger }]}>{error}</Text>}

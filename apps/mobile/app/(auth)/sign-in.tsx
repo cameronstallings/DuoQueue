@@ -60,6 +60,9 @@ export default function SignIn() {
     }
   }
 
+  /** Email-only for the first release — see the note at the buttons below. */
+  const SOCIAL_SIGN_IN_ENABLED = false;
+
   async function handleAppleSignIn() {
     setError(null);
     try {
@@ -98,23 +101,34 @@ export default function SignIn() {
 
       <Button label="Sign in" onPress={() => void handleSignIn()} loading={loading} />
 
-      {Platform.OS === "ios" && (
-        <AppleAuthentication.AppleAuthenticationButton
-          buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-          buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-          cornerRadius={radius.button}
-          style={{ height: 48 }}
-          onPress={() => void handleAppleSignIn()}
-        />
-      )}
+      {/* Social sign-in is built (appleSignIn.ts, useGoogleSignIn.ts) but OFF for the
+          first release: neither provider returns a date of birth, and handle_new_user
+          requires one to create a profile at all — so an OAuth signup fails outright
+          until the age gate is moved to run after authentication. Launching email-only
+          also keeps us clear of Guideline 4.8, which only compels Sign in with Apple
+          when some OTHER third-party login is offered. Flip SOCIAL_SIGN_IN_ENABLED once
+          the post-auth age gate lands and the provider credentials exist. */}
+      {SOCIAL_SIGN_IN_ENABLED && (
+        <>
+          {Platform.OS === "ios" && (
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+              cornerRadius={radius.button}
+              style={{ height: 48 }}
+              onPress={() => void handleAppleSignIn()}
+            />
+          )}
 
-      <Button
-        label="Continue with Google"
-        variant="secondary"
-        disabled={!google.request}
-        loading={google.signingIn}
-        onPress={() => void google.promptAsync()}
-      />
+          <Button
+            label="Continue with Google"
+            variant="secondary"
+            disabled={!google.request}
+            loading={google.signingIn}
+            onPress={() => void google.promptAsync()}
+          />
+        </>
+      )}
 
       <Button
         label="Create an account"
