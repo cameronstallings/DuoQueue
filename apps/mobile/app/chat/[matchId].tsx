@@ -581,8 +581,29 @@ export default function ChatScreen() {
             </Pressable>
           ),
           headerRight: () => (
-            <Pressable onPress={() => setMenuVisible(true)} hitSlop={12} accessibilityLabel="Chat options">
-              <Ionicons name="ellipsis-horizontal" size={22} color={colors.voltDim} />
+            <Pressable
+              onPress={() => setMenuVisible(true)}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="Chat options"
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: radius.round,
+                backgroundColor: colors.surfaceAlt,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {/* includeFontPadding/lineHeight neutralize the icon font's own vertical
+                  padding — ellipsis-horizontal's glyph box isn't symmetric, so flex
+                  centering alone leaves it visibly off-center in a tight circle. */}
+              <Ionicons
+                name="ellipsis-horizontal"
+                size={18}
+                color={colors.voltDim}
+                style={{ textAlign: "center", lineHeight: 18, includeFontPadding: false }}
+              />
             </Pressable>
           ),
         }}

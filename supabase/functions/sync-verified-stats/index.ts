@@ -46,6 +46,16 @@ function titleCase(word: string): string {
   return word.length === 0 ? word : word[0].toUpperCase() + word.slice(1).toLowerCase();
 }
 
+// Riot PUUIDs are a fixed, URL-safe character class at a stable length (78 chars as of
+// this writing; a small buffer either side tolerates a future Riot-side length change
+// without loosening the charset, which is the part that actually matters here — this
+// value is interpolated straight into a request URL, so nothing outside
+// alphanumeric/-/_ may ever reach it). Mirrors link-steam-callback's CLAIMED_ID_PATTERN
+// approach of validating an external identifier before it's used, rather than trusting
+// its source (linked_accounts.external_id has no format CHECK constraint at the DB
+// layer — see 0025_linked_accounts.sql).
+const PUUID_PATTERN = /^[A-Za-z0-9_-]{60,100}$/;
+
 /** At most one retry, and only for network-level failures / non-2xx — a single flaky
  * profile's lookup should never take down the whole run, and this stays polite to
  * both providers' rate limits rather than hammering a failing endpoint. */
@@ -162,6 +172,11 @@ async function syncRiot(
 
   for (const account of accounts ?? []) {
     const puuid = account.external_id as string;
+    if (!PUUID_PATTERN.test(puuid)) {
+      console.error("skipping riot account with malformed external_id", { profileId: account.profile_id });
+      summary.skipped++;
+      continue;
+    }
     const url = `https://${RIOT_PLATFORM}.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuid}`;
     const res = await fetchWithOneRetry(url, { headers: { "X-Riot-Token": RIOT_API_KEY! } });
     if (!res || !res.ok) {

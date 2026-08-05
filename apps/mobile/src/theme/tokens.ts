@@ -60,7 +60,9 @@ export const darkColors = {
   /** Own chat-bubble fill — a volt-tinted dark surface, distinct from surfaceAlt. */
   bubbleOwn: "#202817",
   text: "#EDF1E6",
-  textMuted: "#98A18A",
+  // Brightened from #98A18A (Cameron: hard to read on dark) — stays well clear of
+  // `text` (contrast ratio ~1.7x apart) but reads comfortably on background/surface.
+  textMuted: "#B4BDA6",
 
   volt: "#CDFF3D",
   voltDim: "#94BC2C",

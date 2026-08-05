@@ -1,7 +1,19 @@
-import { useRef, useState } from "react";
-import { Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import {
+  Alert,
+  FlatList,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useHeaderHeight } from "@react-navigation/elements";
 import { Stack, useLocalSearchParams } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { GraticuleBackground } from "@/components/GraticuleBackground";
 import { GrainOverlay } from "@/components/GrainOverlay";
@@ -40,6 +52,26 @@ function MessageBubble({ content, isMine, senderName }: { content: string; isMin
 export default function PartyChatScreen() {
   useRequireSession();
   const { colors, radius, spacing, type } = useTheme();
+  const insets = useSafeAreaInsets();
+  const headerHeight = useHeaderHeight();
+  // Mirrors the 1:1 chat composer: the bar floats off the home indicator when idle
+  // and collapses once the keyboard is up, since the keyboard already owns that space.
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const show = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      () => setKeyboardVisible(true),
+    );
+    const hide = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => setKeyboardVisible(false),
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
   const { partyId } = useLocalSearchParams<{ partyId: string }>();
   const myId = useSessionStore((s) => s.session?.user.id);
   const { data: members } = usePartyMembers(partyId);
@@ -96,13 +128,18 @@ export default function PartyChatScreen() {
         />
       )}
 
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={headerHeight}
+      >
         <View
           style={{
             flexDirection: "row",
             alignItems: "center",
             gap: spacing.sm,
-            padding: spacing.md,
+            paddingHorizontal: spacing.lg,
+            paddingTop: spacing.md,
+            paddingBottom: keyboardVisible ? spacing.md : insets.bottom + spacing.md,
             borderTopWidth: 1,
             borderColor: colors.border,
           }}
@@ -126,6 +163,9 @@ export default function PartyChatScreen() {
               },
             ]}
             multiline
+            returnKeyType="send"
+            blurOnSubmit={false}
+            onSubmitEditing={() => void handleSend()}
           />
           <Pressable
             accessibilityRole="button"

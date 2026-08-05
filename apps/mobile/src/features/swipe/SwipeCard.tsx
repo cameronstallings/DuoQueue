@@ -265,10 +265,18 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger, index }: Swi
                 onPress={handleMenu}
                 style={[
                   styles.menuButton,
-                  { borderRadius: radius.chip, backgroundColor: `rgba(${scrimRgb},0.7)` },
+                  { borderRadius: radius.round, backgroundColor: `rgba(${scrimRgb},0.7)` },
                 ]}
               >
-                <Ionicons name="ellipsis-horizontal" size={18} color="#F5F1E8" />
+                {/* includeFontPadding/lineHeight neutralize the icon font's own vertical
+                    padding — ellipsis-horizontal's glyph box isn't symmetric, so flex
+                    centering alone leaves it visibly off-center in a tight circle. */}
+                <Ionicons
+                  name="ellipsis-horizontal"
+                  size={18}
+                  color="#F5F1E8"
+                  style={{ textAlign: "center", lineHeight: 18, includeFontPadding: false }}
+                />
               </Pressable>
             )}
 
