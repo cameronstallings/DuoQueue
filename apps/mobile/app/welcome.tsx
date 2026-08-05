@@ -29,7 +29,7 @@ export default function WelcomeScreen() {
     <ScreenContainer>
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.lg }}>
         <Animated.View entering={ZoomIn.springify().delay(100)}>
-          <Logo width={220} variant="wordmark" />
+          <Logo width={220} variant="lockup" />
         </Animated.View>
 
         <Animated.Text

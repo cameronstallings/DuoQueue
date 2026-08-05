@@ -1,11 +1,10 @@
 // scripts/generate-app-icons.mjs — regenerates DuoQueue's Volt app icon set.
 //
-// The mark: two volt double chevrons, "»" — queue-forward. Each chevron is a
-// solid right-pointing wedge polygon (`M x0,y0 L x0+w,yMid L x0,y1 Z`); the
-// second sits offset right of the first at reduced opacity, echoing the
-// forward-motion "next in queue" idea. Flat and geometric — no glow, no
-// gradient blend — in line with the rest of the Volt restyle (see
-// docs/superpowers/plans/2026-08-03-volt-restyle.md).
+// The mark: Cameron's interlocked-rings monogram (an O-ring and a Q-ring woven
+// together — the duo, locked), re-hued for Volt: volt ring over ink-white ring
+// with knocked-out crossings. Flat and geometric — no glow, no gradient blend —
+// in line with the rest of the Volt restyle. The in-app vector twin lives in
+// apps/mobile/src/components/Logo.tsx — keep the geometry constants in sync.
 //
 // Run: node scripts/generate-app-icons.mjs
 import sharp from "sharp";
@@ -32,41 +31,50 @@ const FULL_SCALE = 1;
 const SAFE_SCALE = 320 / 416;
 
 /**
- * Geometry for one instance of the double-chevron mark at a given scale.
- * `w` (chevron weight) is ~18% of the canvas at full scale; height is 2x
- * weight for a tall, bold wedge. The pair is nudged ~2% left of true center
- * because two right-pointing wedges read right-heavy — the offset corrects
- * the optical imbalance.
+ * Geometry for the interlocked-rings monogram (Cameron's logo, re-hued for
+ * Volt): an O-ring and a Q-ring woven together — the duo, locked. Ring A
+ * (volt) passes over ring B (ink-white) with a knocked-out halo at both
+ * crossings, done with an SVG mask so the gap is true transparency (required
+ * for the adaptive-foreground / monochrome / notification variants — a
+ * painted background halo would ghost on transparent canvases).
  */
-function chevronGeometry(scale) {
-  const w = CANVAS * 0.18 * scale;
-  const h = w * 2;
-  const gap = w * 0.55;
-  const nudge = CANVAS * 0.02;
-  const x0 = CENTER - nudge - (w + gap) / 2;
-  return { x0, w, h, gap, yMid: CENTER };
+function ringGeometry(scale) {
+  const R = CANVAS * 0.21 * scale; // ring centerline radius
+  const W = R * 0.46; // stroke weight
+  const d = R * 1.5; // center-to-center distance — bands cross, holes stay open
+  // Nudge ~1.2% left: the Q's nub adds right-side mass, this recenters optically.
+  const nudge = CANVAS * 0.012;
+  const cxA = CENTER - nudge - d / 2;
+  const cxB = CENTER - nudge + d / 2;
+  const halo = W * 0.42; // knockout breathing gap around ring A
+  // Q tail: a round nub riding the band's outer edge at 45° bottom-right.
+  const k = Math.SQRT1_2;
+  const nubDist = R + W * 0.42;
+  const tail = {
+    cx: cxB + nubDist * k, cy: CENTER + nubDist * k, r: W * 0.56,
+  };
+  return { R, W, cxA, cxB, cy: CENTER, halo, tail };
 }
 
-/** A single chevron: a solid right-pointing wedge polygon. */
-function chevronPath(x0, w, h, yMid) {
-  const y0 = yMid - h / 2;
-  const y1 = yMid + h / 2;
-  return `M ${x0} ${y0} L ${x0 + w} ${yMid} L ${x0} ${y1} Z`;
+/** The rings mark. ringA/ringB are fill colors; the weave gap is transparent. */
+function ringsMark(scale = FULL_SCALE, ringA = VOLT, ringB = "#F2F6EA", maskId = "weave") {
+  const { R, W, cxA, cxB, cy, halo, tail } = ringGeometry(scale);
+  return `<mask id="${maskId}">
+      <rect width="${CANVAS}" height="${CANVAS}" fill="#FFFFFF" />
+      <circle cx="${cxA}" cy="${cy}" r="${R}" fill="none" stroke="#000000" stroke-width="${W + halo * 2}" />
+      <circle cx="${cxA}" cy="${cy}" r="${R - W / 2 + halo}" fill="#000000" />
+    </mask>
+    <g mask="url(#${maskId})">
+      <circle cx="${cxB}" cy="${cy}" r="${R}" fill="none" stroke="${ringB}" stroke-width="${W}" />
+      <circle cx="${tail.cx}" cy="${tail.cy}" r="${tail.r}" fill="${ringB}" />
+    </g>
+    <circle cx="${cxA}" cy="${cy}" r="${R}" fill="none" stroke="${ringA}" stroke-width="${W}" />`;
 }
 
-/** The queue-forward mark in volt, at the given scale. */
-function chevronMark(scale = FULL_SCALE) {
-  const { x0, w, h, gap, yMid } = chevronGeometry(scale);
-  return `<path d="${chevronPath(x0, w, h, yMid)}" fill="${VOLT}" />
-    <path d="${chevronPath(x0 + gap, w, h, yMid)}" fill="${VOLT}" opacity="0.55" />`;
-}
-
-/** Same geometry, solid white — for the Android themed-icon silhouette, which
- * the OS tints with a single system color. */
-function chevronMarkMono(scale = SAFE_SCALE) {
-  const { x0, w, h, gap, yMid } = chevronGeometry(scale);
-  return `<path d="${chevronPath(x0, w, h, yMid)}" fill="#FFFFFF" />
-    <path d="${chevronPath(x0 + gap, w, h, yMid)}" fill="#FFFFFF" opacity="0.55" />`;
+/** Solid-white silhouette variant for the Android themed icon: same weave,
+ * both rings white — the mask still cuts the gaps so the silhouette reads. */
+function ringsMarkMono(scale = SAFE_SCALE) {
+  return ringsMark(scale, "#FFFFFF", "#FFFFFF", "weaveMono");
 }
 
 function svgDoc(inner, { background } = {}) {
@@ -80,7 +88,7 @@ function svgDoc(inner, { background } = {}) {
 async function main() {
   // 1. icon.png — mark on the dark field, plus a whisper of grain (same noise.png
   //    tile GrainOverlay.tsx uses, mirrored here since Image can't be used at build time).
-  const iconSvg = svgDoc(chevronMark(FULL_SCALE), { background: BG });
+  const iconSvg = svgDoc(ringsMark(FULL_SCALE), { background: BG });
   const noiseTile = readFileSync(path.join(ASSETS, "noise.png"));
   const iconBuffer = await sharp(Buffer.from(iconSvg))
     .resize(CANVAS, CANVAS)
@@ -92,7 +100,7 @@ async function main() {
 
   // 2. android-icon-foreground.png — mark only, transparent, sized within the
   //    adaptive-icon safe zone (center 66% circle).
-  const foregroundSvg = svgDoc(chevronMark(SAFE_SCALE));
+  const foregroundSvg = svgDoc(ringsMark(SAFE_SCALE));
   const foregroundBuffer = await sharp(Buffer.from(foregroundSvg)).resize(CANVAS, CANVAS).png().toBuffer();
   writeFileSync(path.join(ASSETS, "android-icon-foreground.png"), foregroundBuffer);
   console.log("wrote android-icon-foreground.png");
@@ -106,14 +114,14 @@ async function main() {
 
   // 4. android-icon-monochrome.png — solid white-alpha silhouette, no color.
   //    Same geometry as the foreground so the themed-icon silhouette matches the mark.
-  const monoSvg = svgDoc(chevronMarkMono(SAFE_SCALE));
+  const monoSvg = svgDoc(ringsMarkMono(SAFE_SCALE));
   const monoBuffer = await sharp(Buffer.from(monoSvg)).resize(CANVAS, CANVAS).png().toBuffer();
   writeFileSync(path.join(ASSETS, "android-icon-monochrome.png"), monoBuffer);
   console.log("wrote android-icon-monochrome.png");
 
   // 5. splash-icon.png — the mark, transparent bg, full bold sizing (no adaptive
   //    safe-zone constraint here — it sits centered on the splash backgroundColor).
-  const splashSvg = svgDoc(chevronMark(FULL_SCALE));
+  const splashSvg = svgDoc(ringsMark(FULL_SCALE));
   const splashBuffer = await sharp(Buffer.from(splashSvg)).resize(CANVAS, CANVAS).png().toBuffer();
   writeFileSync(path.join(ASSETS, "splash-icon.png"), splashBuffer);
   console.log("wrote splash-icon.png");
@@ -128,7 +136,7 @@ async function main() {
   //    alpha channel (tinted with expo-notifications' `color`), so this must be
   //    white-on-transparent, not the colored adaptive-icon foreground. 96x96 is
   //    the xxhdpi reference size; the plugin downscales for lower densities.
-  const notificationSvg = svgDoc(chevronMarkMono(FULL_SCALE));
+  const notificationSvg = svgDoc(ringsMarkMono(FULL_SCALE));
   const notificationBuffer = await sharp(Buffer.from(notificationSvg)).resize(96, 96).png().toBuffer();
   writeFileSync(path.join(ASSETS, "notification-icon.png"), notificationBuffer);
   console.log("wrote notification-icon.png");
