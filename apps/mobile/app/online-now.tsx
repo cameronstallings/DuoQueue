@@ -56,7 +56,7 @@ function OnlineNowRow({ item }: { item: OnlineNowCard }) {
           </Text>
         )}
       </View>
-      <Button label="Like" onPress={() => void handleLike()} loading={swipeAction.isPending} />
+      <Button label="Duo" onPress={() => void handleLike()} loading={swipeAction.isPending} />
     </Card>
   );
 }

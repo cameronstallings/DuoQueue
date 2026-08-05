@@ -119,7 +119,7 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, onSendRose, disab
           <AnimatedIconButton
             size={48}
             ringColor={colors.success}
-            accessibilityLabel="Super Ping — notify them you liked their profile"
+            accessibilityLabel="Super Ping — notify them you want to duo"
             onPress={onSuperPing}
             disabled={disabled}
             style={[{ borderRadius: radius.round }, glassStyle]}
@@ -133,7 +133,7 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, onSendRose, disab
       <AnimatedIconButton
         size={64}
         ringColor={colors.volt}
-        accessibilityLabel="Like"
+        accessibilityLabel="Duo"
         onPress={onLike}
         disabled={disabled}
         style={[{ borderRadius: radius.round, backgroundColor: colors.volt }]}

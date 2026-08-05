@@ -280,7 +280,7 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger, index }: Swi
               </Pressable>
             )}
 
-            {/* LIKE and PASS both read as plain outlined mono tags now — volt ink for
+            {/* DUO and PASS both read as plain outlined mono tags now — volt ink for
                 the "yes" stamp, muted ink for the "no" one. No gradient fill, no
                 glass pill. */}
             <Animated.View style={[styles.stamp, styles.likeStamp, likeStampStyle]}>
@@ -297,7 +297,7 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger, index }: Swi
                   },
                 ]}
               >
-                LIKE
+                DUO
               </Text>
             </Animated.View>
             <Animated.View style={[styles.stamp, styles.passStamp, passStampStyle]}>
@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
     right: 18,
     transform: [{ rotate: "8deg" }],
   },
-  /** LIKE/PASS pill geometry — an outlined mono tag now, not a stamped block. */
+  /** DUO/PASS pill geometry — an outlined mono tag now, not a stamped block. */
   stampPill: {
     paddingHorizontal: 9,
     paddingVertical: 2,
