@@ -64,11 +64,11 @@ const DUO_SOLID = "#92918D";
  * then the Q's bottom-crossing segment repainted on top (butt caps — its ends
  * sit on the visible Q band in the same color, so the joins are seamless).
  * Crossings sit at ±acos(-d/2R) = ±138.6° off B's leftward axis; the overlay
- * segment spans that ±22.5°. */
+ * segment spans that ±27.5° — wide enough to cover the full band width of the crossing lens, not just the centerline. */
 function ringsMark(scale = FULL_SCALE, ink = INK, duo = DUO_SOLID) {
   const { R, W, cxA, cxB, cy, tail } = ringGeometry(scale);
-  const s = ((138.59 - 22.5) * Math.PI) / 180;
-  const e = ((138.59 + 22.5) * Math.PI) / 180;
+  const s = ((138.59 - 27.5) * Math.PI) / 180;
+  const e = ((138.59 + 27.5) * Math.PI) / 180;
   const seg = `M ${cxB + R * Math.cos(s)} ${cy + R * Math.sin(s)} A ${R} ${R} 0 0 1 ${cxB + R * Math.cos(e)} ${cy + R * Math.sin(e)}`;
   return `<circle cx="${cxB}" cy="${cy}" r="${R}" fill="none" stroke="${duo}" stroke-width="${W}" />
     <circle cx="${tail.cx}" cy="${tail.cy}" r="${tail.r}" fill="${duo}" />

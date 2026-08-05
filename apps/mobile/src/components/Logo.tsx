@@ -34,9 +34,9 @@ const NUB = {
 // True chain interlock: full Q circle under the O, then the Q's
 // bottom-crossing segment repainted on top (butt caps — the ends land on the
 // visible Q band in the same color, so the joins are seamless). Crossings sit
-// at ±acos(-D/2R) = ±138.6° off the Q's leftward axis; the overlay spans ±22.5°.
-const SEG_S = ((138.59 - 22.5) * Math.PI) / 180;
-const SEG_E = ((138.59 + 22.5) * Math.PI) / 180;
+// at ±acos(-D/2R) = ±138.6° off the Q's leftward axis; the overlay spans ±27.5° (full band width of the lens, not just centerline).
+const SEG_S = ((138.59 - 27.5) * Math.PI) / 180;
+const SEG_E = ((138.59 + 27.5) * Math.PI) / 180;
 const SEG_PATH = `M ${CXB + R * Math.cos(SEG_S)} ${CY + R * Math.sin(SEG_S)} A ${R} ${R} 0 0 1 ${CXB + R * Math.cos(SEG_E)} ${CY + R * Math.sin(SEG_E)}`;
 
 /** Solid 58% blend of ink toward the field — the weave paints the Q OVER the O
