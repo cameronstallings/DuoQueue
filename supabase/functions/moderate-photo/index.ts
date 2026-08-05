@@ -69,11 +69,24 @@ Deno.serve(async (req) => {
   // the caller.
   const { data: media, error: mediaError } = await userClient
     .from("profile_media")
-    .select("id, profile_id, storage_path")
+    .select("id, profile_id, storage_path, admin_reviewed_at")
     .eq("id", mediaId)
     .single();
   if (mediaError || !media) {
     return jsonResponse({ error: "Media not found" }, 404);
+  }
+
+  // A human already decided this row (review_photo sets admin_reviewed_at) — the
+  // automated check re-running and unconditionally overwriting moderation_status would
+  // silently reverse that decision with no audit trail. Repointing storage_path (a real
+  // re-upload) clears the marker via reset_media_moderation, so this only blocks
+  // re-triggering the pipeline on bytes an admin has already looked at; a fresh upload
+  // is unaffected. Only another review_photo call can move the status after this point.
+  if (media.admin_reviewed_at) {
+    return jsonResponse(
+      { error: "This photo has already been reviewed by a moderator and cannot be re-processed automatically." },
+      409,
+    );
   }
 
   // Owning the row is not the same as owning the object it points at. Everything below

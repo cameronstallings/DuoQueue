@@ -14,7 +14,24 @@
 // preserved_moderation_evidence (0046_preserve_safety_evidence.sql), a table with no FK
 // to profiles, so the pointer survives even though the profile_media /
 // profile_voice_intro row itself still cascades away with the profile. Their storage
-// objects are then skipped in the removal loop below instead of deleted.
+// objects are then skipped in the removal loop below instead of deleted — and so is
+// anything ALREADY preserved there from an earlier row delete/replace (0050's DELETE
+// triggers, 0054's UPDATE triggers), since those objects are now orphaned (no current
+// profile_media/profile_voice_intro row points at them) and would otherwise look
+// unclaimed to this function and get deleted anyway.
+//
+// Two refusals happen before any of that, per 0054_preservation_completeness.sql:
+//   - A currently-banned profile cannot self-delete at all. Durable bans
+//     (banned_identities) already survive account deletion on their own, but refusing
+//     outright here means a ban can never be raced by self-deleting the instant it
+//     lands, and is simply more honest than letting the delete "succeed" while a
+//     shadow ban record lives on.
+//   - A profile with an open `underage` report against it (reports.reported_profile_id
+//     = this user, reason = 'underage', status <> 'dismissed') is not deleted — it is
+//     frozen in place instead (freeze_account_for_legal_hold), so the match(es) and
+//     message(s) trust-and-safety.md section 4(b) requires be kept aren't cascaded away
+//     with the profile. See that function's header comment for exactly what is retained
+//     vs. anonymized.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -58,6 +75,57 @@ Deno.serve(async (req) => {
   }
 
   const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  // --- Refusal 1: a currently-banned profile cannot self-delete. ---
+  const { data: profileRow, error: profileError } = await serviceClient
+    .from("profiles")
+    .select("is_banned")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (profileError) {
+    console.error("failed to read profile for ban check", { message: profileError.message });
+    return jsonResponse({ error: "Failed to check account status" }, 500);
+  }
+  if (profileRow?.is_banned) {
+    return jsonResponse(
+      { error: "This account has been banned and cannot be deleted. Contact support if you believe this is a mistake." },
+      403,
+    );
+  }
+
+  // --- Refusal 2: an open `underage` report against this profile blocks a normal
+  // delete and freezes the account (match/message evidence retained) instead. Uses
+  // reported_profile_id, the non-FK copy 0046 added, per trust-and-safety.md section
+  // 4(b)'s own predicate. ---
+  const { data: openUnderageReports, error: reportsError } = await serviceClient
+    .from("reports")
+    .select("id")
+    .eq("reported_profile_id", user.id)
+    .eq("reason", "underage")
+    .neq("status", "dismissed")
+    .limit(1);
+  if (reportsError) {
+    console.error("failed to check open reports for legal hold", { message: reportsError.message });
+    return jsonResponse({ error: "Failed to check account status" }, 500);
+  }
+  if (openUnderageReports && openUnderageReports.length > 0) {
+    const { error: freezeError } = await serviceClient.rpc("freeze_account_for_legal_hold", {
+      p_profile_id: user.id,
+      p_reason: "Self-deletion blocked: open underage-report safety review (legal hold, trust-and-safety.md section 4b).",
+    });
+    if (freezeError) {
+      console.error("failed to freeze account for legal hold", { message: freezeError.message });
+      return jsonResponse({ error: "Failed to process deletion" }, 500);
+    }
+    return jsonResponse(
+      {
+        error:
+          "Your account can't be deleted right now because it's part of an open safety review. " +
+          "Your account has been suspended instead. Contact support if you have questions.",
+      },
+      403,
+    );
+  }
 
   // --- Find flagged/rejected media BEFORE touching storage or the auth user. ---
   // moderation_status is the only signal that exists today (T&S doc section 2.3, open
@@ -125,6 +193,24 @@ Deno.serve(async (req) => {
       console.error("failed to preserve flagged media pointers", { message: evidenceError.message });
       return jsonResponse({ error: "Failed to preserve flagged media" }, 500);
     }
+  }
+
+  // Union in anything already preserved for this profile from an earlier row
+  // delete/replace (0050's BEFORE DELETE triggers, 0054's BEFORE UPDATE triggers) — those
+  // objects have no *current* profile_media/profile_voice_intro row pointing at them
+  // anymore (that's what makes them "preserved": intentionally orphaned), so the query
+  // above would never find them, and the removal loop below would otherwise delete the
+  // very thing an earlier preservation was written to keep.
+  const { data: alreadyPreserved, error: alreadyPreservedError } = await serviceClient
+    .from("preserved_moderation_evidence")
+    .select("storage_bucket, storage_path")
+    .eq("original_profile_id", user.id);
+  if (alreadyPreservedError) {
+    console.error("failed to read already-preserved evidence", { message: alreadyPreservedError.message });
+    return jsonResponse({ error: "Failed to check media status" }, 500);
+  }
+  for (const row of alreadyPreserved ?? []) {
+    preservedPaths[row.storage_bucket]?.add(row.storage_path);
   }
 
   // Every bucket holding personal data. Voice intros are recordings of the user's own

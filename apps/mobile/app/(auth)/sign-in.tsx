@@ -39,17 +39,24 @@ export default function SignIn() {
     setLoading(false);
     if (signInError) {
       setCaptchaToken(null);
-      // Someone who closed the app on the code screen would otherwise be stuck here
-      // forever: their account exists, so sign-up won't take them, and sign-in returns
-      // this same error every time. Route them back to where they can enter the code.
-      if (
-        signInError.code === "email_not_confirmed" ||
-        signInError.message.toLowerCase().includes("not confirmed")
-      ) {
-        router.push({ pathname: "/(auth)/confirm-email", params: { email } });
-        return;
-      }
-      setError(signInError.message);
+      // Supabase's "email_not_confirmed" error (vs. the generic "invalid_credentials"
+      // for a wrong password or an unregistered address) only fires once the supplied
+      // password is actually correct — but surfacing a DIFFERENT message, or worse,
+      // auto-navigating to the code-entry screen, for that one case turns this form
+      // into an oracle: try a guessed password against a target email, and a
+      // distinguishable response confirms the account exists and is unconfirmed. Every
+      // failure gets the same generic text and the same lack of navigation, regardless
+      // of which of these it actually was.
+      //
+      // The legitimate case (someone who closed the app on the code screen and is now
+      // stuck, since sign-up won't take a confirmed... er, unconfirmed email and
+      // sign-in keeps failing) still has a way out: the message hints at it, and the
+      // "Enter confirmation code" button below is always visible, not conditionally
+      // rendered on this error, so its presence discloses nothing either.
+      console.error("sign-in failed", signInError.code, signInError.message);
+      setError(
+        "That email and password didn't work. If you just signed up, check your email for a confirmation code.",
+      );
     }
   }
 
@@ -113,6 +120,16 @@ export default function SignIn() {
         label="Create an account"
         variant="ghost"
         onPress={() => router.push("/(auth)/age-gate")}
+      />
+
+      {/* Always rendered, never conditioned on the sign-in error above — a stuck
+          "signed up but never confirmed" user needs a way back to the code screen, but
+          showing this button only when that specific case occurs would itself leak
+          which case occurred. See the comment in handleSignIn. */}
+      <Button
+        label="Enter confirmation code"
+        variant="ghost"
+        onPress={() => router.push({ pathname: "/(auth)/confirm-email", params: { email } })}
       />
     </ScreenContainer>
   );
