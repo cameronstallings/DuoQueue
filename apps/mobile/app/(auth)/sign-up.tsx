@@ -8,6 +8,7 @@ import { Button } from "@/components/Button";
 import { Logo } from "@/components/Logo";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { TextField } from "@/components/TextField";
+import { setPendingConfirmationEmail } from "@/features/auth/pendingConfirmation";
 import { isCaptchaConfigured, TurnstileCaptcha } from "@/features/auth/TurnstileCaptcha";
 import { LEGAL_URLS } from "@/lib/legal";
 import { supabase } from "@/lib/supabase";
@@ -92,6 +93,10 @@ export default function SignUp() {
     // confirmed — the expected path with confirmations on, not an error. The session is
     // issued by verifyOtp() on the next screen, not by anything happening in the inbox.
     if (!data.session) {
+      // Remembered across a cold start: confirming means leaving for the inbox, and
+      // coming back to the sign-in screen instead of the code screen reads as the app
+      // having forgotten the account they just created.
+      await setPendingConfirmationEmail(email);
       router.replace({ pathname: "/(auth)/confirm-email", params: { email } });
       return;
     }

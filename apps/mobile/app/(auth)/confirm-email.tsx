@@ -6,6 +6,7 @@ import { Button } from "@/components/Button";
 import { Logo } from "@/components/Logo";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { TextField } from "@/components/TextField";
+import { clearPendingConfirmationEmail } from "@/features/auth/pendingConfirmation";
 import { isCaptchaConfigured, TurnstileCaptcha } from "@/features/auth/TurnstileCaptcha";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/theme/useTheme";
@@ -87,7 +88,11 @@ export default function ConfirmEmail() {
     if (verifyError) {
       setError(verifyError.message);
       setCode("");
+      return;
     }
+
+    // Confirmed — stop redirecting cold starts back here.
+    await clearPendingConfirmationEmail();
   }
 
   async function handleResend() {
@@ -168,10 +173,16 @@ export default function ConfirmEmail() {
         loading={resending}
         disabled={cooldown > 0}
       />
+      {/* The escape hatch. Clearing the pending email is what stops the cold-start
+          redirect from dragging them straight back here — without it, "back to sign in"
+          would be a door that reopens onto the same room. */}
       <Button
         label="Back to sign in"
         variant="secondary"
-        onPress={() => router.replace("/(auth)/sign-in")}
+        onPress={() => {
+          void clearPendingConfirmationEmail();
+          router.replace("/(auth)/sign-in");
+        }}
       />
     </ScreenContainer>
   );
