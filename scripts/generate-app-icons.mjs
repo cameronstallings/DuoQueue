@@ -63,15 +63,19 @@ function ringGeometry(scale) {
 const INK = "#F5F3EE";
 const DUO_OPACITY = 0.58;
 
-function ringsMark(scale = FULL_SCALE, ink = INK, maskId = "weave", duoOpacity = DUO_OPACITY) {
-  const { R, W, cxA, cxB, cy, halo, tail } = ringGeometry(scale);
-  return `<mask id="${maskId}">
-      <rect width="${CANVAS}" height="${CANVAS}" fill="#FFFFFF" />
-      <circle cx="${cxA}" cy="${cy}" r="${R}" fill="none" stroke="#000000" stroke-width="${W + halo * 2}" />
-      <circle cx="${cxA}" cy="${cy}" r="${R - W / 2 + halo}" fill="#000000" />
-    </mask>
-    <g mask="url(#${maskId})" opacity="${duoOpacity}">
-      <circle cx="${cxB}" cy="${cy}" r="${R}" fill="none" stroke="${ink}" stroke-width="${W}" />
+function ringsMark(scale = FULL_SCALE, ink = INK, _maskId = "weave", duoOpacity = DUO_OPACITY) {
+  const { R, W, cxB, cy, tail } = ringGeometry(scale);
+  // The Q is a true arc with ROUND end-caps (no mask slice — a masked cut left
+  // a flat edge where the front ring crossed it). ±103° off the leftward axis
+  // pulls each cap back far enough to leave the weave's breathing gap.
+  const a = (103 * Math.PI) / 180;
+  const sx = cxB + R * Math.cos(-a);
+  const sy = cy + R * Math.sin(-a);
+  const ex = cxB + R * Math.cos(a);
+  const ey = cy + R * Math.sin(a);
+  const { cxA } = ringGeometry(scale);
+  return `<g opacity="${duoOpacity}">
+      <path d="M ${sx} ${sy} A ${R} ${R} 0 1 1 ${ex} ${ey}" fill="none" stroke="${ink}" stroke-width="${W}" stroke-linecap="round" />
       <circle cx="${tail.cx}" cy="${tail.cy}" r="${tail.r}" fill="${ink}" />
     </g>
     <circle cx="${cxA}" cy="${cy}" r="${R}" fill="none" stroke="${ink}" stroke-width="${W}" />`;

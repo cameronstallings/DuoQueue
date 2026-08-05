@@ -1,5 +1,5 @@
 import { Text, View } from "react-native";
-import Svg, { Circle, G, Mask, Rect } from "react-native-svg";
+import Svg, { Circle, G, Path } from "react-native-svg";
 
 import { useTheme } from "@/theme/useTheme";
 
@@ -12,7 +12,7 @@ interface LogoProps {
 
 /**
  * The brand mark: an O-ring and a Q-ring woven together — the duo, locked.
- * Ring A (volt) passes over ring B (ink) with knocked-out crossings via an SVG
+ * The Q is a round-capped arc opening toward the O; one ink, two strengths.
  * mask, so the mark sits on any surface. Geometry mirrors
  * scripts/generate-app-icons.mjs (the icon set's source of truth) — keep the
  * constants in sync when tuning either.
@@ -25,13 +25,16 @@ const NUDGE = CANVAS * 0.012;
 const CY = CANVAS / 2;
 const CXA = CY - NUDGE - D / 2;
 const CXB = CY - NUDGE + D / 2;
-const HALO = W * 0.42;
 const NUB_DIST = R + W * 0.42;
 const NUB = {
   cx: CXB + NUB_DIST * Math.SQRT1_2,
   cy: CY + NUB_DIST * Math.SQRT1_2,
   r: W * 0.56,
 };
+// The Q is a true arc with round end-caps — ±103° off the leftward axis leaves
+// the breathing gap toward the O without any flat mask-cut edges.
+const ARC = (103 * Math.PI) / 180;
+const Q_PATH = `M ${CXB + R * Math.cos(-ARC)} ${CY + R * Math.sin(-ARC)} A ${R} ${R} 0 1 1 ${CXB + R * Math.cos(ARC)} ${CY + R * Math.sin(ARC)}`;
 const PAD = 4;
 const VB_X = CXA - R - W / 2 - PAD;
 const VB_Y = CY - R - W / 2 - PAD;
@@ -50,13 +53,8 @@ function LogoMark({ width }: { width: number }) {
   return (
     <View accessibilityRole="image" accessibilityLabel="DuoQueue">
       <Svg width={width} height={width * LOGO_MARK_ASPECT} viewBox={`${VB_X} ${VB_Y} ${VB_W} ${VB_H}`}>
-        <Mask id="weave">
-          <Rect x={VB_X} y={VB_Y} width={VB_W} height={VB_H} fill="#FFFFFF" />
-          <Circle cx={CXA} cy={CY} r={R} fill="none" stroke="#000000" strokeWidth={W + HALO * 2} />
-          <Circle cx={CXA} cy={CY} r={R - W / 2 + HALO} fill="#000000" />
-        </Mask>
-        <G mask="url(#weave)" opacity={0.58}>
-          <Circle cx={CXB} cy={CY} r={R} fill="none" stroke={ink} strokeWidth={W} />
+        <G opacity={0.58}>
+          <Path d={Q_PATH} fill="none" stroke={ink} strokeWidth={W} strokeLinecap="round" />
           <Circle cx={NUB.cx} cy={NUB.cy} r={NUB.r} fill={ink} />
         </G>
         <Circle cx={CXA} cy={CY} r={R} fill="none" stroke={ink} strokeWidth={W} />
