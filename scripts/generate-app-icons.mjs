@@ -1,9 +1,9 @@
 // scripts/generate-app-icons.mjs — regenerates DuoQueue's Volt app icon set.
 //
-// The mark: Cameron's interlocked-rings monogram (an O-ring and a Q-ring woven
-// together — the duo, locked), re-hued for Volt: volt ring over ink-white ring
-// with knocked-out crossings. Flat and geometric — no glow, no gradient blend —
-// in line with the rest of the Volt restyle. The in-app vector twin lives in
+// The mark: Cameron's interlocked-rings monogram — an O-ring and a Q-ring in a
+// true chain weave (O over Q up top, Q over O below), hue-free: one warm ink at
+// two strengths so the mark doubles as the umbrella dev-company brand on any
+// colorway. The in-app vector twin lives in
 // apps/mobile/src/components/Logo.tsx — keep the geometry constants in sync.
 //
 // Run: node scripts/generate-app-icons.mjs
@@ -31,12 +31,7 @@ const FULL_SCALE = 1;
 const SAFE_SCALE = 320 / 416;
 
 /**
- * Geometry for the interlocked-rings monogram (Cameron's logo, re-hued for
- * Volt): an O-ring and a Q-ring woven together — the duo, locked. Ring A
- * (volt) passes over ring B (ink-white) with a knocked-out halo at both
- * crossings, done with an SVG mask so the gap is true transparency (required
- * for the adaptive-foreground / monochrome / notification variants — a
- * painted background halo would ghost on transparent canvases).
+ * Shared geometry for the rings monogram (both weave and open variants).
  */
 function ringGeometry(scale) {
   const R = CANVAS * 0.21 * scale; // ring centerline radius
@@ -56,36 +51,48 @@ function ringGeometry(scale) {
   return { R, W, cxA, cxB, cy: CENTER, halo, tail };
 }
 
-/** The rings mark — deliberately hue-free: DuoQueue doubles as the umbrella
- * dev-company brand, so the mark is one warm ink at two strengths (front ring
- * full, Q ring ~58%) and sits on any app's colorway. The weave gap is
- * transparent. */
+/** Warm neutral ink — never an app accent; the mark stays brand-neutral. */
 const INK = "#F5F3EE";
-const DUO_OPACITY = 0.58;
 
-function ringsMark(scale = FULL_SCALE, ink = INK, _maskId = "weave", duoOpacity = DUO_OPACITY) {
-  const { R, W, cxB, cy, tail } = ringGeometry(scale);
-  // The Q is a true arc with ROUND end-caps (no mask slice — a masked cut left
-  // a flat edge where the front ring crossed it). ±103° off the leftward axis
-  // pulls each cap back far enough to leave the weave's breathing gap.
+
+/** Solid duo-gray: INK pre-blended 58% toward the dark field. The weave needs
+ * the Q to paint OVER the O at one crossing, so translucency is not an option —
+ * a 58%-opacity stroke would tint where it overlaps instead of covering. */
+const DUO_SOLID = "#92918D";
+
+/** True chain interlock, everything round: full Q circle under, O over it,
+ * then the Q's bottom-crossing segment repainted on top (butt caps — its ends
+ * sit on the visible Q band in the same color, so the joins are seamless).
+ * Crossings sit at ±acos(-d/2R) = ±138.6° off B's leftward axis; the overlay
+ * segment spans that ±22.5°. */
+function ringsMark(scale = FULL_SCALE, ink = INK, duo = DUO_SOLID) {
+  const { R, W, cxA, cxB, cy, tail } = ringGeometry(scale);
+  const s = ((138.59 - 22.5) * Math.PI) / 180;
+  const e = ((138.59 + 22.5) * Math.PI) / 180;
+  const seg = `M ${cxB + R * Math.cos(s)} ${cy + R * Math.sin(s)} A ${R} ${R} 0 0 1 ${cxB + R * Math.cos(e)} ${cy + R * Math.sin(e)}`;
+  return `<circle cx="${cxB}" cy="${cy}" r="${R}" fill="none" stroke="${duo}" stroke-width="${W}" />
+    <circle cx="${tail.cx}" cy="${tail.cy}" r="${tail.r}" fill="${duo}" />
+    <circle cx="${cxA}" cy="${cy}" r="${R}" fill="none" stroke="${ink}" stroke-width="${W}" />
+    <path d="${seg}" fill="none" stroke="${duo}" stroke-width="${W}" />`;
+}
+
+/** Open-arc variant for single-color silhouettes (Android themed icon,
+ * notification): with one color the over/under weave is invisible, so the
+ * round-capped open Q carries the pairing instead. */
+function ringsMarkOpen(scale = FULL_SCALE, ink = "#FFFFFF") {
+  const { R, W, cxA, cxB, cy, tail } = ringGeometry(scale);
   const a = (103 * Math.PI) / 180;
   const sx = cxB + R * Math.cos(-a);
   const sy = cy + R * Math.sin(-a);
   const ex = cxB + R * Math.cos(a);
   const ey = cy + R * Math.sin(a);
-  const { cxA } = ringGeometry(scale);
-  return `<g opacity="${duoOpacity}">
-      <path d="M ${sx} ${sy} A ${R} ${R} 0 1 1 ${ex} ${ey}" fill="none" stroke="${ink}" stroke-width="${W}" stroke-linecap="round" />
-      <circle cx="${tail.cx}" cy="${tail.cy}" r="${tail.r}" fill="${ink}" />
-    </g>
+  return `<path d="M ${sx} ${sy} A ${R} ${R} 0 1 1 ${ex} ${ey}" fill="none" stroke="${ink}" stroke-width="${W}" stroke-linecap="round" />
+    <circle cx="${tail.cx}" cy="${tail.cy}" r="${tail.r}" fill="${ink}" />
     <circle cx="${cxA}" cy="${cy}" r="${R}" fill="none" stroke="${ink}" stroke-width="${W}" />`;
 }
 
-/** Solid-white silhouette variant for the Android themed icon + notification
- * icon: both rings full-strength — these render as alpha masks, and a faded
- * ring would tint weakly. The weave gaps still carry the interlock. */
 function ringsMarkMono(scale = SAFE_SCALE) {
-  return ringsMark(scale, "#FFFFFF", "weaveMono", 1);
+  return ringsMarkOpen(scale, "#FFFFFF");
 }
 
 function svgDoc(inner, { background } = {}) {

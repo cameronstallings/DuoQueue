@@ -31,10 +31,21 @@ const NUB = {
   cy: CY + NUB_DIST * Math.SQRT1_2,
   r: W * 0.56,
 };
-// The Q is a true arc with round end-caps — ±103° off the leftward axis leaves
-// the breathing gap toward the O without any flat mask-cut edges.
-const ARC = (103 * Math.PI) / 180;
-const Q_PATH = `M ${CXB + R * Math.cos(-ARC)} ${CY + R * Math.sin(-ARC)} A ${R} ${R} 0 1 1 ${CXB + R * Math.cos(ARC)} ${CY + R * Math.sin(ARC)}`;
+// True chain interlock: full Q circle under the O, then the Q's
+// bottom-crossing segment repainted on top (butt caps — the ends land on the
+// visible Q band in the same color, so the joins are seamless). Crossings sit
+// at ±acos(-D/2R) = ±138.6° off the Q's leftward axis; the overlay spans ±22.5°.
+const SEG_S = ((138.59 - 22.5) * Math.PI) / 180;
+const SEG_E = ((138.59 + 22.5) * Math.PI) / 180;
+const SEG_PATH = `M ${CXB + R * Math.cos(SEG_S)} ${CY + R * Math.sin(SEG_S)} A ${R} ${R} 0 0 1 ${CXB + R * Math.cos(SEG_E)} ${CY + R * Math.sin(SEG_E)}`;
+
+/** Solid 58% blend of ink toward the field — the weave paints the Q OVER the O
+ * at one crossing, so translucency would tint instead of cover. */
+function mix(fg: string, bg: string, t: number) {
+  const c = (h: string, i: number) => parseInt(h.slice(i, i + 2), 16);
+  const ch = (i: number) => Math.round(c(fg, i) * t + c(bg, i) * (1 - t));
+  return `rgb(${ch(1)},${ch(3)},${ch(5)})`;
+}
 const PAD = 4;
 const VB_X = CXA - R - W / 2 - PAD;
 const VB_Y = CY - R - W / 2 - PAD;
@@ -46,18 +57,18 @@ export const LOGO_MARK_ASPECT = VB_H / VB_W;
 function LogoMark({ width }: { width: number }) {
   const { colors } = useTheme();
   // Deliberately hue-free (the mark doubles as the umbrella company brand):
-  // one ink at two strengths — text color full for the front ring, ~58% for
-  // the Q ring — so it sits on Volt and on any future app's colorway alike.
+  // one ink at two strengths — text color full for the front ring, a solid 58%
+  // field-blend for the Q — so it sits on Volt and any future colorway alike.
   const ink = colors.text;
+  const duo = mix(colors.text, colors.background, 0.58);
 
   return (
     <View accessibilityRole="image" accessibilityLabel="DuoQueue">
       <Svg width={width} height={width * LOGO_MARK_ASPECT} viewBox={`${VB_X} ${VB_Y} ${VB_W} ${VB_H}`}>
-        <G opacity={0.58}>
-          <Path d={Q_PATH} fill="none" stroke={ink} strokeWidth={W} strokeLinecap="round" />
-          <Circle cx={NUB.cx} cy={NUB.cy} r={NUB.r} fill={ink} />
-        </G>
+        <Circle cx={CXB} cy={CY} r={R} fill="none" stroke={duo} strokeWidth={W} />
+        <Circle cx={NUB.cx} cy={NUB.cy} r={NUB.r} fill={duo} />
         <Circle cx={CXA} cy={CY} r={R} fill="none" stroke={ink} strokeWidth={W} />
+        <Path d={SEG_PATH} fill="none" stroke={duo} strokeWidth={W} />
       </Svg>
     </View>
   );
