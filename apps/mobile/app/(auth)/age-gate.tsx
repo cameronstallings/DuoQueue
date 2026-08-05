@@ -13,7 +13,7 @@ const MIN_AGE_CUTOFF = new Date();
 MIN_AGE_CUTOFF.setFullYear(MIN_AGE_CUTOFF.getFullYear() - MIN_AGE);
 
 export default function AgeGate() {
-  const { colors, spacing, type } = useTheme();
+  const { colors, scheme, spacing, type } = useTheme();
   const [dob, setDob] = useState<Date>(MIN_AGE_CUTOFF);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,10 +37,18 @@ export default function AgeGate() {
         is ever shown on your profile.
       </Text>
 
+      {/* This is a NATIVE view, so it does not inherit the app's theme — left alone it
+          follows the DEVICE's appearance. A phone in dark mode rendered near-white
+          wheel text onto Paper's light background, which is how the birthdate ended up
+          practically invisible. themeVariant pins the picker to the app's scheme, and
+          textColor pins the iOS spinner's wheel text to our own ink. Both are iOS-only;
+          Android's `default` display opens a system dialog that themes itself. */}
       <DateTimePicker
         value={dob}
         mode="date"
         display={Platform.OS === "ios" ? "spinner" : "default"}
+        themeVariant={scheme === "dark" ? "dark" : "light"}
+        textColor={colors.text}
         maximumDate={MIN_AGE_CUTOFF}
         onChange={(_event, selected) => selected && setDob(selected)}
       />
