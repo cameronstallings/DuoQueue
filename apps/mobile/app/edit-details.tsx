@@ -141,7 +141,14 @@ export default function EditDetailsScreen() {
       {/* No insets.top: this is presented as a modal, which is already inset below the
           status bar. Adding it again opened the sheet with a second status bar of
           empty space. */}
-      <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>
+      {/* Own ScrollView rather than ScreenContainer's, so keyboard handling is explicit
+          here too — this screen has the rank fields and the game/show search boxes. */}
+      <ScrollView
+        contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+        keyboardDismissMode="interactive"
+      >
         <ModalHeader title="Edit Details" />
 
         {!loaded || !profile ? (

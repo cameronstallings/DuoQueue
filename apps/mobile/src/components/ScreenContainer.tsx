@@ -1,5 +1,5 @@
 import type { PropsWithChildren, ReactElement } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { RefreshControlProps } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -60,7 +60,14 @@ export function ScreenContainer({
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: colors.background }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      // Deliberately no behavior on either platform. `padding` here only shrank the
+      // scroll frame — nothing scrolled the FOCUSED field above the keyboard, so
+      // tapping an input near the bottom (a prompt answer, say) left you typing into
+      // a box you couldn't see. The ScrollView's own
+      // `automaticallyAdjustKeyboardInsets` does both jobs on iOS, and Android's
+      // default adjustResize already shrinks the window. Setting both double-counts
+      // the keyboard height and shoves the content too far up.
+      behavior={undefined}
     >
       {atmosphere !== "none" && (
         <>
@@ -159,6 +166,10 @@ export function ScreenContainer({
           },
         ]}
         keyboardShouldPersistTaps="handled"
+        // Insets the content by the keyboard AND scrolls the focused input into view.
+        automaticallyAdjustKeyboardInsets
+        // Drag the keyboard away instead of hunting for a Done button.
+        keyboardDismissMode="interactive"
         refreshControl={refreshControl}
       >
         <View style={{ gap: spacing.md }}>{children}</View>

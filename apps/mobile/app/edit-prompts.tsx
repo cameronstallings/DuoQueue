@@ -71,7 +71,15 @@ export default function EditPromptsScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       {/* No insets.top — presented as a modal, which is already inset below the status bar. */}
-      <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
+      {/* This screen owns its own ScrollView rather than going through
+          ScreenContainer, so it needs the same keyboard handling explicitly: inset for
+          the keyboard and scroll the focused answer field above it. */}
+      <ScrollView
+        contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+        keyboardDismissMode="interactive"
+      >
         <ModalHeader title="Edit Prompts" />
         {slots === null || loadingCatalog ? (
           Array.from({ length: PROMPT_COUNT }, (_, index) => (
