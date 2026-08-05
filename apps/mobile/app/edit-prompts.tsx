@@ -30,6 +30,9 @@ export default function EditPromptsScreen() {
 
   const [slots, setSlots] = useState<(PromptSlot | null)[] | null>(null);
   const [pickerIndex, setPickerIndex] = useState<number | null>(null);
+  // See the onboarding prompts screen: the answer field mounts when a prompt is picked,
+  // so autoFocus lands the caret there and pulls the scroll view to it.
+  const [focusIndex, setFocusIndex] = useState<number | null>(null);
 
   // Seed local editable state once the saved prompts arrive.
   useEffect(() => {
@@ -101,6 +104,8 @@ export default function EditPromptsScreen() {
                     label="Your answer"
                     value={slot.answer}
                     onChangeText={(text) => setAnswerAt(index, text)}
+                    autoFocus={focusIndex === index}
+                    onFocus={() => setFocusIndex(null)}
                     multiline
                     maxLength={PROMPT_ANSWER_MAX_LENGTH}
                     style={{ minHeight: 60, textAlignVertical: "top" }}
@@ -159,7 +164,10 @@ export default function EditPromptsScreen() {
                 <Pressable
                   key={item.id}
                   onPress={() => {
-                    if (pickerIndex !== null) setPromptAt(pickerIndex, { promptId: item.id, question: item.question });
+                    if (pickerIndex !== null) {
+                      setPromptAt(pickerIndex, { promptId: item.id, question: item.question });
+                      setFocusIndex(pickerIndex);
+                    }
                     setPickerIndex(null);
                   }}
                   style={({ pressed }) => [

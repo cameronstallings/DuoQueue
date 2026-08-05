@@ -17,6 +17,12 @@ export default function PromptsStep() {
   const { prompts, setPromptAt, setPromptAnswerAt, clearPromptAt } = useOnboardingStore();
   const { data: catalog, isLoading } = usePromptCatalog();
   const [pickerIndex, setPickerIndex] = useState<number | null>(null);
+  // The slot whose answer field should take focus. Picking a prompt swaps that card's
+  // body from a button to a text field, so the field MOUNTS at that moment — autoFocus
+  // catches it, and focusing an input inside a ScrollView scrolls it into view. Without
+  // this the modal closed onto an unchanged-looking screen and the field you were sent
+  // to type in could be below the fold entirely.
+  const [focusIndex, setFocusIndex] = useState<number | null>(null);
 
   const allAnswered = prompts.every((p) => p && p.answer.trim().length > 0);
   const chosenIds = new Set(prompts.filter((p) => !!p).map((p) => p!.promptId));
@@ -56,6 +62,8 @@ export default function PromptsStep() {
                 label="Your answer"
                 value={prompt.answer}
                 onChangeText={(text) => setPromptAnswerAt(index, text)}
+                autoFocus={focusIndex === index}
+                onFocus={() => setFocusIndex(null)}
                 multiline
                 maxLength={PROMPT_ANSWER_MAX_LENGTH}
                 style={{ minHeight: 60, textAlignVertical: "top" }}
@@ -104,8 +112,10 @@ export default function PromptsStep() {
                   <Pressable
                     key={item.id}
                     onPress={() => {
-                      if (pickerIndex !== null)
+                      if (pickerIndex !== null) {
                         setPromptAt(pickerIndex, { promptId: item.id, question: item.question });
+                        setFocusIndex(pickerIndex);
+                      }
                       setPickerIndex(null);
                     }}
                     style={{
