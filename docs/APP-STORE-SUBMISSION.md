@@ -74,6 +74,62 @@ spelled out, not implied.
 
 ---
 
+## 1.5 Demo / App Review account (seeded, live now)
+
+The empty-deck problem from risk #2 in §4 is fixed: `scripts/seed-review-demo.mjs` creates a
+real, pre-confirmed review account and a small pool of demo gaming-partner profiles that exist
+**only** for that account to see. Every row it creates is flagged `is_demo = true`, and
+`supabase/migrations/0059_review_demo_visibility.sql` gates every discovery surface (`get_deck`,
+`get_online_now`, `get_party_deck`, `get_standouts`, `get_admirers`, `get_admirers_count`,
+`get_matches_summary`, and all fourteen `public_profile*`-family views) so a demo row is only ever
+visible to a viewer who is themselves flagged `is_demo = true`. KittyKat and every other real user
+never see any of it — verified live: a freshly created, ordinary (non-demo) authenticated user's
+`get_deck`/`get_standouts`/`get_admirers`/`get_online_now` calls returned zero of the 14 demo
+profiles, while the review account's own `get_deck` returned all of them (13, since the 14th is
+already matched and excluded from the deck the same way any swiped profile is).
+
+**Credentials** (paste into App Store Connect → App Review Information — also used in the §4 draft
+notes below):
+
+```
+Email:    review@duoqueue.io
+Password: ipTH0uV9uRfA9O2xsg7eb6WH
+```
+
+**What the reviewer will see** on signing in: a populated deck of 15 candidates (13 fresh demo
+profiles plus the two real accounts), one existing match — with Priya — showing an 8-message
+conversation about arranging a Valorant session, with the last message unread so the Matches tab
+shows its unread badge immediately, and three demo profiles (Marcus, Kofi, Bea) already showing up
+on the "Who wants to duo" screen. Every demo profile is fully onboarded: display name, 18+ dob,
+gender, region, bio, three prompt answers, several games with skill levels and (for a few) a rank,
+two shows, platforms, playstyle tags, a vibe row, a usual play window, and an approved profile +
+header photo. Photos are abstract generated art in the app's own Volt palette (geometric
+patterns — circuit traces, hex fields, radar sweeps, and so on), never a real or AI-generated
+face, produced by `scripts/generate-demo-avatars.mjs`.
+
+**Re-running the script** (`node scripts/seed-review-demo.mjs`) is safe at any time — it's
+idempotent, keyed off deterministic ids derived from fixed slugs, and re-running it does not
+duplicate profiles, matches, messages, swipes, or storage objects. It also does not touch the
+review account's password on a rerun (so credentials already handed to Apple keep working) unless
+you explicitly pass `--reset-password`.
+
+**Removal after launch** — once App Review is done and this account is no longer needed, run:
+
+```
+node scripts/seed-review-demo.mjs --remove
+```
+
+This deletes the review account, the 14 demo profiles, and everything that hangs off them (games,
+shows, prompts, platforms, playstyles, vibe rows, the seeded match and its messages, swipes) via
+the `auth.users` → `profiles` cascade, plus the uploaded storage objects (which don't cascade and
+are removed explicitly). Verified live: after `--remove`, `profiles`/`matches`/`messages` counts
+return to exactly their pre-seed baseline (2 real profiles, 0 matches, 0 messages) and the storage
+bucket has no leftover demo folders. **Run this after launch, once the build is live and Apple's
+review is complete** — there's no reason to keep 14 fake-but-gated profiles in production longer
+than needed, even though real users can never see them.
+
+---
+
 ## 2. What you still have to do
 
 ### 2A. On your machine (terminal / code)
@@ -100,19 +156,18 @@ Do these first — App Store Connect fields in §2B depend on some of them exist
    step 2, and a real monitored support email (support@duoqueue.io, once the inbox exists). This is the only file
    that needs editing — every screen reads from it.
 
-4. **Seed reviewer-visible content.** Per your project memory, the live deck is currently empty by
-   design (only your account + KittyKat remain after the fake-profile purge). App Review swiping
-   an empty deck reads as a broken app (see risk #2 in §4). Before submitting, seed at least 3-5
-   realistic profiles with photos that will pass Sightengine moderation, and ideally pre-create one
-   match with a message or two so the reviewer can see chat working without needing a live second
-   party. A demo/reviewer account should land on a populated deck, not an empty one.
+4. **Seed reviewer-visible content — done, automated.** The live deck used to be empty (only your
+   account + KittyKat existed). That's now handled by `scripts/seed-review-demo.mjs` (see §1.5
+   below), which seeds 14 demo profiles plus one pre-built match with a conversation. Nothing left
+   to do here manually — it's already been run once; safe to re-run anytime, it won't duplicate
+   anything.
 
-5. **Create a demo account for App Review and pre-confirm it.** Sign-up in this app requires
-   solving a Cloudflare Turnstile CAPTCHA (if `EXPO_PUBLIC_TURNSTILE_SITE_KEY` is set in
-   production) and then a 6-digit email OTP. Reviewers won't have access to that inbox. Create the
-   demo account yourself ahead of time (sign up, confirm the OTP from your own email access, set a
-   simple memorable password), so the credentials you hand Apple go straight to a logged-in,
-   already-onboarded profile. Do not make Apple's reviewer walk the sign-up/CAPTCHA/OTP gauntlet.
+5. **Create a demo account for App Review and pre-confirm it — done, automated.** Sign-up in this
+   app requires solving a Cloudflare Turnstile CAPTCHA (if `EXPO_PUBLIC_TURNSTILE_SITE_KEY` is set
+   in production) and then a 6-digit email OTP. Reviewers won't have access to that inbox. The same
+   seed script creates `review@duoqueue.io` with the email pre-confirmed via the admin API, so the
+   credentials in §1.5 go straight to a logged-in, already-onboarded profile — Apple's reviewer
+   never has to touch sign-up, the CAPTCHA, or an OTP.
 
 6. **`eas login` then `eas init`** from `apps/mobile`. This writes `extra.eas.projectId` into
    `app.json`, which also unblocks the push-notification token code (it silently no-ops without a
@@ -147,8 +202,9 @@ Do these first — App Store Connect fields in §2B depend on some of them exist
 13. **App Privacy (nutrition label)**: use the table in §3 below directly — it maps to Apple's
     exact category names.
 
-14. **App Review Information**: enter the demo account credentials from §2A step 5, and paste the
-    App Review notes draft in §4 below (edit the bracketed parts first).
+14. **App Review Information**: enter the demo account credentials from §1.5, and paste the
+    App Review notes draft in §4 below (edit the remaining bracketed parts first — subscriptions
+    pricing and the support email).
 
 15. **Age Rating questionnaire**: answer honestly — this app has user-generated content
     (unmoderated-until-reviewed chat), infrequent/mild profanity (filtered, not blocked entirely),
@@ -206,11 +262,13 @@ and the app's own copy, onboarding, and Trust & Safety documentation frame it ex
 shared games/shows/playstyle compatibility.
 
 Demo account (already confirmed, no email/CAPTCHA steps needed):
-  Email: [demo email you created in §2A step 5]
-  Password: [demo password]
+  Email: review@duoqueue.io
+  Password: ipTH0uV9uRfA9O2xsg7eb6WH
 
-This account already has a populated deck and at least one existing match with messages, so core
-flows (swipe, match, chat) are immediately visible without needing a second live account.
+This account already has a populated deck (13+ profiles), one existing match with an 8-message
+conversation (including an unread message waiting in Matches), and a few pending "Who wants to
+duo" admirers, so core flows (swipe, match, chat) are immediately visible without needing a second
+live account.
 
 Age verification: new sign-ups must enter a date of birth and are blocked from proceeding if under
 18. Account creation additionally requires solving a CAPTCHA and confirming a 6-digit code sent to
@@ -240,12 +298,12 @@ Contact: [support email] for anything App Review needs during evaluation.
    `duoqueue.io`) sitting in `legal.ts` until you host the real pages and update it.
    *Mitigation*: §2A steps 1-3, done before you touch App Store Connect at all.
 
-2. **Reviewer hits a wall before ever seeing the app work.** Two independent ways this happens:
-   (a) sign-up requires a CAPTCHA + email OTP the reviewer can't complete, and (b) even a
-   successful login lands on an empty deck (only 2 real accounts exist right now, no seeded
-   content) — both read to Apple as "app doesn't work" (Guideline 2.1), the most common reason
-   first-time submissions bounce.
-   *Mitigation*: §2A steps 4-5 — pre-confirmed demo account, pre-populated deck and match, handed
+2. **Reviewer hits a wall before ever seeing the app work.** Two independent ways this could
+   happen: (a) sign-up requires a CAPTCHA + email OTP the reviewer can't complete, and (b) a
+   successful login landing on an empty deck (only 2 real accounts exist) — both read to Apple as
+   "app doesn't work" (Guideline 2.1), the most common reason first-time submissions bounce. Both
+   are now fixed — see §1.5.
+   *Mitigation*: §2A steps 4-5 / §1.5 — pre-confirmed demo account, pre-populated deck and match, handed
    to Apple directly in App Review notes.
 
 3. **Subscription purchase screen is missing the explicit auto-renewal disclosure (Guideline
