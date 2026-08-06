@@ -10,13 +10,13 @@
 -->
 # DuoQueue Terms of Service
 
-**Effective date:** TODO(Cameron): set the date these terms go live, and update it every time this document changes.
+**Effective date:** August 5, 2026
 
-Welcome to DuoQueue. These Terms of Service ("Terms") are a contract between you and DuoQueue ("DuoQueue," "we," "us," or "our") and govern your access to and use of the DuoQueue app and related services (the "Service"). By creating an account or using DuoQueue, you agree to these Terms and to our [Privacy Policy](./privacy-policy.md).
+Welcome to DuoQueue. These Terms of Service ("Terms") are a contract between you and DuoQueue, operated by Cameron Shaw Stallings as an individual (a sole proprietor — not a company or LLC) ("DuoQueue," "we," "us," or "our"), and govern your access to and use of the DuoQueue app and related services (the "Service"). By creating an account or using DuoQueue, you agree to these Terms and to our [Privacy Policy](./privacy-policy.md).
 
 If you don't agree, don't use DuoQueue.
 
-TODO(Cameron): insert your legal entity's name, state/country of formation, and registered address everywhere "DuoQueue" is used as the contracting party in this document.
+**Mailing address:** 201 N Becket St, Cary, NC 27513, USA
 
 ---
 
@@ -161,7 +161,7 @@ If you believe content on DuoQueue infringes your copyright, send a notice to ou
 5. A statement that you have a good-faith belief that the use is not authorized by the copyright owner, its agent, or the law.
 6. A statement, made under penalty of perjury, that the information in the notice is accurate and that you are the copyright owner or authorized to act on their behalf.
 
-**Designated DMCA Agent:** TODO(Cameron): register a DMCA agent at copyright.gov and insert their name/title, mailing address, and a dedicated email address here. Notices sent anywhere else may not be effective.
+**Designated DMCA Agent:** Cameron Shaw Stallings, registered with the U.S. Copyright Office's DMCA Designated Agent Directory. Reach the agent at `support@duoqueue.io`. 201 N Becket St, Cary, NC 27513, USA
 
 We will remove or disable access to material that we determine, in good faith, is infringing, and we may terminate the accounts of repeat infringers.
 

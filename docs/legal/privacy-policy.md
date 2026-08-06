@@ -9,7 +9,7 @@
 -->
 # DuoQueue Privacy Policy
 
-**Effective date:** TODO(Cameron): set the effective date when this policy is published live, and update it whenever the policy materially changes.
+**Effective date:** August 5, 2026
 **Version:** 1.0 (draft)
 
 This policy explains what DuoQueue collects, why, who we share it with, and what control you have over it. It's written in plain language on purpose — if anything here is unclear, contact us using the details below.
@@ -20,9 +20,10 @@ This policy explains what DuoQueue collects, why, who we share it with, and what
 
 DuoQueue is a swipe-based app for finding gaming duos, built for players 18 and older.
 
-- **Legal entity:** TODO(Cameron): insert your registered business name (or personal legal name if operating as an individual) and business address.
+- **Legal entity:** DuoQueue is operated by Cameron Shaw Stallings, as an individual (a sole proprietor) — not a company or LLC.
+- **Mailing address:** 201 N Becket St, Cary, NC 27513, USA
 - **Contact email for privacy questions and rights requests:** `support@duoqueue.io` — the same monitored address used for support and safety reports throughout the app (see `apps/mobile/src/lib/legal.ts`).
-- **Data Protection Officer / EU representative (if applicable):** TODO(Cameron): state whether a DPO or EU representative is required for your user base, and name them if so.
+- **Data Protection Officer / EU representative:** Not applicable. DuoQueue is currently offered only in the United States and is not directed to users in the EU, UK, or EEA. If that changes, we'll appoint a DPO or EU representative as required and update this policy before expanding there.
 
 Wherever this policy says "contact us," use the email above.
 
@@ -80,7 +81,7 @@ We do not collect precise GPS location, contacts-list access, or browsing histor
 
 ## 3. Who we share data with
 
-We use a small number of specialized service providers ("processors") to run the app. None of them can use your data for their own purposes beyond providing their service to us. TODO(Cameron): confirm a data processing agreement (DPA) is signed with each provider listed below.
+We use a small number of specialized service providers ("processors") to run the app: Supabase, Sightengine, Expo, Resend, RevenueCat, Apple, Google, Cloudflare, Steam, and Riot Games. We use each of them as a service provider/processor under that provider's own standard terms of service, and none of them can use your data for their own purposes beyond providing their service to us.
 
 | Provider | Role | What they receive | Location |
 |---|---|---|---|
@@ -93,9 +94,9 @@ We use a small number of specialized service providers ("processors") to run the
 | **Cloudflare (Turnstile)** | Bot-protection challenge at signup | Device/browser signals used to distinguish humans from bots | Global network (may include US) |
 | **Steam / Riot Games** | Only if you choose to link an account | We send your account link request to them and receive back the public profile fields listed in Section 2 | United States (approximate, platform-dependent) |
 
-**Sightengine and Resend are config-gated, not hard-wired.** Our photo-moderation pipeline defaults to routing every photo straight to human review and only calls Sightengine when a provider setting and API credentials are set in our live environment; if that configuration is ever unset, no photo is sent to Sightengine at all. As of this writing, our live production environment has that provider setting and both Sightengine credentials configured, so automated screening is active. Similarly, transactional email is sent through whatever provider is configured for our authentication service, and Resend is our intended provider; until custom SMTP is set up, our infrastructure provider's default mailer is used instead, which does not involve Resend. TODO(Cameron): confirm in the Supabase Dashboard (Authentication → Emails → SMTP Settings) that custom SMTP via Resend is live in production as described in the README's SMTP section, and update this row if that isn't the case yet.
+**Sightengine and Resend are config-gated, not hard-wired.** Our photo-moderation pipeline defaults to routing every photo straight to human review and only calls Sightengine when a provider setting and API credentials are set in our live environment; if that configuration is ever unset, no photo is sent to Sightengine at all. As of this writing, our live production environment has that provider setting and both Sightengine credentials configured, so automated screening is active. Similarly, transactional email is sent through whatever provider is configured for our authentication service. Resend is our intended provider, but until custom SMTP is confirmed set up, our infrastructure provider's default mailer may be used instead, which would not involve Resend. TODO(Cameron): confirm the live transactional email provider (Supabase Auth SMTP setting) and name it here.
 
-**International transfers.** If you're using DuoQueue from outside the United States, your data is transferred to and processed in the United States by the providers above. TODO(Cameron): confirm a Standard Contractual Clauses (or equivalent) transfer mechanism is signed with each US-based processor for EU/UK/Swiss users, and state the mechanism here.
+**Where your data is processed.** DuoQueue is currently offered only in the United States, and your data is processed in the United States by the providers listed above. DuoQueue is not directed to, and is not currently offered to, users in the EU, UK, or Switzerland. If that changes, we'll put an appropriate international transfer mechanism in place and update this section before it does.
 
 **We do not sell your personal information.** We do not share your data with data brokers or advertising networks, and we don't run any advertising or analytics SDK that would make this a "sale" or "share" under CCPA/CPRA. See [Section 6](#6-your-rights) for the CCPA-specific disclosures.
 
@@ -103,7 +104,7 @@ We use a small number of specialized service providers ("processors") to run the
 
 ## 4. Legal bases for processing (for users in the EU/UK/EEA)
 
-If you're in a region covered by the GDPR or UK GDPR, here's the legal basis for each category of processing:
+DuoQueue is currently offered only in the United States and is not directed to users in the EU, UK, or EEA (see [Section 1](#1-who-we-are)). We're including this section for completeness in case that changes. If you're in a region covered by the GDPR or UK GDPR, here's the legal basis for each category of processing:
 
 - **Performance of a contract** (running the account you signed up for) — email, password, profile data, matching, messaging, purchases, and account deletion all rely on this basis, since we can't provide the app without them.
 - **Legitimate interests** — content moderation (photo screening, report handling), fraud/bot prevention (Turnstile), keeping the deck functional (swipe/match history), and security logging. We've weighed these against your privacy interests and believe they're necessary and proportionate to keep the app safe.
@@ -146,7 +147,7 @@ In the last 12 months, we've collected the categories of personal information de
 
 ### EU/UK/EEA residents (GDPR)
 
-In addition to the rights table above, you have the right to lodge a complaint with your local data protection supervisory authority if you believe we've mishandled your data. TODO(Cameron): name your lead EU/UK supervisory authority here, if you have one.
+DuoQueue is currently offered only in the United States and is not directed to users in the EU, UK, or EEA. We don't have a lead EU/UK supervisory authority because we don't yet operate there. If we expand to those regions, we'll designate one and update this section before we do.
 
 ---
 
