@@ -704,6 +704,23 @@ filters, the full requests list, the daily Super Ping). Part 2 and Part 4 match.
 
 ---
 
+## Pending — must be done before you submit
+
+- **Republish the privacy policy.** Migration 0060 is applied, so the live page at
+  `duoqueue.io/privacy` is now wrong on one sentence: it still says gender is "used to
+  filter candidates when someone sets a gender preference." The corrected build is
+  committed and pushed to `gh-pages` (commit `4ac477e`) — GitHub was in an Actions/Pages
+  major outage on 2026-08-06 and the deploy could not run. Verify with:
+  ```
+  curl -s https://duoqueue.io/privacy/ | grep -c "never used to filter or rank"
+  ```
+  `1` means it deployed. `0` means re-request the build:
+  ```
+  gh api -X POST repos/cameronstallings/DuoQueue/pages/builds
+  ```
+
+---
+
 ## Genuinely open / unknown
 
 - Whether a real Steam link round-trip works. The key, both functions, and the resync cron
