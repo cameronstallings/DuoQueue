@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DuoQueue — find your duo</title>
+<meta name="description" content="DuoQueue is an 18+ app for finding people to play games with. Platonic, not dating.">
+<style>
+  :root {
+    --bg: #0A0B09;
+    --surface: #12140F;
+    --seam: #232720;
+    --ink: #EDF1E6;
+    --muted: #98A18A;
+    --accent: #CDFF3D;
+    --amber: #FFB627;
+    --mark-ink: #F5F3EE;
+    --mark-duo: #92918D;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #F2F4EB;
+      --surface: #FFFFFF;
+      --seam: #DDE1D0;
+      --ink: #161A0F;
+      --muted: #5C6450;
+      --accent: #4A6B00;
+      --amber: #FFB627;
+      --mark-ink: #161A0F;
+      --mark-duo: #72766b;
+      color-scheme: light;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+  a:hover { text-decoration: none; }
+
+  .skip-link {
+    position: absolute; left: -9999px; top: 0;
+    background: var(--surface); color: var(--ink); padding: 0.75em 1em;
+    border: 1px solid var(--seam);
+  }
+  .skip-link:focus { left: 0.5em; top: 0.5em; z-index: 10; }
+
+  header.site-header {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 1em; flex-wrap: wrap;
+    padding: 1.25em 1.25em;
+    border-bottom: 1px solid var(--seam);
+  }
+  .brand {
+    display: inline-flex; align-items: center; gap: 0.6em;
+    color: var(--ink); text-decoration: none; font-weight: 600; font-size: 1.05em;
+    letter-spacing: 0.01em;
+  }
+  .brand:hover { text-decoration: none; color: var(--accent); }
+  .brand-mark { display: block; flex: none; }
+  header.site-header nav { display: flex; gap: 1.25em; flex-wrap: wrap; }
+  header.site-header nav a { color: var(--muted); text-decoration: none; font-size: 0.95em; }
+  header.site-header nav a:hover { color: var(--accent); text-decoration: underline; }
+
+  main {
+    max-width: 68ch;
+    margin: 0 auto;
+    padding: 2.5em 1.25em 4em;
+  }
+
+  article h1 { font-size: 1.7em; line-height: 1.3; margin: 0 0 0.3em; }
+  article h2 { font-size: 1.3em; line-height: 1.35; margin: 1.8em 0 0.6em; padding-top: 0.6em; border-top: 1px solid var(--seam); }
+  article h2:first-child { border-top: none; padding-top: 0; margin-top: 0; }
+  article h3 { font-size: 1.05em; margin: 1.4em 0 0.5em; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  article p { margin: 0 0 1em; }
+  article ul, article ol { margin: 0 0 1em; padding-left: 1.4em; }
+  article li { margin: 0.3em 0; }
+  article li > ul, article li > ol { margin-top: 0.3em; }
+  article hr { border: none; border-top: 1px solid var(--seam); margin: 2em 0; }
+  article strong { color: var(--ink); }
+  article code {
+    background: var(--surface); border: 1px solid var(--seam);
+    padding: 0.15em 0.4em; font-size: 0.9em;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  .table-scroll { overflow-x: auto; margin: 0 0 1.4em; border: 1px solid var(--seam); }
+  table { border-collapse: collapse; width: 100%; min-width: 480px; font-size: 0.92em; }
+  th, td { text-align: left; padding: 0.6em 0.75em; border-bottom: 1px solid var(--seam); vertical-align: top; }
+  thead th { background: var(--surface); color: var(--muted); font-weight: 600; white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: none; }
+
+  .intro { font-size: 1.1em; color: var(--ink); }
+  .lede { color: var(--muted); }
+
+  section.card {
+    border: 1px solid var(--seam); background: var(--surface);
+    padding: 1.5em; margin: 1.5em 0;
+  }
+  section.card h2 { margin-top: 0; border-top: none; padding-top: 0; }
+
+  footer.site-footer {
+    border-top: 1px solid var(--seam);
+    padding: 1.5em 1.25em 2.5em;
+    max-width: 68ch; margin: 0 auto;
+    color: var(--muted); font-size: 0.9em;
+  }
+  footer.site-footer nav { margin-top: 0.5em; }
+  footer.site-footer nav a { color: var(--muted); }
+  footer.site-footer nav a:hover { color: var(--accent); }
+
+  @media (max-width: 480px) {
+    header.site-header { padding: 1em; }
+    main { padding: 2em 1em 3em; }
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+  <a class="brand" href="/"><svg class="brand-mark" width="28" height="28" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="DuoQueue">
+    <circle cx="660.992" cy="512" r="215.04" fill="none" stroke="var(--mark-duo)" stroke-width="98.9184" />
+    <circle cx="842.425508224487" cy="693.433508224487" r="55.394304000000005" fill="var(--mark-duo)" />
+    <circle cx="338.432" cy="512" r="215.04" fill="none" stroke="var(--mark-ink)" stroke-width="98.9184" />
+    <path d="M 583.6133027625533 712.6358363150401 A 215.04 215.04 0 0 1 452.25814711396214 563.6950699714191" fill="none" stroke="var(--mark-duo)" stroke-width="98.9184" />
+  </svg><span>DuoQueue</span></a>
+  <nav>
+    <a href="/">Home</a>
+    <a href="/privacy/">Privacy</a>
+    <a href="/terms/">Terms</a>
+    <a href="/#support">Support</a>
+  </nav>
+</header>
+<main id="main">
+<article>
+
+<h1>DuoQueue</h1>
+<p class="intro">DuoQueue is an 18+ app for finding people to play games with. It's platonic, not dating — you're matching on games, schedules, and vibe so you always have someone good to duo with.</p>
+<p class="lede">Swipe on profiles built around what you play, when you play, and how you like to play it, then chat and queue up with the people you match.</p>
+
+<h2>Legal</h2>
+<ul>
+  <li><a href="/privacy/">Privacy Policy</a> — what we collect, why, and who we share it with.</li>
+  <li><a href="/terms/">Terms of Service</a> — the rules for using DuoQueue.</li>
+</ul>
+
+<section class="card" id="support">
+  <h2>Support</h2>
+  <p>Questions, account issues, or anything else — reach us at <a href="mailto:support@duoqueue.io">support@duoqueue.io</a>.</p>
+  <p>Report a safety concern: if you need to report abuse, harassment, or other user-content issues, email <a href="mailto:support@duoqueue.io">support@duoqueue.io</a> — reports can also be filed directly in the app from a profile or conversation.</p>
+</section>
+
+</article>
+</main>
+<footer class="site-footer">
+  <p>Last updated: 2026-08-06 (derived from this script's last-modified time — the landing page has no source markdown file) — placeholder, see script header</p>
+  <nav>
+    <a href="/">Home</a> &middot; <a href="/privacy/">Privacy Policy</a> &middot; <a href="/terms/">Terms of Service</a>
+  </nav>
+</footer>
+</body>
+</html>
