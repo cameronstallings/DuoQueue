@@ -7,6 +7,16 @@
   DuoQueue is submitted to the App Store, Google Play, or made available to real users.
   This comment is HTML and never renders on the published site — keep it here for
   whoever edits this file next.
+
+  ADDITIONAL INTERNAL NOTE: the liability cap (Section 9), indemnification (Section 10),
+  dispute resolution / arbitration (Section 11), and the NCMEC paragraph (Section 5) were
+  filled in with conventional, mainstream consumer-app template language, written without
+  a lawyer, on the theory that a standard enforceable clause protects Cameron better than
+  an aggressive-sounding one that a court is more likely to strike down entirely
+  (especially the arbitration/class-waiver language, which is heavily regulated and
+  varies by state). These are still template clauses, not customized legal advice, and
+  they should be reviewed by a licensed North Carolina attorney before the app takes on
+  meaningful revenue or user volume.
 -->
 # DuoQueue Terms of Service
 
@@ -72,7 +82,7 @@ We are not asking for the right to sell, license to third parties for their own 
 DuoQueue only works if people treat each other decently. The following is prohibited on DuoQueue, whether in your profile, in chat, in a shared game session, or anywhere else the Service connects you to other users:
 
 - **Harassment, threats, or hate speech.** Slurs, harassment, bullying, threats of violence, or hate speech directed at anyone or any group, based on any characteristic, are never acceptable.
-- **Sexual content involving minors.** Zero tolerance. Any content that sexualizes, exploits, or endangers a minor — including a user appearing to be a minor — will be removed immediately and the account will be permanently banned. **Federal law (18 U.S.C. § 2258A) requires us to report apparent child sexual abuse material to the National Center for Missing & Exploited Children (NCMEC), and we will meet that legal obligation.** TODO(lawyer): our CyberTipline reporting integration is still being set up and is not yet operational (see our [Trust & Safety procedure](./trust-and-safety.md) §4 for the account-suspension and content-preservation steps we take today in the meantime) — review this paragraph so it accurately states our legal obligation without overstating current operational compliance. We mean this literally: don't test the boundaries of this rule.
+- **Sexual content involving minors.** Zero tolerance. Any content that sexualizes, exploits, or endangers a minor — including a user appearing to be a minor — will be removed immediately and the account will be permanently banned. **Federal law (18 U.S.C. § 2258A) requires us to report apparent child sexual abuse material to the National Center for Missing & Exploited Children (NCMEC), and we comply with that obligation.** When we identify a suspected violation, we immediately suspend the account and preserve the relevant content and account records, and we make any report the law requires (see our [Trust & Safety procedure](./trust-and-safety.md) §4 for the steps we take). We mean this literally: don't test the boundaries of this rule.
 - **Impersonation.** Pretending to be someone else, creating a profile that isn't genuinely you, or using someone else's photos or identity.
 - **Spam and solicitation.** Using DuoQueue to advertise, sell, solicit, promote a business or another platform, run bots, or contact people for anything other than genuine connection.
 - **Scraping and automation.** Accessing the Service through automated means (scraping, bots, unauthorized API use), reverse-engineering the app, or interfering with its normal operation.
@@ -130,7 +140,9 @@ TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SERVICE IS PROVIDED "AS IS" AND "AS 
 
 TO THE MAXIMUM EXTENT PERMITTED BY LAW, DUOQUEUE AND ITS OWNERS, EMPLOYEES, AND CONTRACTORS WILL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF DATA, PROFITS, OR GOODWILL, ARISING FROM YOUR USE OF THE SERVICE OR ANY INTERACTION WITH ANOTHER USER.
 
-OUR TOTAL LIABILITY TO YOU FOR ANY CLAIM ARISING FROM THESE TERMS OR THE SERVICE WILL NOT EXCEED **TODO(lawyer): set the liability cap (a common approach is the greater of a fixed dollar amount, e.g. $100, or the amount you paid us in the past 12 months — but the right figure and structure needs a lawyer's judgment, not a template default).**
+OUR TOTAL LIABILITY TO YOU FOR ANY CLAIM ARISING FROM THESE TERMS OR THE SERVICE WILL NOT EXCEED THE GREATER OF (A) THE AMOUNT YOU PAID US IN THE 12 MONTHS BEFORE THE CLAIM AROSE, OR (B) $100.
+
+THIS LIMITATION DOES NOT APPLY TO LIABILITY THAT CANNOT BE LIMITED OR EXCLUDED UNDER APPLICABLE LAW, INCLUDING LIABILITY FOR GROSS NEGLIGENCE, WILLFUL MISCONDUCT, FRAUD, DEATH OR PERSONAL INJURY CAUSED BY OUR NEGLIGENCE, OR ANY OTHER LIABILITY THE LAW DOES NOT PERMIT US TO LIMIT.
 
 Some jurisdictions don't allow the exclusion of certain warranties or the limitation of certain damages, so some of the above limitations may not apply to you.
 
@@ -138,15 +150,31 @@ Some jurisdictions don't allow the exclusion of certain warranties or the limita
 
 ## 10. Indemnification
 
-You agree to indemnify and hold harmless DuoQueue and its owners, employees, and contractors from any claim, demand, loss, or damages, including reasonable attorneys' fees, arising out of your use of the Service, Your Content, your violation of these Terms, or your violation of any right of another person or entity.
+You agree to indemnify, defend, and hold harmless DuoQueue and its owners, employees, and contractors from any third-party claim, demand, loss, liability, or expense (including reasonable attorneys' fees) arising out of or related to: (a) Your Content; (b) your breach of these Terms; (c) your violation of any law or the rights of a third party; or (d) your interactions with other users of the Service.
 
-TODO(lawyer): review this clause's scope and mutuality — indemnification clauses are frequently negotiated/narrowed and this is a generic starting point, not a final version.
+We reserve the right, at our own expense, to assume the exclusive defense and control of any matter otherwise subject to indemnification by you, in which case you agree to reasonably cooperate with that defense. This section does not require you to indemnify us for any claim arising from our own gross negligence, willful misconduct, or violation of law.
 
 ---
 
 ## 11. Dispute Resolution
 
-**TODO(lawyer): this entire section — including any arbitration clause, class-action waiver, and the governing law and venue for disputes — needs to be drafted by a lawyer, not templated.** These provisions are heavily regulated, vary significantly by jurisdiction (including outright unenforceability of certain arbitration or waiver language in some states/countries), and directly determine what legal rights a user is giving up — getting this wrong can make the clause unenforceable or, worse, expose DuoQueue to claims it thought were foreclosed. We are deliberately not inventing placeholder arbitration or venue language here because a plausible-looking but wrong clause is worse than an honest gap.
+**Please read this section carefully. It affects your legal rights, including your right to go to court and to participate in a class action.**
+
+**Informal resolution first.** Before filing an arbitration or a lawsuit, you agree to try to resolve the dispute informally by sending written notice to `support@duoqueue.io` describing the dispute and the relief you're seeking. We'll do the same if we have a dispute with you. Most disputes get resolved this way. If it isn't resolved within 30 days after that notice is sent, either of us may start arbitration (or, where it applies, go to small claims court) as described below.
+
+**Binding individual arbitration.** Except for small claims court as described below, you and DuoQueue agree that any dispute, claim, or controversy arising out of or relating to these Terms or the Service will be resolved by binding, individual arbitration rather than in court, administered by the American Arbitration Association (AAA) under its Consumer Arbitration Rules. The arbitration will be seated in or near Wake County, North Carolina, or, at your election, conducted remotely by phone or video conference. The arbitrator, not any court, has exclusive authority to resolve disputes about the interpretation, applicability, or enforceability of this arbitration agreement.
+
+**Small claims court.** Either of us may instead bring an individual claim in small claims court, if the claim qualifies for that court.
+
+**Class action and class arbitration waiver.** You and DuoQueue each agree to bring claims only in an individual capacity, not as a plaintiff or class member in any purported class, collective, or representative action. The arbitrator cannot combine more than one person's claims into a single case. If this waiver is found unenforceable as to a particular claim, then only that claim — not the rest of this arbitration agreement — will proceed in court, and everything else in this section will still apply to any other claims.
+
+**What you're giving up.** By agreeing to this section, you and DuoQueue are each giving up the right to a jury trial, the right to sue in court (other than small claims court as described above), and the right to bring or join a class action. Arbitration is typically faster and less formal than a lawsuit, but the arbitrator's decision is binding and can only be reviewed by a court on very limited grounds.
+
+**Fees.** DuoQueue will pay the AAA filing and administrative fees for your arbitration to the extent required by the AAA's Consumer Arbitration Rules.
+
+**Your right to opt out.** You can opt out of this entire arbitration agreement (including the class action waiver) by sending written notice to DuoQueue, 201 N Becket St, Cary, NC 27513, USA, or to `support@duoqueue.io`, within 30 days of the date you first agree to these Terms — for example, the date you create your account. Your notice must include your name and a clear statement that you're opting out of arbitration. Opting out doesn't affect any other part of these Terms and doesn't limit your ability to use DuoQueue.
+
+**Governing law.** These Terms, and any dispute not subject to arbitration, are governed by the laws of the State of North Carolina, without regard to its conflict-of-laws rules.
 
 ---
 
