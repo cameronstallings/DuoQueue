@@ -40,8 +40,10 @@ Part 5 is the pre-submit checklist. Do that checklist last, right before you tap
 - **Dating-pattern language is purged and quality gates are green.** "Who liked you" → "who
   wants to duo," heart iconography → game-controller icons, gender-based match filtering
   removed (no screen reads or writes `preferences.preferred_genders`; migration 0060 removes
-  the dormant server-side clause and the column so it's gone at the database layer too),
-  mic permission removed (app only requests photo library/camera/
+  the dormant server-side clause and the column, and also drops `gender` from the
+  `public_profiles` view so `?gender=eq.…` is no longer a valid REST predicate — the claim
+  holds against a raw API client, not just against the UI), mic permission removed (app only
+  requests photo library/camera/
   notifications). `pnpm typecheck`, `pnpm lint`, and `pnpm audit:contrast` (56/56 WCAG pairs,
   both color schemes) all pass clean.
 - **No analytics SDK, no ad SDK, no crash-reporting SDK.** Confirmed via `package.json` in

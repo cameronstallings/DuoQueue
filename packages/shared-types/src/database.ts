@@ -111,12 +111,19 @@ export interface MatchSessionRow {
   updated_at: string;
 }
 
-/** Public-safe projection (backs the `public_profiles` view) — never exposes dob/discord_username. */
+/**
+ * Public-safe projection (backs the `public_profiles` view) — never exposes
+ * dob/discord_username.
+ *
+ * No `gender`: 0060_remove_gender_filtering.sql dropped it from the view, because
+ * PostgREST turns every exposed column into a filter operator and `?gender=eq.<x>` was
+ * a working gender-filtered listing of the discovery pool. Gender is still readable one
+ * profile at a time via the `get_profile_card` RPC, and in the server-ranked deck RPCs.
+ */
 export interface PublicProfileRow {
   id: string;
   display_name: string;
   age: number;
-  gender: Gender;
   region: Region;
   bio: string | null;
   created_at: string;
@@ -193,7 +200,6 @@ export interface PreferencesRow {
   profile_id: string;
   min_age: number;
   max_age: number;
-  preferred_genders: Gender[] | null;
   preferred_regions: Region[] | null;
   required_language: string | null;
   filter_game_id: string | null;

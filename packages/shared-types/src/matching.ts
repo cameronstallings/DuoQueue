@@ -103,7 +103,6 @@ export interface PartyMessageRow {
 export interface PreferencesInput {
   minAge: number;
   maxAge: number;
-  preferredGenders: Gender[];
   preferredRegions: Region[];
   requiredLanguage: string | null;
   filterGameId: string | null;

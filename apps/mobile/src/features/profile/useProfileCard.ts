@@ -5,8 +5,9 @@ import { enrichCandidates } from "@/features/swipe/enrichCandidates";
 import type { DeckCard } from "@/features/swipe/types";
 import { supabase } from "@/lib/supabase";
 
-interface PublicProfileRow {
-  id: string;
+/** Row shape returned by the `get_profile_card` RPC (see 0060_remove_gender_filtering.sql). */
+interface ProfileCardRow {
+  profile_id: string;
   display_name: string;
   age: number;
   gender: DeckCandidate["gender"];
@@ -20,15 +21,20 @@ interface PublicProfileRow {
  * profile renders identically to a deck card instead of a second, drifting
  * mapping.
  *
- * The row comes from `public_profiles` — the same view `usePartyMembers` already
- * queries by id (see `@/features/party/useParty.ts`) — rather than `get_deck`'s
- * RPC. `get_deck`/`get_standouts` bake in deck-eligibility filtering (already-
- * swiped candidates are excluded from what they return), which is exactly wrong
- * for this hook: a matched user has necessarily already been swiped on, so an
- * RPC-backed fetch could never resolve them. `public_profiles` only filters on
- * `is_active`/`onboarding_completed` (see 0001_init.sql / 0031_security_hardening.sql),
- * with no notion of "already seen," so it can resolve any active profile by id
- * regardless of swipe/match history.
+ * This deliberately does not use `get_deck`/`get_standouts`: those bake in
+ * deck-eligibility filtering (already-swiped candidates are excluded from what they
+ * return), which is exactly wrong for this hook, since a matched user has necessarily
+ * already been swiped on and so could never come back from them. `get_profile_card`
+ * applies only the visibility rules `public_profiles` does — active, onboarded, not
+ * banned or suspended, not blocked either direction — with no notion of "already seen,"
+ * so it resolves any visible profile by id regardless of swipe/match history.
+ *
+ * It used to read `public_profiles` directly. It cannot anymore: 0060 dropped `gender`
+ * from that view, because PostgREST exposes every view column as a filter operator and
+ * `?gender=eq.<x>` was therefore a working gender-filtered roster of the whole discovery
+ * pool — the exact capability the App Review notes say the app does not have. A SECURITY
+ * DEFINER function takes an id and nothing else, so gender is still displayable one
+ * profile at a time with no way to query *by* it.
  *
  * Throws (rather than resolving to `undefined`) when no row matches — react-query's
  * queryFn contract treats `undefined` as "not fetched yet," not as a valid result, so
@@ -36,22 +42,20 @@ interface PublicProfileRow {
  */
 async function fetchProfileCard(profileId: string): Promise<DeckCard> {
   const { data, error } = await supabase
-    .from("public_profiles")
-    .select("id, display_name, age, gender, region, bio")
-    .eq("id", profileId)
+    .rpc("get_profile_card", { p_profile_id: profileId })
     .maybeSingle();
   if (error) throw error;
   if (!data) throw new Error("Profile not found");
 
-  const row = data as PublicProfileRow;
+  const row = data as ProfileCardRow;
   const candidate: DeckCandidate = {
-    profile_id: row.id,
+    profile_id: row.profile_id,
     display_name: row.display_name,
     age: row.age,
     gender: row.gender,
     region: row.region,
     bio: row.bio,
-    // public_profiles carries none of get_deck's per-viewer ranking data — these
+    // get_profile_card carries none of get_deck's per-viewer ranking data — these
     // three fields only ever feed deck sort order, ProfileDetailContent never
     // reads them, so zero is a safe stand-in rather than making them optional on
     // the shared DeckCandidate type.
