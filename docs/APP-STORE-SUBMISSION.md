@@ -4,8 +4,11 @@ Your working document for the first iOS submission. Work through it top to botto
 ordered so nothing blocks on something later in the file. Rewritten 2026-08-06 against the
 live code, the live site, and the live Supabase project (not from memory of an earlier draft).
 
-**How to use this**: skip Part 0 only if you've read it before. Do Part 1 in order — every
-numbered step says where it happens and about how long it takes. Part 2 is paste-ready copy
+**How to use this**: work top to bottom, with one exception — **start Part 1B steps 5 and 6
+(Developer Program enrollment and the Paid Applications Agreement) before anything else.**
+Each takes 1–2 days to clear, and Part 1A steps 3 and 4 can't finish until they do. Skip
+Part 0 only if you've read it before. Every numbered step says where it happens and roughly
+how long it takes. Part 2 is paste-ready copy
 for App Store Connect fields. Part 3 is the privacy label table. Part 4 is App Review notes.
 Part 5 is the pre-submit checklist. Do that checklist last, right before you tap Submit.
 
@@ -36,7 +39,9 @@ Part 5 is the pre-submit checklist. Do that checklist last, right before you tap
   what it charges, the 24-hour cancellation window, and where to cancel. No code change needed.
 - **Dating-pattern language is purged and quality gates are green.** "Who liked you" → "who
   wants to duo," heart iconography → game-controller icons, gender-based match filtering
-  removed entirely, mic permission removed (app only requests photo library/camera/
+  removed (no screen reads or writes `preferences.preferred_genders`; migration 0060 removes
+  the dormant server-side clause and the column so it's gone at the database layer too),
+  mic permission removed (app only requests photo library/camera/
   notifications). `pnpm typecheck`, `pnpm lint`, and `pnpm audit:contrast` (56/56 WCAG pairs,
   both color schemes) all pass clean.
 - **No analytics SDK, no ad SDK, no crash-reporting SDK.** Confirmed via `package.json` in
@@ -61,7 +66,8 @@ Password: ipTH0uV9uRfA9O2xsg7eb6WH
 
 This account is pre-confirmed (no CAPTCHA, no email OTP) and fully onboarded. Signing in
 shows: a populated deck of 13 fresh demo profiles, one existing match (Priya) with an
-8-message conversation and an unread badge, and 3 inbound "who wants to duo" requests
+8-message conversation left unread (an indicator on that row in the Matches list — the app
+sets no tab-bar badge), and 3 inbound "who wants to duo" requests
 (Marcus, Kofi, Bea). Every demo row is flagged `is_demo = true` and gated server-side across
 8 RPCs and 14 views — real users (verified live, adversarially, across every discovery
 surface) see zero of it, and the reviewer's account is invisible to them too. Photos are
@@ -99,21 +105,30 @@ review is over, even though real users can never see it.
    step — either is fine, neither is a rejection risk. Not blocking; make the call whenever.
    *5 min decision, follow-up code task if you drop it.*
 
-3. **Set real RevenueCat keys** in `apps/mobile/.env`. You're currently on Test Store keys
-   for both platforms:
-   ```
-   EXPO_PUBLIC_REVENUECAT_IOS_API_KEY=test_USellzJPMsFdonmYETFPHqsvWOu
-   EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY=test_USellzJPMsFdonmYETFPHqsvWOu
-   ```
-   Swap the iOS key for the real one once the RevenueCat/App Store Connect product wiring in
-   Part 1B is done — this depends on that work, not the other way around. *2 min once the key
-   exists.*
+3. **Push your env vars to EAS — this is not optional and it is easy to miss.**
+   `apps/mobile/.env` is matched by `.gitignore` (`*.env`), so **EAS Build never receives
+   it.** The `production` profile in `eas.json` reads EAS's *server-side* `production`
+   environment instead, which starts out empty. A build made without these throws at module
+   load in [`src/lib/supabase.ts:56`](../apps/mobile/src/lib/supabase.ts:56) and crashes on
+   launch — no error screen, just a dead app. This bit the first build.
 
-4. **Build**: `eas build --profile production --platform ios`. Requires your Apple Developer
-   account to be approved (Part 1B step 1) first. Test the resulting build on a real device
-   on an IPv6-mostly network (most US cellular networks qualify) before submitting — Apple
-   requires this, and it's an easy last-minute rejection if anything silently assumes IPv4.
-   *Build itself: 15-30 min on EAS's servers. Device test: 15 min.*
+   Put the real RevenueCat iOS key into `.env` first if you have it, then from `apps/mobile/`:
+   ```
+   npx eas-cli env:push production --path .env
+   npx eas-cli env:list --environment production
+   ```
+   The second command must list `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`,
+   and both RevenueCat keys before you build. *3 min.*
+
+   RevenueCat degrades gracefully when its key is missing (it warns and skips), so the
+   Supabase pair is what's launch-critical — but a `test_` RevenueCat key means no real
+   products, so the final build still has to come after Part 2.5.
+
+4. **Build**: `npx eas-cli build --platform ios --profile production`. Requires your Apple
+   Developer account to be approved (Part 1B step 5) first. Test the resulting build on a
+   real device on an IPv6-mostly network (most US cellular networks qualify) before
+   submitting — Apple requires this, and it's an easy last-minute rejection if anything
+   silently assumes IPv4. *Build: 6-30 min on EAS's servers. Device test: 15 min.*
 
 ### 1B — In a browser (App Store Connect, RevenueCat, App Store Connect banking)
 
@@ -133,20 +148,37 @@ them, so start them even before you've finished 1A.
    process — start this alongside step 5, not after it.*
 
 7. **Create the App Store Connect app record** for bundle id `com.duoqueue.app`. *5 min.*
+   (`eas submit` will do this for you on its first run if you'd rather.)
 
-8. **App Information tab**: paste `https://duoqueue.io/privacy` as the Privacy Policy URL.
-   Set a Support URL — a bare `mailto:support@duoqueue.io` is commonly accepted, or use a
-   simple hosted contact page if you'd rather. *5 min.*
+7b. **Pricing and Availability** — its own item in the App Store Connect sidebar, easy to
+   miss because it isn't part of App Information. Set the app **Price** to **Free** (DuoQueue
+   itself is free; DuoQueue+ is charged through IAP). Under **App Availability**, leave all
+   countries selected unless you have a reason not to. **Submit for Review will not accept
+   the app until this is set.** *5 min.*
+
+8. **App Information tab** (app-level, left sidebar): paste `https://duoqueue.io/privacy` as
+   the **Privacy Policy URL**. Set **Primary Category** to *Social Networking*, leave
+   Secondary empty — DuoQueue is a people-matching app, not a game, and picking Games puts
+   you in the wrong charts with the wrong reviewer expectations. Answer **Content Rights**:
+   *"No, it does not contain, show, or access third-party content"* — user-posted bios and
+   photos are covered by your Terms and you ship no licensed media. Both are required to
+   submit. *5 min.*
 
 9. **Paste the store listing copy** from Part 2 below (name, subtitle, keywords, promotional
-   text, description, what's new). *10 min.*
+   text, description). Not "what's new" — that field doesn't exist for a first release. *10 min.*
+
+9b. **Support URL** — this lives on the **1.0 version page** under General Information, next
+   to Description, *not* on App Information. It must be an `https://` page: Apple defines the
+   field as "the URL of the support website," and a bare `mailto:` is not a website. Use
+   `https://duoqueue.io/` for now, or add a one-screen `/support` page. Marketing URL is
+   optional — leave it blank. *5 min.*
 
 10. **App Privacy (nutrition label)**: enter the table in Part 3 directly — it maps to
     Apple's exact category names. *10 min.*
 
-11. **Age Rating questionnaire**: answer per the guidance in Part 3.5. Expect the top band
-    (17+ on the old scale / 18+ on the new one) — that's correct for this app, not a defect.
-    *5 min.*
+11. **Age Rating questionnaire**: answer per Part 3.5, then **set the Override to Higher Age
+    Rating to 18+**. The computed rating will come back far lower than you expect — that's
+    normal, and Part 3.5 explains why. *10 min.*
 
 12. **Export compliance**: answer "No" (the app uses only exempt encryption — HTTPS/TLS plus
     a local AES wrapper around the cached auth token, both squarely inside the standard
@@ -161,9 +193,18 @@ them, so start them even before you've finished 1A.
 14. **App Review Information**: paste the demo credentials from Part 1.5 and the review
     notes from Part 4. *5 min.*
 
-15. **Attach screenshots.** See Part 2.6 for the shot list and sizing — capture these with
+15. **Attach screenshots.** See Part 2.7 for the shot list and sizing — capture these with
     Expo Go any time before this step, no build required (skip the paywall shot until you
     have a real build with real products, per step 13). *Capture: 20-30 min. Upload: 10 min.*
+
+15b. **Upload the build to App Store Connect.** `eas build` leaves the `.ipa` on Expo's
+    servers — App Store Connect has no idea it exists until you push it. From `apps/mobile/`:
+    ```
+    npx eas-cli submit --platform ios --latest
+    ```
+    It prompts for your Apple ID and 2FA. Then Apple processes the binary (5–30 min, you get
+    an email). Once it appears, open the 1.0 version page → **Build** → **+** and select it.
+    *5 min to run, then waiting.*
 
 16. **Submit for Review.**
 
@@ -202,12 +243,16 @@ Partners" + "co-op duo") rather than repeating the same words across both fields
 ### 2.3 Keywords (100 char max) — use this:
 
 ```
-coop,squad,lfg,esports,streaming,anime,playstyle,ranked,crossplay,steam,voice chat,safe,verified
+coop,squad,lfg,esports,streaming,anime,playstyle,ranked,crossplay,teammate,voice chat,safe
 ```
-96/100 characters. Deliberately has zero overlap with the Name/Subtitle above (Apple indexes
-those separately, so repeating "gaming," "duo," or "partners" here wastes budget). "Steam" is
-included because DuoQueue genuinely links Steam accounts for verified stats — legitimate
-feature keyword, not trademark-stuffing.
+90/100 characters. Deliberately has zero overlap with the Name/Subtitle above (Apple indexes
+those separately, so repeating "gaming," "duo," or "partners" here wastes budget).
+
+**Do not put `steam`, `discord`, `valorant`, or any other company or app name in this field.**
+Apple's keyword rules say flatly that "names of other apps or companies aren't allowed," with
+no exception for genuine integrations — an earlier draft of this doc had `steam` in here on
+exactly that reasoning, and it was wrong. Describing the Steam integration in the Description
+is fine and stays as written.
 
 ### 2.4 Promotional Text (170 char max) — use this:
 
@@ -219,21 +264,40 @@ literal launch-day line.
 
 ### 2.5 Description (4000 char max) — use this:
 
-1,792 characters.
+1,915 characters.
 
 ```
 DuoQueue is not a dating app. It's how you find people to actually play with — a duo for co-op, a fourth for the raid, someone equally deep into the same show. No looks-first swiping, no gender filters. Just shared games, shows, and playstyle.
 
-Your deck shows people matched on what you're both into: favorite games (skill level, rank if you've got one), shows you watch, playstyle — casual, competitive, ranked grinder — and when you're usually online. Swipe to say you'd duo. Mutual swipe, you match, chat opens up.
+Your deck shows people matched on what you're both into: favorite games (skill level, rank if you've got one), shows you watch, playstyle — chill, competitive, late night, mic required, solo queue, team player — and when you're usually online. Swipe to say you'd duo. Mutual swipe, you match, chat opens up.
 
 Want a third? Party mode lets you and a match invite someone else in. Everyone swipes on the same profile, and it takes a unanimous yes before that person's invited to join.
 
 From there it's yours to run: chat in-app, share a Discord username, add each other on Steam. DuoQueue gets you to "let's play" — it doesn't run the session for you.
 
-Safety, for real: everyone's 18+, verified at signup. Every profile photo is automatically screened before anyone else sees it. Report or block from a profile or a chat — blocking is immediate and complete, a blocked user can't see your profile again. A hidden-word filter mutes messages containing words you pick. A Safety Center covers meetup safety, scam patterns, and community guidelines.
+Safety, for real: DuoQueue is 18+ only — every account confirms a date of birth of 18 or older to sign up. Every profile photo is automatically screened before anyone else sees it. Report or block from a profile or a chat — blocking is immediate and complete, a blocked user can't see your profile again. A hidden-word filter mutes messages containing words you pick. A Safety Center covers meetup safety, scam patterns, and community guidelines.
 
-DuoQueue+ is optional. It removes the daily swipe and conversation limits, adds filters for a specific game, platform, skill level, and playstyle, shows everyone who wants to duo at once instead of a daily trio, and gives you a Super Ping a day to jump the queue. Weekly, monthly, 3-month, and 6-month plans, all auto-renewing until you cancel in your App Store account settings. Power-Ups and Legendary Likes are separate one-time purchases for extra visibility. Free users get full use of DuoQueue; DuoQueue+ just removes the limits.
+DuoQueue+ is optional. It lifts the 25-swipes-a-day cap, adds filters for a specific game, platform, skill level, and playstyle, shows everyone who wants to duo at once instead of a daily trio, and gives you a Super Ping a day that tells someone directly you want to duo. Weekly, monthly, 3-month, and 6-month plans, all auto-renewing until you cancel in your App Store account settings. Power-Ups are a separate one-time purchase that puts you near the top of other people's decks for 30 minutes. Everything else — matching, chatting, party mode — is free and unlimited.
 ```
+
+**Two things in this paragraph changed because the old version described features the app
+doesn't have.** Both are worth understanding, because they affect what you sell, not just
+what you write:
+
+- **"removes the daily swipe and conversation limits"** — there is no conversation limit.
+  Grepping every `raise exception` in the matching migrations, the only free-tier gate is
+  `daily_swipe_limit_reached` at 25/day ([0048:800](../supabase/migrations/0048_rate_limiting.sql:800)),
+  plus premium-only filters and Super Ping. Free users already have unlimited conversations.
+  **Your paywall says "unlimited conversations" too** ([paywall.tsx:228,241](../apps/mobile/app/paywall.tsx:228)) —
+  that's advertising a subscription benefit that isn't one, and it should be fixed in the app
+  before you submit.
+- **"Legendary Likes ... for extra visibility"** — they have no effect at all. `send_rose`
+  ([0048:965](../supabase/migrations/0048_rate_limiting.sql:965)) spends a credit and then calls
+  `perform_swipe(target, 'like')` — the identical code path as a free swipe. Nothing records
+  that it was a Legendary Like and nothing surfaces it to the recipient. Power-Ups are real
+  (`activate_boost` adds +1000 to deck ranking for 30 minutes); Super Pings are real (they
+  fire a notification to the recipient). Legendary Likes are not. See the decision at the end
+  of this doc before creating `duoqueue_roses_3` in App Store Connect.
 
 The description's Steam-linking claim was double-checked against the live project on
 2026-08-06 and it holds: `STEAM_WEB_API_KEY` **is** set as a Supabase function secret, both
@@ -245,7 +309,11 @@ been linked yet, so the key's *presence* is proven but a real round-trip to Stea
 never been exercised. If you want certainty before review, link your own Steam account once
 from Settings → Connections and confirm the badge appears.
 
-### 2.6 What's New (1.0 release text) — use this:
+### 2.6 What's New — save this for version 1.1, don't look for it now
+
+**App Store Connect has no "What's New in This Version" field for a first release.** It
+appears from your second version onward. Skip it for 1.0; keep the text below for your first
+update.
 
 353 characters.
 
@@ -255,11 +323,16 @@ First release. Match on shared games, shows, and playstyle, then chat and figure
 
 ### 2.7 Screenshots — shot list
 
-Sizing: Apple's mandatory bucket is **1320 × 2868 px** (6.9″ display, portrait) — upload one
-set at this size and App Store Connect auto-generates every smaller iPhone size from it, no
-separate capture needed. If your phone isn't a 16 Pro Max, shoot at native resolution and
-uniformly resize up (no cropping) — any Face-ID iPhone shares close to the same aspect ratio,
-so there's no visible distortion. An iPhone SE is a genuinely different aspect ratio; don't
+Sizing: Apple's mandatory bucket is the 6.9″ portrait one, and it accepts **1320 × 2868**,
+**1290 × 2796**, or **1260 × 2736**. Upload one set at whichever you pick and App Store
+Connect generates the smaller iPhone sizes from it. **Hit your chosen dimensions exactly** —
+ASC rejects an image off by a single pixel.
+
+If your phone isn't a 6.9″ model, resize to the exact target rather than preserving aspect
+ratio: no iPhone resolution scales uniformly onto an accepted size (a 1179 × 2556 iPhone 15
+Pro shot scaled to 1320 wide lands at 1320 × 2862, six pixels short, and gets rejected). The
+required stretch is under 0.3% and invisible. **1290 × 2796 is the closest target for a
+1179 × 2556 capture.** Don't crop. An iPhone SE is a genuinely different aspect ratio; don't
 stretch a shot from one.
 
 **Capture now, no build needed**: sign in to Expo Go as `review@duoqueue.io` (Part 1.5) and
@@ -269,8 +342,10 @@ pricing. Grab that one shot later from a real build once Part 1B step 13 is done
 
 Six shots, in this order (order matters — the first is what search results show):
 
-1. **Deck** (`app/(tabs)/index.tsx`) — the front swipe card, games/show chips visible.
-   *"Matched on shared games, shows, and playstyle — swipe to duo up."*
+1. **Deck** (`app/(tabs)/index.tsx`) — the front swipe card: one game chip with skill level,
+   the prompt line, and the shared-overlap label. Shows are *not* on the card; if you want
+   shows in a shot, use the expanded profile or shot 2.
+   *"Ranked by the games you both play — swipe to duo up."*
 2. **Own profile** (`app/(tabs)/profile.tsx`) — the bento grid: games, schedule, vibe, prompts.
    *"Your profile is your gamer card — games, playstyle, and vibe."*
 3. **Requests** (`app/admirers.tsx`) — the three seeded rows with the "Duo Up" button.
@@ -279,7 +354,7 @@ Six shots, in this order (order matters — the first is what search results sho
    *"Duo locked. Time to plan a session."*
 5. **Chat** (`app/chat/[matchId].tsx`, open Priya) — the seeded 8-message conversation.
    *"Chat to lock in a time — no small talk required."*
-6. **Matches list** (`app/(tabs)/matches.tsx`) — sectioned list with Priya's unread badge.
+6. **Matches list** (`app/(tabs)/matches.tsx`) — sectioned list, Priya's row showing unread.
    *"Every duo in one place, sorted by whose turn it is to reply."*
 
 All six are already 4+-safe (Guideline 2.3.8 applies to screenshots regardless of the app's
@@ -303,7 +378,7 @@ consumables; subscription IDs below match what's already documented in `README.m
 | Auto-renewable subscription | DuoQueue+ 3-Month | `duoqueue_plus_3mo` | $17.99 / 3 months |
 | Auto-renewable subscription | DuoQueue+ 6-Month | `duoqueue_plus_6mo` | $29.99 / 6 months |
 | Consumable | Power-Up (1) | `duoqueue_boost_1` | $3.99 |
-| Consumable | Legendary Likes (3-Pack) | `duoqueue_roses_3` | $5.99 |
+| Consumable | Legendary Likes (3-Pack) | `duoqueue_roses_3` | $5.99 — **see Decision 1 before creating this** |
 
 Display Name / Description (Display Name ≤30 chars, Description ≤45 chars — same benefit
 copy across all four subscription durations):
@@ -386,24 +461,45 @@ revisit this table).
 
 ### 3.5 Age Rating questionnaire — answers
 
-Apple computes the numeric rating from these; you don't pick it directly. The single biggest
-driver here isn't any content toggle — it's that this app has unmoderated-in-the-moment
-user-to-user messaging (1:1 and party chat). Answer honestly and expect the top band (17+ old
-scale / 18+ new scale); that's correct for this app category, not a defect, and understating
-it is itself a risk if Apple's own review disagrees.
+**Read this before you start the questionnaire, because the result will surprise you.**
 
-| Question | Answer |
+Apple replaced the age-rating system in July 2025 (mandatory since 31 January 2026). Under
+the current one, **user-generated content and messaging/chat are 4+ capabilities** — they are
+the *least* restrictive descriptors in the system and they do not raise your rating at all.
+18+ is reached only by frequent drugs/alcohol, frequent sexual content, frequent realistic
+violence, or gambling. Every one of those you answer "None."
+
+So answering honestly computes to roughly **9+** (from Infrequent profanity), or **13+** if
+you tick Social Media. That is nowhere near where this app belongs, and it is not a bug.
+
+**You raise it yourself: Step 7: Additional Information → Age Category and Override →
+"Override to Higher Age Rating" → 18+.**
+
+This isn't optional for you. Apple's rule: *"If your app has a EULA with minimum age
+requirements that exceed the rating that Apple calculated, you must override to a rating that
+adheres to the requirements."* Your [Terms](../docs/legal/terms-of-service.md:37) say 18+ and
+`MIN_AGE = 18` enforces it, so 18+ is the required answer, not a preference. The App Store
+will show 18+ while the content descriptors still reflect your honest answers below.
+
+Answers, by the current questionnaire's own section names:
+
+| Section → Question | Answer |
 |---|---|
-| Cartoon/Realistic/Prolonged Graphic Violence | None |
-| Sexual Content or Nudity | None (photos are auto-screened for nudity pre-publish; chat is text-only) |
-| Profanity or Crude Humor | Infrequent/Mild (free-text chat between real users — hence the hidden-word filter and masking) |
-| Alcohol, Tobacco, or Drug Use/References | None |
-| Mature/Suggestive Themes | None |
-| Horror/Fear Themes, Medical/Treatment Info, Contests | None |
-| Gambling (Simulated) | None (Power-Ups/Legendary Likes are fixed-price, fixed-content — no loot-box mechanic) |
-| Unrestricted Web Access | No (only fixed known URLs — your own Privacy/Terms pages — via `expo-web-browser`) |
-| User-Generated Content | Yes (bios, prompts, chat) |
-| User-to-user communication with people you don't already know | Yes, frequent (this is the core feature and the field most likely to drive the rating to the top band — expected, correct) |
+| **In-App Controls** — Parental Controls | No |
+| **In-App Controls** — Age Assurance | Yes (DOB collected at sign-up, 18+ enforced) |
+| **Capabilities** — Unrestricted Web Access | No (only fixed known URLs: your Privacy/Terms pages and Steam's OpenID login during account linking, both via `expo-web-browser` — no address bar, no arbitrary browsing) |
+| **Capabilities** — User-Generated Content | Yes (bios, prompts, chat) |
+| **Capabilities** — Social Media | Yes (profile discovery deck) |
+| **Capabilities** — Messaging and Chat | Yes (1:1 and party chat) |
+| **Capabilities** — Advertising | No |
+| **Mature Themes** — Profanity or Crude Humor | Infrequent (free-text chat between real users — hence the hidden-word filter) |
+| **Mature Themes** — Horror/Fear Themes | None |
+| **Mature Themes** — Alcohol, Tobacco, or Drug Use or References | None |
+| **Medical or Wellness** — both questions | None |
+| **Sexuality or Nudity** — all three questions | None (photos auto-screened for nudity pre-publish; chat is text-only) |
+| **Violence** — all four, including Guns or Other Weapons | None |
+| **Chance-Based Activities** — Gambling, Simulated Gambling, Loot Boxes, Contests | None (Power-Ups and Legendary Likes are fixed-price, fixed-content — no loot-box mechanic) |
+| **Additional Information** — Override to Higher Age Rating | **18+** |
 | Made for Kids / Kids Category | No — do not opt into this under any circumstance |
 
 The app enforces the matching gate in code: `(auth)/age-gate.tsx` requires a DOB at least
@@ -419,7 +515,19 @@ standard Category 5 Part 2 exemption: all network traffic is HTTPS/TLS (OS-provi
 by definition), and `aes-js` is used exactly once, client-side, to wrap the cached Supabase
 auth session token before it's written to `AsyncStorage` (`apps/mobile/src/lib/supabase.ts`,
 `LargeSecureStore`) — a standard unmodified algorithm, used only to protect locally-stored
-data, never networked. This means you don't owe a self-classification report for this build.
+data, never networked.
+
+Two follow-ons an earlier draft got backwards, so don't skip them:
+
+- **Answering "No" does not discharge the U.S. reporting obligation — it's the reverse.**
+  Apple: *"If your app uses exempt forms of encryption, you might alternatively be required to
+  submit a year-end self-classification report to the U.S. government."* The report is waived
+  for apps using *non*-exempt encryption that file documentation with Apple. Check whether you
+  owe an annual BIS self-classification report (bis.doc.gov, filed by 1 February).
+- **`aes-js` is a third-party library, not OS crypto.** Apple classifies an "industry standard
+  algorithm not provided within the Apple operating system" as requiring a **French encryption
+  declaration**. Either file that or deselect France in your distribution territories.
+
 Revisit this answer if a future release adds any cryptography beyond HTTPS + this local wrapper.
 
 ---
@@ -435,7 +543,8 @@ DuoQueue helps people find platonic gaming partners ("duos") — teammates to pl
 shows, or co-op with — matched on shared games, shows, and playstyle, not romantic interest. It
 uses a swipe-card interface to browse candidate profiles quickly, the same interaction pattern
 dating apps use, but here it drives a non-romantic, activity-based match: there is no
-gender-based filtering anywhere in the app, no romantic language on any screen, and every piece
+gender-based filtering anywhere in the app — no screen offers it and no client code sets a
+gender preference — no romantic language on any screen, and every piece
 of in-app vocabulary was written to describe teammates, not dates ("duo," "Power-Up," "Legendary
 Like," "Who wants to duo," "Requests," "Highlights").
 
@@ -448,8 +557,8 @@ On sign-in you will immediately see:
   - A populated Deck of 13 candidate profiles, each with a display name, age, bio, prompt
     answers, games with skill levels, shows, platforms, playstyle tags, and an approved photo.
   - One existing match (with "Priya") already containing an 8-message conversation about
-    scheduling a Valorant session, with the newest message left unread so the Matches tab shows
-    a badge the moment you sign in.
+    scheduling a Valorant session, with the newest message left unread, so Priya's row in the
+    Matches list shows as unread the moment you sign in.
   - Three profiles waiting under "Requests" (the "Who wants to duo" screen).
 
 Why this data exists: these profiles are synthetic accounts created specifically for App Review,
@@ -467,10 +576,10 @@ HOW TO EXERCISE EACH FEATURE
    Sending a new message works normally.
 3. View a full profile: tap any card in the Deck (or a name in Matches) to open full profile
    detail — photos, prompts, games, schedule, vibe tags.
-4. Try the paywall: tap the DuoQueue+ banner/icon (or attempt an action gated behind it, such as
-   a swipe past the free daily limit). It lists four auto-renewing plans (Weekly / Monthly /
-   3-Month / 6-Month) plus two one-time consumables (Power-Up, Legendary Like), and always
-   offers "Continue with Free" so it never traps you.
+4. Try the paywall: open "Requests" and tap "See them all with DuoQueue+", or from the Deck tap
+   "Filters" and then "Unlock DuoQueue+" in the DuoQueue+ filters section. It lists four
+   auto-renewing plans (Weekly / Monthly / 3-Month / 6-Month) plus a one-time Power-Up
+   consumable, and always offers "Continue with Free" so it never traps you.
 5. Blocking and reporting: open the "Priya" conversation, tap the ••• menu, choose "Report" or
    "Block." The same two actions are available from any party chat's member list.
 6. Account deletion (Guideline 5.1.1(v)): Settings tab → "Sign out or delete account" → red
@@ -480,14 +589,14 @@ HOW TO EXERCISE EACH FEATURE
 
 IN-APP PURCHASES
 DuoQueue+ is a subscription (Weekly [$4.99/wk] / Monthly [$7.99/mo] / 3-Month [$17.99] /
-6-Month [$29.99]) that unlocks unlimited swipes, unlimited conversations, advanced filters,
-seeing everyone who has sent a request at once, and one daily "Super Ping." All four tiers are
-auto-renewing; the paywall states this explicitly next to the purchase button ("DuoQueue+ is an
-auto-renewing subscription... renews automatically for the same price and period unless you
-cancel at least 24 hours before the current period ends... Manage or cancel anytime in your
-device's Account Settings"), and Restore Purchases is present on the same screen. Two consumable
-purchases are also offered, visually separated from the subscription tiers: a "Power-Up"
-(temporary visibility boost) and "Legendary Likes" (extra highly-visible requests).
+6-Month [$29.99]) that lifts the free tier's 25-swipes-per-day cap, adds advanced filters,
+shows everyone who has sent a request at once, and grants one daily "Super Ping." All four
+tiers are auto-renewing; the paywall states this explicitly next to the purchase button
+("DuoQueue+ is an auto-renewing subscription... renews automatically for the same price and
+period unless you cancel at least 24 hours before the current period ends... Manage or cancel
+anytime in your device's Account Settings"), and Restore Purchases is present on the same
+screen. One consumable purchase is also offered, visually separated from the subscription
+tiers: a "Power-Up," which raises the buyer's position in other users' decks for 30 minutes.
 
 MODERATION AND SAFETY
 - Profile photos are automatically screened before anyone else can see them (nudity, gore,
@@ -501,10 +610,10 @@ MODERATION AND SAFETY
 - Published, monitored safety/contact address: support@duoqueue.io.
 
 AGE RATING
-We expect the top age band (17+ legacy scale / 18+ new scale) and believe that's correct, not
-something we're trying to talk down. The main driver is unmoderated-in-the-moment user-to-user
-messaging (1:1 and party chat) — free text between people who don't already know each other.
-Separately, DuoQueue is adults-only by design: sign-up requires a date of birth, the app computes
+We have set this app to 18+ using the Override to Higher Age Rating control, deliberately and
+above the rating the questionnaire computed. DuoQueue is adults-only by design and our Terms of
+Service require users to be 18 or older, so we would rather the store listing say so plainly
+than rely on the computed rating. Sign-up requires a date of birth, the app computes
 whether that date is at least 18 years in the past, and the date picker's own maximum selectable
 date is capped at 18 years ago. There is no account-creation path that skips this.
 
@@ -525,8 +634,18 @@ Submit, not before.
       Metadata") in App Store Connect, and are attached to your build before you submit —
       subscriptions go out with the first binary, not as a follow-up.
 - [ ] The review screenshot is attached to at least one IAP product (Part 2.5).
-- [ ] Real RevenueCat iOS key is in `apps/mobile/.env` (not the `test_` key) — Test Store
-      keys will not process real payments and can cause the paywall to misbehave under review.
+- [ ] `npx eas-cli env:list --environment production` shows `EXPO_PUBLIC_SUPABASE_URL`,
+      `EXPO_PUBLIC_SUPABASE_ANON_KEY`, and a **non-`test_`** `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY`
+      — **and the build you are submitting was produced after those were pushed.** Editing
+      `apps/mobile/.env` alone changes nothing about the binary; it's gitignored and never
+      reaches EAS. A build missing the Supabase pair crashes on launch.
+- [ ] **Pricing and Availability** is set — price Free, at least one territory. It's its own
+      sidebar section, not part of App Information, and Submit for Review refuses without it.
+- [ ] The **Age Rating override is set to 18+** (Step 7: Additional Information). The computed
+      rating will be 9+ or 13+; if you left it there, the store shows a child-appropriate
+      rating for an adults-only app.
+- [ ] The build is **attached to the 1.0 version** (Build → + → select). Uploading via
+      `eas submit` puts it in App Store Connect but does not attach it to the version.
 - [ ] Optional: link your own Steam account once from Settings → Connections, so the
       Steam-linking claim in the description has been exercised end-to-end at least once by a
       human before a reviewer tries it (the key and functions are already live — see Part 2.5).
@@ -545,6 +664,32 @@ Submit, not before.
       trust that they do.
 - [ ] Age rating questionnaire answers match what the app review notes claim (Part 3.5) — a
       mismatch between your self-reported rating and reviewer observation is its own risk.
+
+---
+
+## Decisions you have to make before submitting
+
+**1. Legendary Likes (`duoqueue_roses_3`, $5.99) currently do nothing.** `send_rose`
+([0048:965](../supabase/migrations/0048_rate_limiting.sql:965)) spends a credit and then runs
+`perform_swipe(target, 'like')` — byte-for-byte the same outcome as a free swipe. No flag is
+written, nothing is shown to the recipient, no notification fires. Compare `activate_boost`
+(+1000 deck ranking for 30 min) and `send_super_ping` (inserts a `super_pings` row that
+triggers a notification) — those are real. Selling a consumable with no effect is a
+Guideline 3.1.1 problem and a refund magnet. Two ways out:
+
+  - **Drop it from 1.0** — don't create `duoqueue_roses_3` in App Store Connect, remove the
+    tile from the paywall. Fastest; you can add it back in 1.1 once it does something.
+  - **Give it an effect first** — e.g. a `swipes.is_legendary` flag that pins the sender to
+    the top of the recipient's Requests list with a distinct treatment. Half a day of work.
+
+  The doc's Part 2 copy and Part 4 notes are currently written **as if you drop it.** If you
+  build it instead, put it back in both.
+
+**2. The paywall advertises "unlimited conversations," which isn't a benefit.** There is no
+conversation cap for free users anywhere in the schema — the only free-tier gate is 25 swipes
+a day. Fix [paywall.tsx:228 and :241](../apps/mobile/app/paywall.tsx:228) before you submit;
+listing a non-benefit on a subscription screen is exactly what Guideline 3.1.2 review looks
+at. The Part 2 description and Part 4 notes are already corrected.
 
 ---
 
