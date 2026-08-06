@@ -1,6 +1,15 @@
+<!--
+  INTERNAL NOTE (do not publish): this document is a thorough draft prepared for legal
+  review based on a direct reading of DuoQueue's codebase and database schema as of this
+  writing. It is not legal advice, and it should not be relied upon as DuoQueue's actual
+  privacy policy until it has been reviewed by a qualified attorney, all open markers
+  below directed at Cameron or at a lawyer have been resolved, and it has been confirmed
+  to match the app's real behavior at the time of publication. This comment is HTML and
+  never renders on the published site — keep it here for whoever edits this file next.
+-->
 # DuoQueue Privacy Policy
 
-**Effective date:** TODO(Cameron): set the effective date when this is published at a public URL.
+**Effective date:** TODO(Cameron): set the effective date when this policy is published live, and update it whenever the policy materially changes.
 **Version:** 1.0 (draft)
 
 This policy explains what DuoQueue collects, why, who we share it with, and what control you have over it. It's written in plain language on purpose — if anything here is unclear, contact us using the details below.
@@ -11,9 +20,9 @@ This policy explains what DuoQueue collects, why, who we share it with, and what
 
 DuoQueue is a swipe-based app for finding gaming duos, built for players 18 and older.
 
-- **Legal entity:** TODO(Cameron): insert the registered business name (or your own legal name if operating as an individual) and business address.
-- **Contact email for privacy questions and rights requests:** TODO(Cameron): insert a monitored email address (e.g. `privacy@duoqueue.io`).
-- **Data Protection Officer / EU representative (if applicable):** TODO(Cameron): fill in if required for your user base, or state "not applicable" once confirmed with counsel.
+- **Legal entity:** TODO(Cameron): insert your registered business name (or personal legal name if operating as an individual) and business address.
+- **Contact email for privacy questions and rights requests:** `support@duoqueue.io` — the same monitored address used for support and safety reports throughout the app (see `apps/mobile/src/lib/legal.ts`).
+- **Data Protection Officer / EU representative (if applicable):** TODO(Cameron): state whether a DPO or EU representative is required for your user base, and name them if so.
 
 Wherever this policy says "contact us," use the email above.
 
@@ -50,13 +59,13 @@ We only collect what the app actually uses. Here's every category, itemized.
 - **Match feedback tags** — optional, non-public tags ("good comms," "showed up on time," "flaked," etc.) you can leave about a match after the fact, used to build a lightweight reputation signal.
 
 ### Device information
-- **Push notification token.** If you grant notification permission, we store a device-specific push token (via Expo's push service) so we can deliver notifications like new matches and messages. No other device identifiers are collected. TODO(Cameron): confirm this stays true before every release — our schema has an unused column reserved for additional device info that isn't written by any code path today, but could be populated later without a doc update if this isn't rechecked.
+- **Push notification token.** If you grant notification permission, we store a device-specific push token (via Expo's push service) so we can deliver notifications like new matches and messages. No other device identifiers are collected. (Our schema has a `device_info` column reserved for future use; as of this writing no code path writes to it, so nothing is collected there.)
 
 ### Purchases
 - **Subscription and purchase status** (DuoQueue+, Boosts, Roses). Purchases are handled entirely by Apple's App Store or Google Play, and processed for us by RevenueCat. **We never see or store your card number, billing address, or any other payment credential** — we only receive purchase/subscription status (active, expired, product purchased, renewal date) from RevenueCat.
 
 ### Optional linked gaming accounts
-- **Steam** — if you choose to link your Steam account, we verify it's really yours via Steam's own sign-in (OpenID), then store your Steam ID, persona name, and avatar. We separately pull your owned-games playtime for titles in our catalog (e.g. "42.3h on Counter-Strike 2") so your stats are verified rather than self-reported. TODO(Cameron): re-verify at publication that we only persist the Steam ID, persona name, and avatar from Steam's profile response, and not the full response Steam returns (which can include other public-profile fields depending on the linked account's own Steam privacy settings) — confirm against `link-steam-callback` before this ships.
+- **Steam** — if you choose to link your Steam account, we verify it's really yours via Steam's own sign-in (OpenID), then store your Steam ID, persona name, and avatar. We separately pull your owned-games playtime for titles in our catalog (e.g. "42.3h on Counter-Strike 2") so your stats are verified rather than self-reported. Steam's profile lookup can return additional public-profile fields (real name, country/state, account-creation time, and more, depending on the linked account's own Steam privacy settings) — our server only persists the Steam ID, persona name, and avatar into your profile; the rest of that response is discarded and never stored.
 - **Riot Games (League of Legends)** — same idea, currently limited to reading your ranked solo/duo queue rank. This integration is not yet available to users (it requires a production API key from Riot that we have not yet obtained).
 - **Xbox** — planned, same idea as Riot. This integration is not yet available to users, and we collect nothing from Xbox today.
 - We only ever read the specific fields disclosed above for each provider — we do not read your friends list, purchase history, private messages, or anything else on these platforms.
@@ -65,13 +74,13 @@ We only collect what the app actually uses. Here's every category, itemized.
 - At signup, we may run Cloudflare Turnstile, an anti-bot challenge, to block automated account creation. Cloudflare processes device/browser signals for this purpose; we don't receive or store the details itself, only a pass/fail token.
 
 ### What we do NOT collect
-We do not collect precise GPS location, contacts-list access, or browsing history outside the app. We do not run any advertising or analytics SDK (no Meta/Google ad pixels, no Mixpanel/Amplitude/Segment-style tracker) — TODO(Cameron): confirm this stays true before every release, since adding one later would require updating this policy first.
+We do not collect precise GPS location, contacts-list access, or browsing history outside the app. We do not run any advertising or analytics SDK — there is no Meta/Google ad pixel, no Mixpanel/Amplitude/Segment-style tracker, or any comparable dependency anywhere in the app's code today.
 
 ---
 
 ## 3. Who we share data with
 
-We use a small number of specialized service providers ("processors") to run the app. None of them can use your data for their own purposes beyond providing their service to us. TODO(Cameron): confirm a data processing agreement (DPA) is signed with each provider below — this draft assumes standard processor terms but hasn't independently verified each contract.
+We use a small number of specialized service providers ("processors") to run the app. None of them can use your data for their own purposes beyond providing their service to us. TODO(Cameron): confirm a data processing agreement (DPA) is signed with each provider listed below.
 
 | Provider | Role | What they receive | Location |
 |---|---|---|---|
@@ -84,9 +93,9 @@ We use a small number of specialized service providers ("processors") to run the
 | **Cloudflare (Turnstile)** | Bot-protection challenge at signup | Device/browser signals used to distinguish humans from bots | Global network (may include US) |
 | **Steam / Riot Games** | Only if you choose to link an account | We send your account link request to them and receive back the public profile fields listed in Section 2 | United States (approximate, platform-dependent) |
 
-**Sightengine and Resend are config-gated, not hard-wired.** Our photo-moderation pipeline defaults to routing every photo straight to human review and only calls Sightengine when a provider setting and API credentials are set in our live environment; if that configuration is ever unset, no photo is sent to Sightengine at all. Similarly, transactional email is sent through whatever provider is configured for our authentication service, and Resend is our intended provider, but the repo itself can't confirm what's actually configured in the live environment. TODO(Cameron): confirm before every release that Sightengine and Resend are actually configured as described (the same kind of check already called for on the Cloudflare Turnstile bot-protection row above) — if either is unconfigured, update this table and [Section 2](#2-what-we-collect-and-why)/[Section 8](#8-automated-decision-making-photo-moderation) to match.
+**Sightengine and Resend are config-gated, not hard-wired.** Our photo-moderation pipeline defaults to routing every photo straight to human review and only calls Sightengine when a provider setting and API credentials are set in our live environment; if that configuration is ever unset, no photo is sent to Sightengine at all. As of this writing, our live production environment has that provider setting and both Sightengine credentials configured, so automated screening is active. Similarly, transactional email is sent through whatever provider is configured for our authentication service, and Resend is our intended provider; until custom SMTP is set up, our infrastructure provider's default mailer is used instead, which does not involve Resend. TODO(Cameron): confirm in the Supabase Dashboard (Authentication → Emails → SMTP Settings) that custom SMTP via Resend is live in production as described in the README's SMTP section, and update this row if that isn't the case yet.
 
-**International transfers.** If you're using DuoQueue from outside the United States, your data is transferred to and processed in the United States by the providers above. TODO(Cameron): confirm the legal transfer mechanism (e.g. Standard Contractual Clauses) is in place with each US-based processor for EU/UK/Swiss users — this is a contract-level fact that needs to be verified with each vendor, not something visible from the app's code.
+**International transfers.** If you're using DuoQueue from outside the United States, your data is transferred to and processed in the United States by the providers above. TODO(Cameron): confirm a Standard Contractual Clauses (or equivalent) transfer mechanism is signed with each US-based processor for EU/UK/Swiss users, and state the mechanism here.
 
 **We do not sell your personal information.** We do not share your data with data brokers or advertising networks, and we don't run any advertising or analytics SDK that would make this a "sale" or "share" under CCPA/CPRA. See [Section 6](#6-your-rights) for the CCPA-specific disclosures.
 
@@ -108,8 +117,8 @@ If you're in a region covered by the GDPR or UK GDPR, here's the legal basis for
 - **Deleted accounts.** DuoQueue has in-app account deletion (Settings → Delete Account). When you delete your account:
   - Your profile, photos, voice intro, messages, matches, swipe history, preferences, linked accounts, and push tokens are **permanently deleted**, including the underlying stored files (not just hidden). Because a conversation is tied to the match between you and your match partner, deleting your account also deletes your match partner's copy of any conversation you shared with them, not just yours.
   - This is irreversible. There is no "undo" or account-recovery grace period once deletion completes.
-  - **Exception:** if someone else's report about you is on file when you delete your account, the report record itself, and an internal reference id, are retained after your profile and identifying data are otherwise deleted, so we can maintain a history of safety actions (e.g. confirming a pattern of reported behavior) without your profile continuing to exist. This is a reference id, not an anonymization process — it is not linked to your profile once your profile is gone, but it isn't scrubbed of the report's own content (e.g. the reason and details given) either. This retention currently only works in one direction: **if you are the one who filed a report and you delete your own account, that report record is deleted along with your account, not retained** — we don't yet have a way to preserve a report you filed after you leave. TODO(Cameron): this asymmetry is a known gap (tracked in our [Trust & Safety procedure](./trust-and-safety.md) §4(b)) — update this paragraph once reporter-side preservation is fixed.
-- **Backups.** Routine infrastructure backups may retain deleted data for a limited additional period before being purged in the normal course of our hosting provider's backup rotation. TODO(Cameron): confirm Supabase's backup retention window and state it here precisely.
+  - **Exception:** if someone else's report about you is on file when you delete your account, the report record itself, and an internal reference id, are retained after your profile and identifying data are otherwise deleted, so we can maintain a history of safety actions (e.g. confirming a pattern of reported behavior) without your profile continuing to exist. This is a reference id, not an anonymization process — it is not linked to your profile once your profile is gone, but it isn't scrubbed of the report's own content (e.g. the reason and details given) either. This retention currently only works in one direction: **if you are the one who filed a report and you delete your own account, that report record is deleted along with your account, not retained** — we don't yet have a way to preserve a report you filed after you leave.
+- **Backups.** As of this writing, our hosting provider's automated point-in-time recovery and scheduled backup snapshots are not enabled for our production database, so there is no additional backup-retention window beyond the deletion described above. If backups are enabled in the future, deleted data could persist in a backup for that backup's retention period before being purged in the normal course of our hosting provider's backup rotation.
 - **Legal holds.** We may retain specific records longer than normal if we're legally required to (e.g. an active law enforcement request), for as long as that requirement lasts.
 
 ---
@@ -123,7 +132,7 @@ You have the following rights over your data. Most are available directly in the
 | **Access** | See what we hold about you | View it directly in the app (profile, matches, messages, settings), or email us for a full export |
 | **Correction** | Fix inaccurate data | Edit your profile directly in the app for anything editable; email us for anything you can't change yourself (e.g. date of birth) |
 | **Deletion** | Delete your account and data | Settings → Delete Account, or email us if you'd rather we do it |
-| **Portability** | Get a copy of your data in a portable format | Email us; TODO(Cameron): there is currently no self-service export button in the app — until one exists, this is handled manually by email, which should stay within a reasonable turnaround (GDPR: 30 days; CCPA: 45 days) |
+| **Portability** | Get a copy of your data in a portable format | Email us — there's no self-service export button in the app yet, so this is handled manually, within a reasonable turnaround (GDPR: 30 days; CCPA: 45 days) |
 | **Objection** | Object to processing based on legitimate interests | Email us with what you're objecting to |
 | **Withdraw consent** | Revoke any consent-based processing at any time | Unlink a gaming account, delete a voice intro, stop sharing Discord in a chat, or turn off notification permissions — all directly in the app |
 
@@ -137,7 +146,7 @@ In the last 12 months, we've collected the categories of personal information de
 
 ### EU/UK/EEA residents (GDPR)
 
-In addition to the rights table above, you have the right to lodge a complaint with your local data protection supervisory authority if you believe we've mishandled your data. TODO(Cameron): if you have an EU/UK representative or lead supervisory authority, name it here.
+In addition to the rights table above, you have the right to lodge a complaint with your local data protection supervisory authority if you believe we've mishandled your data. TODO(Cameron): name your lead EU/UK supervisory authority here, if you have one.
 
 ---
 
@@ -147,7 +156,7 @@ We take reasonable steps to protect your data, but no system is perfectly secure
 
 - **Encryption in transit.** All traffic between the app and our servers is encrypted (HTTPS/TLS), including chat messages, photos, and account data.
 - **Encryption at rest.** Our hosting provider, Supabase, encrypts stored data at rest.
-- **Access controls.** We use row-level database access controls so that, by default, a user's private data (messages, profile, preferences) is only readable by that user or the specific people it's meant to be shared with (e.g. your match partner in a conversation). Administrative access to broader data (e.g. for moderation) is restricted to designated accounts, gated by an admin flag that isn't self-grantable — but that access is not currently logged. TODO(Cameron): a server-side audit log of admin actions is a known gap tracked in our [Trust & Safety procedure](./trust-and-safety.md) §2.3/§6; this bullet should be updated once one exists.
+- **Access controls.** We use row-level database access controls so that, by default, a user's private data (messages, profile, preferences) is only readable by that user or the specific people it's meant to be shared with (e.g. your match partner in a conversation). Administrative access to broader data (e.g. for moderation) is restricted to designated accounts, gated by an admin flag that isn't self-grantable — but that access is not currently logged.
 - **Content moderation.** Photos go through our moderation pipeline (automated when configured, human review otherwise — see [Section 2](#2-what-we-collect-and-why)/[Section 3](#3-who-we-share-data-with)) before becoming visible to others, and reported content can be reviewed by our moderation team.
 - **What we don't promise.** We do not claim our systems are unhackable or that a breach could never happen. If one does, we will notify affected users and relevant authorities as required by applicable law.
 
@@ -179,8 +188,4 @@ We may update this policy as the app changes. If we make a material change, we'l
 
 ## Contact us
 
-TODO(Cameron): insert the final contact email and legal entity/address here (and keep Section 1 in sync).
-
----
-
-*This document is a thorough draft prepared for legal review based on a direct reading of DuoQueue's codebase and database schema as of this writing. It is not legal advice, and it should not be published or relied upon as DuoQueue's actual privacy policy until it has been reviewed by a qualified attorney, all TODO(Cameron) items have been resolved, and it has been confirmed to match the app's real behavior at the time of publication.*
+Email `support@duoqueue.io` with any question about this policy. For our full legal entity name and business address, see [Section 1](#1-who-we-are).

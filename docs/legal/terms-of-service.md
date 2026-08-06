@@ -1,3 +1,13 @@
+<!--
+  INTERNAL NOTE (do not publish): this document was drafted to plainly and accurately
+  describe how DuoQueue actually works today, and to flag — rather than guess at — the
+  places that need a lawyer's judgment or a business decision from Cameron, each marked
+  with an open placeholder below directed at the person who needs to resolve it. It is
+  not legal advice, and it is not a substitute for review by a licensed attorney before
+  DuoQueue is submitted to the App Store, Google Play, or made available to real users.
+  This comment is HTML and never renders on the published site — keep it here for
+  whoever edits this file next.
+-->
 # DuoQueue Terms of Service
 
 **Effective date:** TODO(Cameron): set the date these terms go live, and update it every time this document changes.
@@ -6,7 +16,7 @@ Welcome to DuoQueue. These Terms of Service ("Terms") are a contract between you
 
 If you don't agree, don't use DuoQueue.
 
-TODO(Cameron): the legal entity operating DuoQueue (name, state/country of formation, registered address) needs to be filled in throughout this document wherever "DuoQueue" is used as the contracting party. A lawyer should confirm the entity is actually formed and in good standing before this ships.
+TODO(Cameron): insert your legal entity's name, state/country of formation, and registered address everywhere "DuoQueue" is used as the contracting party in this document.
 
 ---
 
@@ -62,7 +72,7 @@ We are not asking for the right to sell, license to third parties for their own 
 DuoQueue only works if people treat each other decently. The following is prohibited on DuoQueue, whether in your profile, in chat, in a shared game session, or anywhere else the Service connects you to other users:
 
 - **Harassment, threats, or hate speech.** Slurs, harassment, bullying, threats of violence, or hate speech directed at anyone or any group, based on any characteristic, are never acceptable.
-- **Sexual content involving minors.** Zero tolerance. Any content that sexualizes, exploits, or endangers a minor — including a user appearing to be a minor — will be removed immediately and the account will be permanently banned. **Federal law (18 U.S.C. § 2258A) requires us to report apparent child sexual abuse material to the National Center for Missing & Exploited Children (NCMEC), and we will meet that legal obligation.** TODO(Cameron)/TODO(lawyer): our CyberTipline reporting process is being set up with counsel and is not yet operational — see our [Trust & Safety procedure](./trust-and-safety.md) §4 for the account-suspension and content-preservation steps we take today while that integration is finalized. We mean this literally: don't test the boundaries of this rule.
+- **Sexual content involving minors.** Zero tolerance. Any content that sexualizes, exploits, or endangers a minor — including a user appearing to be a minor — will be removed immediately and the account will be permanently banned. **Federal law (18 U.S.C. § 2258A) requires us to report apparent child sexual abuse material to the National Center for Missing & Exploited Children (NCMEC), and we will meet that legal obligation.** TODO(lawyer): our CyberTipline reporting integration is still being set up and is not yet operational (see our [Trust & Safety procedure](./trust-and-safety.md) §4 for the account-suspension and content-preservation steps we take today in the meantime) — review this paragraph so it accurately states our legal obligation without overstating current operational compliance. We mean this literally: don't test the boundaries of this rule.
 - **Impersonation.** Pretending to be someone else, creating a profile that isn't genuinely you, or using someone else's photos or identity.
 - **Spam and solicitation.** Using DuoQueue to advertise, sell, solicit, promote a business or another platform, run bots, or contact people for anything other than genuine connection.
 - **Scraping and automation.** Accessing the Service through automated means (scraping, bots, unauthorized API use), reverse-engineering the app, or interfering with its normal operation.
@@ -151,7 +161,7 @@ If you believe content on DuoQueue infringes your copyright, send a notice to ou
 5. A statement that you have a good-faith belief that the use is not authorized by the copyright owner, its agent, or the law.
 6. A statement, made under penalty of perjury, that the information in the notice is accurate and that you are the copyright owner or authorized to act on their behalf.
 
-**Designated DMCA Agent:** TODO(Cameron): register a DMCA agent at copyright.gov and fill in their name/title, mailing address, and a dedicated email address here. Notices sent anywhere else may not be effective.
+**Designated DMCA Agent:** TODO(Cameron): register a DMCA agent at copyright.gov and insert their name/title, mailing address, and a dedicated email address here. Notices sent anywhere else may not be effective.
 
 We will remove or disable access to material that we determine, in good faith, is infringing, and we may terminate the accounts of repeat infringers.
 
@@ -165,8 +175,4 @@ We may update these Terms from time to time — to reflect changes to the Servic
 
 ## 14. Contact
 
-Questions about these Terms? Reach us at TODO(Cameron): support/legal contact email.
-
----
-
-*This document was drafted to plainly and accurately describe how DuoQueue actually works today, and to flag — rather than guess at — the places that need a lawyer's judgment (marked **TODO(lawyer)**) or a business decision from Cameron (marked **TODO(Cameron)**). It is not legal advice, and it is not a substitute for review by a licensed attorney before DuoQueue is submitted to the App Store, Google Play, or made available to real users.*
+Questions about these Terms? Reach us at `support@duoqueue.io`.
