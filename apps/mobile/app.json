@@ -27,7 +27,6 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false
-    },
     "web": {
       "favicon": "./assets/favicon.png"
     },
@@ -68,7 +67,11 @@
       "expo-font"
     ],
     "extra": {
-      "router": {}
-    }
+      "router": {},
+      "eas": {
+        "projectId": "a5069e29-0e9b-4c9c-87a3-e4f1f6ae0837"
+      }
+    },
+    "owner": "cameronstallings"
   }
 }
