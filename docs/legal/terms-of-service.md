@@ -62,7 +62,7 @@ You're responsible for maintaining the confidentiality of your login credentials
 
 ## 4. Your Content
 
-"Your Content" means anything you upload, post, or send through DuoQueue — profile photos, your voice intro, bio prompts, game/show/platform selections, chat messages, and anything else you contribute.
+"Your Content" means anything you upload, post, or send through DuoQueue — profile photos, bio prompts, game/show/platform selections, chat messages, and anything else you contribute.
 
 **You own your content.** By posting or sending Your Content on DuoQueue, you grant us a limited, non-exclusive, royalty-free license to host, store, reproduce, and display Your Content solely as necessary to operate, provide, and improve the Service — for example, showing your profile photos to other users in the deck, or delivering your messages to a match. This license lasts as long as Your Content remains on the Service (and for a reasonable period afterward for backups and legal-compliance purposes), and it ends when you delete the content or your account, except to the extent copies reasonably persist in backups or as required by law or to enforce these Terms.
 
