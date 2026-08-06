@@ -642,6 +642,12 @@ Submit, not before.
       — **and the build you are submitting was produced after those were pushed.** Editing
       `apps/mobile/.env` alone changes nothing about the binary; it's gitignored and never
       reaches EAS. A build missing the Supabase pair crashes on launch.
+- [ ] **Check the RevenueCat key by eye, because nothing will tell you anymore.** A `test_`
+      key used to announce itself loudly — RevenueCat's SDK popped a "Wrong API Key" alert in
+      a release build and then threw, which crashed TestFlight build 2 immediately after
+      sign-in. `src/lib/revenuecat.ts` now refuses a `test_` key in a release build and logs
+      instead, so the app stays up — but the paywall silently shows no plans, which under
+      review reads as a broken purchase flow. This is now a quiet failure, so verify it.
 - [ ] **Pricing and Availability** is set — price Free, at least one territory. It's its own
       sidebar section, not part of App Information, and Submit for Review refuses without it.
 - [ ] The **Age Rating override is set to 18+** (Step 7: Additional Information). The computed
