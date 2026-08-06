@@ -20,8 +20,10 @@ import { useTheme } from "@/theme/useTheme";
 
 // Consumable (non-subscription) store product identifiers — see README's RevenueCat
 // setup section for the matching App Store Connect / Play Console product config.
+// duoqueue_roses_3 is intentionally absent: Legendary Likes are not sold in 1.0 (see the
+// comment on consumableSection). The webhook still maps that product id, so re-adding the
+// tile is the only client change needed once the like has a real effect.
 const BOOST_PRODUCT_ID = "duoqueue_boost_1";
-const ROSES_PRODUCT_ID = "duoqueue_roses_3";
 
 function PlanRow({
   pkg,
@@ -150,7 +152,6 @@ export default function PaywallScreen() {
   const weeklyBaseline = weekly?.product.pricePerWeek ?? null;
 
   const boostPkg = offering?.availablePackages.find((p) => p.product.identifier === BOOST_PRODUCT_ID) ?? null;
-  const rosesPkg = offering?.availablePackages.find((p) => p.product.identifier === ROSES_PRODUCT_ID) ?? null;
 
   async function handleBuyConsumable(pkg: PurchasesPackage | null) {
     if (!pkg) return;
@@ -182,9 +183,15 @@ export default function PaywallScreen() {
     }
   }
 
+  // Legendary Likes are deliberately not sold in 1.0. send_rose spends a credit and then
+  // performs an ordinary like — nothing is recorded and nothing reaches the recipient, so
+  // the purchase buys an outcome identical to a free swipe. Selling that is a Guideline
+  // 3.1.1 problem. The RPC, the credits column and the RevenueCat mapping all stay put so
+  // the free daily Legendary Like keeps working; only the storefront tile is gone. Put it
+  // back once the like actually surfaces differently to whoever receives it.
   const consumableSection = (
     <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
-      <Text style={[type.bodyStrong, { color: colors.text }]}>Power-Ups & Legendary Likes</Text>
+      <Text style={[type.bodyStrong, { color: colors.text }]}>Power-Ups</Text>
       <ConsumableRow
         icon="rocket"
         iconColor={colors.volt}
@@ -193,16 +200,6 @@ export default function PaywallScreen() {
         count={credits?.boosts ?? 0}
         pkg={boostPkg}
         onBuy={() => void handleBuyConsumable(boostPkg)}
-        buying={purchase.isPending}
-      />
-      <ConsumableRow
-        icon="star"
-        iconColor={colors.warning}
-        title="Legendary Like"
-        description="Everyone gets 1 free every 24 hours — buy more to send extra"
-        count={credits?.roses ?? 0}
-        pkg={rosesPkg}
-        onBuy={() => void handleBuyConsumable(rosesPkg)}
         buying={purchase.isPending}
       />
     </View>
@@ -225,7 +222,7 @@ export default function PaywallScreen() {
     return (
       <ScreenContainer title="You're on DuoQueue+" showClose>
         <Text style={[type.body, { color: colors.textMuted }]}>
-          Unlimited swipes, unlimited conversations, advanced filters, duo requests, and a daily Super Ping
+          Unlimited swipes, advanced filters, everyone who wants to duo, and a daily Super Ping
           are all unlocked.
         </Text>
         {consumableSection}
@@ -238,7 +235,7 @@ export default function PaywallScreen() {
     <ScreenContainer title="DuoQueue+" showClose>
       <Logo width={44} />
       <Text style={[type.body, { color: colors.textMuted, marginBottom: spacing.sm }]}>
-        Unlimited swipes, unlimited conversations, advanced filters, see everyone who wants to duo at once,
+        Unlimited swipes, advanced filters, see everyone who wants to duo at once,
         and a daily Super Ping.
       </Text>
 
@@ -341,7 +338,7 @@ export default function PaywallScreen() {
         confirmation of purchase, and renews automatically for the same price and period unless
         you cancel at least 24 hours before the current period ends. Your account is charged for
         renewal within 24 hours before the period ends. Manage or cancel anytime in your device&apos;s
-        Account Settings. Power-Ups and Legendary Likes are one-time purchases, not subscriptions.
+        Account Settings. Power-Ups are a one-time purchase, not a subscription.
       </Text>
 
       <View style={{ flexDirection: "row", justifyContent: "center", gap: spacing.sm, marginTop: spacing.sm }}>

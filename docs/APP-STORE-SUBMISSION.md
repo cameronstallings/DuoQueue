@@ -1,8 +1,8 @@
 # DuoQueue — App Store Submission Guide
 
-Your working document for the first iOS submission. Work through it top to bottom — it's
-ordered so nothing blocks on something later in the file. Rewritten 2026-08-06 against the
-live code, the live site, and the live Supabase project (not from memory of an earlier draft).
+Your working document for the first iOS submission. Rewritten 2026-08-06 against the live
+code, the live site, and the live Supabase project — then corrected against Apple's current
+published rules after an adversarial pass found 24 errors in the first draft.
 
 **How to use this**: work top to bottom, with one exception — **start Part 1B steps 5 and 6
 (Developer Program enrollment and the Paid Applications Agreement) before anything else.**
@@ -378,7 +378,10 @@ consumables; subscription IDs below match what's already documented in `README.m
 | Auto-renewable subscription | DuoQueue+ 3-Month | `duoqueue_plus_3mo` | $17.99 / 3 months |
 | Auto-renewable subscription | DuoQueue+ 6-Month | `duoqueue_plus_6mo` | $29.99 / 6 months |
 | Consumable | Power-Up (1) | `duoqueue_boost_1` | $3.99 |
-| Consumable | Legendary Likes (3-Pack) | `duoqueue_roses_3` | $5.99 — **see Decision 1 before creating this** |
+
+**Five products, not six** — `duoqueue_roses_3` (Legendary Likes) is deliberately not in 1.0.
+Don't create it in App Store Connect and don't add it to the RevenueCat offering; the paywall
+tile is already gone. See "Decisions already made" below.
 
 Display Name / Description (Display Name ≤30 chars, Description ≤45 chars — same benefit
 copy across all four subscription durations):
@@ -395,31 +398,31 @@ copy across all four subscription durations):
 **Put all four subscriptions in one Subscription Group** (name it "DuoQueue+"). This isn't
 optional — it's what lets a user switch durations from their device Settings instead of
 stacking two active subscriptions and double-billing, and Guideline 3.1.2(b) specifically
-checks for this. Do **not** put the two consumables in the group.
+checks for this. Do **not** put the Power-Up consumable in the group.
 
 - **Subscription Group Display Name**: "DuoQueue+" (what the user sees in their own device's
   subscription management screen).
 - **Localization**: `en-US` only — the app is English-only.
 - **Review screenshot**: ASC requires one attached before you can submit any IAP for the
   first time on a new app. Reuse the paywall screenshot from Part 2.7 once you have it from a
-  real build (attach it to all six products to keep things simple).
+  real build (attach it to all five products to keep things simple).
 
 **In RevenueCat:**
 
 1. Add your real iOS app, connect it to App Store Connect (generate an App Store Connect API
    Key in ASC → Users and Access → Integrations, role "App Manager"; upload it under
    RevenueCat → Project Settings → Apple App Store).
-2. **Products** tab — create all six products by pasting each App Store Connect product ID;
+2. **Products** tab — create all five products by pasting each App Store Connect product ID;
    RevenueCat pulls metadata automatically once the key is connected.
 3. **Entitlements** — create one entitlement named exactly `premium` (the webhook already
    defaults new subscription rows to this name), attach all four subscription products to it.
-   Do **not** attach the two consumables to any entitlement — the webhook handles those by
+   Do **not** attach the Power-Up consumable to any entitlement — the webhook handles it by
    product ID directly.
-4. **Offerings** → your default Offering → add six packages: the four subscriptions attached
+4. **Offerings** → your default Offering → add five packages: the four subscriptions attached
    via RevenueCat's **standard package type** picker (Weekly / Monthly / 3 Month / 6 Month —
    this is what makes `offering.weekly` etc. resolve in the app; attach to the wrong slot and
-   that tier silently vanishes from the paywall, no error), and the two consumables as custom
-   packages (matched by product ID in code, so the package identifier itself can be anything).
+   that tier silently vanishes from the paywall, no error), and the Power-Up as a custom
+   package (matched by product ID in code, so the package identifier itself can be anything).
 5. **Swap the key** — copy the real public SDK key from RevenueCat → Project Settings → API
    Keys → Apple App Store into `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` (Part 1A step 3). Leave
    Android on the Test Store key until you launch there.
@@ -630,7 +633,7 @@ Submit, not before.
 - [ ] Paid Applications Agreement (Part 1B step 6) shows **Active**, not just "submitted" —
       check Agreements, Tax, and Banking directly; a pending banking/tax section silently
       blocks IAP attachment with no clear error.
-- [ ] All four subscriptions and both consumables show as **Ready to Submit** (not "Missing
+- [ ] All four subscriptions and the Power-Up show as **Ready to Submit** (not "Missing
       Metadata") in App Store Connect, and are attached to your build before you submit —
       subscriptions go out with the first binary, not as a follow-up.
 - [ ] The review screenshot is attached to at least one IAP product (Part 2.5).
@@ -667,29 +670,29 @@ Submit, not before.
 
 ---
 
-## Decisions you have to make before submitting
+## Decisions already made (both are done in code — recorded here so you know why)
 
-**1. Legendary Likes (`duoqueue_roses_3`, $5.99) currently do nothing.** `send_rose`
+**1. Legendary Likes are not sold in 1.0.** `send_rose`
 ([0048:965](../supabase/migrations/0048_rate_limiting.sql:965)) spends a credit and then runs
 `perform_swipe(target, 'like')` — byte-for-byte the same outcome as a free swipe. No flag is
 written, nothing is shown to the recipient, no notification fires. Compare `activate_boost`
 (+1000 deck ranking for 30 min) and `send_super_ping` (inserts a `super_pings` row that
 triggers a notification) — those are real. Selling a consumable with no effect is a
-Guideline 3.1.1 problem and a refund magnet. Two ways out:
+Guideline 3.1.1 problem and a refund magnet, so **the storefront tile is removed for 1.0.**
 
-  - **Drop it from 1.0** — don't create `duoqueue_roses_3` in App Store Connect, remove the
-    tile from the paywall. Fastest; you can add it back in 1.1 once it does something.
-  - **Give it an effect first** — e.g. a `swipes.is_legendary` flag that pins the sender to
-    the top of the recipient's Requests list with a distinct treatment. Half a day of work.
+  What stayed: the `send_rose` RPC, the `roses` credits column, and the RevenueCat product
+  mapping. The free daily Legendary Like still works exactly as before — only the *purchase*
+  is gone. Re-adding the tile is the single client change needed once the like actually
+  surfaces differently to whoever receives it (e.g. a `swipes.is_legendary` flag that pins
+  the sender to the top of the recipient's Requests list).
 
-  The doc's Part 2 copy and Part 4 notes are currently written **as if you drop it.** If you
-  build it instead, put it back in both.
+  **Action for you: create five IAP products, not six. Skip `duoqueue_roses_3`.**
 
-**2. The paywall advertises "unlimited conversations," which isn't a benefit.** There is no
-conversation cap for free users anywhere in the schema — the only free-tier gate is 25 swipes
-a day. Fix [paywall.tsx:228 and :241](../apps/mobile/app/paywall.tsx:228) before you submit;
-listing a non-benefit on a subscription screen is exactly what Guideline 3.1.2 review looks
-at. The Part 2 description and Part 4 notes are already corrected.
+**2. The paywall no longer advertises "unlimited conversations."** There is no conversation
+cap for free users anywhere in the schema — the only free-tier gate is 25 swipes a day — so
+that line was selling a non-benefit, which is exactly what Guideline 3.1.2 review looks at.
+Both instances in `paywall.tsx` now list the real benefits (unlimited swipes, advanced
+filters, the full requests list, the daily Super Ping). Part 2 and Part 4 match.
 
 ---
 
