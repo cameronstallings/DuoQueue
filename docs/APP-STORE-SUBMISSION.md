@@ -688,11 +688,16 @@ written, nothing is shown to the recipient, no notification fires. Compare `acti
 triggers a notification) — those are real. Selling a consumable with no effect is a
 Guideline 3.1.1 problem and a refund magnet, so **the storefront tile is removed for 1.0.**
 
-  What stayed: the `send_rose` RPC, the `roses` credits column, and the RevenueCat product
-  mapping. The free daily Legendary Like still works exactly as before — only the *purchase*
-  is gone. Re-adding the tile is the single client change needed once the like actually
-  surfaces differently to whoever receives it (e.g. a `swipes.is_legendary` flag that pins
-  the sender to the top of the recipient's Requests list).
+  **The whole affordance is gone, not just the purchase.** The first pass removed only the
+  paywall tile, which left the star button on the Deck still there — and its out-of-credits
+  alert offered to "Get more" from a paywall that no longer sold any, a dead end. Both the
+  Deck button and the tile are now removed.
+
+  What stayed, untouched: the `send_rose` RPC, the `roses` credits column, the free-daily
+  cooldown logic, and the RevenueCat product mapping. Nothing calls `useSendRose` anymore.
+  Bringing it back in 1.1 is re-adding two buttons — once the like actually surfaces
+  differently to whoever receives it (e.g. a `swipes.is_legendary` flag that pins the sender
+  to the top of the recipient's Requests list).
 
   **Action for you: create five IAP products, not six. Skip `duoqueue_roses_3`.**
 

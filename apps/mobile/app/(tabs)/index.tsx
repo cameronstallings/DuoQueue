@@ -17,10 +17,8 @@ import {
 } from "@/features/matching/useSuperPing";
 import {
   NoBoostCreditsError,
-  RoseOnCooldownError,
   useActivateBoost,
   useConsumableCredits,
-  useSendRose,
 } from "@/features/premium/useConsumables";
 import { LikePassButtons } from "@/features/swipe/LikePassButtons";
 import { StandoutsRow } from "@/features/swipe/StandoutsRow";
@@ -39,7 +37,6 @@ export default function DeckScreen() {
   const swipeAction = useSwipeAction();
   const superPing = useSuperPing();
   const activateBoost = useActivateBoost();
-  const sendRose = useSendRose();
   const { data: quota } = useSwipeQuota();
   const { data: admirersCount } = useAdmirersCount();
   const { data: credits } = useConsumableCredits();
@@ -107,38 +104,6 @@ export default function DeckScreen() {
           { text: "Not now" },
           { text: "Get Power-Ups", onPress: () => router.push("/paywall") },
         ]);
-      } else {
-        Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
-      }
-    }
-  }
-
-  async function handleSendRose() {
-    const top = cards[0];
-    if (!top) return;
-    try {
-      const result = await sendRose.mutateAsync(top.profile_id);
-      popTop();
-      if (result.matched && result.match_id) {
-        hapticSuccess();
-        router.push({
-          pathname: "/match/[matchId]",
-          params: { matchId: result.match_id, name: top.display_name, photo: top.profilePhotoUrl ?? "" },
-        });
-      }
-    } catch (err) {
-      if (err instanceof RoseOnCooldownError) {
-        const resetLabel = credits?.free_rose_available_at
-          ? new Date(credits.free_rose_available_at).toLocaleTimeString(undefined, {
-              hour: "numeric",
-              minute: "2-digit",
-            })
-          : "tomorrow";
-        Alert.alert(
-          "Legendary Like on cooldown",
-          `Your free daily Legendary Like resets around ${resetLabel}, or buy more to send one now.`,
-          [{ text: "Not now" }, { text: "Get more", onPress: () => router.push("/paywall") }],
-        );
       } else {
         Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
       }
@@ -241,10 +206,7 @@ export default function DeckScreen() {
           onPass={() => deckRef.current?.pass()}
           onLike={() => deckRef.current?.like()}
           onSuperPing={() => void handleSuperPing()}
-          onSendRose={
-            credits && (credits.free_rose_available || credits.roses > 0) ? () => void handleSendRose() : undefined
-          }
-          disabled={swipeAction.isPending || superPing.isPending || sendRose.isPending}
+          disabled={swipeAction.isPending || superPing.isPending}
         />
       )}
     </View>

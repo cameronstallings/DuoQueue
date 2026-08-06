@@ -7,11 +7,15 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withSpring, withTim
 import { hapticLight } from "@/lib/haptics";
 import { useTheme } from "@/theme/useTheme";
 
+// No Legendary Like button in 1.0. send_rose spends a credit and then performs an
+// ordinary like — the recipient sees nothing that distinguishes it — so the button
+// promised something the app does not deliver, and its out-of-credits alert offered to
+// sell more from a paywall that no longer lists them. The RPC and credits are intact;
+// this comes back when a Legendary Like actually reads differently to whoever gets it.
 interface LikePassButtonsProps {
   onLike: () => void;
   onPass: () => void;
   onSuperPing?: () => void;
-  onSendRose?: () => void;
   disabled?: boolean;
 }
 
@@ -86,7 +90,7 @@ function AnimatedIconButton({
   );
 }
 
-export function LikePassButtons({ onLike, onPass, onSuperPing, onSendRose, disabled }: LikePassButtonsProps) {
+export function LikePassButtons({ onLike, onPass, onSuperPing, disabled }: LikePassButtonsProps) {
   const { colors, radius, spacing, type } = useTheme();
 
   // Glass: the shared surface+hairline pairing every non-primary circle uses now that
@@ -140,22 +144,6 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, onSendRose, disab
       >
         <Ionicons name="flash" size={28} color={colors.onVolt} />
       </AnimatedIconButton>
-
-      {onSendRose && (
-        <View style={styles.smallButtonWrap}>
-          <AnimatedIconButton
-            size={48}
-            ringColor={colors.warning}
-            accessibilityLabel="Send a Legendary Like — an extra-visible like from your Legendary Like credits"
-            onPress={onSendRose}
-            disabled={disabled}
-            style={[{ borderRadius: radius.round }, glassStyle]}
-          >
-            <Ionicons name="star" size={20} color={colors.warning} />
-          </AnimatedIconButton>
-          <Text style={[type.caption, { color: colors.textMuted }]}>Legendary</Text>
-        </View>
-      )}
     </View>
   );
 }
