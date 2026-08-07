@@ -16,7 +16,9 @@ Part 5 is the pre-submit checklist. Do that checklist last, right before you tap
 
 ## Part 0 — What's already done (you do not need to redo any of this)
 
-- **Legal pages are live.** `https://duoqueue.io/privacy` and `https://duoqueue.io/terms`
+- **Legal pages are live and current**, including the post-0060 correction that gender is
+  never used to filter or rank (verified serving 2026-08-06).
+  `https://duoqueue.io/privacy` and `https://duoqueue.io/terms`
   are real, published pages (built by `scripts/build-site.mjs` from `docs/legal/*.md`,
   served from GitHub Pages, DNS pointed at `duoqueue.io`). `apps/mobile/src/lib/legal.ts`
   already points at both URLs and is read by every screen that links to them (Settings,
@@ -716,23 +718,6 @@ cap for free users anywhere in the schema — the only free-tier gate is 25 swip
 that line was selling a non-benefit, which is exactly what Guideline 3.1.2 review looks at.
 Both instances in `paywall.tsx` now list the real benefits (unlimited swipes, advanced
 filters, the full requests list, the daily Super Ping). Part 2 and Part 4 match.
-
----
-
-## Pending — must be done before you submit
-
-- **Republish the privacy policy.** Migration 0060 is applied, so the live page at
-  `duoqueue.io/privacy` is now wrong on one sentence: it still says gender is "used to
-  filter candidates when someone sets a gender preference." The corrected build is
-  committed and pushed to `gh-pages` (commit `4ac477e`) — GitHub was in an Actions/Pages
-  major outage on 2026-08-06 and the deploy could not run. Verify with:
-  ```
-  curl -s https://duoqueue.io/privacy/ | grep -c "never used to filter or rank"
-  ```
-  `1` means it deployed. `0` means re-request the build:
-  ```
-  gh api -X POST repos/cameronstallings/DuoQueue/pages/builds
-  ```
 
 ---
 
