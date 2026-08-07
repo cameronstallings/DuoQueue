@@ -414,9 +414,17 @@ checks for this. Do **not** put the Power-Up consumable in the group.
 - **Subscription Group Display Name**: "DuoQueue+" (what the user sees in their own device's
   subscription management screen).
 - **Localization**: `en-US` only — the app is English-only.
-- **Review screenshot**: ASC requires one attached before you can submit any IAP for the
-  first time on a new app. Reuse the paywall screenshot from Part 2.7 once you have it from a
-  real build (attach it to all five products to keep things simple).
+- **Review screenshot**: ASC requires one on every IAP. **It must be 640 × 920 px** — this
+  field is not the store-listing screenshot field and does not take the sizes on Apple's
+  screenshot-specifications page. A real device capture (1320×2868, 1179×2556, …) is
+  rejected with "The dimensions of one or more screenshots are wrong," and so is 1024×1024,
+  which is the *promotional image* spec (a different, optional field) and the obvious wrong
+  guess. Convert a paywall capture with:
+  ```
+  node scripts/iap-review-screenshot.mjs <input.png>
+  ```
+  which pads to 640×920 rather than stretching, strips the alpha channel iPhone captures
+  carry, and verifies its own output. Attach it to all five products.
 
 **In RevenueCat:**
 
