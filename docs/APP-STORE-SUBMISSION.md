@@ -337,13 +337,12 @@ required stretch is under 0.3% and invisible. **1290 × 2796 is the closest targ
 1179 × 2556 capture.** Don't crop. An iPhone SE is a genuinely different aspect ratio; don't
 stretch a shot from one.
 
-**The only reliable way into the paywall is Deck → "Filters" → "Unlock DuoQueue+".** Every
-other route is conditional on data the demo account doesn't produce: the Requests upsell
-("See them all with DuoQueue+") renders only when there are *more* requests than the free
-tier shows, and the account has exactly 3, all visible free. The swipe-limit and
-conversation-limit prompts need limits the demo data never reaches. Use the Filters path in
-the review notes and for the IAP review screenshot — it's gated only on not being premium,
-so it is always there.
+**Reach the paywall from Settings → "DuoQueue+".** That row is unconditional. So is
+Deck → "Filters" → "Unlock DuoQueue+" (gated only on not being premium). Every *other* route
+is conditional on data the demo account doesn't produce: the Requests upsell ("See them all
+with DuoQueue+") renders only when there are *more* requests than the free tier shows, and
+the account has exactly 3, all visible free; the swipe-limit prompt needs 25 swipes against
+a 14-card deck. Use the Settings path in the review notes and for the IAP review screenshot.
 
 **Capture now, no build needed**: sign in to Expo Go as `review@duoqueue.io` (Part 1.5) and
 screenshot the normal iOS way. Skip the paywall screen in this pass — `react-native-purchases`
@@ -589,10 +588,13 @@ HOW TO EXERCISE EACH FEATURE
    Sending a new message works normally.
 3. View a full profile: tap any card in the Deck (or a name in Matches) to open full profile
    detail — photos, prompts, games, schedule, vibe tags.
-4. Try the paywall: from the Deck tab, tap "Filters" at the top of the screen, scroll to the
-   "DuoQueue+ filters" section, and tap "Unlock DuoQueue+". It lists four auto-renewing plans
-   (Weekly / Monthly / 3-Month / 6-Month) plus a one-time Power-Up consumable, and always
-   offers "Continue with Free" so it never traps you.
+4. Try the paywall: Settings tab -> "Subscription" section -> "DuoQueue+". It lists four
+   auto-renewing plans (Weekly / Monthly / 3-Month / 6-Month) plus a one-time Power-Up
+   consumable, and always offers "Continue with Free" so it never traps you. The same screen
+   is reachable from the Deck tab via "Filters" -> "Unlock DuoQueue+".
+4b. Manage or cancel a subscription: Settings tab -> "Subscription" -> "Manage subscription",
+   which opens the App Store's own subscription management. Purchases made through Apple can
+   only be changed there, so the app links to it rather than implying it can cancel for you.
 5. Blocking and reporting: open the "Priya" conversation, tap the ••• menu, choose "Report" or
    "Block." The same two actions are available from any party chat's member list.
 6. Account deletion (Guideline 5.1.1(v)): Settings tab → "Sign out or delete account" → red
