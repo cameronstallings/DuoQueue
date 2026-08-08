@@ -109,7 +109,7 @@ export default function SignUp() {
       <Logo width={56} />
       <Text style={[type.screenTitle, { color: colors.text }]}>Create your account</Text>
       <Text style={[type.body, { color: colors.textMuted, marginBottom: spacing.md }]}>
-        Next you&apos;ll set up your profile — games, shows, and how you like to play.
+        Next you&apos;ll set up your profile: games, shows, and how you like to play.
       </Text>
 
       <TextField
@@ -147,7 +147,7 @@ export default function SignUp() {
           Privacy Policy
         </Text>
         . We&apos;ll also notify you about new matches, messages, and reminders when a duo&apos;s waiting on
-        you — fine-tune or turn any of these off anytime in Settings.
+        you. Fine-tune or turn any of these off anytime in Settings.
       </Text>
 
       <Button label="Create account" onPress={() => void handleSignUp()} loading={loading} />

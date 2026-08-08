@@ -35,7 +35,7 @@ export default function PromptsStep() {
     <WizardStep
       step="prompts"
       title="Answer 3 prompts"
-      subtitle="These show up on your card instead of a plain bio — pick ones that actually sound like you."
+      subtitle="These show up on your card instead of a plain bio. Pick ones that actually sound like you."
       onContinue={handleContinue}
       continueDisabled={!allAnswered}
     >

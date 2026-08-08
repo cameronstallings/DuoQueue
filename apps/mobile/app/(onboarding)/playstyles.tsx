@@ -43,7 +43,7 @@ export default function PlaystylesStep() {
     <WizardStep
       step="playstyles"
       title="How do you like to play?"
-      subtitle={`Optional — pick up to ${MAX_PLAYSTYLES}.`}
+      subtitle={`Optional. Pick up to ${MAX_PLAYSTYLES}.`}
       onContinue={handleContinue}
       error={error}
       continueLabel={playstyles.length === 0 ? "Skip" : "Continue"}

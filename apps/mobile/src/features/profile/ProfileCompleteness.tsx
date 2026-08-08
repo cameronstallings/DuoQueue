@@ -30,7 +30,7 @@ export function ProfileCompleteness({ items }: { items: CompletenessItem[] }) {
         />
       </View>
       <Text style={[type.caption, { color: colors.textMuted }]}>
-        {pct}% complete — add {missing.join(", ")} to finish your profile.
+        {pct}% complete. Add {missing.join(", ")} to finish your profile.
       </Text>
     </View>
   );

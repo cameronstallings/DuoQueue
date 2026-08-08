@@ -19,7 +19,7 @@ const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
 class PhotoTooLargeError extends Error {
   constructor() {
-    super("That photo is too large — please choose one under 5MB.");
+    super("That photo is too large. Please choose one under 5MB.");
     this.name = "PhotoTooLargeError";
   }
 }

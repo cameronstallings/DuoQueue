@@ -384,7 +384,7 @@ function resolveLastUpdated(sourceFilePath, markdownText, { fallbackNote } = {})
   }
   const date = statSync(sourceFilePath).mtime.toISOString().slice(0, 10);
   const note =
-    fallbackNote || "derived from the source file's last-modified time — replace once an effective date is set";
+    fallbackNote || "derived from the source file's last-modified time, and replaced once an effective date is set";
   return { label: `${date} (${note})`, isPlaceholder: true };
 }
 
@@ -576,7 +576,7 @@ ${bodyHtml}
 </article>
 </main>
 <footer class="site-footer">
-  <p>Last updated: ${escapeHtml(lastUpdatedLabel)}${isPlaceholder ? " — placeholder, see script header" : ""}</p>
+  <p>Last updated: ${escapeHtml(lastUpdatedLabel)}${isPlaceholder ? ". Placeholder, see script header." : ""}</p>
   <nav>
     <a href="/">Home</a> &middot; <a href="/privacy/">Privacy Policy</a> &middot; <a href="/terms/">Terms of Service</a>
   </nav>
@@ -597,23 +597,23 @@ const SUPPORT_EMAIL = "support@duoqueue.io";
 function buildIndexHtml(lastUpdated) {
   const body = `
 <h1>DuoQueue</h1>
-<p class="intro">DuoQueue is an 18+ app for finding people to play games with. It's platonic, not dating — you're matching on games, schedules, and vibe so you always have someone good to duo with.</p>
+<p class="intro">DuoQueue is an 18+ app for finding people to play games with. It's platonic, not dating. You're matching on games, schedules, and vibe so you always have someone good to duo with.</p>
 <p class="lede">Swipe on profiles built around what you play, when you play, and how you like to play it, then chat and queue up with the people you match.</p>
 
 <h2>Legal</h2>
 <ul>
-  <li><a href="/privacy/">Privacy Policy</a> — what we collect, why, and who we share it with.</li>
-  <li><a href="/terms/">Terms of Service</a> — the rules for using DuoQueue.</li>
+  <li><a href="/privacy/">Privacy Policy</a>: what we collect, why, and who we share it with.</li>
+  <li><a href="/terms/">Terms of Service</a>: the rules for using DuoQueue.</li>
 </ul>
 
 <section class="card" id="support">
   <h2>Support</h2>
-  <p>Questions, account issues, or anything else — reach us at <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>.</p>
-  <p>Report a safety concern: if you need to report abuse, harassment, or other user-content issues, email <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a> — reports can also be filed directly in the app from a profile or conversation.</p>
+  <p>Questions, account issues, or anything else? Reach us at <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>.</p>
+  <p>Report a safety concern: if you need to report abuse, harassment, or other user-content issues, email <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>. Reports can also be filed directly in the app from a profile or conversation.</p>
 </section>
 `;
   return pageShell({
-    title: "DuoQueue — find your duo",
+    title: "DuoQueue: find your duo",
     description: "DuoQueue is an 18+ app for finding people to play games with. Platonic, not dating.",
     bodyHtml: body,
     lastUpdatedLabel: lastUpdated.label,
@@ -631,7 +631,7 @@ function buildLegalPage({ srcFile, destDir, description }) {
   const { html, title } = mdToHtml(markdown);
   const lastUpdated = resolveLastUpdated(srcPath, markdown);
   const pageHtml = pageShell({
-    title: title ? `${title} — DuoQueue` : "DuoQueue",
+    title: title ? `${title} | DuoQueue` : "DuoQueue",
     description,
     bodyHtml: html,
     lastUpdatedLabel: lastUpdated.label,
@@ -685,7 +685,8 @@ function main() {
   console.log(`wrote ${path.relative(ROOT, termsOut)}`);
 
   const indexLastUpdated = resolveLastUpdated(path.join(__dirname, "build-site.mjs"), null, {
-    fallbackNote: "derived from this script's last-modified time — the landing page has no source markdown file",
+    fallbackNote:
+      "derived from this script's last-modified time, since the landing page has no source markdown file",
   });
   const indexPath = path.join(SITE_DIR, "index.html");
   writeFileSync(indexPath, buildIndexHtml(indexLastUpdated), "utf8");

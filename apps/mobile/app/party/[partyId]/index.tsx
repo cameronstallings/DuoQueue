@@ -43,7 +43,7 @@ export default function PartyDeckScreen() {
         hapticSuccess();
         Alert.alert(
           "Everyone said yes!",
-          `The whole party liked ${card.display_name} — they've been invited to join.`,
+          `The whole party liked ${card.display_name}. They've been invited to join.`,
         );
       }
     } catch (err) {

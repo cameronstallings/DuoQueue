@@ -81,7 +81,7 @@ export default function SignIn() {
           user's. The greeting has to work for someone who has never seen the app. */}
       <Text style={[type.screenTitle, { color: colors.text }]}>Welcome to DuoQueue</Text>
       <Text style={[type.body, { color: colors.textMuted, marginBottom: spacing.md }]}>
-        Sign in to find your next gaming duo — or create an account below.
+        Sign in to find your next gaming duo, or create an account below.
       </Text>
 
       <TextField

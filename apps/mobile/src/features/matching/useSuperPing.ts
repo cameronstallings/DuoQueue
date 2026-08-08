@@ -12,7 +12,7 @@ export class SuperPingRequiresPremiumError extends Error {
 
 export class SuperPingLimitReachedError extends Error {
   constructor() {
-    super("You've used your Super Ping for today — come back tomorrow.");
+    super("You've used your Super Ping for today. Come back tomorrow.");
     this.name = "SuperPingLimitReachedError";
   }
 }

@@ -69,7 +69,7 @@ export default function BlockListScreen() {
       }
     >
       <Text style={[type.body, { color: colors.textMuted, marginBottom: spacing.sm }]}>
-        People you&apos;ve blocked. Unblocking lets them appear in your deck again — they won&apos;t be notified
+        People you&apos;ve blocked. Unblocking lets them appear in your deck again. They won&apos;t be notified
         either way.
       </Text>
 

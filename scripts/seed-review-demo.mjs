@@ -156,7 +156,7 @@ const PERSONAS = [
     gender: "non_binary",
     region: "sea",
     timezone: "Asia/Manila",
-    bio: "Support main who lives for a clean vision game. Been climbing League ranked with the same three friends since season 9 — always room for one more in the Discord.",
+    bio: "Support main who lives for a clean vision game. Been climbing League ranked with the same three friends since season 9. There's always room for one more in the Discord.",
     discordUsername: "dae.lumen",
     games: [
       { name: "League of Legends", skill: "ranked_grinder", rank: "Diamond II" },
@@ -168,7 +168,7 @@ const PERSONAS = [
     platforms: ["pc", "mobile"],
     playstyles: ["competitive", "team_player", "late_night"],
     prompts: [
-      { q: "I main", a: "Whatever the draft needs — I'll flex support if it wins us the game." },
+      { q: "I main", a: "Whatever the draft needs. I'll flex support if it wins us the game." },
       { q: "My go-to strategy in any game is", a: "Vision control first, fights second. Wards win more games than kills." },
       { q: "The best trash talk I've ever received was", a: "'You ward like you're getting paid by the hour.' Devastating. Accurate." },
     ],
@@ -241,7 +241,7 @@ const PERSONAS = [
     gender: "male",
     region: "africa",
     timezone: "Africa/Lagos",
-    bio: "Grand Champion in Rocket League, still humble about it (mostly). Also deep in the Apex ranked grind — happy to coach rotations if you're newer to the game.",
+    bio: "Grand Champion in Rocket League, still humble about it (mostly). Also deep in the Apex ranked grind, and happy to coach rotations if you're newer to the game.",
     discordUsername: "kofi.mensah",
     games: [
       { name: "Rocket League", skill: "ranked_grinder", rank: "Grand Champion" },
@@ -254,7 +254,7 @@ const PERSONAS = [
     playstyles: ["competitive", "grinder", "mic_required"],
     prompts: [
       { q: "My proudest gaming achievement is", a: "Hit Grand Champion in Rocket League solo queue. Took two years. Worth it." },
-      { q: "I will absolutely carry you if", a: "You're new to Apex and just want reps in — I love teaching rotations." },
+      { q: "I will absolutely carry you if", a: "You're new to Apex and just want reps in. I love teaching rotations." },
       { q: "My win condition in life is", a: "A clean 50 burst and a teammate who calls out the third party." },
     ],
     vibe: { intensity: 82, commsStyle: 75, coachingPref: 65, tiltHandling: "tilts_but_recovers_fast" },
@@ -297,7 +297,7 @@ const PERSONAS = [
     gender: "male",
     region: "oce",
     timezone: "Australia/Sydney",
-    bio: "Couch co-op evangelist — It Takes Two, Overcooked, anything that makes two people yell at a screen together. Bring snacks, I'll bring the chaos.",
+    bio: "Couch co-op evangelist. It Takes Two, Overcooked, anything that makes two people yell at a screen together. Bring snacks, I'll bring the chaos.",
     discordUsername: "tobin.reyes",
     games: [
       { name: "It Takes Two", skill: "casual" },
@@ -338,7 +338,7 @@ const PERSONAS = [
     playstyles: ["solo_queue", "chill", "no_mic"],
     prompts: [
       { q: "The genre I always come back to is", a: "Souls-likes. I like games that respect my time and punish my mistakes." },
-      { q: "My most underrated pick is", a: "Elden Ring co-op summons — underrated way to make a brutal boss fun." },
+      { q: "My most underrated pick is", a: "Elden Ring co-op summons, an underrated way to make a brutal boss fun." },
       { q: "A game I'll defend to the death is", a: "Baldur's Gate 3. Yes, every playthrough takes 100 hours. Worth it." },
     ],
     vibe: { intensity: 45, commsStyle: 35, coachingPref: 50, tiltHandling: "needs_space_after_losses" },
@@ -353,7 +353,7 @@ const PERSONAS = [
     gender: "male",
     region: "na_east",
     timezone: "America/Chicago",
-    bio: "Horror co-op only after midnight, non-negotiable. Phasmophobia and Lethal Company regular — bring a working mic and low expectations for our survival odds.",
+    bio: "Horror co-op only after midnight, non-negotiable. Phasmophobia and Lethal Company regular. Bring a working mic and low expectations for our survival odds.",
     discordUsername: "chase.abernathy",
     games: [
       { name: "Phasmophobia", skill: "competitive" },
@@ -381,7 +381,7 @@ const PERSONAS = [
     gender: "non_binary",
     region: "asia",
     timezone: "Asia/Seoul",
-    bio: "Fighting game grinder who studies frame data for fun. Street Fighter 6 ranked most evenings — always looking for training partners, not just opponents.",
+    bio: "Fighting game grinder who studies frame data for fun. Street Fighter 6 ranked most evenings. Always looking for training partners, not just opponents.",
     discordUsername: "yuki.hash",
     games: [
       { name: "Street Fighter 6", skill: "ranked_grinder", rank: "Master Rank" },
@@ -437,7 +437,7 @@ const PERSONAS = [
     gender: "male",
     region: "sa",
     timezone: "America/Sao_Paulo",
-    bio: "Tac-shooter squad leader — I'll call the rotation, you just need to hold the angle. Rainbow Six and Warzone most nights after work.",
+    bio: "Tac-shooter squad leader. I'll call the rotation, you just need to hold the angle. Rainbow Six and Warzone most nights after work.",
     discordUsername: "remy.castillo",
     games: [
       { name: "Call of Duty: Warzone", skill: "competitive" },
@@ -493,7 +493,7 @@ const PERSONAS = [
     gender: "male",
     region: "na_east",
     timezone: "America/New_York",
-    bio: "Factory optimization is a personality trait at this point. Satisfactory and Factorio enjoyer — if you like spreadsheets and conveyor belts, we'll get along.",
+    bio: "Factory optimization is a personality trait at this point. Satisfactory and Factorio enjoyer. If you like spreadsheets and conveyor belts, we'll get along.",
     discordUsername: "devon.price",
     games: [
       { name: "Satisfactory", skill: "ranked_grinder" },
@@ -526,10 +526,10 @@ const CONVERSATION = [
   { sender: "partner", atMin: 5900, readAfterMin: 35, text: "Hey! Saw we're both grinding Valorant ranked, wanted to say hi. What rank are you sitting at right now?" },
   { sender: "reviewer", atMin: 5865, readAfterMin: 10, text: "Hey! Bouncing between Diamond and Immortal depending on the day. You?" },
   { sender: "partner", atMin: 5850, readAfterMin: 20, text: "Immortal 1, currently tilting off a 3-game losing streak lol. Want to duo queue sometime this week?" },
-  { sender: "reviewer", atMin: 4200, readAfterMin: 15, text: "Yes, absolutely. I'm free most evenings after 7pm my time — does that work?" },
+  { sender: "reviewer", atMin: 4200, readAfterMin: 15, text: "Yes, absolutely. I'm free most evenings after 7pm my time. Does that work?" },
   { sender: "partner", atMin: 4180, readAfterMin: 40, text: "Perfect, I'm usually on by 6. Let's aim for Thursday, I'll bring snacks and a controller cooldown." },
   { sender: "reviewer", atMin: 2900, readAfterMin: 5, text: "Thursday works. I'll queue up around 7 and send an invite." },
-  { sender: "partner", atMin: 1400, readAfterMin: 120, text: "Bumping this — still on for tonight? I've got the evening free and I'm dying to try that new agent." },
+  { sender: "partner", atMin: 1400, readAfterMin: 120, text: "Bumping this. Still on for tonight? I've got the evening free and I'm dying to try that new agent." },
   { sender: "partner", atMin: 120, readAfterMin: null, text: "Hey, you around later tonight? Didn't want to double-book the slot if you're busy." },
 ];
 

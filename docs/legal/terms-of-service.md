@@ -22,7 +22,7 @@
 
 **Effective date:** August 5, 2026
 
-Welcome to DuoQueue. These Terms of Service ("Terms") are a contract between you and DuoQueue, operated by Cameron Shaw Stallings as an individual (a sole proprietor — not a company or LLC) ("DuoQueue," "we," "us," or "our"), and govern your access to and use of the DuoQueue app and related services (the "Service"). By creating an account or using DuoQueue, you agree to these Terms and to our [Privacy Policy](./privacy-policy.md).
+Welcome to DuoQueue. These Terms of Service ("Terms") are a contract between you and DuoQueue, operated by Cameron Shaw Stallings as an individual (a sole proprietor, not a company or LLC) ("DuoQueue," "we," "us," or "our"), and govern your access to and use of the DuoQueue app and related services (the "Service"). By creating an account or using DuoQueue, you agree to these Terms and to our [Privacy Policy](./privacy-policy.md).
 
 If you don't agree, don't use DuoQueue.
 
@@ -34,7 +34,7 @@ If you don't agree, don't use DuoQueue.
 
 By using DuoQueue, you confirm that:
 
-- **You are at least 18 years old.** DuoQueue is an 18+ service. We ask for your date of birth when you create an account, and we don't let anyone under 18 sign up. Your date of birth is kept private — only your age is ever shown on your profile. Misrepresenting your age to access the Service is a violation of these Terms and grounds for immediate account termination.
+- **You are at least 18 years old.** DuoQueue is an 18+ service. We ask for your date of birth when you create an account, and we don't let anyone under 18 sign up. Your date of birth is kept private; only your age is ever shown on your profile. Misrepresenting your age to access the Service is a violation of these Terms and grounds for immediate account termination.
 - **You will keep one account.** DuoQueue is one account per person. Creating multiple accounts, or creating an account on behalf of someone else, isn't allowed.
 - **The information you give us is accurate.** Your photos, age, and profile details need to be genuinely yours and truthful. Impersonating another person, or misrepresenting who you are, violates these Terms.
 - **You haven't been banned.** If we've previously removed your account or banned you from DuoQueue, you may not create a new account or otherwise access the Service, whether directly or through a third party.
@@ -46,7 +46,7 @@ We may ask you to verify any of the above at any time, and may suspend your acce
 
 ## 2. The Service
 
-DuoQueue helps people who play the same games, watch the same shows, and want the same kind of teammate find each other and connect — for duo queues, squads, co-op sessions, or anything else two matched users want to do with their time. It's a matching and social product.
+DuoQueue helps people who play the same games, watch the same shows, and want the same kind of teammate find each other and connect. That might be for duo queues, squads, co-op sessions, or anything else two matched users want to do with their time. It's a matching and social product.
 
 **DuoQueue does not conduct criminal background checks, sex offender registry checks, or identity verification on its users.** We use automated photo moderation to screen uploaded images (including a check aimed at flagging apparent depictions of minors) and we act on user reports, but we do not and cannot verify the identity, criminal history, or intentions of anyone you interact with through the Service. You are solely responsible for exercising good judgment and appropriate caution in all interactions with other users, online or in person. See Section 6 (Safety) below.
 
@@ -62,18 +62,18 @@ You're responsible for maintaining the confidentiality of your login credentials
 
 ## 4. Your Content
 
-"Your Content" means anything you upload, post, or send through DuoQueue — profile photos, bio prompts, game/show/platform selections, chat messages, and anything else you contribute.
+"Your Content" means anything you upload, post, or send through DuoQueue: profile photos, bio prompts, game/show/platform selections, chat messages, and anything else you contribute.
 
-**You own your content.** By posting or sending Your Content on DuoQueue, you grant us a limited, non-exclusive, royalty-free license to host, store, reproduce, and display Your Content solely as necessary to operate, provide, and improve the Service — for example, showing your profile photos to other users in the deck, or delivering your messages to a match. This license lasts as long as Your Content remains on the Service (and for a reasonable period afterward for backups and legal-compliance purposes), and it ends when you delete the content or your account, except to the extent copies reasonably persist in backups or as required by law or to enforce these Terms.
+**You own your content.** By posting or sending Your Content on DuoQueue, you grant us a limited, non-exclusive, royalty-free license to host, store, reproduce, and display Your Content solely as necessary to operate, provide, and improve the Service (for example, showing your profile photos to other users in the deck, or delivering your messages to a match). This license lasts as long as Your Content remains on the Service (and for a reasonable period afterward for backups and legal-compliance purposes), and it ends when you delete the content or your account, except to the extent copies reasonably persist in backups or as required by law or to enforce these Terms.
 
 We are not asking for the right to sell, license to third parties for their own use, or use Your Content for advertising outside DuoQueue.
 
 **You warrant that:**
 - You own Your Content, or have the rights necessary to post it and grant us the license above.
 - Your Content doesn't violate any law, infringe anyone else's rights, or violate these Terms (see Section 5, Community Rules).
-- Every person shown in a photo you upload — including you — is at least 18 years old and consented to appear in it.
+- Every person shown in a photo you upload, including you, is at least 18 years old and consented to appear in it.
 
-**We may remove content.** We can remove, refuse to display, or restrict distribution of Your Content — including automatically, through our photo moderation system — if we believe it violates these Terms, the law, or puts anyone's safety at risk. We don't owe you an explanation before we do this, though we'll generally try to tell you why.
+**We may remove content.** We can remove, refuse to display, or restrict distribution of Your Content (including automatically, through our photo moderation system) if we believe it violates these Terms, the law, or puts anyone's safety at risk. We don't owe you an explanation before we do this, though we'll generally try to tell you why.
 
 ---
 
@@ -82,23 +82,23 @@ We are not asking for the right to sell, license to third parties for their own 
 DuoQueue only works if people treat each other decently. The following is prohibited on DuoQueue, whether in your profile, in chat, in a shared game session, or anywhere else the Service connects you to other users:
 
 - **Harassment, threats, or hate speech.** Slurs, harassment, bullying, threats of violence, or hate speech directed at anyone or any group, based on any characteristic, are never acceptable.
-- **Sexual content involving minors.** Zero tolerance. Any content that sexualizes, exploits, or endangers a minor — including a user appearing to be a minor — will be removed immediately and the account will be permanently banned. **Federal law (18 U.S.C. § 2258A) requires us to report apparent child sexual abuse material to the National Center for Missing & Exploited Children (NCMEC), and we comply with that obligation.** When we identify a suspected violation, we immediately suspend the account and preserve the relevant content and account records, and we make any report the law requires (see our [Trust & Safety procedure](./trust-and-safety.md) §4 for the steps we take). We mean this literally: don't test the boundaries of this rule.
+- **Sexual content involving minors.** Zero tolerance. Any content that sexualizes, exploits, or endangers a minor (including a user who appears to be a minor) will be removed immediately and the account will be permanently banned. **Federal law (18 U.S.C. § 2258A) requires us to report apparent child sexual abuse material to the National Center for Missing & Exploited Children (NCMEC), and we comply with that obligation.** When we identify a suspected violation, we immediately suspend the account and preserve the relevant content and account records, and we make any report the law requires. We mean this literally: don't test the boundaries of this rule.
 - **Impersonation.** Pretending to be someone else, creating a profile that isn't genuinely you, or using someone else's photos or identity.
 - **Spam and solicitation.** Using DuoQueue to advertise, sell, solicit, promote a business or another platform, run bots, or contact people for anything other than genuine connection.
 - **Scraping and automation.** Accessing the Service through automated means (scraping, bots, unauthorized API use), reverse-engineering the app, or interfering with its normal operation.
-- **Sharing others' private information.** Posting or sending someone else's personal information (address, phone number, financial details, or similar) without their consent — including a match's information after you've spoken with them.
+- **Sharing others' private information.** Posting or sending someone else's personal information (address, phone number, financial details, or similar) without their consent, including a match's information after you've spoken with them.
 - **Off-platform harm.** Using a DuoQueue connection to defraud, scam, stalk, threaten, or otherwise harm another user, whether the harm happens in the app, in a game, on a call, or in person.
 - **Circumventing enforcement.** Creating a new account after a ban, evading a block, or otherwise trying to route around action we've taken.
 
-Violating these rules can result in content removal, a warning, temporary suspension, or permanent termination of your account, at our discretion and depending on severity. We review user reports and act on what we find — see Section 6.
+Violating these rules can result in content removal, a warning, temporary suspension, or permanent termination of your account, at our discretion and depending on severity. We review user reports and act on what we find (see Section 6).
 
 ---
 
 ## 6. Safety
 
-DuoQueue gives you tools to control who you interact with: you can **block** any user (which immediately ends any match and removes them from your deck) and **report** any user for a suspected violation of these Terms, confidentially — the person you report is never told who reported them. Reports are reviewed by our team, and we act where warranted.
+DuoQueue gives you tools to control who you interact with: you can **block** any user (which immediately ends any match and removes them from your deck) and **report** any user, confidentially, for a suspected violation of these Terms. The person you report is never told who reported them. Reports are reviewed by our team, and we act where warranted.
 
-**Your safety in any interaction — in-app, over voice/video, in a shared game, or in person — is your responsibility.** DuoQueue is a way to meet people; it is not a guarantee of anyone's identity, intentions, or behavior (see Section 2). Before meeting anyone from DuoQueue in person, or sharing sensitive information with them, please review the in-app **Safety Center** (Profile → Safety Center), which covers screening a match before meeting up, meeting in public, protecting your personal and financial information, and what to do if something feels wrong — including crisis-support resources if you or someone else needs help right now.
+**Your safety in any interaction (in-app, over voice/video, in a shared game, or in person) is your responsibility.** DuoQueue is a way to meet people; it is not a guarantee of anyone's identity, intentions, or behavior (see Section 2). Before meeting anyone from DuoQueue in person, or sharing sensitive information with them, please review the in-app **Safety Center** (Profile → Safety Center), which covers screening a match before meeting up, meeting in public, protecting your personal and financial information, and what to do if something feels wrong, including crisis-support resources if you or someone else needs help right now.
 
 Reporting is for genuine violations of these Terms, not for people you've simply lost interest in (use Unmatch for that). Deliberately false reports can themselves result in action against your account.
 
@@ -118,7 +118,7 @@ DuoQueue offers an optional paid subscription, **DuoQueue+**, and optional one-t
 
 We can't cancel or refund a subscription for you from our side.
 
-**Refunds are governed by the applicable store's policy** (Apple's or Google's), not by us. Request a refund directly through the App Store or Google Play. **Consumables (Power-Ups and Legendary Likes) are non-refundable once used** — for example, once a Legendary Like has been sent or a Power-Up window has started.
+**Refunds are governed by the applicable store's policy** (Apple's or Google's), not by us. Request a refund directly through the App Store or Google Play. **Consumables (Power-Ups and Legendary Likes) are non-refundable once used**: for example, once a Legendary Like has been sent or a Power-Up window has started.
 
 **Prices can change.** If we change the price of a subscription, we'll provide notice as required by the applicable store's policies before any change takes effect for you, and a price increase will generally only apply to your next renewal, not the period you've already paid for.
 
@@ -126,7 +126,7 @@ We can't cancel or refund a subscription for you from our side.
 
 ## 8. Termination
 
-**You can leave any time.** Delete your account from Settings → Account → Delete Account. This permanently deletes your profile and associated data, as described in our [Privacy Policy](./privacy-policy.md). Deleting your account does not automatically cancel an active DuoQueue+ subscription — cancel that separately through the App Store or Google Play (Section 7), or you may continue to be charged.
+**You can leave any time.** Delete your account from Settings → Account → Delete Account. This permanently deletes your profile and associated data, as described in our [Privacy Policy](./privacy-policy.md). Deleting your account does not automatically cancel an active DuoQueue+ subscription. Cancel that separately through the App Store or Google Play (Section 7), or you may continue to be charged.
 
 **We can suspend or terminate your account** if we reasonably believe you've violated these Terms, created risk or legal exposure for us or another user, or if required by law. Where practical we'll tell you why; for serious violations (Section 5) we may act without notice.
 
@@ -166,13 +166,13 @@ We reserve the right, at our own expense, to assume the exclusive defense and co
 
 **Small claims court.** Either of us may instead bring an individual claim in small claims court, if the claim qualifies for that court.
 
-**Class action and class arbitration waiver.** You and DuoQueue each agree to bring claims only in an individual capacity, not as a plaintiff or class member in any purported class, collective, or representative action. The arbitrator cannot combine more than one person's claims into a single case. If this waiver is found unenforceable as to a particular claim, then only that claim — not the rest of this arbitration agreement — will proceed in court, and everything else in this section will still apply to any other claims.
+**Class action and class arbitration waiver.** You and DuoQueue each agree to bring claims only in an individual capacity, not as a plaintiff or class member in any purported class, collective, or representative action. The arbitrator cannot combine more than one person's claims into a single case. If this waiver is found unenforceable as to a particular claim, then only that claim, not the rest of this arbitration agreement, will proceed in court, and everything else in this section will still apply to any other claims.
 
 **What you're giving up.** By agreeing to this section, you and DuoQueue are each giving up the right to a jury trial, the right to sue in court (other than small claims court as described above), and the right to bring or join a class action. Arbitration is typically faster and less formal than a lawsuit, but the arbitrator's decision is binding and can only be reviewed by a court on very limited grounds.
 
 **Fees.** DuoQueue will pay the AAA filing and administrative fees for your arbitration to the extent required by the AAA's Consumer Arbitration Rules.
 
-**Your right to opt out.** You can opt out of this entire arbitration agreement (including the class action waiver) by sending written notice to DuoQueue, 201 N Becket St, Cary, NC 27513, USA, or to `support@duoqueue.io`, within 30 days of the date you first agree to these Terms — for example, the date you create your account. Your notice must include your name and a clear statement that you're opting out of arbitration. Opting out doesn't affect any other part of these Terms and doesn't limit your ability to use DuoQueue.
+**Your right to opt out.** You can opt out of this entire arbitration agreement (including the class action waiver) by sending written notice to DuoQueue, 201 N Becket St, Cary, NC 27513, USA, or to `support@duoqueue.io`, within 30 days of the date you first agree to these Terms (for example, the date you create your account). Your notice must include your name and a clear statement that you're opting out of arbitration. Opting out doesn't affect any other part of these Terms and doesn't limit your ability to use DuoQueue.
 
 **Governing law.** These Terms, and any dispute not subject to arbitration, are governed by the laws of the State of North Carolina, without regard to its conflict-of-laws rules.
 
@@ -197,7 +197,7 @@ We will remove or disable access to material that we determine, in good faith, i
 
 ## 13. Changes to These Terms
 
-We may update these Terms from time to time — to reflect changes to the Service, respond to legal requirements, or clarify existing terms. If we make a material change, we'll provide notice (for example, an in-app notice or an update to the effective date above) before the change takes effect. Continuing to use DuoQueue after a change takes effect means you accept the updated Terms. If you don't agree with a change, stop using the Service and delete your account.
+We may update these Terms from time to time to reflect changes to the Service, respond to legal requirements, or clarify existing terms. If we make a material change, we'll provide notice (for example, an in-app notice or an update to the effective date above) before the change takes effect. Continuing to use DuoQueue after a change takes effect means you accept the updated Terms. If you don't agree with a change, stop using the Service and delete your account.
 
 ---
 

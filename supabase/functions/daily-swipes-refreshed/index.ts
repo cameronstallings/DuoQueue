@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
       await sendExpoPush(
         tokenList,
         "Swipes refreshed!",
-        "Your daily swipes are back — go find your next duo.",
+        "Your daily swipes are back. Go find your next duo.",
         { category: "daily_swipes_refreshed" },
       );
       notified++;

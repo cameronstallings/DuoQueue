@@ -268,20 +268,20 @@ literal launch-day line.
 
 ### 2.5 Description (4000 char max) — use this:
 
-1,915 characters.
+1,912 characters.
 
 ```
-DuoQueue is not a dating app. It's how you find people to actually play with — a duo for co-op, a fourth for the raid, someone equally deep into the same show. No looks-first swiping, no gender filters. Just shared games, shows, and playstyle.
+DuoQueue is not a dating app. It's how you find people to actually play with: a duo for co-op, a fourth for the raid, someone equally deep into the same show. No looks-first swiping, no gender filters. Just shared games, shows, and playstyle.
 
-Your deck shows people matched on what you're both into: favorite games (skill level, rank if you've got one), shows you watch, playstyle — chill, competitive, late night, mic required, solo queue, team player — and when you're usually online. Swipe to say you'd duo. Mutual swipe, you match, chat opens up.
+Your deck shows people matched on what you're both into: favorite games (skill level, rank if you've got one), shows you watch, playstyle (chill, competitive, late night, mic required, solo queue, team player), and when you're usually online. Swipe to say you'd duo. Mutual swipe, you match, chat opens up.
 
 Want a third? Party mode lets you and a match invite someone else in. Everyone swipes on the same profile, and it takes a unanimous yes before that person's invited to join.
 
-From there it's yours to run: chat in-app, share a Discord username, add each other on Steam. DuoQueue gets you to "let's play" — it doesn't run the session for you.
+From there it's yours to run: chat in-app, share a Discord username, add each other on Steam. DuoQueue gets you to "let's play," but it doesn't run the session for you.
 
-Safety, for real: DuoQueue is 18+ only — every account confirms a date of birth of 18 or older to sign up. Every profile photo is automatically screened before anyone else sees it. Report or block from a profile or a chat — blocking is immediate and complete, a blocked user can't see your profile again. A hidden-word filter mutes messages containing words you pick. A Safety Center covers meetup safety, scam patterns, and community guidelines.
+Safety, for real: DuoQueue is 18+ only. Every account confirms a date of birth of 18 or older to sign up. Every profile photo is automatically screened before anyone else sees it. Report or block from a profile or a chat. Blocking is immediate and complete: a blocked user can't see your profile again. A hidden-word filter mutes messages containing words you pick. A Safety Center covers meetup safety, scam patterns, and community guidelines.
 
-DuoQueue+ is optional. It lifts the 25-swipes-a-day cap, adds filters for a specific game, platform, skill level, and playstyle, shows everyone who wants to duo at once instead of a daily trio, and gives you a Super Ping a day that tells someone directly you want to duo. Weekly, monthly, 3-month, and 6-month plans, all auto-renewing until you cancel in your App Store account settings. Power-Ups are a separate one-time purchase that puts you near the top of other people's decks for 30 minutes. Everything else — matching, chatting, party mode — is free and unlimited.
+DuoQueue+ is optional. It lifts the 25-swipes-a-day cap, adds filters for a specific game, platform, skill level, and playstyle, shows everyone who wants to duo at once instead of a daily trio, and gives you a Super Ping a day that tells someone directly you want to duo. Weekly, monthly, 3-month, and 6-month plans, all auto-renewing until you cancel in your App Store account settings. Power-Ups are a separate one-time purchase that puts you near the top of other people's decks for 30 minutes. Everything else (matching, chatting, party mode) is free and unlimited.
 ```
 
 **Two things in this paragraph changed because the old version described features the app
@@ -319,10 +319,10 @@ from Settings → Connections and confirm the badge appears.
 appears from your second version onward. Skip it for 1.0; keep the text below for your first
 update.
 
-353 characters.
+352 characters.
 
 ```
-First release. Match on shared games, shows, and playstyle, then chat and figure out when to play. Party mode lets you and a match invite a third — everyone has to swipe yes before that person joins. Link Steam for a verified stats badge. DuoQueue+ is available for unlimited swipes, unlimited conversations, and a daily Super Ping. Tell us what breaks.
+First release. Match on shared games, shows, and playstyle, then chat and figure out when to play. Party mode lets you and a match invite a third. Everyone has to swipe yes before that person joins. Link Steam for a verified stats badge. DuoQueue+ is available for unlimited swipes, unlimited conversations, and a daily Super Ping. Tell us what breaks.
 ```
 
 ### 2.7 Screenshots — shot list
@@ -561,20 +561,20 @@ else is ready to paste as-is.
 
 ```
 WHAT THIS APP IS
-DuoQueue helps people find platonic gaming partners ("duos") — teammates to play games, watch
-shows, or co-op with — matched on shared games, shows, and playstyle, not romantic interest. It
-uses a swipe-card interface to browse candidate profiles quickly, the same interaction pattern
-dating apps use, but here it drives a non-romantic, activity-based match: there is no
-gender-based filtering anywhere in the app — no screen offers it and no client code sets a
-gender preference — no romantic language on any screen, and every piece
-of in-app vocabulary was written to describe teammates, not dates ("duo," "Power-Up," "Legendary
-Like," "Who wants to duo," "Requests," "Highlights").
+DuoQueue helps people find platonic gaming partners ("duos"): teammates to play games, watch
+shows, or co-op with. People are matched on shared games, shows, and playstyle, not romantic
+interest. It uses a swipe-card interface to browse candidate profiles quickly, the same
+interaction pattern dating apps use, but here it drives a non-romantic, activity-based match:
+there is no gender-based filtering anywhere in the app (no screen offers it and no client code
+sets a gender preference), no romantic language on any screen, and every piece of in-app
+vocabulary was written to describe teammates, not dates ("duo," "Power-Up," "Legendary Like,"
+"Who wants to duo," "Requests," "Highlights").
 
 DEMO ACCOUNT FOR REVIEW
   Email:    review@duoqueue.io
   Password: ipTH0uV9uRfA9O2xsg7eb6WH
 
-This account is pre-confirmed and fully onboarded — sign in directly, no CAPTCHA or email code.
+This account is pre-confirmed and fully onboarded. Sign in directly, no CAPTCHA or email code.
 On sign-in you will immediately see:
   - A populated Deck of 13 candidate profiles, each with a display name, age, bio, prompt
     answers, games with skill levels, shows, platforms, playstyle tags, and an approved photo.
@@ -585,11 +585,11 @@ On sign-in you will immediately see:
 
 Why this data exists: these profiles are synthetic accounts created specifically for App Review,
 flagged internally so they're visible ONLY to this review account. Real users never see them,
-and this account never appears to real users either — enforced server-side (Postgres row-level
-security), not just hidden in the client. We chose this over seeding fake profiles into the
-general pool because that would mean real users occasionally matching with an account nobody is
-behind, which we consider a worse outcome. All profile photos shown are abstract generated
-artwork (geometric patterns, no faces, real or AI-generated).
+and this account never appears to real users either. That's enforced server-side (Postgres
+row-level security), not just hidden in the client. We chose this over seeding fake profiles
+into the general pool because that would mean real users occasionally matching with an account
+nobody is behind, which we consider a worse outcome. All profile photos shown are abstract
+generated artwork (geometric patterns, no faces, real or AI-generated).
 
 HOW TO EXERCISE EACH FEATURE
 1. Swipe the Deck: from the first tab ("Deck"), swipe or use the on-screen buttons to pass or
@@ -597,7 +597,7 @@ HOW TO EXERCISE EACH FEATURE
 2. Open the existing conversation: Matches tab → tap "Priya" to open the 8-message conversation.
    Sending a new message works normally.
 3. View a full profile: tap any card in the Deck (or a name in Matches) to open full profile
-   detail — photos, prompts, games, schedule, vibe tags.
+   detail, showing photos, prompts, games, schedule, and vibe tags.
 4. Try the paywall: Settings tab -> "Subscription" section -> "DuoQueue+". It lists four
    auto-renewing plans (Weekly / Monthly / 3-Month / 6-Month) plus a one-time Power-Up
    consumable, and always offers "Continue with Free" so it never traps you. The same screen
@@ -609,7 +609,7 @@ HOW TO EXERCISE EACH FEATURE
    "Block." The same two actions are available from any party chat's member list.
 6. Account deletion (Guideline 5.1.1(v)): Settings tab → "Sign out or delete account" → red
    "Delete account" card. Requires two confirmations before permanently deleting the account,
-   profile, photos, matches, and messages — please use a fresh test account of your own to
+   profile, photos, matches, and messages. Please use a fresh test account of your own to
    exercise this, since it will remove the review account.
 
 IN-APP PURCHASES
@@ -629,7 +629,7 @@ MODERATION AND SAFETY
   manual review rather than shown.
 - Users can report anyone (1:1 or party chat) with one of five categories: Harassment, Spam,
   Inappropriate content, Underage, or Other, plus optional free-text detail.
-- Users can block anyone; blocking is enforced server-side — a blocked user cannot re-fetch the
+- Users can block anyone. Blocking is enforced server-side: a blocked user cannot re-fetch the
   blocker's profile, photos, or any other data through the API.
 - Users can add "hidden words" that mask any inbound message containing them until revealed.
 - Published, monitored safety/contact address: support@duoqueue.io.
@@ -642,7 +642,7 @@ than rely on the computed rating. Sign-up requires a date of birth, the app comp
 whether that date is at least 18 years in the past, and the date picker's own maximum selectable
 date is capped at 18 years ago. There is no account-creation path that skips this.
 
-Contact: support@duoqueue.io for anything App Review needs during evaluation — we'll respond quickly.
+Contact: support@duoqueue.io for anything App Review needs during evaluation. We'll respond quickly.
 ```
 
 ---

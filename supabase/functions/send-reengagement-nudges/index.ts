@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
     await sendExpoPush(
       tokenList,
       "Your duo is waiting",
-      `${sender?.display_name ?? "Someone"} sent you a message — say hi back.`,
+      `${sender?.display_name ?? "Someone"} sent you a message. Say hi back.`,
       { category: "nudge_unread" },
     );
     notified++;

@@ -189,7 +189,7 @@ export default function FiltersScreen() {
         </View>
       </FilterSection>
 
-      <FilterSection label="Region" hint="Pick any that apply — empty means all regions.">
+      <FilterSection label="Region" hint="Pick any that apply. Empty means all regions.">
         <ChipSelect
           options={REGIONS.map((value) => ({ value, label: REGION_LABELS[value] }))}
           selected={regions}

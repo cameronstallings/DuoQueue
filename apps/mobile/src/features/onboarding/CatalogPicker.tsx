@@ -52,7 +52,7 @@ export function CatalogPicker({ table, placeholder, profileId, selectedIds, onSe
 
       {!searching && (
         <Text style={[type.caption, { color: colors.textMuted }]}>
-          Type at least 2 characters to search — or add your own if it&apos;s not listed.
+          Type at least 2 characters to search, or add your own if it&apos;s not listed.
         </Text>
       )}
 
@@ -64,7 +64,7 @@ export function CatalogPicker({ table, placeholder, profileId, selectedIds, onSe
       )}
 
       {searching && !isLoading && (results ?? []).length === 0 && (
-        <Text style={[type.caption, { color: colors.textMuted }]}>No matches — add it as a custom entry below.</Text>
+        <Text style={[type.caption, { color: colors.textMuted }]}>No matches. Add it as a custom entry below.</Text>
       )}
 
       {searching && (results ?? [])

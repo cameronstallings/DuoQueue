@@ -35,7 +35,7 @@ function PartyInviteCard({ inviteId, partyId }: { inviteId: string; partyId: str
         {names || "A duo"} want you to join their party
       </Text>
       <Text style={[type.caption, { color: colors.textMuted }]}>
-        You all liked each other while swiping together — accept to unlock a group chat.
+        You all liked each other while swiping together. Accept to unlock a group chat.
       </Text>
       <View style={{ flexDirection: "row", gap: spacing.md }}>
         <Pressable onPress={handleAccept} disabled={respond.isPending}>

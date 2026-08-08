@@ -116,7 +116,7 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger, index }: Swi
       {
         onSuccess: () => {
           setReportVisible(false);
-          Alert.alert("Report submitted", "Thanks — our team will review this.");
+          Alert.alert("Report submitted", "Thanks. Our team will review this.");
         },
         onError: (err) => {
           Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");

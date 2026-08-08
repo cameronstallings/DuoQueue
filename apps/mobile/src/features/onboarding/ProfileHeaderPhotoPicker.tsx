@@ -81,7 +81,7 @@ export function ProfileHeaderPhotoPicker({
     <View style={{ gap: spacing.md }}>
       <PhotoSlot
         label="Profile picture"
-        sublabel="Your avatar — shown in matches, chats, and highlights"
+        sublabel="Your avatar: shown in matches, chats, and highlights"
         uri={profilePhotoUri}
         aspect={[1, 1]}
         width={110}
@@ -89,7 +89,7 @@ export function ProfileHeaderPhotoPicker({
       />
       <PhotoSlot
         label="Cover photo"
-        sublabel="The main photo people see on your card — and your profile cover"
+        sublabel="Your main photo: shown on your card and as your profile cover"
         uri={headerPhotoUri}
         aspect={[3, 4]}
         width="100%"

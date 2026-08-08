@@ -107,7 +107,7 @@ function MessageBubble({
               { color: isHidden ? colors.textMuted : colors.text, fontStyle: isHidden ? "italic" : "normal" },
             ]}
           >
-            {isHidden ? "Message hidden — tap to reveal" : content}
+            {isHidden ? "Message hidden. Tap to reveal." : content}
           </Text>
         </View>
       </Pressable>
@@ -190,7 +190,7 @@ export default function PartyChatScreen() {
       {
         onSuccess: () => {
           setReportTarget(null);
-          Alert.alert("Report submitted", "Thanks — our team will review this.");
+          Alert.alert("Report submitted", "Thanks. Our team will review this.");
         },
         onError: () => Alert.alert("Something went wrong", "Please try again."),
       },

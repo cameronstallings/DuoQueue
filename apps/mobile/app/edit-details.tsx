@@ -270,7 +270,7 @@ export default function EditDetailsScreen() {
             <View style={{ gap: spacing.sm }}>
               <SectionLabel>Vibe</SectionLabel>
               <Text style={[type.caption, { color: colors.textMuted }]}>
-                Two people who play the same game can still be a terrible pair — this helps us screen for fit.
+                Two people who play the same game can still be a terrible pair. This helps us screen for fit.
               </Text>
             </View>
 

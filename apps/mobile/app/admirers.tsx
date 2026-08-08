@@ -108,7 +108,7 @@ export default function AdmirersScreen() {
     >
       {!isPremium && (
         <Text style={[type.body, { color: colors.textMuted }]}>
-          Here are 3 players who want to duo with you — a new set appears every day.
+          Here are 3 players who want to duo with you. A new set appears every day.
         </Text>
       )}
       {isLoading ? (
@@ -126,7 +126,7 @@ export default function AdmirersScreen() {
         <EmptyState
           icon="sparkles"
           title="Nobody's asked to duo yet"
-          subtitle="Keep your profile fresh — new requests will show up here."
+          subtitle="Keep your profile fresh. New requests will show up here."
           tick="NO REQUESTS"
         />
       ) : (
@@ -153,7 +153,7 @@ export default function AdmirersScreen() {
             {hiddenCount} more {hiddenCount === 1 ? "person wants" : "people want"} to duo with you
           </Text>
           <Text style={[type.caption, { color: colors.textMuted }]}>
-            DuoQueue+ shows you everyone at once — no waiting for tomorrow&apos;s set.
+            DuoQueue+ shows you everyone at once. No waiting for tomorrow&apos;s set.
           </Text>
           <Button variant="premium" label="See them all with DuoQueue+" onPress={() => router.push("/paywall")} />
         </View>

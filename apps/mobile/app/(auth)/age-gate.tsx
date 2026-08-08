@@ -33,7 +33,7 @@ export default function AgeGate() {
       <Logo width={56} />
       <Text style={[type.screenTitle, { color: colors.text }]}>Confirm your age</Text>
       <Text style={[type.body, { color: colors.textMuted, marginBottom: spacing.md }]}>
-        DuoQueue is for players {MIN_AGE} and older. Your date of birth is kept private — only your age
+        DuoQueue is for players {MIN_AGE} and older. Your date of birth is kept private. Only your age
         is ever shown on your profile.
       </Text>
 

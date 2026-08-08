@@ -242,7 +242,7 @@ function FeedbackModal({
     <Sheet visible={visible} onClose={onClose} title={`How was playing with ${otherName}?`} dismissable={false}>
       <View style={{ gap: spacing.md }}>
         <Text style={[type.caption, { color: colors.textMuted }]}>
-          Optional and private to how it shapes their reputation — pick anything that applies.
+          Optional, and private aside from how it shapes their reputation. Pick anything that applies.
         </Text>
         <ChipSelect
           options={MATCH_FEEDBACK_TAGS.map((value) => ({ value, label: MATCH_FEEDBACK_LABELS[value] }))}
@@ -299,7 +299,7 @@ function MessageBubble({
         },
       ]}
     >
-      {isHidden ? "Message hidden — tap to reveal" : content}
+      {isHidden ? "Message hidden. Tap to reveal." : content}
     </Text>
   );
 
@@ -542,7 +542,7 @@ export default function ChatScreen() {
       {
         onSuccess: () => {
           setReportVisible(false);
-          Alert.alert("Report submitted", "Thanks — our team will review this.");
+          Alert.alert("Report submitted", "Thanks. Our team will review this.");
         },
         onError: () => Alert.alert("Something went wrong", "Please try again."),
       },
@@ -641,7 +641,7 @@ export default function ChatScreen() {
             <EmptyState
               icon="chatbubbles"
               title={`Say hi to ${matchInfo?.other_display_name ?? "your match"}!`}
-              subtitle="You matched — break the ice with a message about a game you both play."
+              subtitle="You matched. Break the ice with a message about a game you both play."
               tick="SAY HI"
             />
           }
@@ -724,7 +724,7 @@ export default function ChatScreen() {
               }}
             >
               <Text style={[type.caption, { color: colors.textMuted, textAlign: "center" }]}>
-                This conversation is locked — upgrade for unlimited active conversations, or unmatch an
+                This conversation is locked. Upgrade for unlimited active conversations, or unmatch an
                 older conversation to free up a slot.
               </Text>
               <Button variant="premium" label="Get DuoQueue+" onPress={() => router.push("/paywall")} />

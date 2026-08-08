@@ -123,7 +123,7 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, disabled }: LikeP
           <AnimatedIconButton
             size={48}
             ringColor={colors.success}
-            accessibilityLabel="Super Ping — notify them you want to duo"
+            accessibilityLabel="Super Ping, notify them you want to duo"
             onPress={onSuperPing}
             disabled={disabled}
             style={[{ borderRadius: radius.round }, glassStyle]}

@@ -56,7 +56,7 @@ export default function DiscordStep() {
         maxLength={32}
       />
       <Text style={[type.caption, { color: colors.textMuted }]}>
-        Your Discord is never shown automatically — only when you tap &quot;Share my Discord&quot; in a
+        Your Discord is never shown automatically, only when you tap &quot;Share my Discord&quot; in a
         match chat.
       </Text>
     </WizardStep>
