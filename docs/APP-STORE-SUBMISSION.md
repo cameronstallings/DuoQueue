@@ -282,7 +282,18 @@ From there it's yours to run: chat in-app, share a Discord username, add each ot
 Safety, for real: DuoQueue is 18+ only. Every account confirms a date of birth of 18 or older to sign up. Every profile photo is automatically screened before anyone else sees it. Report or block from a profile or a chat. Blocking is immediate and complete: a blocked user can't see your profile again. A hidden-word filter mutes messages containing words you pick. A Safety Center covers meetup safety, scam patterns, and community guidelines.
 
 DuoQueue+ is optional. It lifts the 25-swipes-a-day cap, adds filters for a specific game, platform, skill level, and playstyle, shows everyone who wants to duo at once instead of a daily trio, and gives you a Super Ping a day that tells someone directly you want to duo. Weekly, monthly, 3-month, and 6-month plans, all auto-renewing until you cancel in your App Store account settings. Power-Ups are a separate one-time purchase that puts you near the top of other people's decks for 30 minutes. Everything else (matching, chatting, party mode) is free and unlimited.
+
+Terms of Use (EULA): https://duoqueue.io/terms
+Privacy Policy: https://duoqueue.io/privacy
 ```
+
+**The last two lines are not optional and are not decoration.** The 1.0 submission was rejected
+under Guideline 3.1.2 on 2026-08-08 for exactly their absence: *"The submission offers
+auto-renewable subscriptions but does not include a functional link to the Terms of Use (EULA)
+in the app's metadata."* Links inside the app are not enough. Apple wants a Terms of Use link in
+the **App Description** field itself, and separately wants a custom EULA registered under
+**App Information → License Agreement** when you use your own terms rather than Apple's standard
+one. Do both. This is metadata-only, so the fix needs no new build and resubmission is fast.
 
 **Two things in this paragraph changed because the old version described features the app
 doesn't have.** Both are worth understanding, because they affect what you sell, not just
@@ -567,7 +578,7 @@ interest. It uses a swipe-card interface to browse candidate profiles quickly, t
 interaction pattern dating apps use, but here it drives a non-romantic, activity-based match:
 there is no gender-based filtering anywhere in the app (no screen offers it and no client code
 sets a gender preference), no romantic language on any screen, and every piece of in-app
-vocabulary was written to describe teammates, not dates ("duo," "Power-Up," "Legendary Like,"
+vocabulary was written to describe teammates, not dates ("duo," "Power-Up," "Super Ping,"
 "Who wants to duo," "Requests," "Highlights").
 
 DEMO ACCOUNT FOR REVIEW
