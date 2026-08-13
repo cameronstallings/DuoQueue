@@ -514,12 +514,26 @@ adheres to the requirements."* Your [Terms](../docs/legal/terms-of-service.md:37
 `MIN_AGE = 18` enforces it, so 18+ is the required answer, not a preference. The App Store
 will show 18+ while the content descriptors still reflect your honest answers below.
 
+**Answer "None" to both In-App Controls.** The 1.0 submission was rejected under Guideline
+2.3.6 on 2026-08-12 for answering Yes to Age Assurance on the strength of the DOB gate. That
+was wrong: Apple defines Age Assurance as a *"mechanism to confirm an individual's age... declared
+age range API; age estimation capabilities; age verification via government-issued passport,
+drivers license, national ID."* A date picker the user types into is self-declaration, which is
+explicitly weaker and does not qualify. The reviewer looked for the feature, could not find it,
+and rejected the metadata as inaccurate. Answering None does **not** affect the 18+ rating, which
+comes from the Step 7 override.
+
+If you ever want to answer Yes honestly, the route is Apple's
+[Declared Age Range API](https://developer.apple.com/documentation/declaredagerange) — worth
+considering for a later version, since several US states now legislate age assurance for
+social apps.
+
 Answers, by the current questionnaire's own section names:
 
 | Section → Question | Answer |
 |---|---|
-| **In-App Controls** — Parental Controls | No |
-| **In-App Controls** — Age Assurance | Yes (DOB collected at sign-up, 18+ enforced) |
+| **In-App Controls** — Parental Controls | **None** |
+| **In-App Controls** — Age Assurance | **None** (see below, this is not optional) |
 | **Capabilities** — Unrestricted Web Access | No (only fixed known URLs: your Privacy/Terms pages and Steam's OpenID login during account linking, both via `expo-web-browser` — no address bar, no arbitrary browsing) |
 | **Capabilities** — User-Generated Content | Yes (bios, prompts, chat) |
 | **Capabilities** — Social Media | Yes (profile discovery deck) |
