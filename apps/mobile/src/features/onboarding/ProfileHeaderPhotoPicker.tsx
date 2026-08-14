@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 
 import { useTheme } from "@/theme/useTheme";
+import { ensurePhotoLibraryAccess } from "@/lib/photo-access";
 
 interface PhotoSlotProps {
   label: string;
@@ -17,8 +18,7 @@ function PhotoSlot({ label, sublabel, uri, aspect, width, onChange }: PhotoSlotP
   const { colors, radius, spacing, type } = useTheme();
 
   async function handlePick() {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) return;
+    if (!(await ensurePhotoLibraryAccess())) return;
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],

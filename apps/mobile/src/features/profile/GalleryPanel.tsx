@@ -20,6 +20,7 @@ import {
 } from "@/features/profile/usePhotoUpload";
 import { useOwnGalleryPhotos, type OwnGalleryPhoto } from "@/features/profile/useOwnGalleryPhotos";
 import { useTheme } from "@/theme/useTheme";
+import { ensurePhotoLibraryAccess } from "@/lib/photo-access";
 
 const COLUMNS = 3;
 const FALLBACK_TILE_SIZE = 100;
@@ -121,8 +122,7 @@ export function GalleryPanel({
   const selectedIndex = selected ? gallery.findIndex((p) => p.id === selected.id) : -1;
 
   async function handleAdd() {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) return;
+    if (!(await ensurePhotoLibraryAccess())) return;
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],

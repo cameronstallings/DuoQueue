@@ -45,6 +45,7 @@ import { useUpdatePhoto } from "@/features/profile/usePhotoUpload";
 import { useVerifiedStats } from "@/features/profile/useVerifiedStats";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
+import { ensurePhotoLibraryAccess } from "@/lib/photo-access";
 
 // The bento grid's half-tiles: two per row with spacing.sm between them, sized to
 // fill the row exactly (100% - gap) / 2 for ScreenContainer's spacing.lg side padding
@@ -148,8 +149,7 @@ export default function ProfileScreen() {
   }, [photos?.profileUrl, photos?.headerUrl]);
 
   async function handlePick(role: PhotoRole) {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) return;
+    if (!(await ensurePhotoLibraryAccess())) return;
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
