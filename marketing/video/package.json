@@ -1,0 +1,36 @@
+{
+  "name": "@duoqueue/video",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render-day": "tsx scripts/render-day.ts",
+    "stills": "tsx scripts/render-stills.ts",
+    "assets:sync": "tsx scripts/sync-assets.ts",
+    "validate": "tsx scripts/validate-content.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "verify": "pnpm typecheck && pnpm lint && pnpm validate"
+  },
+  "dependencies": {
+    "@remotion/bundler": "^4.0.513",
+    "@remotion/cli": "^4.0.513",
+    "@remotion/fonts": "^4.0.513",
+    "@remotion/layout-utils": "^4.0.513",
+    "@remotion/renderer": "^4.0.513",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "remotion": "^4.0.513"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "@types/react": "~19.1.17",
+    "@types/react-dom": "~19.1.11",
+    "eslint": "^9.39.5",
+    "tsx": "^4.23.12",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.67.0"
+  }
+}

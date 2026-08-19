@@ -58,7 +58,12 @@ admin/config.js
 
 # Marketing video source footage and renders. Screen recordings and gameplay B-roll are
 # large binaries that change every time they are re-cut, and the rendered output is
-# reproducible from them, so neither belongs in git history. The Remotion project's own
-# source (compositions, hooks, config) is tracked normally; only these two trees are not.
-marketing/video/public/footage/
+# reproducible from them, so neither belongs in git history. Fonts and the grain tile are
+# copied out of the repo's node_modules by marketing/video/scripts/sync-assets.ts, so they are
+# reproducible too. The Remotion project's own source (compositions, hooks, config) is tracked
+# normally, as is marketing/video/state/, which is the ledger of what has already shipped.
 marketing/video/out/
+marketing/video/public/fonts/
+marketing/video/public/footage/
+marketing/video/public/noise.png
+marketing/video/.env

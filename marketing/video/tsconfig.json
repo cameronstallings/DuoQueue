@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "react-native": ["./types/react-native.d.ts"],
+      "@app/*": ["../../apps/mobile/src/*"],
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src", "scripts", "types", "remotion.config.ts"]
+}

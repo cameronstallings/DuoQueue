@@ -12,7 +12,11 @@
     "lint": "pnpm -r run lint",
     "seed:profiles": "tsx scripts/generate-fake-profiles.ts",
     "seed:build-sql": "tsx scripts/build-seed-sql.ts",
-    "audit:contrast": "node scripts/audit-contrast.mjs"
+    "audit:contrast": "node scripts/audit-contrast.mjs",
+    "video:install": "pnpm --dir marketing/video install --ignore-workspace",
+    "video:studio": "pnpm --dir marketing/video studio",
+    "video:day": "pnpm --dir marketing/video render-day",
+    "video:verify": "pnpm --dir marketing/video verify"
   },
   "dependencies": {
     "@duoqueue/shared-types": "workspace:*",
