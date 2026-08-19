@@ -67,3 +67,6 @@ marketing/video/public/fonts/
 marketing/video/public/footage/
 marketing/video/public/noise.png
 marketing/video/.env
+
+# Scratch probe scripts the build agents left behind. Renders belong in out/.
+marketing/video/_*.ts
