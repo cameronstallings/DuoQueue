@@ -46,6 +46,11 @@ const COVER_FRAME = 20;
 
 const CONCURRENCY = 4;
 const JPEG_QUALITY = 90;
+// Remotion's default delayRender timeout is 28s, which is not enough here on a cold bundle:
+// six font faces load before the first frame can be captured, and a render failed on exactly
+// that. The faces are local files, so this ceiling is never approached in the healthy case;
+// it only stops a slow first frame from being mistaken for a hang.
+const RENDER_TIMEOUT_MS = 120_000;
 
 // ---- Flags ----
 
@@ -465,7 +470,7 @@ const main = async (): Promise<void> => {
     // Not getCompositions(): selectComposition resolves calculateMetadata against these exact
     // inputProps, which is where a hook's `seconds` becomes a duration. Rendering against the
     // registered default would give every video the same length.
-    const composition = await selectComposition({ serveUrl, id: COMPOSITION_ID, inputProps });
+    const composition = await selectComposition({ serveUrl, id: COMPOSITION_ID, inputProps, timeoutInMilliseconds: RENDER_TIMEOUT_MS });
 
     const rendering = progressReporter(`${base}.mp4`);
     await renderMedia({
@@ -486,6 +491,7 @@ const main = async (): Promise<void> => {
       jpegQuality: JPEG_QUALITY,
       concurrency: CONCURRENCY,
       overwrite: true,
+      timeoutInMilliseconds: RENDER_TIMEOUT_MS,
       onProgress: ({ progress }) => rendering.report(progress),
     });
     rendering.done();

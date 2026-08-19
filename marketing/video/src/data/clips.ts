@@ -24,9 +24,9 @@
  * theme change between steps reads as a glitch, not as variety. `deck-light`,
  * `matches-light` and `chat-priya` are the light set; everything else is dark.
  *
- * broll-gameplay.mp4 does not exist yet. Its three entries carry placeholder timecodes, so
- * `pnpm validate` warns on every `pain` hook and those posts render the missing-clip panel,
- * which is the intended visible reminder. The timecodes are corrected when the file lands.
+ * The broll clips are cut from a real match; see the note on their entries below. Every clip
+ * a hook references now exists, so validation should be clean and no post should render the
+ * missing-clip panel.
  */
 export const clips = {
   // Deck browsing into a match. The last third is DUO LOCKED, which is why this is the clip
@@ -53,11 +53,17 @@ export const clips = {
   "settings-sub":  { file: "settings-sub.mp4",  from: 0, to: 2.8 },
   "paywall":       { file: "paywall.mp4",       from: 0, to: 3.0 },
   "appearance":    { file: "appearance.mp4",    from: 0, to: 2.6 },
-  // Placeholders. The offsets are guesses and are corrected when the file lands, but the
-  // LENGTHS are not: each is half a second longer than the longest pain hook that plays it
-  // (broll-loss carries pain-006 at 9s), so re-timing these is a matter of sliding the window
-  // rather than of rediscovering how long it has to be.
-  "broll-loss":      { file: "broll-gameplay.mp4", from: 12.0, to: 21.5 },
-  "broll-quiet":     { file: "broll-gameplay.mp4", from: 45.0, to: 53.5 },
-  "broll-teamfight": { file: "broll-gameplay.mp4", from: 88.0, to: 95.5 },
+  // Cut from a 15:15 ranked Valorant match on Breeze that Cameron played well and lost, which
+  // is the better beat for this format: not "you are bad at this", but "none of that was the
+  // problem". Each is its own file rather than an offset into the source, because the source
+  // is 3.2GB at 29Mbps and OffthreadVideo would re-read it on every frame of every pass. Each
+  // file is 10s long and each `to` is 9.5s, keeping the same half-second of slack the app
+  // clips carry.
+  //
+  // Offsets into the original recording, if these ever need re-cutting:
+  //   broll-quiet 296s (walking an empty Breeze alone), broll-teamfight 445s (a firefight),
+  //   broll-loss 906s (the round lost, then DEFEAT).
+  "broll-loss":      { file: "broll-loss.mp4",      from: 0, to: 9.5 },
+  "broll-quiet":     { file: "broll-quiet.mp4",     from: 0, to: 9.5 },
+  "broll-teamfight": { file: "broll-teamfight.mp4", from: 0, to: 9.5 },
 } as const;

@@ -1,5 +1,5 @@
 import { loadFont } from "@remotion/fonts";
-import { continueRender, delayRender, staticFile } from "remotion";
+import { cancelRender, continueRender, delayRender, staticFile } from "remotion";
 import { fonts } from "@app/theme/tokens";
 
 // Family names are the token values verbatim ("Unbounded_700Bold", "IBMPlexMono_500Medium", ...)
@@ -56,6 +56,15 @@ export const fontsReady: Promise<void> = Promise.all(
       style: "normal",
     }),
   ),
-).then(() => {
-  continueRender(handle);
-});
+)
+  .then(() => {
+    continueRender(handle);
+  })
+  .catch((err: unknown) => {
+    // Without this branch a rejected load leaves the handle open forever, and the render dies
+    // on the delayRender timeout instead: a message that names this handle and says nothing
+    // about which face failed or why. That happened once already and cost a render cycle to
+    // diagnose. cancelRender fails immediately and carries the real error, which is nearly
+    // always a file missing from public/fonts (the fix being `pnpm assets:sync`).
+    cancelRender(err instanceof Error ? err : new Error(String(err)));
+  });
