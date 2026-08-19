@@ -284,6 +284,82 @@ placeholder panel (Task 6), and the `spec` format needs no footage at all.
 
 ---
 
+## Task 0: The filming photo set (do this before the 60-second recording)
+
+Added 2026-08-18 after Cameron reviewed the plan. The 60-second app recording is the raw material
+for the `reframe` and `demo` formats, so whatever the deck looks like in that recording is what the
+marketing looks like. Today it would look wrong.
+
+### Why this exists
+
+The 14 demo profiles are illustrated with deliberately abstract geometric art
+(`scripts/generate-demo-avatars.mjs`, `assets/demo/`). That was the correct call for App Review and
+its header says why: only the flagged review account can ever see them, so they must never be
+mistakable for a photo of a real person. No faces means no "is this an AI-generated person" question
+and no Guideline 2.3.8 exposure.
+
+Filming is a different job. On camera, a deck of abstract geometry reads as placeholder art, which
+is exactly the "AI slop" impression the entire Volt restyle was undertaken to escape. A real
+DuoQueue deck will be full of real photos, so filming the abstract set misrepresents the product in
+the direction of looking emptier and more synthetic than it is.
+
+### Non-negotiable: the approved review seed does not change
+
+`scripts/seed-review-demo.mjs` and `assets/demo/` stay exactly as Apple approved them. If Apple
+re-reviews (a 1.0.1 submission is likely, see the low-density plan), the review account must look
+the way it did when it passed. The filming photos are a **separate, additive set** selected by an
+explicit flag, never the default.
+
+### Photo sourcing, and the two categories that needed adjusting
+
+Cameron asked for a mix of hardware, faces, pets and game imagery so the deck feels alive. Two of
+those four cannot use the obvious source:
+
+**Hardware and pets: free stock, no constraint.** Unsplash and Pexels, commercial use permitted.
+Battlestations, mechanical keyboards, controllers, headsets, monitor glow, dogs and cats. No faces,
+no third-party IP. Roughly 8 of the 14.
+
+**Faces: Cameron-supplied only, never stock strangers.** Both the Unsplash and Pexels licences
+prohibit using a depicted person in a way that implies endorsement, and putting a stock model's face
+on a fictional profile inside an advert for a matching app is squarely that. It is also the case
+where a person recognises themselves promoting an app they have never used and has a legitimate
+complaint. Cameron supplies 2 to 3 photos of himself and of friends who have agreed. He can consent
+to his own likeness; he cannot consent to a stranger's.
+
+**Game imagery: Cameron's own captures, never official art.** Publisher key art and promotional
+images are the category games companies actually enforce against. A screenshot Cameron took of a
+match he played is both more defensible and more authentic, since a cropped frame of your own game
+is exactly what a real player uses. He is already capturing gameplay for the `pain` format, so this
+is free. 2 to 3 of the 14.
+
+### Deliverables
+
+- `assets/demo-filming/` containing 14 photos, one per demo profile, same filename ordering as
+  `assets/demo/` so the mapping is positional and obvious.
+- A `--filming` flag on `scripts/seed-review-demo.mjs` that points the 14 profiles at the filming
+  set instead of the abstract set. Without the flag, behaviour is byte-for-byte what it is today.
+- A documented revert: re-running the seed without `--filming` restores the approved photos.
+
+### Cameron's inputs for this task
+
+- [ ] 2 to 3 photos of himself, or of friends who have agreed to appear.
+- [ ] 2 to 3 gameplay screenshots from his own captures, cropped square, no HUD text identifying
+  another player by name.
+
+### Verification
+
+- Re-running `node scripts/seed-review-demo.mjs` with no flag leaves `profile_media.storage_path`
+  identical to its pre-filming values for all 14 profiles. Diff the rows before and after.
+- The review account signed in on a device shows the abstract set again after the revert.
+- No file under `assets/demo/` is modified, added to, or deleted at any point.
+
+### Ordering
+
+This lands before Cameron records `app-60s.mov`. Recording first and re-shooting later wastes the
+one input with human latency in the whole pipeline.
+
+---
+
 ### Task 1: Scaffold the standalone project
 
 **Files:**
