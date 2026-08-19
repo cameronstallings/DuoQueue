@@ -55,3 +55,10 @@ build/
 # Local moderation-page config (contains project URL + anon key)
 admin/config.js
 .superpowers/
+
+# Marketing video source footage and renders. Screen recordings and gameplay B-roll are
+# large binaries that change every time they are re-cut, and the rendered output is
+# reproducible from them, so neither belongs in git history. The Remotion project's own
+# source (compositions, hooks, config) is tracked normally; only these two trees are not.
+marketing/video/public/footage/
+marketing/video/out/
