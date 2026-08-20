@@ -1,10 +1,10 @@
 /**
  * The cut, as data. Two tracks over one clock, and the clock is the voice.
  *
- * TRACK 1, the beats: huge fitted type over footage. Each line is fitted to the frame width on
- * its own, so a three letter line comes out enormous and a ten letter line comes out modest
- * and the block is flush on both edges with no sizing anywhere in this file. Breaking the copy
- * into short lines by hand IS the authoring surface.
+ * TRACK 1, the beats: a HERO line and its support over footage. Each beat names one line as
+ * the hero in `hero`, and that line is the only thing in the beat set at display scale; every
+ * other line is roughly a third of it, in a lighter face, tracked open. Which line is the hero
+ * IS the authoring surface, and it is the thing the previous cut did not have.
  *
  * TRACK 2, the rail: a small caption line low in the frame, revealed word by word with one
  * keyword picked out in the accent. Per the captions doctrine it is an OVERLAY composited on
@@ -16,66 +16,48 @@
  * two sizes, which is the failure mode of every kinetic video with captions bolted on.
  *
  * =====================================================================================
- * THE THIRD CUT, and what a two pass review of the second one found
+ * THE FOURTH CUT, and the three notes that produced it
  * =====================================================================================
  *
- * The first cut ran 14.1 seconds and Cameron gave it three notes: too long, not enough
- * gameplay, does not show the app. The second cut answered all three and ran 9.8 seconds. It
- * was then read frame by frame and measured sample by sample by two independent passes, and
- * this cut is what those found. Every change below is a defect that was measured, not a taste
- * revision.
+ * The third cut ran 10.93s, six beats, and was correct in every measurable way: derived
+ * timings, no drift, gameplay at 38% of the body, four app beats, the hook in frame one. Three
+ * notes came back on it and none of them was about correctness.
  *
- * WHAT THE SECOND CUT ALREADY GOT RIGHT, and this cut does not touch:
+ *   1. IT TALKS TOO FAST AND FEELS RUSHED
+ *   2. THE WORDS ARE TOO BIG, IT FEELS CHEAP
+ *   3. IT SHOULD BE MORE POLISHED AND SMOOTH
  *
- *   the length     9.8 seconds against 14.1, every beat derived from the measured read.
- *   the gameplay   two full bleed live beats in colour and in focus, 40% of the body.
- *   frame one      the whole hook, at full size, already in flight. The report that said
- *                  frame 0 read "THIS IS NOT A DATING" was measured on a file rendered four
- *                  minutes BEFORE the fix landed in this file; the render that followed it
- *                  carries all four lines at frame 0. Nothing was wrong and nothing changed.
- *   the two tracks the claim in display type, the read on the rail, never the same words.
+ * WHAT NOTE 2 ACTUALLY WAS, because it is not what it sounds like. The old type system fitted
+ * EVERY line of a beat to the full frame width independently, and the file that did it said in
+ * its own header that this was "the entire visual signature of this direction". It has two
+ * consequences and both of them are the note.
  *
- * WHAT THIS CUT CHANGES, in the order the damage was worth:
+ * Every line is at its maximum, so there are no side margins anywhere in the film and nothing
+ * is subordinate to anything. And because a fitted size is inversely proportional to the
+ * length of the string, size was being handed out by SPELLING: the opening beat read
+ * "THIS IS / NOT A / DATING / APP" with APP, a three letter function word, at about 500px and
+ * THIS IS at about 215px. The largest thing on the film's most important frame was its least
+ * meaningful word. That is not "big type", it is type with no hierarchy, and type with no
+ * hierarchy is what reads as cheap at any size.
  *
- * 1. THE PAYOFF WAS A BEACH SELFIE. Beat 5 held a circular photograph in a lime ring above a
- *    "Send a message" button, and the photograph was a shirtless man in sunglasses at the
- *    beach. Every visual convention on that frame belonged to the category the first two
- *    seconds spend denying. The screen is the product and is not negotiable; what is in the
- *    circle is. `match-kofi` is the same screen at a different moment of the same session with
- *    a different person in it: a man in a black t-shirt next to a suit of samurai armour.
+ * So the fix is not uniform shrinkage. It is that size now means something: one hero per beat,
+ * fitted to a fraction of the safe box so there is real air at both edges, and everything else
+ * at about a third of it in Manrope Medium tracked open. See ./type-fit.
  *
- * 2. NO CHAT, AND NO PLAY. Cameron named four things and the second cut showed two. Beat 6 is
- *    new and it is the chat: a first message being sent, reading "when are you gonna be on
- *    tn". It costs about a second, it is the only thing in this cut that got longer, and it is
- *    what turns the frame before it from a match screen into two people arranging to play.
+ * WHAT NOTE 1 ACTUALLY WAS. "Shorter" and "slower" only conflict while the word count is
+ * fixed. This script says 20 words where the last one said 25, the read rate is down to 0.9,
+ * and the silence between statements is up from 0.27s to 0.60s. Nothing is padded: the film
+ * is longer than the last one because it stops talking for longer, not because it says more.
  *
- * 3. THE SLABS CUT THEIR OWN LETTERS. Both accent slabs and both rail highlighters were inset
- *    from the LINE BOX, and at these leadings the baseline is not the bottom of the line box.
- *    DUO, the film's last and largest word, lost the bottom tenth of every letter and read as
- *    a red bar with three holes in it; the rail read "wronq" for the whole opening beat. Every
- *    such field is now placed from the baseline off measured face metrics. See FACE in ./skin.
+ * WHAT NOTE 3 ACTUALLY WAS. Every duration in ./motion is about a quarter longer, the accent
+ * slab takes a third longer to cross its word, and the dramatic comma before the payoff is
+ * 0.62s instead of 0.40s. What it is NOT is idle motion: the doctrine bans a float or a
+ * breathe on a settled block outright, because it reads as the video waiting rather than as
+ * the video moving. Smoothness here is duration and stillness, never drift.
  *
- * 4. THE APP BEATS STOPPED DEAD. A portrait screen recording has no horizontal headroom, so
- *    both app plates parked their camera twelve frames in and stood still for the rest of the
- *    beat. Measured, that left 0.57s of decay into a frozen frame with four identical frames
- *    inside it, and then a hard cut with nothing moving on either side. The app treatment now
- *    pushes for the whole beat instead, which needs no headroom at all. See `camera` in
- *    ./Plate.
- *
- * 5. THE GAMEPLAY WAS DARK AND THE HUD WAS CUT IN HALF. The opening beat was a dark interior
- *    at a mean luma of 49; at thumbnail size it was a brown black rectangle. Beat 1 is now the
- *    sunlit map and beat 3 is the firefight, which is also the better pairing: a fight belongs
- *    under the word ENERGY, and an empty map does not. Both live beats gained a vertical lift
- *    that takes the game's own event banners off the top edge, where they used to arrive cut in
- *    half in a red within a few degrees of the brand accent.
- *
- * 6. THE END CARD FINISHED BEFORE IT ENDED. 20 of its 36 frames were pixel for pixel
- *    identical. It is 30 frames now and its four events reach the end of it.
- *
- * 7. THE MIX PLAYED 42.67ms LATE. Not a picture note: Remotion's AAC encode delays every mix
- *    by 2048 samples and its edit list takes only 512 of them back. The master is now trimmed
- *    by exactly that at the head, so the committed clock below describes the delivered video
- *    rather than a file 1.28 frames ahead of it. See ENCODER_PRIMING_SAMPLES in src/audio/mix.
+ * WHAT DID NOT CHANGE, because it was right: the derived clock, the audio chain, the seam
+ * plan, the two live gameplay beats, all four app beats (the deck, the flood over the deck,
+ * DUO LOCKED and the chat), and the hook in frame one.
  *
  * COPY RULES, which the direction does not relax. Platonic only: this is an 18+ gaming app and
  * nothing may imply dating. The banned words are sayable only inside a denial, which is why
@@ -90,43 +72,76 @@ import type { ClipName } from "@/types";
 export type Treatment =
   /**
    * Gameplay, full bleed, in colour and sharp, with the type on a scrim over it. THE default,
-   * and the answer to Cameron's second note. Nothing is greyscaled, blurred or sunk: the
-   * audience is gamers and the footage is the only thing in the first second that says so.
+   * and the answer to Cameron's second note on the FIRST cut. Nothing is greyscaled, blurred
+   * or sunk: the audience is gamers and the footage is the only thing in the first second that
+   * says so.
    */
   | "live"
   /**
    * The real product, graded almost not at all. The type moves out of its way rather than
-   * sitting on top of it, which is what `anchor` below is for. Exactly two per cut.
+   * sitting on top of it, which is what `anchor` below is for.
    */
   | "app"
   /** The frame floods accent and the type goes black. One beat, spent on meaning. */
   | "flood";
 
 /**
- * Where the fitted stack sits in the frame.
+ * Where the block sits in the frame.
  *
  * `center` is the default and the true frame centre, y = 960, per the captions doctrine: the
  * rail is an overlay and the composition under it is never shifted up to make room.
  *
- * `top` and `bottom` are not a shifted centre either. They are the two APP beats getting out
- * of the product's way, in opposite directions, which is a composition decision about a
- * specific screenshot rather than a rule about the frame. The deck's card lives in the lower
- * two thirds of the phone, so that beat's type takes the top; DUO LOCKED's header, photo and
- * confirmation line live in the upper half, so that beat's type takes the bottom. A viewer
- * gets the whole product either way, and the two app beats end up composed as opposites,
- * which is worth having on its own.
+ * `top` and `bottom` are not a shifted centre either. They are the APP beats getting out of
+ * the product's way, which is a composition decision about a specific screenshot rather than a
+ * rule about the frame. The deck's card lives in the lower two thirds of the phone, so those
+ * beats take the top; DUO LOCKED's header, photo and confirmation line live in the upper half,
+ * so that beat takes the bottom. A viewer gets the whole product either way.
  */
 export type Anchor = "center" | "top" | "bottom";
 
 export interface Beat {
   /**
-   * Beat length in frames at 30fps, and NOT a number anybody chose by eye. It is the distance
-   * between two midpoints of measured silence in the finished voiceover. See the table above
-   * the beats below for the arithmetic.
+   * Beat length in frames at 30fps, and NOT a number anybody chose by eye. Every boundary is
+   * its phrase's own measured file position minus a fixed 6 frame lead, so the picture is
+   * always the same distance ahead of the voice and the error cannot accumulate. See the table
+   * above the beats below for the arithmetic, and `pnpm validate` for the assertion.
    */
   frames: number;
-  /** Lines of the statement, each fitted to the frame width independently. */
+  /** Lines of the statement, in reading order. */
   lines: string[];
+  /**
+   * Index of the ONE line that carries this beat, set at display scale. Every other line is
+   * support: about a third of the size, Manrope Medium, tracked open.
+   *
+   * This is the single most consequential field in the file and it is the fix for the note
+   * that the type felt cheap. Before it existed, size was decided by how many letters a word
+   * has, which put the film's least meaningful word at its largest size on its most important
+   * frame. A hero is chosen, not measured.
+   *
+   * Choosing one is a copy decision as much as a design one, and it constrains the copy: a
+   * fitted size is inversely proportional to string length, so a hero of three or four
+   * characters lands around 300 to 360px and a hero of ten lands around 110px, which is not a
+   * hero at all. Every beat below was rewritten until its hero was one short word.
+   */
+  hero: number;
+  /**
+   * Kokoro's rate for THIS beat's phrase, overriding the film's `KINETIC_SPEED`.
+   *
+   * Set on exactly one beat, and the measurement is the whole argument for it. At a uniform
+   * 0.9 the six phrases were read at 242 / 133 / 174 / 126 / 183 / 193 words per minute: five
+   * of them at or under broadcast pace and the opening 25% clear of the next fastest. Rate is
+   * not what varied, LENGTH is. Kokoro reads a six word sentence close to conversationally and
+   * a two word fragment deliberately, so the one whole sentence in the script came out as the
+   * one rushed phrase, and it is also the first thing anybody hears.
+   *
+   * Dropping the film's rate far enough to fix it would have dragged the five phrases that
+   * were already right, which is how a fix for "too fast" turns into a note about "too slow".
+   * So the correction is local, and the number was measured rather than guessed: synthesised
+   * at 0.86, 0.82 and 0.78, the spans came back 1.507 / 1.646 / 1.816s, which is 239 / 219 /
+   * 198 wpm and 4.65 / 4.25 / 3.85 syllables per second. The film's mean is 3.92 syll/s, so
+   * 0.78 does not merely reduce the outlier, it lands the opening on the film's own average.
+   */
+  speed?: number;
   /**
    * Local frame each LINE's cascade begins. One entry per line. This is the doctrine's STAGED
    * REVEAL route and it is the single thing that stops this film being a slideshow.
@@ -136,18 +151,26 @@ export interface Beat {
    * at any second and find something meaningful mid flight, and a composed statement over a
    * plate you cannot see moving fails it. So the sentence FINISHES on screen.
    *
-   * Where a line has natural sub phrases, the reveals are placed on the voice: beat 3's three
-   * lines land within a frame or two of the moment each is spoken, which is what the phrase
-   * level clock buys. A negative entry means the line is already partway through its own
-   * entrance at local frame 0. Only the opening beat uses that, and it is how frame one
-   * carries the hook while still being visibly in motion.
+   * Where a line has natural sub phrases, the reveals are placed on the voice: each line lands
+   * a few frames before the words it carries are spoken, which is what the phrase level clock
+   * buys. A negative entry means the line is already partway through its own entrance at local
+   * frame 0. Only the opening beat uses that, and it is how frame one carries the hook while
+   * still being visibly in motion.
    *
    * This is a staged reveal and NOT a stagger, which is why it may span more than the
    * doctrine's 500ms stagger ceiling: each line is its own group, each group's internal
-   * cascade is about 0.2s, and no single entry runs longer than 0.3s.
+   * cascade is about 0.2s, and no single entry runs longer than 0.38s.
    */
   reveal?: number[];
-  /** Words rendered in the accent, matched case insensitively. */
+  /**
+   * Words rendered in the accent, matched case insensitively.
+   *
+   * Far scarcer than it used to be, and deliberately. Under the old system every beat needed
+   * an accent because nothing else marked which word mattered; now SIZE marks it, and an
+   * accent on a word that is already three times the size of everything around it is a second
+   * emphasis on something that is not ambiguous. What is left is the two words that carry a
+   * slab, which need the hot ink before the slab arrives under them.
+   */
   accent?: string[];
   /** Words that get a filled accent slab behind them, which wipes in under the word. */
   slab?: string[];
@@ -158,12 +181,6 @@ export interface Beat {
   treatment: Treatment;
   /** Where the block sits. Defaults to the true frame centre. */
   anchor?: Anchor;
-  /**
-   * Fraction of the safe box width the lines are fitted to. Left off, a statement takes the
-   * full width, which is the direction's default and its whole signature. The app beats pull
-   * in a little so the block has a margin against the product behind it.
-   */
-  fitWidth?: number;
   /** Whole block tilt in degrees. One or two, never more. */
   tilt?: number;
   /**
@@ -219,10 +236,17 @@ export interface Cue {
   /** The word that carries the beat, matched case insensitively. */
   accent?: string;
   /**
-   * How that word is marked. `box` is the highlighter, and it is this direction's scarce peak:
-   * the captions doctrine's rail and embed model says the promoted word is earned, never two
-   * adjacent and never more than one per beat. Two in the whole film, at the denial and at the
-   * positioning line, and never anywhere near each other.
+   * How that word is marked. `box` is the highlighter, and it is this direction's scarce peak.
+   *
+   * ONE in the whole film now, down from two. The note was that the boxed words and the flood
+   * were loud and that fewer, larger gestures beat many small ones; a highlighter that appears
+   * twice in eleven seconds is a device, and one that appears once is a peak.
+   *
+   * WHICH beat gets it is decided by what else is red on that frame rather than by which line
+   * deserves it most. The display register carries two accent slabs, on NOT and on DUO, and the
+   * rail rides 50px under the block: a boxed word on either of those beats stacks with the slab
+   * into one two tier red mass. So it goes on beat 3, the one beat whose display type carries
+   * no accent at all, where it is the only mark on the frame.
    */
   mark?: "color" | "box";
   /** Puts the whole line up already composed. The opening cue uses it, for the same reason
@@ -241,96 +265,134 @@ export interface KineticNativeScript {
 /**
  * THE CLOCK, and where every frame count below comes from.
  *
- * `pnpm video:audio` synthesises each beat's line as its own WAV, measures it with ffprobe and
- * commits the result. The read is 6 frames of lead in, then each phrase, then 8 frames of
- * breath between phrases. For this script that measured out as:
+ * `pnpm video:audio` synthesises each beat's line as its own WAV at this film's own read rate,
+ * measures it with ffprobe and commits the result to src/audio/timings.generated.ts. The read
+ * is 6 frames of lead in, then each phrase, then 18 frames of breath between phrases.
  *
- *   line                                 said            frames
- *   this is not a dating app             0.200 - 1.672     6 -  50
- *   it is a duo finder                   1.939 - 3.304    58 -  99
- *   same game same hours same energy     3.571 - 5.640   107 - 169
- *   not faces                            5.907 - 6.952   177 - 209
- *   find your duo                        7.219 - 8.243   217 - 247
- *   then go play                         8.509 - 9.555   255 - 287
+ * TWO NUMBERS CHANGED IN THAT SENTENCE AND THEY ARE THE ANSWER TO "IT FEELS RUSHED". The rate
+ * is 0.9 rather than 1, and the breath is 18 frames (0.60s) rather than 8 (0.27s). Both live on
+ * this film's VoPlan (see ./vo.ts) rather than on the pipeline, so no other post moved: every
+ * one of them hit its phrase cache on the rebuild. The third and largest lever is not in this
+ * table at all, which is that the script says 20 words where the last one said 25.
  *
- * A cut lands at the MIDPOINT of the silence between two phrases, which puts the incoming
- * words on screen a few frames before the voice reaches them. The picture leads the voice by
- * about a sixth of a second, which is the right way round: a viewer reads faster than a
- * narrator speaks, and a word that arrives after it is said reads as a lag.
+ * A THIRD NUMBER CHANGED AFTER MEASURING THE RESULT, and it is the reason `Beat.speed` exists.
+ * At a uniform 0.9 the six phrases came back at 242 / 133 / 174 / 126 / 183 / 193 wpm. The film
+ * as a whole was no longer rushed, but the OPENING still was, by a wide margin, and it is the
+ * first thing anybody hears. So beat 1 alone now reads at 0.78 and lands at 197 wpm, which is
+ * the same pace as beat 6 rather than 25% clear of it. See `Beat.speed` for the bench numbers.
  *
- *   0    54       103          173      213      251        298
- *   |  1  |   2    |     3      |   4    |   5    |    6     |
+ * WHAT IS STILL 0.60 ON PAPER AND 0.74 IN THE EAR. `gapFrames` gaps the FILES, and every Kokoro
+ * WAV carries roughly 0.03-0.05s of near silence at its head and 0.07-0.15s at its tail. So the
+ * silence a listener actually hears between two statements is the tail, plus the 18 frames, plus
+ * the head: measured off the stem it is 0.689 / 0.767 / 0.737 / 0.769 / 0.719s, a mean of 0.736.
+ * That is 23% more breath than the parameter says, and it is left alone deliberately, because
+ * this is the breath that was reviewed and found to work. The number is written down here so the
+ * next person to touch it knows the parameter is not the quantity.
  *
- * THOSE FIGURES ARE FILE POSITIONS, NOT ONSETS, and the difference is worth naming because it
- * is what the lead actually is. Each phrase's WAV carries its own head and tail of near
- * silence, so the number above is where the phrase's FILE starts, and the first sample a
- * listener hears is about 0.06s later. Measured off the assembled stem's own RMS envelope at
- * 20ms, which is the same file the mix is built from:
+ * WHERE THE CUTS LAND, and the rule changed with the gaps. The old cut put every boundary at
+ * the MIDPOINT of the silence between two phrases, which at an 8 frame gap was 4 frames of lead
+ * and worked out at 0.16 to 0.27s of picture ahead of voice. At an 18 frame gap the midpoint
+ * would be 9 frames and the lead would have doubled to about 0.36s for no reason anybody chose.
+ * So the rule is now a FIXED LEAD of 6 frames: a beat begins 6 frames before its phrase's file
+ * does. That is the same rule stated in terms of the thing it was always for, and it holds the
+ * measured lead where Cameron already approved it whatever the gap becomes.
  *
- *   phrase                              audible          its beat        picture leads by
- *   this is not a dating app            0.260 - 1.607    0.000 - 1.800       0.260s
- *   it is a duo finder                  1.993 - 3.195    1.800 - 3.433       0.193s
- *   same game same hours same energy    3.600 - 5.490    3.433 - 5.767       0.167s
- *   not faces                           5.948 - 6.814    5.767 - 7.100       0.181s
- *   find your duo                       7.260 - 8.080    7.100 - 8.367       0.160s
- *   then go play                        8.540 - 9.380    8.367 - 9.933       0.173s
+ *   beat  line                       its beat         phrase file       audible    leads by
+ *      1  this is not a dating app   0.000 -  2.533   0.200 -  2.120    0.248      0.248s
+ *      2  duo finder                 2.533 -  4.200   2.720 -  3.808    2.763      0.230s
+ *      3  same game same hours       4.200 -  6.333   4.408 -  5.923    4.448      0.248s
+ *      4  no faces                   6.333 -  8.067   6.523 -  7.653    6.565      0.232s
+ *      5  find your duo              8.067 -  9.800   8.253 -  9.384    8.286      0.220s
+ *      6  then go play               9.800 - 11.533   9.984 - 11.051   10.011      0.211s
  *
- * Every phrase is fully contained by its own beat, and the lead is the same 0.17s everywhere
- * except the opening, which is longer on purpose because frame 0 has no cut in front of it.
- * That table is the check to re-run after ANY retime: the doctrine's rule is that a seam is
- * re-opened by an edit to either side of it, and re-timing to a new read re-opens all of them.
+ * The file positions are what ffprobe measured; the audible column is where the first sample a
+ * listener hears actually is, read off the stem's RMS envelope at 20ms, because every WAV
+ * carries about 0.04s of near silence at its head. The lead is flat at 0.211 to 0.248s, a
+ * spread of 1.1 frames, and it does not accumulate: it trends very slightly DOWN across the
+ * film, which is the opposite of drift, because every boundary is computed from its OWN phrase
+ * rather than from the one before it.
  *
- * Body is 298 frames, 9.93s. The last beat's exit begins at frame 287, which is the frame the
- * last word of the read finishes on, so the film starts leaving exactly when it stops talking.
+ *   0     76        50      64       52      52       52       346
+ *   |  1   |   2    |   3   |   4    |   5   |   6    |
  *
- * And the read now lands where this table says it does IN THE MP4 rather than 1.28 frames
- * later. The AAC encode Remotion muxes the mix into delays it by 2048 samples that its edit
- * list does not take back, so the master is trimmed by exactly that at the head before it is
- * ever handed over. Every number above is a position in the file people watch.
+ * Every phrase is fully contained by its own beat, with 6 frames of head and at least 12 of
+ * tail everywhere. That is the check to re-run after ANY retime: the doctrine's rule is that a
+ * seam is re-opened by an edit to either side of it, and re-timing to a new read re-opens all
+ * of them. `pnpm validate` now asserts it rather than asking anybody to remember, see
+ * checkKineticNative in scripts/validate-content.ts.
+ *
+ * Body is 346 frames, 11.53s, and the whole film is 376, 12.53s. The last beat's block begins
+ * its exit at frame 332, which is the frame the read's file ends on, so the film starts leaving
+ * exactly when it stops talking.
+ *
+ * ONE CONSTRAINT ON GROWING A `live` BEAT, and it is a camera fact rather than a taste one. A
+ * live plate pans at 4.4px a frame around its own centre and starts its beat 0.0017 scale per
+ * frame below its base, and the crop has to stay above 1.371 for the game's own HUD banners to
+ * miss the frame at both edges (see `lift` in Plate.tsx). That holds up to 75 frames. The two
+ * live beats below are 66 and 63, so both are inside it; a beat that grew past 75 would need a
+ * camStop rather than a shrug.
+ *
+ * And the read lands where this table says it does IN THE MP4 rather than 1.28 frames later.
+ * The AAC encode Remotion muxes the mix into delays it by 2048 samples that its edit list does
+ * not take back, so the master is trimmed by exactly that at the head before it is ever handed
+ * over. Every number above is a position in the file people watch.
  */
 export const KINETIC_NATIVE: KineticNativeScript = {
   id: "kinetic-native-001",
   caption: "no, not that kind of swiping. it is a duo finder.",
 
-  // 54 + 49 + 70 + 40 + 38 + 47 = 298 frames of body, 9.93s.
+  // 76 + 50 + 64 + 52 + 52 + 52 = 346 frames of body, 11.53s.
   beats: [
     // ---------------------------------------------------------------------------------
-    // Beat 1. THE DENIAL, over a sunlit map.
+    // Beat 1. THE DENIAL, over a sunlit map. THE HERO IS "NOT".
     //
     // Everyone assumes wrong and the correction is the hook, so it is the first thing said and
-    // the first thing on screen. Four short lines rather than two long ones is what lets it
-    // fill the frame instead of sitting in a caption bar.
+    // the first thing on screen.
+    //
+    // The hero is the word the whole film turns on, and under the old system it was not even
+    // the biggest thing in its own beat: APP was, at more than twice the size, because APP is
+    // short. Now the frame is a huge NOT with THIS IS above it and A DATING APP below it, both
+    // quiet. That ordering matters beyond hierarchy for hire: this is a platonic app, and
+    // "A DATING APP" set at 500px as the largest words in frame one was a real risk that the
+    // old composition took for no reason at all.
+    //
+    // A DATING APP is the one line in the film that reaches the support measure ceiling: at
+    // twelve characters it comes out at 98px rather than the 102px the ratio alone would give
+    // it, so it is the one line in the cut whose size is set by its own width. It is also the
+    // widest and quietest line in the film and it sits right across the block, which is what
+    // makes the lockup read as composed rather than as stacked.
     //
     // The footage is the other half of the hook and it is why this beat is `live`. A viewer
     // deciding in the first quarter second whether this is for them is looking at a picture,
-    // not reading a sentence.
-    //
-    // broll-quiet rather than broll-teamfight, and the swap is a legibility decision. The
-    // firefight is a dark interior looking at a crate and a wall: it measures a mean luma of
-    // 49 out of 255, and at 150px, which is the size a thumb sees, it is a brown black
-    // rectangle that says nothing about anything. This is Breeze in daylight, sandstone and
-    // sea and palms with a weapon across the bottom of the frame, and it reads as a video game
-    // at any size. It also has no faces and no straight edges in it, which matters under a
-    // sentence denying that this is about faces. The firefight is not thrown away: it moves to
-    // beat 3, where the copy is about energy and a fight is what that word means.
+    // not reading a sentence. broll-quiet is Breeze in daylight, sandstone and sea and palms
+    // with a weapon across the bottom of the frame: it reads as a video game at any size,
+    // where the firefight measures a mean luma of 49 and reads as a brown rectangle at
+    // thumbnail. It also has no faces and no straight edges in it, which matters under a
+    // sentence denying that this is about faces.
     // ---------------------------------------------------------------------------------
     {
-      frames: 54,
-      lines: ["this is", "not a", "dating", "app"],
+      frames: 76,
+      lines: ["this is", "not", "a dating app"],
+      hero: 1,
+      // The film's one rate override. See `Beat.speed`: this is the only whole sentence in the
+      // script and at the film's 0.9 it was the only phrase that came back rushed.
+      speed: 0.78,
       accent: ["not"],
       // The stamp. NOT is already the accent at frame 0, so the hook is red in frame one; at
-      // local frame 24 a filled slab wipes across it and the word flips to near black. That is
-      // the beat's second event and it lands on the word the whole film turns on.
+      // local frame 24 a filled slab wipes across it over 8 frames and the word flips to near
+      // black. NOT is spoken from local 15.6, so the stamp lands about a third of a second
+      // after the word, as punctuation on it rather than as a caption of it. It is the beat's
+      // second event and it sits in the middle of the 40 frames between the sentence settling
+      // and its exit beginning, which is what that stretch is for.
       slab: ["not"],
       slabAt: 24,
-      // ALL FOUR lines are already in flight at frame 0, the last of them 2 frames into its
-      // own power4.out. The opening frame reads THIS IS NOT A DATING APP, complete, at full
-      // size, and is visibly moving while it does. Frame 0 is the poster frame and the scroll
-      // stop, and holding APP back to local 12 made it read THIS IS NOT A DATING: a truncated
-      // sentence is not a hook, and the one that got truncated was the denial the whole film is
-      // built on. At frame 0 APP is 2 frames into a 9 frame power4.out, 48px right of home at
-      // 71% opacity, which is unmistakably the word and unmistakably still travelling.
-      reveal: [-9, -7, -5, -2],
+      // ALL THREE lines are already in flight at frame 0, the last of them 4 frames into its
+      // own 11 frame power4.out: 83% of the way home at 94% opacity, which is unmistakably the
+      // word and unmistakably still travelling. The opening frame reads THIS IS NOT A DATING
+      // APP, complete, at full size, and is visibly moving while it does. Frame 0 is the poster
+      // frame and the scroll stop; holding any part of the sentence back truncates the hook,
+      // and a truncated hook is not a hook.
+      reveal: [-11, -8, -4],
       clip: "broll-quiet",
       clipFrom: 1.5,
       treatment: "live",
@@ -338,134 +400,150 @@ export const KINETIC_NATIVE: KineticNativeScript = {
       open: true,
     },
     // ---------------------------------------------------------------------------------
-    // Beat 2. WHAT IT ACTUALLY IS, over the real deck.
+    // Beat 2. WHAT IT ACTUALLY IS, over the real deck. THE HERO IS "DUO".
     //
     // The first of the three product beats. The window covers a card, a swipe, and the next
     // card arriving, so the viewer sees the deck WORKING rather than a screenshot of it.
+    //
+    // "duo finder" and not "it is a duo finder", which is three words cut and a materially
+    // better frame. Three lines in the top band shrink to fit and DUO lands at about 251px;
+    // two lines do not shrink at all and it lands at about 338px. The sentence a viewer reads
+    // is DUO / FINDER either way, and the film has already said "this is not" out loud, so the
+    // correction does not need a subject and a verb to be understood.
     //
     // The type takes the top of the frame and the card keeps the bottom two thirds. A full
     // width statement across the middle would land squarely on the card's name, its game and
     // its playstyle tag, which are the three things this beat exists to show.
     //
-    // The camera no longer parks here. See `camera` in Plate.tsx: an app plate pushes for the
-    // whole beat instead of panning for twelve frames and then standing still, because the
-    // still half of that was measurably a dead stop and the cut out of it was a slideshow
-    // seam.
+    // No accent. DUO is already three times the size of the only other word on the frame, and
+    // a hot ink on top of that is an emphasis on something that was never ambiguous.
     // ---------------------------------------------------------------------------------
     {
-      frames: 49,
-      lines: ["it is a", "duo", "finder"],
-      // Accent rather than a slab. The slab is the film's stamp and there are two of them, on
-      // the word the denial turns on and on the last word of the payoff; a third here would
-      // stop them meaning anything.
-      accent: ["duo"],
-      // Staged onto the voice: "it is a" lands at 0, "duo" as it is said, "finder" after it.
-      reveal: [0, 12, 24],
+      frames: 50,
+      lines: ["duo", "finder"],
+      hero: 0,
+      // DUO at 0 and FINDER on its own word. Measured: the phrase's own envelope puts DUO at
+      // 0.04s and FINDER at 0.46s into the file, which is local 7.2 and local 19.8, so 13 gives
+      // the second line exactly the lead the first one gets.
+      reveal: [0, 13],
       clip: "deck-cards",
       clipFrom: 2.4,
       treatment: "app",
       anchor: "top",
-      fitWidth: 0.88,
     },
     // ---------------------------------------------------------------------------------
-    // Beat 3. THE FILTER, over the firefight.
+    // Beat 3. THE FILTER, over the firefight. THE HERO IS "HOURS".
     //
-    // The longest beat in the film and the one that answers Cameron's second note hardest, and
-    // it is now the FIGHT rather than the empty map. The three lines land ON the three phrases
-    // as they are spoken, and under them a rifle is trained on a doorway, it fires, and an
-    // enemy comes through it. The word the beat accents is ENERGY, and a firefight is what
-    // that word means; two and a third seconds of walking an abandoned map alone was the
-    // correct picture for the copy and the wrong picture for the claim.
+    // The longest beat in the film, and the copy is down from six words to four. "same game
+    // same hours same energy" was a list with no shape: three parallel lines, all the same
+    // size, and the accent on the vaguest of the three. What is here now is two quiet lines
+    // stepping down into one large one, which is the same rhythm the ear already hears.
     //
-    // 6.5s, and the window was chosen by measuring rather than by scrubbing. Sampled at 10Hz
-    // through the crop this grade actually shows, the file's mean luma sits between 23 and 56
-    // everywhere except 7.1 to 8.7, where it runs 105 to 138: that is where the fight comes out
-    // of a dark interior into daylight, and it is the only stretch of the take that looks like
-    // something a viewer would want to be doing. 6.5 to 8.83 is the brightest 2.33s in the
-    // file at a mean of 102, against 30 for the 3.4 window this beat used first. It opens on
-    // half a second of an ability in hand and then the frame opens out, which is a beat that
-    // GAINS information rather than one that holds a picture.
+    // HOURS rather than ENERGY, and it is the sharper claim of the two. Energy is a vibe;
+    // hours is the actual problem, which is that the people you like are never online when you
+    // are. It also sets up the back half of the film, where a locked duo is shown asking when
+    // somebody is going to be on tonight.
+    //
+    // SAME on its own line is not a widow. The register gap only appears where the register
+    // CHANGES, so SAME GAME and SAME sit tight together as one quiet block and the air is all
+    // between them and HOURS. Two things on the frame, not three.
+    //
+    // 6.5s into the clip, and the window was chosen by measuring rather than by scrubbing.
+    // Sampled at 10Hz through the crop this grade actually shows, the file's mean luma sits
+    // between 23 and 56 everywhere except 7.1 to 8.7, where it runs 105 to 138: that is where
+    // the fight comes out of a dark interior into daylight, and it is the only stretch of the
+    // take that looks like something a viewer would want to be doing.
+    //
+    // 63 frames, inside the 75 frame limit a live plate's camera imposes (see the header), so
+    // this beat needs no camStop and its plate travels for every frame of it.
     //
     // Two names are on that footage and neither reaches the frame: the player's own along the
     // bottom left, and a spectated teammate's in the same place after 7.1. The crop is the
-    // middle 586 of 2560 source columns, so both are hundreds of pixels outside it, and the
-    // kill feed on the right is gone with them. The event banner along the top is handled by
-    // this grade's lift.
+    // middle 586 of 2560 source columns, so both are hundreds of pixels outside it.
     // ---------------------------------------------------------------------------------
     {
-      frames: 70,
-      lines: ["same game", "same hours", "same energy"],
-      accent: ["energy"],
-      // 2, 21, 41, measured rather than guessed. Kokoro reads this phrase with no pause in it
-      // at all, so the sub phrase boundaries are not in silencedetect's output at any
-      // threshold; they are in the RMS envelope, as two dips to about -26 dBFS inside a read
-      // that otherwise sits at -16. Every other line in the film leads its own words by about
-      // 0.17s, which is deliberate: a viewer reads faster than a narrator speaks, so a word
-      // that arrives on the syllable reads as a lag.
-      reveal: [2, 21, 41],
+      frames: 64,
+      lines: ["same game", "same", "hours"],
+      hero: 2,
+      // Measured off the read's own RMS envelope at 20ms rather than guessed. The four words
+      // are cleanly separated in it, at 0.04, 0.38, 0.66 and 0.88 into the file, which is local
+      // 6.8, 17.0, 25.4 and 32.0. The two quiet lines carry the first three words and the hero
+      // carries the last, so the reveals are 0, 19 and 25: the same 6.8 frame lead on each.
+      reveal: [0, 19, 25],
       clip: "broll-teamfight",
       clipFrom: 6.5,
       treatment: "live",
       tilt: 0.8,
     },
     // ---------------------------------------------------------------------------------
-    // Beat 4. THE FLOOD, and the stillness before the climax.
+    // Beat 4. THE FLOOD, and the stillness before the climax. THE HERO IS "NO".
     //
     // Two words, and the whole screen changes colour while the words from beat 3 are still
     // streaking off it. It is the one beat that is pure meaning rather than proof, and a flat
     // vermillion field between two photographic beats is what stops the film reading as a
     // slideshow of footage.
     //
+    // "no faces" rather than "not faces", and it avoids saying NOT at full size twice in one
+    // film. It is also the beat that set the hero cap: two wide letters fit to this measure
+    // come out at 449px against beat 1's 319px for three, a 41% jump decided by one letter and
+    // by nothing else. BOX.cap catches it at 340, so NO and NOT are within 7% of each other and
+    // the film's two denials read as a pair rather than as an escalation nobody chose.
+    //
     // It is also the dramatic comma, and it is why this beat sits immediately before the
-    // payoff rather than earlier in the argument. FACES settles at local 20 and the camera
-    // parks at 22, so nothing at all moves from 22 to the receding exit at 34: 12 frames,
-    // 0.40s, inside the doctrine's 0.3 to 0.75s window. It is the only motionless stretch in
-    // the film and the beat after it is the climax.
+    // payoff rather than earlier in the argument. FACES settles at local 22 and the camera
+    // parks at 25, so the block and the plate both hold from 25 to the receding exit at 44:
+    // 19 frames, 0.633s, at the top of the doctrine's 0.3 to 0.75s window and half again what
+    // the last cut held. It is the only held stretch in the film, and the beat after it is the
+    // climax.
     // ---------------------------------------------------------------------------------
     {
-      frames: 40,
-      lines: ["not", "faces"],
-      // "not" and "faces" are measured off the same envelope as beat 3. 11 puts FACES on
-      // screen leading its own word by about 0.14s and still settling at 20, two frames before
-      // the camera parks at 22, so the comma below is exactly as long as it says it is.
+      frames: 52,
+      lines: ["no", "faces"],
+      hero: 0,
+      // NO at 0 and FACES on its own word. Measured: 0.04s and 0.42s into the file, which is
+      // local 7.3 and local 18.7, so 11 gives the second line the same lead as the first.
+      // FACES settles at 22, three frames before the camera parks, so the comma below is
+      // exactly as long as it says it is.
       reveal: [0, 11],
-      // The deck under the flood rather than gameplay, because "not faces" is a statement
-      // about what is in the deck. At 16% over a flooded field it is texture, not a screen.
+      // The deck under the flood rather than gameplay, because this is a statement about what
+      // is in the deck. At 16% over a flooded field it is texture, not a screen.
       clip: "deck-cards",
       clipFrom: 6.2,
       treatment: "flood",
-      camStop: 22,
+      camStop: 25,
     },
     // ---------------------------------------------------------------------------------
-    // Beat 5. THE PAYOFF, the second product beat, and the film's ARRIVAL.
+    // Beat 5. THE PAYOFF, the second product beat, and the film's ARRIVAL. THE HERO IS "DUO".
     //
     // It is the only beat that does not enter on the current: it arrives OVERSIZED on the
-    // reserved inverse zoom and retracts into the focal plane, which is the vector the doctrine
-    // reserves for something bigger landing. What lands is the product, at the moment it says
-    // DUO LOCKED.
+    // reserved inverse zoom and retracts into the focal plane over 0.62s, which is the vector
+    // the doctrine reserves for something bigger landing. What lands is the product, at the
+    // moment it says DUO LOCKED.
     //
     // Its words are composed rather than cascaded, because a grow from small entrance under a
     // retracting wrapper flips the scale sign, and camStart holds the plate still until the
     // retraction has settled for the same reason. Then it keeps performing: the slab wipes in
-    // under DUO at local 16, its leading edge crossing the word as the word is said, and the
+    // under DUO at local 22, its leading edge crossing the word as the word is said, and the
     // plate pushes on through the cut.
     //
-    // match-kofi rather than duo-locked, and this is the most consequential single change in
-    // the cut. The two clips are the same screen, pixel for pixel, at two moments of one
-    // session: DUO LOCKED, a circular photo in a lime ring, "You and someone both queued up",
-    // and a full width Send a message button. The composition is not negotiable, because it is
-    // the product. WHAT IS IN THE CIRCLE is. duo-locked's photo is a shirtless beach selfie in
-    // sunglasses, and a beach selfie in a ring above a message button is every visual
-    // convention of the category this film's first two seconds spend denying. Kofi's is a man
-    // in a black t-shirt standing next to a suit of samurai armour, which reads as somebody's
-    // hobby rather than as somebody's profile. One word of a clip name buys the difference.
+    // This is the one beat in the film whose height budget binds. The band between the app's
+    // own Send a message button and the caption rail is 320px and the block wants 400px, so the
+    // whole block is scaled by 0.80 and DUO comes out at 243px rather than 304px. The ratio
+    // survives it, because the shrink is one factor applied to every size and every gap. That
+    // trade has always been the right one here: the whole product reads, and this is the frame
+    // where a viewer sees what the app actually does.
     //
-    // The beat after this one is the other half of the answer: a real conversation about when
-    // to get online, which is what a locked duo is FOR.
+    // match-kofi rather than duo-locked. The two clips are the same screen, pixel for pixel, at
+    // two moments of one session; duo-locked's photo is a shirtless beach selfie in sunglasses,
+    // which is every visual convention of the category this film's first two seconds spend
+    // denying. Kofi's is a man in a black t-shirt standing next to a suit of samurai armour,
+    // which reads as somebody's hobby rather than as somebody's profile.
     // ---------------------------------------------------------------------------------
     {
-      frames: 38,
+      frames: 52,
       lines: ["find your", "duo"],
+      hero: 1,
+      accent: ["duo"],
       slab: ["duo"],
       // 2.2s in. The new match banner has cleared, the card is composed, and DUO LOCKED, the
       // lime ring, the photo and "You and Kofi both queued up" all sit above the type's scrim
@@ -475,29 +553,26 @@ export const KINETIC_NATIVE: KineticNativeScript = {
       clipFrom: 2.2,
       treatment: "app",
       anchor: "bottom",
-      fitWidth: 0.88,
-      // 10, not 15. The retraction is an expo.out over 15 frames and it is within a
-      // thousandth of settled by frame 10, so holding the plate to 15 bought five frames of
-      // nothing between the arrival landing and the slab stamping, which the render's own
-      // motion energy picked up as a stall. From 10 the plate's push is an order of magnitude
-      // faster than what is left of the retraction, so the composite still grows and the scale
-      // sign never flips.
       arrival: true,
-      camStart: 10,
-      // 16, and it is a sync figure rather than a taste one. "duo" is spoken over about 13
-      // frames from local 20, so a wipe starting at 16 has its leading edge crossing the word
-      // as the word is said, which is what a stamp on a spoken word is supposed to do. It
-      // settles at 22 and holds, which is the same weight the denial's slab gets in beat 1.
-      slabAt: 16,
+      // 13, not 19. The retraction is an expo.out over 19 frames and it is within a thousandth
+      // of settled by 13, so holding the plate the full length would buy six frames of nothing
+      // between the arrival landing and the slab stamping. From 13 the plate's push is an order
+      // of magnitude faster than what is left of the retraction, so the composite still grows
+      // and the scale sign never flips.
+      camStart: 13,
+      // 20, and it is a sync figure rather than a taste one. Measured off this phrase's own
+      // envelope, "duo" runs from 0.52 to 0.92 into the file, which is local 21.6 to 33.6, so an
+      // 8 frame wipe starting at 20 has its leading edge crossing the word as the word is said.
+      // That is what a stamp on a spoken word is supposed to do.
+      slabAt: 20,
     },
     // ---------------------------------------------------------------------------------
-    // Beat 6. THE CHAT, and the third of Cameron's four named features.
+    // Beat 6. THE CHAT, and the third of Cameron's four named features. THE HERO IS "PLAY".
     //
-    // The note was that a viewer gets a strong claim and almost no product, and it named four
-    // things: the deck, a match, a chat, playstyle matching. The first two were already here,
-    // the fourth is a card's own tag under beat 2 and the rail's line under beat 3, and this
-    // beat is the third. It costs about a second, which is the only place in this cut where
-    // anything got LONGER, and it earns it: it is the one shot in the film of two people
+    // The note on the first cut was that a viewer gets a strong claim and almost no product,
+    // and it named four things: the deck, a match, a chat, playstyle matching. The first two
+    // are beats 2 and 5, the fourth is a card's own tag under beat 2 and the rail's line under
+    // beat 3, and this beat is the third. It is the one shot in the film of two people
     // arranging to play a game.
     //
     // It is also the film's answer to the frame before it. Beat 5 is a photograph of a person
@@ -508,40 +583,35 @@ export const KINETIC_NATIVE: KineticNativeScript = {
     // The window catches the send: the text is sitting in the field, it goes, and the bubble
     // arrives and says SENDING. That is the doctrine's sequenced UI life route, and it is the
     // product doing the thing the type says while the type says it.
+    //
+    // PLAY gets no accent and no slab. The two stamps are spent, and a third would make all
+    // three ordinary.
     // ---------------------------------------------------------------------------------
     {
-      frames: 47,
-      lines: ["then", "go play"],
-      // The last statement in the film, and the one word in it that no dating app would put on
-      // a screen. It gets no accent and no slab: the two stamps are spent, and a third would
-      // make all three ordinary.
-      // Measured off the read's own RMS envelope at 20ms, like beats 3 and 4: "then" opens
-      // at 8.540 and "go play" at 8.840, with the plosive of PLAY leaving a clean 0.12s hole
-      // at 8.96 that a threshold detector would have called the phrase boundary. The beat
-      // starts at 8.367, so 0 and 9 put each line on screen 0.173s before its own words, which
-      // is the same lead every other beat in the film runs.
-      reveal: [0, 9],
+      frames: 52,
+      lines: ["then go", "play"],
+      hero: 1,
+      // "then go" opens the phrase at 0.02 into the file and PLAY lands at 0.50, which is local
+      // 6.5 and local 20.9. What separates them in the envelope is the closure before the /p/ of
+      // PLAY: two frames at -58 dBFS, a real boundary rather than an inferred one.
+      reveal: [0, 14],
       clip: "chat-typing",
       clipFrom: 5.35,
       treatment: "app",
       anchor: "top",
-      fitWidth: 0.88,
       // The one beat that overrides its treatment's camera, and both overrides are the same
       // fact about this screen: a chat is text to both edges. The bubble's right side reaches
       // video x 1031 of 1080 before the camera touches it, so the treatment's own 1.1 base has
       // the message clipped in the opening frame and its SENDING label gone.
       //
-      // Parking the camera instead was the first answer and it was wrong. The argument for it
-      // was that the product animates through the whole beat, so the plate does not need to;
-      // measured, that argument is false. Frame differenced at 30fps the whole clip is
-      // essentially a still: the typing moves single letters, the send is one small slide, and
-      // from 6.0s onward nothing moves but a five letter status label. The render agreed and
-      // showed 16 near frozen frames in the beat's second half.
+      // Parking the camera instead was the first answer and it was wrong. Frame differenced at
+      // 30fps the whole clip is essentially a still: the typing moves single letters, the send
+      // is one small slide, and from 6.0s onward nothing moves but a five letter status label.
       //
       // So the plate pushes for every frame of the beat from a base of 1.0, and the push is
       // pinned to the right edge so the bubble cannot be reached by it. The right hand side of
-      // the screen holds still, the left drifts out of frame at 1.8px a frame, and what leaves
-      // is the empty half of the conversation and the outer keys of the keyboard.
+      // the screen holds still, the left drifts out of frame, and what leaves is the empty half
+      // of the conversation and the outer keys of the keyboard.
       camScale: 1,
       camPinRight: true,
     },
@@ -551,31 +621,45 @@ export const KINETIC_NATIVE: KineticNativeScript = {
   //
   // Not one of these lines appears in the display type, which is the rule the two register
   // design stands on. Read on its own the rail is a second, quieter argument: everyone gets
-  // this wrong / this is the deck / you match on playstyle / no photos on the cards / 18 plus
-  // and platonic / no more solo queue.
+  // this wrong / this is the deck / you match on playstyle / nobody is picked on looks / 18
+  // plus and platonic / no more solo queue.
   cues: [
-    { line: "everyone gets this wrong", frames: 54, accent: "wrong", mark: "box", instant: true },
+    // Colour rather than a highlighter. The film has one highlighter now and it is spent on
+    // the positioning line five beats from here; two of them in eleven seconds made both of
+    // them ordinary, which is the note about fewer and larger gestures applied to the rail.
+    { line: "everyone gets this wrong", frames: 76, accent: "wrong", mark: "color", instant: true },
     // Names the thing on screen while the type makes the claim about it. A caption doing what
     // a caption is for.
-    { line: "this is the deck", frames: 49, accent: "deck" },
-    { line: "you match on playstyle", frames: 70, accent: "playstyle" },
-    // The one cue with no accent, and it is the flood's fault rather than the line's: the
-    // accent ink IS the flooded field, so an accented word there is vermillion on vermillion
-    // held apart by its own black keyline, which reads as an outlined word rather than as an
-    // emphasis. The beat is already doing the emphasis in near-black type a foot high.
+    { line: "this is the deck", frames: 50, accent: "deck" },
+    // THE FILM'S ONE HIGHLIGHTER, and it is here because this is the only beat with no red
+    // anywhere else in it: the display type on beat 3 carries no accent and no slab, so a
+    // boxed word on the rail is the single mark on the frame. It is also the last quiet beat
+    // before the whole screen floods, which makes it a small red mark immediately followed by
+    // a large one.
+    { line: "you match on playstyle", frames: 64, accent: "playstyle", mark: "box" },
+    // The consequence rather than the fact, and it is a rewrite. The old line was "no photos
+    // on the cards", which under a display hero reading NO was the same claim twice at two
+    // sizes, and that is the one thing the two register design is not allowed to do.
     //
-    // "cards" rather than "deck", which the cue two lines up already spent, and it is also the
-    // more precise claim: the deck is the screen, the cards are the things with no photographs
-    // on them.
-    { line: "no photos on the cards", frames: 40 },
-    // The positioning line, said plainly once, over the only shot of a locked duo. It is the
-    // single most load bearing sentence in the account, which is why it gets the film's second
-    // and last highlighter, and why it is on THIS frame: a photograph of a person is the one
-    // frame in the film that has to be unambiguous about what this app is.
-    { line: "18 plus and platonic", frames: 38, accent: "platonic", mark: "box" },
+    // No accent, and it is the flood's fault rather than the line's: the accent ink IS the
+    // flooded field, so an accented word there is vermillion on vermillion held apart by its
+    // own black keyline, which reads as an outlined word rather than as an emphasis.
+    { line: "nobody gets picked on looks", frames: 52 },
+    // The positioning line, said plainly once, over the only shot of a locked duo, because a
+    // photograph of a person is the one frame in the film that has to be unambiguous about what
+    // this app is.
+    //
+    // COLOUR AND NOT A HIGHLIGHTER, and the reason is the frame rather than the sentence. This
+    // beat's hero carries the film's second slab, and the rail sits 50px under it: rendered, a
+    // boxed word here and the slab under DUO stacked into a single two tier red block, which is
+    // both of the film's peaks spent on one frame and neither of them landing. The doctrine's
+    // rule for a promoted word is that it is earned and never adjacent to another one. So the
+    // highlighter moved three beats earlier, to the only frame with no other red in it, and
+    // this line keeps the accent ink.
+    { line: "18 plus and platonic", frames: 52, accent: "platonic", mark: "color" },
     // The last thing read, and the only line in either register that names the feeling rather
     // than the product. It is the pain the whole thing exists to answer.
-    { line: "no more solo queue", frames: 47, accent: "solo" },
+    { line: "no more solo queue", frames: 52, accent: "solo" },
   ],
 };
 
@@ -585,15 +669,19 @@ export const bodyFrames = (script: KineticNativeScript): number =>
   script.beats.reduce((total, beat) => total + beat.frames, 0);
 
 /**
- * 1.0 second of end card, down from 1.2, and down from 1.7 before that.
+ * 1.0 second of end card.
  *
  * The card is a call to action, not a scene, and in a film this short every frame it holds is
- * a frame the film is over. 36 frames was six too many, measured rather than felt: the render
- * showed 20 of them frozen in three blocks, the longest 8 frames, because the card's four
- * events did not reach the end of it. 30 frames is the seam entry (0 to 10), the slab wipe
- * (12 to 22), the URL arriving under it (20 to 26) and a fifth of a second of hold on the
- * finished lockup, which is the shortest the last thing a viewer reads can be held for and
- * still be read. See EndCard.tsx, where the four numbers live.
+ * a frame the film is over. It was 36 frames once and 20 of them rendered frozen in three
+ * blocks, because the card's four events did not reach the end of it. 30 frames is the seam
+ * entry (0 to 10), the slab wipe (12 to 22), the URL arriving under it (20 to 26) and a fifth
+ * of a second of hold on the finished lockup, which is the shortest the last thing a viewer
+ * reads can be held for and still be read.
+ *
+ * It did NOT grow with the rest of this cut, and that is deliberate. The note was that the
+ * film feels rushed, and a rushed film is one whose CONTENT is crowded; the end card has one
+ * lockup on it and holding it longer would be padding, which the same note explicitly rules
+ * out.
  *
  * It lives here rather than in EndCard.tsx because the audio path has to lay a bed under the
  * whole composition and asks a node script for its length. Importing that component would pull
@@ -602,6 +690,6 @@ export const bodyFrames = (script: KineticNativeScript): number =>
  */
 export const END_FRAMES = Math.round(1 * FPS);
 
-/** The whole composition: every beat, then the card. 294 frames, 9.80s. */
+/** The whole composition: every beat, then the card. */
 export const kineticNativeDuration = (script: KineticNativeScript): number =>
   bodyFrames(script) + END_FRAMES;

@@ -309,6 +309,10 @@ const checkLoudness = (id: string, audio: PostAudio): void => {
  * where the mix target says it should be. The first is an ERROR for the same reason it is on
  * a hook: a video whose voice says something the picture does not is worse than a silent one.
  */
+/** Frames a beat begins before its own phrase's file does. See THE CLOCK in
+ * src/kinetic-native/script.ts for why it is a fixed lead rather than the midpoint of the gap. */
+const BEAT_LEAD_FRAMES = 6;
+
 const checkKineticNative = (): void => {
   const audio = AUDIO[KINETIC_NATIVE.id];
   if (audio === undefined) {
@@ -344,6 +348,46 @@ const checkKineticNative = (): void => {
       `the read ends at frame ${audio.voEndFrame} and the film ends at ${filmFrames}, so the last words are never heard.`,
     );
   }
+
+  /**
+   * EVERY BEAT FULLY CONTAINS ITS OWN PHRASE, AND THE LEAD IS FLAT.
+   *
+   * This is the property the cut actually rests on and it used to live only in a comment. The
+   * beat table in script.ts is derived by hand from the measured read: a beat begins a fixed
+   * 6 frames before its phrase's file does. Nothing stopped somebody nudging a beat by two
+   * frames afterwards, and the failure mode of doing so is silent and awful: a word arrives
+   * after it is spoken, which reads as lag, or a phrase runs past its own cut and is heard
+   * over the next beat's picture.
+   *
+   * So it is checked. The lead is allowed a frame of slack in either direction, because the
+   * committed frame numbers are rounded from measured seconds.
+   */
+  let at = 0;
+  KINETIC_NATIVE.beats.forEach((beat, index) => {
+    const from = at;
+    at += beat.frames;
+    const line = audio.lines[index];
+    if (line === undefined) {
+      error(
+        `${KINETIC_NATIVE.id}.beats`,
+        `beat ${index + 1} has no phrase in the mix. The read has ${audio.lines.length} lines and the cut has ${KINETIC_NATIVE.beats.length} beats.`,
+      );
+      return;
+    }
+    const lead = line.startFrame - from;
+    if (Math.abs(lead - BEAT_LEAD_FRAMES) > 1) {
+      error(
+        `${KINETIC_NATIVE.id}.beats`,
+        `beat ${index + 1} starts at frame ${from} and its phrase at ${line.startFrame}, a lead of ${lead} frames where every other beat leads by ${BEAT_LEAD_FRAMES}. The picture must be the same distance ahead of the voice at every cut.`,
+      );
+    }
+    if (line.endFrame > at) {
+      error(
+        `${KINETIC_NATIVE.id}.beats`,
+        `beat ${index + 1} ends at frame ${at} and its phrase runs to ${line.endFrame}, so the last of it is heard over the next beat's picture.`,
+      );
+    }
+  });
 
   checkLoudness(KINETIC_NATIVE.id, audio);
 };

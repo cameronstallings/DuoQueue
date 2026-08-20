@@ -68,8 +68,11 @@ export const CURRENT = -1;
  * 75% of entry" rule for this technique specifically.
  */
 export const CURVE = {
-  exit: Math.round(sec(0.27)),
-  entry: Math.round(sec(0.33)),
+  // 0.33 and 0.42, from 0.27 and 0.33. Every duration in this file was lengthened by about a
+  // quarter for the third note on the last cut, which was that it should be smoother. The
+  // ratio between them is untouched at 127%, because that ratio is the technique.
+  exit: Math.round(sec(0.33)),
+  entry: Math.round(sec(0.42)),
   /**
    * Where the outgoing opacity hits zero, as a fraction of the exit's duration.
    *
@@ -93,7 +96,21 @@ export const CURVE = {
  * 0.05s entry gap decaying by 0.84, entry igniting at 0.35 opacity.
  */
 export const WATERFALL_CUT = {
-  exit: Math.round(sec(0.34)),
+  /**
+   * 0.42, from the catalog's 0.34.
+   *
+   * SMOOTHNESS IS DURATION, NOT DRIFT. The note was that the film should feel more polished
+   * and smooth, and there is exactly one honest way to buy that in a system the doctrine
+   * governs: lengthen the eases. The dishonest way is idle motion, a float or a breathe on a
+   * settled block, which the doctrine bans outright because it reads as the video waiting.
+   *
+   * The thing this trades against is the cut itself. The word's opacity still dies at 50% of
+   * TRAVEL, which is 65px whatever the duration is, so the word is still gone while
+   * accelerating; what changes is the speed it is doing when it goes, which drops about a
+   * fifth. That is the whole margin between "a cut" and "a crossfade", and a fifth is inside
+   * it. Much past here and the seam softens into the thing Cameron already rejected once.
+   */
+  exit: Math.round(sec(0.42)),
   /**
    * Where the outgoing opacity hits zero, as a fraction of the exit's duration.
    *
@@ -111,7 +128,7 @@ export const WATERFALL_CUT = {
    * the same absolute displacement the catalog buys on its own frame. The word is still
    * accelerating when it goes, which is the rule the number actually serves.
    */
-  exitFade: Math.round(sec(0.34) * 0.84),
+  exitFade: Math.round(sec(0.42) * 0.84),
   /** Reading order within one line, so a line peels rather than sliding as a block. */
   exitStagger: sec(0.022),
   /**
@@ -124,10 +141,10 @@ export const WATERFALL_CUT = {
    * the bottom line has moved at all, which is what makes the block visibly come apart.
    * Four lines cost 7.6 frames, inside the doctrine's 15 frame total stagger ceiling.
    */
-  exitLineGap: sec(0.085),
-  entry: Math.round(sec(0.3)),
+  exitLineGap: sec(0.11),
+  entry: Math.round(sec(0.38)),
   ignite: 0.35,
-  entryGap: sec(0.05),
+  entryGap: sec(0.065),
   entryDecay: 0.84,
 } as const;
 
@@ -164,8 +181,12 @@ export const WATERFALL_ENTRY = {
  * letterforms and the cut reads as a glitch.
  */
 export const INVERSE = {
-  exit: Math.round(sec(0.2)),
-  entry: Math.round(sec(0.5)),
+  // 0.25 and 0.62, from 0.2 and 0.5. The arrival is the film's largest single gesture and it
+  // is the one that gained most from the longer ease: 0.62s of retraction reads as something
+  // settling into place, where 0.5s read as something snapping into it. Still inside the
+  // doctrine's 800ms ceiling for a single entry.
+  exit: Math.round(sec(0.25)),
+  entry: Math.round(sec(0.62)),
   exitScale: 0.8,
   entryScale: 1.25,
   blur: 10,
@@ -178,7 +199,7 @@ export const INVERSE = {
  * major action and its result, and it is the one place in this film where nothing moves.
  * Everywhere else a still frame would be the bug; here it is the dramatic comma.
  */
-export const STILLNESS = Math.round(sec(0.5));
+export const STILLNESS = Math.round(sec(0.62));
 
 /**
  * The camera, which is the carrier across every hard cut in the film.

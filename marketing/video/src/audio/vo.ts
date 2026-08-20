@@ -85,6 +85,26 @@ export const speakable = (line: string): string => {
 export interface VoLine {
   written: string;
   spoken: string;
+  /**
+   * Kokoro's rate for THIS phrase, overriding the plan's `speed`.
+   *
+   * A plan level rate is the right lever for a film that is uniformly too quick, and it was
+   * the right lever last cut. It cannot fix an UNEVEN read, and that is what was left: with
+   * the plan at 0.9 the six phrases came back at 242 / 133 / 174 / 126 / 183 / 193 words per
+   * minute. Five of those sit in or under the broadcast band. The opening sits 40% above the
+   * top of it, and it is both the fastest thing in the film and the first thing anybody hears.
+   *
+   * The cause is length rather than rate. Kokoro reads a six word sentence at close to
+   * conversational speed and a two word fragment deliberately, because the pauses inside a
+   * fragment are a larger share of it. So the one full sentence in the script came out fast
+   * while everything around it slowed down, and lowering the plan rate far enough to fix the
+   * opening would have dragged the five phrases that were already correct.
+   *
+   * Per phrase, the correction goes exactly where the measurement says the problem is. It is
+   * part of the cache key, so it re-synthesises one phrase and leaves the other five as
+   * cache hits.
+   */
+  speed?: number;
 }
 
 /** Everything the builder needs to make one post's voiceover, and nothing it does not. */
@@ -95,6 +115,28 @@ export interface VoPlan {
   lines: VoLine[];
   /** The composition's full length, so the bed can be laid under the end card as well. */
   durationInFrames: number;
+  /**
+   * Kokoro's rate multiplier for THIS read, defaulting to VOICE_SPEED below.
+   *
+   * It is per plan rather than global because pace is a directorial decision about one film
+   * and not a property of the pipeline. Every post here reads at 1; the kinetic direction
+   * reads slower, because it is a twelve second film with six statements in it and the note
+   * that came back on the last cut was that it felt rushed. Making that a global would have
+   * re-synthesised and re-timed every other post to fix one of them, and the committed
+   * timings of a post nobody asked about are not a safe thing to move.
+   *
+   * It is part of the cache key, so lowering it re-synthesises this film's phrases and leaves
+   * every other post's cache hit intact.
+   */
+  speed?: number;
+  /**
+   * Frames of breath between this read's phrases, defaulting to GAP_FRAMES below.
+   *
+   * Same argument as `speed`, and the same reason it moved: widening the gaps is how a film
+   * gets air without touching the rate the words are actually read at. The two levers are
+   * separate on purpose, because they fix different halves of "rushed".
+   */
+  gapFrames?: number;
 }
 
 /**
@@ -146,3 +188,11 @@ export const voPlanFor = (hook: Hook, durationInFrames: number): VoPlan => ({
  */
 export const LEAD_IN_FRAMES = 6;
 export const GAP_FRAMES = 8;
+
+/**
+ * The default read rate, and the only value any `Hook` uses.
+ *
+ * A plan may override it (see `VoPlan.speed`). It is named here rather than left as a literal
+ * in the builder so that the cache key, the CLI argument and this default are one number.
+ */
+export const VOICE_SPEED = 1;

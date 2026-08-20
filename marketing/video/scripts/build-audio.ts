@@ -17,7 +17,13 @@ import {
 } from "../src/audio/mix";
 import { AUDIO as COMMITTED } from "../src/audio/timings.generated";
 import type { AudioLine, MixLoudness, PostAudio } from "../src/audio/timings";
-import { GAP_FRAMES, LEAD_IN_FRAMES, voPlanFor, type VoPlan } from "../src/audio/vo";
+import {
+  GAP_FRAMES,
+  LEAD_IN_FRAMES,
+  VOICE_SPEED,
+  voPlanFor,
+  type VoPlan,
+} from "../src/audio/vo";
 import { hooks } from "../src/data/hooks";
 import { KINETIC_NATIVE } from "../src/kinetic-native/script";
 import { voPlanForKineticNative } from "../src/kinetic-native/vo";
@@ -68,7 +74,9 @@ const GENERATED = path.join(PROJECT, "src", "audio", "timings.generated.ts");
 /** Part of every cache key, and the only thing that invalidates the whole cache. Bump it when
  * the voice model or the CLI changes in a way that changes the samples. */
 const MODEL_TAG = "kokoro-82m-hyperframes-0.8.4";
-const SPEED = 1;
+/** The default read rate. A plan may override it; see `VoPlan.speed` in src/audio/vo.ts for
+ * why pace is a property of one film rather than of this pipeline. */
+const SPEED = VOICE_SPEED;
 
 const rel = (absolute: string): string => path.relative(REPO, absolute).split(path.sep).join("/");
 
@@ -300,7 +308,7 @@ const ttsPython = (): string => {
 
 const quoted = (value: string): string => `"${value}"`;
 
-const synthesise = (spoken: string, voice: string, output: string): void => {
+const synthesise = (spoken: string, voice: string, speed: number, output: string): void => {
   const textFile = path.join(WORK_DIR, `tts-${crypto.randomBytes(6).toString("hex")}.txt`);
   fs.writeFileSync(textFile, spoken, "utf8");
   try {
@@ -309,7 +317,7 @@ const synthesise = (spoken: string, voice: string, output: string): void => {
       "tts",
       quoted(textFile),
       "--voice", voice,
-      "--speed", String(SPEED),
+      "--speed", String(speed),
       "--json",
       "--output", quoted(output),
     ].join(" ");
@@ -335,10 +343,10 @@ const synthesise = (spoken: string, voice: string, output: string): void => {
 
 // ---- The cache ----
 
-const cacheKey = (spoken: string, voice: string): string =>
+const cacheKey = (spoken: string, voice: string, speed: number): string =>
   crypto
     .createHash("sha256")
-    .update(`${MODEL_TAG}|${voice}|${String(SPEED)}|${spoken}`)
+    .update(`${MODEL_TAG}|${voice}|${String(speed)}|${spoken}`)
     .digest("hex")
     .slice(0, 16);
 
@@ -350,15 +358,23 @@ interface Phrase {
   fromCache: boolean;
 }
 
-const phrasesFor = (plan: VoPlan, force: boolean): Phrase[] =>
-  plan.lines.map((line) => {
-    const file = path.join(CACHE_DIR, `${plan.voice}-${cacheKey(line.spoken, plan.voice)}.wav`);
+const phrasesFor = (plan: VoPlan, force: boolean): Phrase[] => {
+  const planSpeed = plan.speed ?? SPEED;
+  return plan.lines.map((line) => {
+    // Per phrase first, then the plan, then the pipeline default. A phrase that names its own
+    // rate is correcting a measured outlier in one line of one film; see `VoLine.speed`.
+    const speed = line.speed ?? planSpeed;
+    const file = path.join(
+      CACHE_DIR,
+      `${plan.voice}-${cacheKey(line.spoken, plan.voice, speed)}.wav`,
+    );
     const hit = !force && fs.existsSync(file) && fs.statSync(file).size > 1024;
     if (!hit) {
-      synthesise(line.spoken, plan.voice, file);
+      synthesise(line.spoken, plan.voice, speed, file);
     }
     return { ...line, file, seconds: durationOf(file), fromCache: hit };
   });
+};
 
 // ---- Laying the track out ----
 
@@ -378,12 +394,12 @@ interface Laid {
  * four is the sum of what really came before it. A hook edited tomorrow moves these numbers
  * and the cut has to follow them, which is the whole point of writing them down.
  */
-const layOut = (phrases: Phrase[]): Laid => {
+const layOut = (phrases: Phrase[], gapFrames: number): Laid => {
   let at = LEAD_IN_FRAMES / FPS;
   const lines: AudioLine[] = phrases.map((phrase, index) => {
     const startSeconds = at;
     const endSeconds = at + phrase.seconds;
-    at = endSeconds + (index === phrases.length - 1 ? 0 : GAP_FRAMES / FPS);
+    at = endSeconds + (index === phrases.length - 1 ? 0 : gapFrames / FPS);
     return {
       written: phrase.written,
       spoken: phrase.spoken,
@@ -734,7 +750,7 @@ export const buildAudio = (options: BuildOptions): BuildResult => {
   for (const plan of building) {
     const started = Date.now();
     const phrases = phrasesFor(plan, options.force);
-    const laid = layOut(phrases);
+    const laid = layOut(phrases, plan.gapFrames ?? GAP_FRAMES);
 
     const voFile = path.join(WORK_DIR, `${plan.id}-vo.wav`);
     const anchorDb = buildVoice(plan, phrases, laid, voFile);

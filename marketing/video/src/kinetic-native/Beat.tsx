@@ -35,7 +35,7 @@ import { VIDEO_W } from "@/lib/scale";
 import { CURRENT, CURVE, EASE, INVERSE, TRAVEL } from "./motion";
 import { Plate, Texture } from "./Plate";
 import type { Anchor, Beat as BeatData } from "./script";
-import { BOX, K } from "./skin";
+import { BOX, budgetAt, K } from "./skin";
 import { fitStack, useDisplayFonts } from "./type-fit";
 import { Words, type WordEntry } from "./Words";
 
@@ -45,22 +45,23 @@ export type SeamIn = "open" | "waterfall" | "inverse";
 export type SeamOut = "waterfall" | "inverse" | "curve";
 
 /**
- * Where the fitted stack sits, and how much height it is allowed.
+ * Where the block sits, and how much height it is allowed.
  *
  * `center` is the true frame centre and the default; the other two are the app beats getting
- * out of the product's way. The height budget is what `fitStack` shrinks a tall block into,
- * and because every line is fitted to the same WIDTH first, the budget is also what decides
- * how big the type comes out. See `Anchor` in ./script.ts for why an anchored beat is a
- * composition decision about one screenshot and not the reserved caption band the captions
- * doctrine bans.
+ * out of the product's way. The budget is a CEILING that `fitStack` shrinks a tall block into,
+ * and under the two register system it only binds on the payoff beat, whose band is the
+ * narrowest in the film. Everywhere else the type size is decided by the measure, which is the
+ * type scale, and the budget is a guard. See `Anchor` in ./script.ts for why an anchored beat
+ * is a composition decision about one screenshot and not the reserved caption band the
+ * captions doctrine bans.
  */
 const LAYOUT: Record<
   Anchor,
-  { justifyContent: "center" | "flex-start" | "flex-end"; padding: number; height: number }
+  { justifyContent: "center" | "flex-start" | "flex-end"; padding: number; budget: number }
 > = {
-  center: { justifyContent: "center", padding: 0, height: BOX.stack },
-  top: { justifyContent: "flex-start", padding: BOX.top, height: BOX.bandTop },
-  bottom: { justifyContent: "flex-end", padding: BOX.bottom, height: BOX.bandBottom },
+  center: { justifyContent: "center", padding: 0, budget: BOX.stack },
+  top: { justifyContent: "flex-start", padding: BOX.top, budget: BOX.bandTop },
+  bottom: { justifyContent: "flex-end", padding: BOX.bottom, budget: BOX.bandBottom },
 };
 
 /**
@@ -81,18 +82,24 @@ const Statement = ({
   beat,
   entry,
   cutAt,
+  typeScale,
 }: {
   beat: BeatData;
   entry: WordEntry;
   cutAt: number | null;
+  typeScale: number;
 }) => {
   const anchor: Anchor = beat.anchor ?? "center";
   const layout = LAYOUT[anchor];
-  const sizes = fitStack({
+  const fitted = fitStack({
     lines: beat.lines.map((line) => line.toUpperCase()),
-    width: BOX_W * (beat.fitWidth ?? 1),
-    height: layout.height,
-    cap: BOX.cap,
+    hero: beat.hero,
+    // The measure, and the ONE number the two delivered cuts differ by. The hero is fitted to
+    // a fraction of the safe box rather than to all of it, which is where the margins come
+    // from; everything else in the block is proportional to the hero.
+    measure: BOX_W * typeScale,
+    height: budgetAt(layout.budget, typeScale),
+    cap: budgetAt(BOX.cap, typeScale),
   });
 
   const onFlood = beat.treatment === "flood";
@@ -120,7 +127,7 @@ const Statement = ({
       >
         <Words
           lines={beat.lines}
-          sizes={sizes}
+          fitted={fitted}
           reveal={beat.reveal}
           accent={beat.accent}
           slab={beat.slab}
@@ -139,10 +146,13 @@ export const Beat = ({
   beat,
   seamIn,
   seamOut,
+  typeScale,
 }: {
   beat: BeatData;
   seamIn: SeamIn;
   seamOut: SeamOut;
+  /** Fraction of the safe box the hero is fitted to. See TYPE_SCALE in ./skin. */
+  typeScale: number;
 }) => {
   const loaded = useDisplayFonts();
   const frame = useCurrentFrame();
@@ -263,7 +273,7 @@ export const Beat = ({
             camScale={beat.camScale}
             camPinRight={beat.camPinRight}
           />
-          <Statement beat={beat} entry={entry} cutAt={cutAt} />
+          <Statement beat={beat} entry={entry} cutAt={cutAt} typeScale={typeScale} />
           <Texture />
         </AbsoluteFill>
       </AbsoluteFill>
