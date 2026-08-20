@@ -17,9 +17,10 @@ import { Lockup } from "./Lockup";
 import { Stage } from "./Stage";
 import { Tick } from "./Tick";
 
-/** 2.5 seconds at 30fps. Long enough to read a line and a URL, short enough that it is not
- * the reason someone scrolls. Task 8's calculateMetadata adds it to every hook's duration. */
-export const END_CARD_FRAMES = 75;
+/** Re-exported, not defined here. The number moved to @/lib/duration when the audio path
+ * needed it from a node script and could not import this file: `@/lib/fonts` opens a
+ * delayRender handle at module scope, and there is no render to hold back outside Chromium. */
+export { END_CARD_FRAMES } from "@/lib/duration";
 
 /** In composition pixels, like SAFE, because this is a video layout decision and not app
  * chrome. Deliberately smaller in proportion than the app's welcome screen (220 of 393, so

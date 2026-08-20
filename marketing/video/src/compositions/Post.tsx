@@ -8,6 +8,7 @@
  * which owns the body clock and the end card, so adding a Sequence or a card here would put
  * two of each in every video.
  */
+import { Soundtrack } from "@/audio/Soundtrack";
 import type { Cta } from "@/config/phase";
 import { Demo } from "@/formats/Demo";
 import { Pain } from "@/formats/Pain";
@@ -20,7 +21,9 @@ import type { Hook } from "@/types";
  * with. */
 export type PostProps = { hook: Hook; cta: Cta };
 
-export const Post = ({ hook, cta }: PostProps) => {
+/** The picture. Kept as its own function so the switch below stays nothing but the switch,
+ * which is what the header promises. */
+const body = ({ hook, cta }: PostProps) => {
   switch (hook.format) {
     case "reframe":
       return <Reframe hook={hook} cta={cta} />;
@@ -38,3 +41,17 @@ export const Post = ({ hook, cta }: PostProps) => {
     }
   }
 };
+
+/**
+ * The soundtrack sits beside the picture rather than inside a format, because it is one track
+ * over the whole composition and the formats own their own body clock. It is already a
+ * finished mix when it gets here: voice anchored, bed carved and ducked under it, the sum
+ * normalised. There is nothing to tune at this end on purpose. A post with no mix built yet
+ * renders silent, exactly as it did before there was an audio path at all.
+ */
+export const Post = (props: PostProps) => (
+  <>
+    <Soundtrack id={props.hook.id} />
+    {body(props)}
+  </>
+);

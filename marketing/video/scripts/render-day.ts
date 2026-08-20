@@ -13,6 +13,7 @@ import { readLedger, writeLedger, type Ledger } from "../src/lib/ledger";
 import { FORMAT_CYCLE, selectDay, unrenderedByFormat } from "../src/lib/select";
 import { webpackOverride } from "../src/lib/webpack-override";
 import type { ClipName, Format, Hook } from "../src/types";
+import { buildAudio, reportOverruns } from "./build-audio";
 import { syncAssets } from "./sync-assets";
 import { reportContent } from "./validate-content";
 
@@ -447,7 +448,21 @@ const main = async (): Promise<void> => {
   }
   fs.mkdirSync(dayDir, { recursive: true });
 
-  // 6. Once for the whole batch. This is the slow step, roughly a minute cold, and doing it
+  // 6. AUDIO IS THE CLOCK, so it is built BEFORE the bundle rather than after: the bundle
+  //    reads src/audio/timings.generated.ts off the disk, and a composition bundled against a
+  //    stale table would mount the wrong mix. Cached per phrase, so a re-render of a day that
+  //    has already been built runs no TTS at all and costs a few seconds of ffmpeg.
+  const audioStarted = Date.now();
+  const audio = buildAudio({
+    only: plan.entries.map(({ hook }) => hook.id),
+    force: false,
+    quiet: true,
+  });
+  console.log(`audio ready in ${took(audioStarted)}`);
+  reportOverruns(audio.overruns);
+  console.log("");
+
+  // 7. Once for the whole batch. This is the slow step, roughly a minute cold, and doing it
   //    per video is the only version of this script that is measurably worse.
   const bundleStarted = Date.now();
   const bundling = progressReporter("bundle");
@@ -460,7 +475,7 @@ const main = async (): Promise<void> => {
   bundling.done();
   console.log(`bundled in ${took(bundleStarted)}`);
 
-  // 7.
+  // 8.
   const videos: Video[] = [];
   for (const { slot, hook } of plan.entries) {
     const base = baseName(slot, hook.id);
@@ -479,11 +494,24 @@ const main = async (): Promise<void> => {
       codec: "h264",
       outputLocation: path.join(dayDir, `${base}.mp4`),
       inputProps,
-      // Decision 7: gameplay b-roll carries game music and in-game voice, which is a
-      // copyright and a moderation problem on all three platforms. enforceAudioTrack keeps a
-      // valid silent AAC track in the container, because a file with no audio stream at all
-      // occasionally trips upload validators. Trending audio is added in the composer.
-      muted: true,
+      // CHANGED DELIBERATELY, and it is the one line in this file that used to be right and
+      // is now wrong.
+      //
+      // Decision 7 muted the whole render because gameplay b-roll carries game music and
+      // in-game voice, which is a copyright and a moderation problem on all three platforms,
+      // and because there was no audio path, so muting cost nothing. There is one now: every
+      // post carries a voiceover read off its own copy with a licensed bed carved under it,
+      // and `muted: true` would throw all of it away.
+      //
+      // Decision 7's actual concern is unaffected. It is enforced where it belongs, on the
+      // footage: every OffthreadVideo in this project sets `muted` on the element, so no
+      // frame of b-roll audio can reach the mix no matter what this flag says. The only
+      // sound in the container is the one src/audio built.
+      //
+      // enforceAudioTrack stays. A post whose mix has not been built yet renders silent (see
+      // Soundtrack), and a file with no audio stream at all occasionally trips the platforms'
+      // upload validators.
+      muted: false,
       enforceAudioTrack: true,
       // remotion.config.ts is read only by the CLI and Studio, so the settings that matter to
       // the output are repeated here rather than inherited.
@@ -518,7 +546,7 @@ const main = async (): Promise<void> => {
     console.log(`  ${base}.mp4 and its cover in ${took(started)}`);
   }
 
-  // 8. A --only run rebuilds both files around the video it replaced, so the folder never
+  // 9. A --only run rebuilds both files around the video it replaced, so the folder never
   //    describes itself wrongly. Rows it did not render keep their own duration, because
   //    those files were not re-encoded.
   const untouched = options.only
@@ -546,13 +574,13 @@ const main = async (): Promise<void> => {
     "utf8",
   );
 
-  // 9. Last, and only now. A crash above costs the renders that finished and nothing else:
+  // 10. Last, and only now. A crash above costs the renders that finished and nothing else:
   //    the same hooks come up again on the next run, which is the recoverable failure.
   if (plan.nextLedger) {
     writeLedger(plan.nextLedger);
   }
 
-  // 10.
+  // 11.
   console.log("");
   console.log(rel(dayDir));
   for (const video of rows) {

@@ -68,5 +68,19 @@ marketing/video/public/footage/
 marketing/video/public/noise.png
 marketing/video/.env
 
+# Generated audio. The voiceover WAVs and the finished mixes are reproducible from
+# marketing/video/src/audio/timings.generated.ts, which IS committed and holds every number
+# the pipeline measured off them, so the binaries are a `pnpm video:audio` away and do not
+# belong in history. The phrase cache is keyed on the text, so it rebuilds only what changed.
+# public/audio/bed-01.mp3 is NOT ignored: it is a licensed source asset, not an output.
+marketing/video/.audio-cache/
+marketing/video/public/audio/mix/
+
 # Scratch probe scripts the build agents left behind. Renders belong in out/.
 marketing/video/_*.ts
+
+# Installed agent skills. skills-lock.json records exactly what is installed and is committed;
+# the content itself is third-party, ~20MB, and reinstallable with `npx skills add`. Same
+# reasoning as node_modules: pin the manifest, not the payload.
+.agents/
+.claude/skills/

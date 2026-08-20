@@ -5,7 +5,9 @@ import { Sequence, useVideoConfig } from "remotion";
 
 import type { Cta } from "@/config/phase";
 
-import { END_CARD_FRAMES, EndCard } from "./EndCard";
+import { END_CARD_FRAMES } from "@/lib/duration";
+
+import { EndCard } from "./EndCard";
 
 /**
  * The body goes inside its own Sequence rather than being left to run underneath the end

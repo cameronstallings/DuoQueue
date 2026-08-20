@@ -1,25 +1,27 @@
 import { Composition } from "remotion";
 
-import { END_CARD_FRAMES } from "@/components/EndCard";
 import { BrandSheet } from "@/compositions/BrandSheet";
 import { Normalize, NORMALIZE_DEFAULTS } from "@/compositions/Normalize";
 import { Post } from "@/compositions/Post";
 import { CTA } from "@/config/phase";
 import { hooks } from "@/data/hooks";
+// The direction experiments each register themselves, so adding or dropping one is a line.
+import { MontageCompositions } from "@/directions/montage/register";
+import { kineticSample } from "@/kinetic/beats";
+import { KineticPost, kineticDuration } from "@/kinetic/KineticPost";
+import { KineticNativeCompositions } from "@/kinetic-native/register";
+import { postDuration } from "@/lib/duration";
 import { FPS, VIDEO_H, VIDEO_W } from "@/lib/scale";
+import { NativeCompositions } from "@/native/register";
 import type { Hook } from "@/types";
 
 /** 1080x1920 at 30fps is the shape every post shares, and the one Instagram, TikTok and
  * Shorts all take without reframing. */
 const FRAME = { width: VIDEO_W, height: VIDEO_H, fps: FPS } as const;
 
-/**
- * The only duration rule in the pipeline, and the reason there is one composition instead of
- * one per length. PostShell derives the body by subtracting the card from whatever this
- * returns, so a composition registered with any other number silently moves every beat in
- * the video: where a demo cuts, where the reframe swaps, how much footage plays at all.
- */
-const durationOf = (hook: Hook) => Math.round(hook.seconds * FPS) + END_CARD_FRAMES;
+/** The duration rule moved to @/lib/duration, because the audio path needs the same answer
+ * from a node script and a node script cannot import a component. See that file for why. */
+const durationOf = postDuration;
 
 /** Previews name their hook rather than indexing into the queue, so reordering hooks.ts
  * cannot quietly repoint one at a different video, and a renamed id fails when Studio loads
@@ -72,6 +74,28 @@ export const RemotionRoot = () => (
         calculateMetadata={({ props }) => ({ durationInFrames: durationOf(props.hook) })}
       />
     ))}
+    {/* Direction B, "kinetic type": an exploration registered beside the four shipping
+        formats, not in place of them. It renders from src/kinetic/ and shares only the clip
+        table, the frame scale, the font loader and the brand mark. `render-day` selects the
+        composition called `Post` by id, so nothing about `pnpm video:day` changes. */}
+    <Composition
+      id="Kinetic"
+      component={KineticPost}
+      {...FRAME}
+      durationInFrames={kineticDuration(kineticSample)}
+      defaultProps={{ post: kineticSample, cta: CTA.waitlist }}
+      calculateMetadata={({ props }) => ({ durationInFrames: kineticDuration(props.post) })}
+    />
+    <MontageCompositions />
+    {/* Direction A, "native": the CapCut read. Same footage, same clip table, none of the
+        Volt furniture, because Cameron lifted that constraint for these experiments. It
+        renders from src/native/ and registers itself there. */}
+    <NativeCompositions />
+    {/* The combined direction Cameron chose: B's kinetic type as the base with A's caption
+        rail composited over it, and every seam rebuilt under the motion doctrine. Its seam
+        plan is the comment at the top of src/kinetic-native/KineticNative.tsx. This is the
+        one to watch; B and A stay registered so the three can be compared. */}
+    <KineticNativeCompositions />
     <Composition id="BrandSheet" component={BrandSheet} {...FRAME} durationInFrames={30} />
     {/* Registered because a composition that is not registered cannot be rendered, not
         because anyone should open it. See the header of Normalize.tsx for when it is used. */}
