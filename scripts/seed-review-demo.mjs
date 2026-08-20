@@ -8,7 +8,15 @@
 //
 // Photos are the abstract Volt-palette avatars from scripts/generate-demo-avatars.mjs
 // (assets/demo/*.png) — geometric generated art, never anything that could read as a real or
-// AI-generated face.
+// AI-generated face. Passing --filming swaps in real photographs from assets/demo-filming
+// for the handful of personas that have one (see `filmingPhotos` on each persona); the
+// abstract set stays the default because it is what App Review approved.
+//
+// This script owns the review account's state completely, including the parts a person
+// creates by USING the app: its swipes, its matches and its cached Highlights row are all
+// wiped and rebuilt on every run. Without that, one recording session leaves the deck
+// permanently empty and the Matches list full of accidental threads. See
+// resetReviewAccountState() for the argument.
 //
 // Usage (from repo root, requires SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY in .env):
 //   node scripts/seed-review-demo.mjs                  create/update everything
@@ -91,6 +99,23 @@ const afterMinutesIso = (iso, m) => new Date(new Date(iso).getTime() + m * 60000
 // =============================================================================
 const REVIEW_EMAIL = "review@duoqueue.io";
 const REVIEW_ID = demoId("review-account");
+// THE LIBRARY IS THE WHOLE DEMO. Every card the deck renders prints ">> N GAMES IN
+// COMMON" (SwipeCard.tsx:61), and N is computed against *this* account's profile_games.
+// This account used to carry two games (Stardew Valley, Rocket League) against a pool of
+// personas playing Valorant, League, Helldivers and FFXIV, so almost every card in the
+// deck truthfully reported ">> NO GAMES IN COMMON" — an empty-looking product on camera,
+// and the exact opposite of the claim the app is built on.
+//
+// The nine below are picked so a normal person could plausibly own all of them (one tac
+// shooter, one BR, Rocket League, two co-op survival/horror staples, a cozy farm sim, one
+// big RPG, one party co-op game) and so that they intersect every persona in the pool at
+// least once. The intersections are deliberate, not incidental: see the per-persona
+// comments below, and the shared-count table the seeder prints at the end of a run.
+//
+// The shared count also drives get_deck's score (shared_games * 10 + skill_match * 2 +
+// shared_shows * 5 + ...), so this list plus the shows list is what orders the deck. The
+// four personas that have real photographs are given the highest overlap on purpose, so
+// they are the first four cards a recording sees.
 const REVIEWER = {
   displayName: "App Reviewer",
   age: 29,
@@ -100,12 +125,19 @@ const REVIEWER = {
   bio: "Here to find people to duo up with for relaxed co-op nights and the occasional competitive match.",
   discordUsername: null,
   games: [
+    { name: "Helldivers 2", skill: "intermediate" },
     { name: "Stardew Valley", skill: "casual" },
+    { name: "Valorant", skill: "intermediate" },
+    { name: "Lethal Company", skill: "casual" },
+    { name: "Baldur's Gate 3", skill: "casual" },
     { name: "Rocket League", skill: "casual" },
+    { name: "Overcooked! 2", skill: "casual" },
+    { name: "Apex Legends", skill: "casual" },
+    { name: "Phasmophobia", skill: "casual" },
   ],
-  shows: ["The Office"],
-  platforms: ["pc"],
-  playstyles: ["chill"],
+  shows: ["The Office", "The Boys"],
+  platforms: ["pc", "switch"],
+  playstyles: ["chill", "casual_coop", "team_player"],
   prompts: [
     { q: "My comfort game is", a: "Stardew Valley, hands down." },
     { q: "I geek out on", a: "Finding new co-op games to try with friends." },
@@ -122,6 +154,29 @@ const REVIEWER = {
 // the DB before writing this list — see the seed script's companion verification notes),
 // plausible platonic gaming bios and prompt answers. Nothing here reads as a dating profile:
 // no romantic language anywhere, every prompt answer is about how/when/what they play.
+//
+// TWO PROPERTIES THAT ARE MAINTAINED BY HAND AND MATTER ON CAMERA:
+//
+//   1. `games` intersects REVIEWER.games at least once for every persona, and by 3 or 4 for
+//      the four personas that hold a real photograph. get_deck sorts by
+//      shared_games * 10 + skill_match * 2 + shared_shows * 5 + shared_languages * 2 +
+//      region_match * 3 + play_window_overlap (capped at 6), so those four sort to the top
+//      of the deck. The first three games in each list are also the three the card renders
+//      (enrichCandidates.ts slices to 3), so shared titles are ordered first where it does
+//      not break the persona.
+//
+//   2. `filmingPhotos` names the real photographs used with --filming, explicitly, per role.
+//      It is not derived from `avatar` any more: the files in assets/demo-filming are named
+//      after the abstract slot they were generated alongside, so a filename like
+//      avatar-01-circuit-traces-profile.png says nothing about the fact that it is a
+//      photograph of a cat. Every persona without a `filmingPhotos` entry keeps its abstract
+//      avatar in both modes. A photograph is never shared between two personas — the same
+//      face twice in one deck is worse than the abstract art it replaces — which is why the
+//      one orange cat appears on exactly one persona even though two source photos show it.
+//
+// Every prompt answer here has been read as if it were a still frame in a launch video:
+// nothing anti-co-op, nothing complaining about a teammate, nothing that argues against
+// playing with another person.
 // =============================================================================
 const PERSONAS = [
   {
@@ -131,26 +186,36 @@ const PERSONAS = [
     gender: "female",
     region: "na_east",
     timezone: "America/New_York",
-    bio: "Diamond-to-Immortal Valorant grinder who takes ranked way too seriously on weeknights. Looking for a consistent duo who calls out rotations instead of just pinging.",
+    bio: "Diamond-to-Immortal Valorant grinder who takes ranked seriously on weeknights and still keeps it fun. Looking for a steady duo to talk through rotations with.",
     discordUsername: "priya.aims",
+    // Shares Valorant + Apex Legends + Rocket League with the reviewer. She is the
+    // pre-built match, so she is the face in Matches and in the chat header rather than a
+    // deck card, and she carries a photograph for that reason.
     games: [
       { name: "Valorant", skill: "competitive", rank: "Immortal 1" },
-      { name: "Counter-Strike 2", skill: "competitive" },
-      { name: "Overwatch 2", skill: "intermediate" },
       { name: "Apex Legends", skill: "competitive" },
       { name: "Rocket League", skill: "intermediate" },
+      { name: "Counter-Strike 2", skill: "competitive" },
+      { name: "Overwatch 2", skill: "intermediate" },
     ],
     shows: ["Arcane", "The Boys"],
     platforms: ["pc"],
     playstyles: ["competitive", "mic_required", "grinder"],
     prompts: [
-      { q: "My most controversial gaming opinion is", a: "Aim assist doesn't belong in a tac shooter. Fight me in ranked." },
       { q: "My ideal co-op session involves", a: "Comms on, a clear callout economy, and zero tilt after a lost round." },
-      { q: "I'll never turn down a round of", a: "Valorant ranked, especially if you can hold an angle without me asking twice." },
+      { q: "I'm looking for a duo who", a: "Wants to run it back after a loss instead of calling it a night." },
+      { q: "I'll never turn down a round of", a: "Valorant ranked with someone who likes talking the round through afterwards." },
     ],
     vibe: { intensity: 78, commsStyle: 80, coachingPref: 60, tiltHandling: "tilts_but_recovers_fast" },
     playWindow: [18, 23],
     avatar: "avatar-01-circuit-traces.png",
+    // Ginger cat. Square crop is the close-up (legible at the 92px avatar size the
+    // Highlights row and the Matches list use); the 3:4 card cover is the same cat asleep
+    // in front of a monitor with a scoreboard on it. One animal, one persona.
+    filmingPhotos: {
+      profile: "avatar-01-circuit-traces-profile.png",
+      header: "avatar-02-isometric-blocks-header.png",
+    },
     lastActiveMinutesAgo: 120,
   },
   {
@@ -162,10 +227,12 @@ const PERSONAS = [
     timezone: "Asia/Manila",
     bio: "Support main who lives for a clean vision game. Been climbing League ranked with the same three friends since season 9. There's always room for one more in the Discord.",
     discordUsername: "dae.lumen",
+    // Shares Valorant + Lethal Company with the reviewer.
     games: [
       { name: "League of Legends", skill: "ranked_grinder", rank: "Diamond II" },
-      { name: "Teamfight Tactics", skill: "competitive" },
       { name: "Valorant", skill: "intermediate" },
+      { name: "Lethal Company", skill: "casual" },
+      { name: "Teamfight Tactics", skill: "competitive" },
       { name: "Path of Exile 2", skill: "casual" },
     ],
     shows: ["Jujutsu Kaisen", "Solo Leveling"],
@@ -174,7 +241,7 @@ const PERSONAS = [
     prompts: [
       { q: "I main", a: "Whatever the draft needs. I'll flex support if it wins us the game." },
       { q: "My go-to strategy in any game is", a: "Vision control first, fights second. Wards win more games than kills." },
-      { q: "The best trash talk I've ever received was", a: "'You ward like you're getting paid by the hour.' Devastating. Accurate." },
+      { q: "You should send me a request if", a: "You want a support main who calls cooldowns. There is always room in the Discord." },
     ],
     vibe: { intensity: 70, commsStyle: 65, coachingPref: 75, tiltHandling: "gets_frustrated_sometimes" },
     playWindow: [21, 2],
@@ -190,6 +257,7 @@ const PERSONAS = [
     timezone: "Europe/Berlin",
     bio: "Deep Rock Galactic enjoyer, professional extraction-mission overthinker. Best nights are four strangers, one objective, and a lot of yelling 'rock and stone.'",
     discordUsername: "marcus.holt",
+    // Shares Helldivers 2 + Lethal Company with the reviewer.
     games: [
       { name: "Deep Rock Galactic", skill: "ranked_grinder" },
       { name: "Helldivers 2", skill: "competitive" },
@@ -207,6 +275,10 @@ const PERSONAS = [
     vibe: { intensity: 55, commsStyle: 70, coachingPref: 40, tiltHandling: "stays_calm" },
     playWindow: [19, 23],
     avatar: "avatar-03-hex-field.png",
+    filmingPhotos: {
+      profile: "avatar-06-dot-matrix-profile.png",
+      header: "avatar-06-dot-matrix-header.png",
+    },
     lastActiveMinutesAgo: 30,
   },
   {
@@ -216,12 +288,14 @@ const PERSONAS = [
     gender: "prefer_not_to_say",
     region: "na_west",
     timezone: "America/Los_Angeles",
-    bio: "Slow-paced games only, please. My Stardew farm is color-coded and my Animal Crossing island has a theme. Looking for chill co-op, not competitive anything.",
+    bio: "Slow-paced games are the whole hobby for me. My Stardew farm is color-coded and my Animal Crossing island has a theme. Looking for chill co-op company on a weekday afternoon.",
     discordUsername: "wren.oaks",
+    // Shares Stardew Valley + Overcooked! 2 with the reviewer.
     games: [
       { name: "Stardew Valley", skill: "casual" },
-      { name: "Palworld", skill: "intermediate" },
+      { name: "Overcooked! 2", skill: "casual" },
       { name: "Animal Crossing: New Horizons", skill: "casual" },
+      { name: "Palworld", skill: "intermediate" },
       { name: "Terraria", skill: "intermediate" },
       { name: "Minecraft", skill: "casual" },
     ],
@@ -231,7 +305,7 @@ const PERSONAS = [
     prompts: [
       { q: "My comfort game is", a: "Stardew Valley. My farm is unreasonably organized and I regret nothing." },
       { q: "I geek out on", a: "Cozy game soundtracks. I will talk your ear off about lo-fi farming music." },
-      { q: "My setup includes", a: "A Switch, tea, and zero interest in anything competitive after 9pm." },
+      { q: "A game night with me includes", a: "A Switch, a pot of tea, and Overcooked until one of us is crying laughing." },
     ],
     vibe: { intensity: 25, commsStyle: 30, coachingPref: 20, tiltHandling: "stays_calm" },
     playWindow: [10, 14],
@@ -247,11 +321,13 @@ const PERSONAS = [
     timezone: "Africa/Lagos",
     bio: "Grand Champion in Rocket League, still humble about it (mostly). Also deep in the Apex ranked grind, and happy to coach rotations if you're newer to the game.",
     discordUsername: "kofi.mensah",
+    // Shares Rocket League + Apex Legends + Valorant with the reviewer.
     games: [
       { name: "Rocket League", skill: "ranked_grinder", rank: "Grand Champion" },
       { name: "Apex Legends", skill: "competitive" },
-      { name: "Fortnite", skill: "intermediate" },
+      { name: "Valorant", skill: "intermediate" },
       { name: "Marvel Rivals", skill: "competitive" },
+      { name: "Fortnite", skill: "intermediate" },
     ],
     shows: ["The Boys", "Attack on Titan"],
     platforms: ["pc", "xbox"],
@@ -264,7 +340,13 @@ const PERSONAS = [
     vibe: { intensity: 82, commsStyle: 75, coachingPref: 65, tiltHandling: "tilts_but_recovers_fast" },
     playWindow: [17, 22],
     avatar: "avatar-05-concentric-target.png",
-    lastActiveMinutesAgo: 180,
+    // Two cats on a cat tree against a city window. No person in frame, so nothing about
+    // this photograph can contradict a name, an age or anything else on the card.
+    filmingPhotos: {
+      profile: "avatar-05-concentric-target-profile.png",
+      header: "avatar-05-concentric-target-header.png",
+    },
+    lastActiveMinutesAgo: 12,
   },
   {
     slug: "sana-orimoto",
@@ -273,26 +355,36 @@ const PERSONAS = [
     gender: "female",
     region: "asia",
     timezone: "Asia/Tokyo",
-    bio: "FFXIV raider who builds spreadsheets for fun. Currently pushing ultimate content and always recruiting reliable static members who show up on time.",
+    bio: "FFXIV raider who builds spreadsheets for fun. Currently pushing ultimate content, and my static unwinds afterwards with Helldivers and a very loud Overcooked night.",
     discordUsername: "sana.orimoto",
+    // Shares Helldivers 2 + Baldur's Gate 3 + Stardew Valley + Overcooked! 2 with the
+    // reviewer: the deepest overlap in the pool, which is what puts her first in the deck.
     games: [
       { name: "Final Fantasy XIV", skill: "ranked_grinder", rank: "Savage Cleared" },
+      { name: "Helldivers 2", skill: "competitive" },
+      { name: "Baldur's Gate 3", skill: "casual" },
+      { name: "Stardew Valley", skill: "casual" },
+      { name: "Overcooked! 2", skill: "casual" },
       { name: "Genshin Impact", skill: "competitive" },
-      { name: "Monster Hunter Wilds", skill: "intermediate" },
-      { name: "World of Warcraft", skill: "competitive" },
     ],
     shows: ["Demon Slayer", "Spy x Family"],
     platforms: ["pc", "playstation"],
     playstyles: ["team_player", "grinder", "mic_required"],
     prompts: [
-      { q: "I'm looking for a duo who", a: "Shows up for raid night on time and actually reads the boss mechanics." },
+      { q: "I'm looking for a duo who", a: "Shows up for raid night and is happy to run the mechanic one more time." },
       { q: "My proudest gaming achievement is", a: "Cleared ultimate content in FFXIV with a static I built from scratch." },
       { q: "Ask me about my favorite build", a: "My Genshin support rotation. I have opinions and a spreadsheet." },
     ],
     vibe: { intensity: 60, commsStyle: 55, coachingPref: 70, tiltHandling: "stays_calm" },
     playWindow: [20, 1],
     avatar: "avatar-06-dot-matrix.png",
-    lastActiveMinutesAgo: 360,
+    // Graduation photograph: a woman in her early twenties, which is what "Sana, 23" needs
+    // the picture to show.
+    filmingPhotos: {
+      profile: "avatar-07-radar-sweep-profile.png",
+      header: "avatar-07-radar-sweep-header.png",
+    },
+    lastActiveMinutesAgo: 95,
   },
   {
     slug: "tobin-reyes",
@@ -303,9 +395,11 @@ const PERSONAS = [
     timezone: "Australia/Sydney",
     bio: "Couch co-op evangelist. It Takes Two, Overcooked, anything that makes two people yell at a screen together. Bring snacks, I'll bring the chaos.",
     discordUsername: "tobin.reyes",
+    // Shares Overcooked! 2 + Rocket League with the reviewer.
     games: [
-      { name: "It Takes Two", skill: "casual" },
       { name: "Overcooked! 2", skill: "casual" },
+      { name: "Rocket League", skill: "casual" },
+      { name: "It Takes Two", skill: "casual" },
       { name: "Fall Guys", skill: "casual" },
       { name: "Human: Fall Flat", skill: "casual" },
     ],
@@ -322,216 +416,33 @@ const PERSONAS = [
     avatar: "avatar-07-radar-sweep.png",
     lastActiveMinutesAgo: 720,
   },
-  {
-    slug: "nadia-farouk",
-    displayName: "Nadia",
-    age: 28,
-    gender: "female",
-    region: "mena",
-    timezone: "Asia/Dubai",
-    bio: "Souls-like completionist with a soft spot for co-op summons. Slow, deliberate, and will absolutely make you watch a boss fight cutscene twice.",
-    discordUsername: "nadia.farouk",
-    games: [
-      { name: "Elden Ring", skill: "competitive" },
-      { name: "Baldur's Gate 3", skill: "ranked_grinder" },
-      { name: "Diablo IV", skill: "intermediate" },
-      { name: "Path of Exile 2", skill: "intermediate" },
-    ],
-    shows: ["Arcane", "Cyberpunk: Edgerunners"],
-    platforms: ["pc", "playstation"],
-    playstyles: ["solo_queue", "chill", "no_mic"],
-    prompts: [
-      { q: "The genre I always come back to is", a: "Souls-likes. I like games that respect my time and punish my mistakes." },
-      { q: "My most underrated pick is", a: "Elden Ring co-op summons, an underrated way to make a brutal boss fun." },
-      { q: "A game I'll defend to the death is", a: "Baldur's Gate 3. Yes, every playthrough takes 100 hours. Worth it." },
-    ],
-    vibe: { intensity: 45, commsStyle: 35, coachingPref: 50, tiltHandling: "needs_space_after_losses" },
-    playWindow: [21, 0],
-    avatar: "avatar-08-scanline-glitch.png",
-    lastActiveMinutesAgo: 540,
-  },
-  {
-    slug: "chase-abernathy",
-    displayName: "Chase",
-    age: 25,
-    gender: "male",
-    region: "na_east",
-    timezone: "America/Chicago",
-    bio: "Horror co-op only after midnight, non-negotiable. Phasmophobia and Lethal Company regular. Bring a working mic and low expectations for our survival odds.",
-    discordUsername: "chase.abernathy",
-    games: [
-      { name: "Phasmophobia", skill: "competitive" },
-      { name: "Lethal Company", skill: "ranked_grinder" },
-      { name: "Left 4 Dead 2", skill: "intermediate" },
-      { name: "DayZ", skill: "casual" },
-    ],
-    shows: ["The Office", "The Boys"],
-    platforms: ["pc"],
-    playstyles: ["late_night", "mic_required", "casual_coop"],
-    prompts: [
-      { q: "My gamertag origin story is", a: "Picked it during a Phasmophobia session at 2am and it just stuck." },
-      { q: "The last game that made me rage quit", a: "Lethal Company, when a teammate opened every door at once. Every time." },
-      { q: "I'll never turn down a round of", a: "Anything horror co-op after midnight. Bring headphones and low expectations." },
-    ],
-    vibe: { intensity: 50, commsStyle: 85, coachingPref: 30, tiltHandling: "gets_frustrated_sometimes" },
-    playWindow: [22, 3],
-    avatar: "avatar-09-triangle-mesh.png",
-    lastActiveMinutesAgo: 1200,
-  },
-  {
-    slug: "yuki-hashimoto",
-    displayName: "Yuki",
-    age: 22,
-    gender: "non_binary",
-    region: "asia",
-    timezone: "Asia/Seoul",
-    bio: "Fighting game grinder who studies frame data for fun. Street Fighter 6 ranked most evenings. Always looking for training partners, not just opponents.",
-    discordUsername: "yuki.hash",
-    games: [
-      { name: "Street Fighter 6", skill: "ranked_grinder", rank: "Master Rank" },
-      { name: "Tekken 8", skill: "competitive" },
-      { name: "Super Smash Bros. Ultimate", skill: "competitive" },
-      { name: "Apex Legends", skill: "casual" },
-    ],
-    shows: ["My Hero Academia", "Jujutsu Kaisen"],
-    platforms: ["pc", "playstation"],
-    playstyles: ["competitive", "solo_queue", "grinder"],
-    prompts: [
-      { q: "My tier list is unhinged because", a: "I will die on the hill that execution matters more than matchup knowledge." },
-      { q: "A skill I'm weirdly proud of", a: "Frame data. Ask me anything about punish windows, I have it memorized." },
-      { q: "I peaked in", a: "Street Fighter 6 ranked, briefly, before someone found my sidestep habit." },
-    ],
-    vibe: { intensity: 88, commsStyle: 40, coachingPref: 80, tiltHandling: "tilts_but_recovers_fast" },
-    playWindow: [15, 19],
-    avatar: "avatar-10-pixel-blocks.png",
-    lastActiveMinutesAgo: 2880,
-  },
-  {
-    slug: "bea-lindqvist",
-    displayName: "Bea",
-    age: 30,
-    gender: "female",
-    region: "eu",
-    timezone: "Europe/London",
-    bio: "Survival crafting is basically my meditation practice. Valheim base currently has a moat. Looking for someone patient enough to help me finish the roof.",
-    discordUsername: "bea.lindqvist",
-    games: [
-      { name: "Valheim", skill: "intermediate" },
-      { name: "Sons of the Forest", skill: "intermediate" },
-      { name: "Raft", skill: "casual" },
-      { name: "Rust", skill: "competitive" },
-    ],
-    shows: ["The Office", "Community"],
-    platforms: ["pc"],
-    playstyles: ["chill", "casual_coop", "weekend_warrior"],
-    prompts: [
-      { q: "My ideal co-op session involves", a: "A half-built base, a thunderstorm rolling in, and someone forgetting to save." },
-      { q: "My backlog of shame includes", a: "Three survival games I abandoned right after building the first wall." },
-      { q: "I geek out on", a: "Base-building efficiency. Ask me how I organized my Valheim storage room." },
-    ],
-    vibe: { intensity: 40, commsStyle: 50, coachingPref: 35, tiltHandling: "stays_calm" },
-    playWindow: [18, 21],
-    avatar: "avatar-11-orbit-rings.png",
-    lastActiveMinutesAgo: 240,
-  },
-  {
-    slug: "remy-castillo",
-    displayName: "Remy",
-    age: 27,
-    gender: "male",
-    region: "sa",
-    timezone: "America/Sao_Paulo",
-    bio: "Tac-shooter squad leader. I'll call the rotation, you just need to hold the angle. Rainbow Six and Warzone most nights after work.",
-    discordUsername: "remy.castillo",
-    games: [
-      { name: "Call of Duty: Warzone", skill: "competitive" },
-      { name: "Rainbow Six Siege", skill: "ranked_grinder", rank: "Diamond" },
-      { name: "Counter-Strike 2", skill: "intermediate" },
-      { name: "Escape from Tarkov", skill: "competitive" },
-    ],
-    shows: ["Invincible", "The Mandalorian"],
-    platforms: ["pc", "playstation"],
-    playstyles: ["team_player", "mic_required", "competitive"],
-    prompts: [
-      { q: "My go-to strategy in any game is", a: "Call the rotation before it's obvious. Info wins more than aim does." },
-      { q: "I get weirdly competitive about", a: "Site executes. I will run the same one ten times until it's clean." },
-      { q: "My ideal squad has", a: "One shot-caller, one entry, and nobody who mutes comms mid-round." },
-    ],
-    vibe: { intensity: 75, commsStyle: 78, coachingPref: 55, tiltHandling: "tilts_but_recovers_fast" },
-    playWindow: [20, 0],
-    avatar: "avatar-12-spectrum-radial.png",
-    lastActiveMinutesAgo: 420,
-  },
-  {
-    slug: "ophelia-marsh",
-    displayName: "Ophelia",
-    age: 35,
-    gender: "female",
-    region: "na_west",
-    timezone: "America/Denver",
-    bio: "Roguelite and deckbuilder obsessive. I will absolutely talk your ear off about run strategy in Slay the Spire or Hades II if you let me.",
-    discordUsername: "ophelia.marsh",
-    games: [
-      { name: "Slay the Spire", skill: "ranked_grinder" },
-      { name: "Hades II", skill: "competitive" },
-      { name: "Balatro", skill: "intermediate" },
-      { name: "Path of Exile 2", skill: "casual" },
-    ],
-    shows: ["Community", "Rick and Morty"],
-    platforms: ["pc", "switch"],
-    playstyles: ["solo_queue", "chill", "no_mic"],
-    prompts: [
-      { q: "My most controversial gaming opinion is", a: "Roguelites are better solo. Co-op just means two people arguing over relics." },
-      { q: "The genre I always come back to is", a: "Deckbuilders. Give me a run-based game and a spreadsheet and I'm gone for hours." },
-      { q: "I main", a: "Whatever character punishes greedy play. Currently it's the Hades II witch." },
-    ],
-    vibe: { intensity: 35, commsStyle: 25, coachingPref: 45, tiltHandling: "stays_calm" },
-    playWindow: [20, 23],
-    avatar: "avatar-13-crosshair-dpad.png",
-    lastActiveMinutesAgo: 900,
-  },
-  {
-    slug: "devon-price",
-    displayName: "Devon",
-    age: 32,
-    gender: "male",
-    region: "na_east",
-    timezone: "America/New_York",
-    bio: "Factory optimization is a personality trait at this point. Satisfactory and Factorio enjoyer. If you like spreadsheets and conveyor belts, we'll get along.",
-    discordUsername: "devon.price",
-    games: [
-      { name: "Satisfactory", skill: "ranked_grinder" },
-      { name: "Factorio", skill: "competitive" },
-      { name: "Cities: Skylines II", skill: "intermediate" },
-      { name: "No Man's Sky", skill: "casual" },
-    ],
-    shows: ["The Office", "Parks and Recreation"],
-    platforms: ["pc"],
-    playstyles: ["solo_queue", "chill", "weekend_warrior"],
-    prompts: [
-      { q: "My setup includes", a: "Way too many browser tabs open to a factory planner, if I'm honest." },
-      { q: "The role I always end up playing is", a: "The one optimizing throughput while everyone else just wants to build." },
-      { q: "A game I could talk about for hours", a: "Factorio. Send help, or better, send blueprints." },
-    ],
-    vibe: { intensity: 30, commsStyle: 20, coachingPref: 40, tiltHandling: "stays_calm" },
-    playWindow: [19, 22],
-    avatar: "avatar-14-node-graph.png",
-    lastActiveMinutesAgo: 60,
-  },
 ];
 
 const MATCH_PARTNER_SLUG = "priya-ferra";
-const ADMIRER_SLUGS = ["marcus-holt", "kofi-mensah", "bea-lindqvist"];
+// The three profiles in "Who wants to duo". All three hold real photographs under
+// --filming, because that row is a grid of faces at avatar size and one abstract tile in it
+// is as obvious as a whole deck of them.
+const ADMIRER_SLUGS = ["sana-orimoto", "marcus-holt", "kofi-mensah"];
+
+// The Highlights row (StandoutsRow.tsx) is on screen behind the deck in essentially every
+// frame of a recording. get_standouts picks its set ONCE per day and caches it in
+// daily_standouts, ordering by shared-game count and then `random()`, so left alone it will
+// happily fill that row with whichever personas it feels like — including the ones with no
+// photograph. Under --filming the seeder writes the row itself, in this order, for today and
+// the next few days. Without --filming it only clears the cache and lets the function pick,
+// which is what App Review saw.
+const FILMING_STANDOUT_SLUGS = ["sana-orimoto", "marcus-holt", "kofi-mensah", "priya-ferra"];
+const STANDOUT_DAYS_AHEAD = 3;
 
 // The pre-built conversation: two people arranging to play together, spread over ~4 days,
 // ending on an unread message from the demo partner so the Matches list shows its unread
 // badge for the reviewer without them having to do anything first.
 const CONVERSATION = [
-  { sender: "partner", atMin: 5900, readAfterMin: 35, text: "Hey! Saw we're both grinding Valorant ranked, wanted to say hi. What rank are you sitting at right now?" },
-  { sender: "reviewer", atMin: 5865, readAfterMin: 10, text: "Hey! Bouncing between Diamond and Immortal depending on the day. You?" },
-  { sender: "partner", atMin: 5850, readAfterMin: 20, text: "Immortal 1, currently tilting off a 3-game losing streak lol. Want to duo queue sometime this week?" },
+  { sender: "partner", atMin: 5900, readAfterMin: 35, text: "Hey! Saw we both play Valorant and Rocket League, wanted to say hi. How often are you on?" },
+  { sender: "reviewer", atMin: 5865, readAfterMin: 10, text: "Hey! Most weeknights after 7. I'm nowhere near your rank but I'll hold an angle." },
+  { sender: "partner", atMin: 5850, readAfterMin: 20, text: "Honestly that's all I want. Immortal 1 and currently tilting off a 3-game slide lol. Want to duo this week?" },
   { sender: "reviewer", atMin: 4200, readAfterMin: 15, text: "Yes, absolutely. I'm free most evenings after 7pm my time. Does that work?" },
-  { sender: "partner", atMin: 4180, readAfterMin: 40, text: "Perfect, I'm usually on by 6. Let's aim for Thursday, I'll bring snacks and a controller cooldown." },
+  { sender: "partner", atMin: 4180, readAfterMin: 40, text: "Perfect, I'm usually on by 6. Let's aim for Thursday. I'll warm up and leave the ranked anxiety at the door." },
   { sender: "reviewer", atMin: 2900, readAfterMin: 5, text: "Thursday works. I'll queue up around 7 and send an invite." },
   { sender: "partner", atMin: 1400, readAfterMin: 120, text: "Bumping this. Still on for tonight? I've got the evening free and I'm dying to try that new agent." },
   { sender: "partner", atMin: 120, readAfterMin: null, text: "Hey, you around later tonight? Didn't want to double-book the slot if you're busy." },
@@ -641,23 +552,34 @@ async function ensureVibe(id, vibe) {
  *
  * Default: one square abstract avatar serving both roles, exactly as App Review saw it.
  *
- * Filming: a per-role crop from assets/demo-filming — square for the avatar, 3:4 for the
- * deck card. One file cannot serve both here, because a square photo cover-fitted onto a
- * portrait card crops top and bottom, which decapitates anyone not dead centre. That does
- * not matter for geometric art and matters a great deal for a face.
+ * Filming: whatever `p.filmingPhotos` names for that role, out of assets/demo-filming —
+ * square for the avatar, 3:4 for the deck card. One file cannot serve both roles, because a
+ * square photo cover-fitted onto a portrait card crops top and bottom, which decapitates
+ * anyone not dead centre. That does not matter for geometric art and matters a great deal
+ * for a face. The two roles do not have to come from the same source photograph either, as
+ * long as they show the same subject: Priya's avatar is a close-up of the cat (legible at
+ * 92px) and her card cover is the same cat in a wider shot.
  *
- * Falls back to the abstract avatar per persona when no filming photo exists, so a partial
- * photo set works and the deck is never missing an image. */
-function avatarPathFor(avatarFile, role, filming) {
-  if (!filming) return path.join(AVATAR_DIR, avatarFile);
-  const candidate = path.join(FILMING_DIR, avatarFile.replace(/\.png$/, `-${role}.png`));
-  return existsSync(candidate) ? candidate : path.join(AVATAR_DIR, avatarFile);
+ * A persona with no `filmingPhotos` keeps its abstract avatar even under --filming. That is
+ * the honest failure mode: there are five usable photographs and fourteen personas, so most
+ * of the pool has no picture and the seeder says so out loud at the end of the run rather
+ * than quietly papering over it. */
+function photoPathFor(p, role, filming) {
+  const file = filming ? p.filmingPhotos?.[role] : null;
+  if (!file) return path.join(AVATAR_DIR, p.avatar);
+  const candidate = path.join(FILMING_DIR, file);
+  if (!existsSync(candidate)) {
+    throw new Error(
+      `${p.displayName ?? p.slug}: filmingPhotos.${role} points at "${file}", which is not in assets/demo-filming`,
+    );
+  }
+  return candidate;
 }
 
-async function uploadAvatarAndBuildMediaRows(id, avatarFile, filming) {
+async function uploadAvatarAndBuildMediaRows(id, p, filming) {
   const rows = [];
   for (const role of ["profile", "header"]) {
-    const buffer = readFileSync(avatarPathFor(avatarFile, role, filming));
+    const buffer = readFileSync(photoPathFor(p, role, filming));
     const storagePath = `${id}/${role}.png`;
     const { error } = await db.storage.from("profile-photos").upload(storagePath, buffer, {
       contentType: "image/png",
@@ -725,7 +647,7 @@ async function seedPersonaTree(id, p, { gameIdByName, showIdByName, promptIdByQu
       position: i,
     })),
   );
-  await replaceRows("profile_media", id, "profile_id", await uploadAvatarAndBuildMediaRows(id, p.avatar, filming));
+  await replaceRows("profile_media", id, "profile_id", await uploadAvatarAndBuildMediaRows(id, p, filming));
   await ensureVibe(id, p.vibe);
 }
 
@@ -737,6 +659,90 @@ async function ensureSwipe(swiperId, targetId, action, createdAtIso) {
       { onConflict: "swiper_id,target_id" },
     );
   if (error) throw new Error(`swipe upsert failed (${swiperId} -> ${targetId}): ${error.message}`);
+}
+
+/** Puts the review account back to a freshly-seeded state.
+ *
+ * Everything else in this script is idempotent because each child table is deleted and
+ * re-inserted per profile. Four things were not, and they are exactly the four that a
+ * session of actually USING the account destroys:
+ *
+ *   * swipes made BY the review account. get_deck excludes anyone you have already swiped,
+ *     so one recording pass empties the deck permanently. Before this ran, the account had
+ *     swiped all eighteen profiles in the database and its deck returned zero rows — a
+ *     re-seed produced no deck at all, for filming or for a re-review.
+ *   * swipes made AT it, which decide the "Who wants to duo" list.
+ *   * matches. Liking a persona back mid-recording creates a real match, so the Matches
+ *     list fills up with empty threads next to the one pre-built conversation.
+ *   * daily_standouts, the per-day cache behind the Highlights row.
+ *
+ * Deleting a match cascades to its messages, discord_shares, match_feedback, match_sessions
+ * and match_nudges (checked against the live constraint definitions), so the single delete
+ * below is enough. */
+async function resetReviewAccountState(reviewId) {
+  const { data: matchRows, error: mErr } = await db
+    .from("matches")
+    .select("id")
+    .or(`user_a_id.eq.${reviewId},user_b_id.eq.${reviewId}`);
+  if (mErr) throw new Error(`match lookup failed for ${reviewId}: ${mErr.message}`);
+  const matchIds = (matchRows ?? []).map((r) => r.id);
+  if (matchIds.length > 0) {
+    const { error } = await db.from("matches").delete().in("id", matchIds);
+    if (error) throw new Error(`match reset failed: ${error.message}`);
+  }
+
+  const { error: outErr } = await db.from("swipes").delete().eq("swiper_id", reviewId);
+  if (outErr) throw new Error(`outgoing swipe reset failed: ${outErr.message}`);
+  const { error: inErr } = await db.from("swipes").delete().eq("target_id", reviewId);
+  if (inErr) throw new Error(`incoming swipe reset failed: ${inErr.message}`);
+
+  const { error: dsErr } = await db.from("daily_standouts").delete().eq("profile_id", reviewId);
+  if (dsErr) throw new Error(`daily_standouts reset failed: ${dsErr.message}`);
+
+  return { matchesCleared: matchIds.length };
+}
+
+/** Keeps real accounts out of the demo pool.
+ *
+ * 0059 hides is_demo profiles from ordinary users. It does not do the reverse: get_deck's
+ * predicate is `(p.is_demo = false or v_viewer_is_demo)`, which for a demo viewer is
+ * trivially true, so the review account's deck also contains every real signed-up account
+ * — Cameron's own two, an Apple sign-in test account, and a genuine third-party user with a
+ * real name and a real photograph. That is wrong twice over: a stranger's profile has no
+ * business appearing in marketing footage, and their half-finished test profiles look like
+ * broken cards next to the demo pool.
+ *
+ * A recorded `pass` from the review account is the smallest possible fix. get_deck and
+ * get_standouts both exclude anyone the viewer has already swiped, swipes are directional
+ * so nothing about the other account changes, and `--remove` deletes these rows along with
+ * the review account itself. It applies in both modes: a re-review should not be shown real
+ * users either. */
+async function excludeRealAccountsFromDemoPool(reviewId) {
+  const { data, error } = await db.from("profiles").select("id, display_name").eq("is_demo", false);
+  if (error) throw new Error(`real-account lookup failed: ${error.message}`);
+  const rows = data ?? [];
+  for (const row of rows) {
+    if (row.id === reviewId) continue;
+    await ensureSwipe(reviewId, row.id, "pass", minutesAgoIso(10080)); // a week ago
+  }
+  return rows.map((r) => r.display_name);
+}
+
+/** Writes the Highlights row by hand for the next few days. See FILMING_STANDOUT_SLUGS. */
+async function seedStandouts(reviewId, standoutIds) {
+  const today = new Date();
+  const rows = [];
+  for (let d = 0; d <= STANDOUT_DAYS_AHEAD; d++) {
+    const day = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + d))
+      .toISOString()
+      .slice(0, 10);
+    standoutIds.forEach((standoutId, position) => {
+      rows.push({ profile_id: reviewId, standout_id: standoutId, day, position });
+    });
+  }
+  const { error } = await db.from("daily_standouts").insert(rows);
+  if (error) throw new Error(`daily_standouts insert failed: ${error.message}`);
+  return rows.length;
 }
 
 async function ensureMatchAndConversation(reviewId, partnerId) {
@@ -870,17 +876,58 @@ async function main() {
     await seedPersonaTree(id, p, { gameIdByName, showIdByName, promptIdByQuestion, filming });
   }
 
+  console.log("Resetting the review account's own deck/match/standout state...");
+  const { matchesCleared } = await resetReviewAccountState(REVIEW_ID);
+  console.log(`  cleared ${matchesCleared} match(es), every swipe in both directions, and the standouts cache`);
+
+  const realNames = await excludeRealAccountsFromDemoPool(REVIEW_ID);
+  console.log(`  hid ${realNames.length} real account(s) from the demo deck: ${realNames.join(", ")}`);
+
   console.log("Building the pre-seeded match + conversation...");
   const partnerId = personaIds.get(MATCH_PARTNER_SLUG);
   const matchId = await ensureMatchAndConversation(REVIEW_ID, partnerId);
   console.log(`  match ${matchId} with ${PERSONAS.find((p) => p.slug === MATCH_PARTNER_SLUG).displayName}, ${CONVERSATION.length} messages, last one unread`);
 
   console.log("Seeding inbound interest (Who wants to duo)...");
-  const admirerCreatedAtByMin = { "marcus-holt": 180, "kofi-mensah": 1440, "bea-lindqvist": 360 };
+  const admirerCreatedAtByMin = { "sana-orimoto": 180, "kofi-mensah": 1440, "wren-oaks": 360 };
   for (const slug of ADMIRER_SLUGS) {
     const id = personaIds.get(slug);
-    await ensureSwipe(id, REVIEW_ID, "like", minutesAgoIso(admirerCreatedAtByMin[slug]));
+    await ensureSwipe(id, REVIEW_ID, "like", minutesAgoIso(admirerCreatedAtByMin[slug] ?? 600));
     console.log(`  ${PERSONAS.find((p) => p.slug === slug).displayName} liked the review account`);
+  }
+
+  if (filming) {
+    const standoutIds = FILMING_STANDOUT_SLUGS.map((slug) => personaIds.get(slug));
+    const written = await seedStandouts(REVIEW_ID, standoutIds);
+    console.log(
+      `Pinned the Highlights row to ${FILMING_STANDOUT_SLUGS.map((s) => PERSONAS.find((p) => p.slug === s).displayName).join(", ")} ` +
+        `for today + ${STANDOUT_DAYS_AHEAD} day(s) (${written} rows).`,
+    );
+  }
+
+  // The count that actually decides whether a card reads ">> NO GAMES IN COMMON". Printed
+  // per persona so a bad edit to any game list is visible in the run output rather than
+  // three days later in a recording.
+  const reviewerGames = new Set(REVIEWER.games.map((g) => g.name));
+  const reviewerShows = new Set(REVIEWER.shows);
+  console.log("");
+  console.log("Shared-game count against the review account:");
+  for (const p of PERSONAS) {
+    const shared = p.games.filter((g) => reviewerGames.has(g.name)).map((g) => g.name);
+    const sharedShows = p.shows.filter((s) => reviewerShows.has(s)).length;
+    const photo = p.filmingPhotos ? (filming ? "photo" : "abstract (--filming off)") : "abstract";
+    const flag = shared.length === 0 ? "  <-- NO GAMES IN COMMON" : "";
+    console.log(
+      `  ${p.displayName.padEnd(8)} ${String(shared.length)} games, ${sharedShows} shows, ${photo.padEnd(24)} ${shared.join(", ")}${flag}`,
+    );
+  }
+  const withoutPhoto = PERSONAS.filter((p) => !p.filmingPhotos).map((p) => p.displayName);
+  if (filming && withoutPhoto.length > 0) {
+    console.log("");
+    console.log(`NOTE: ${withoutPhoto.length} persona(s) still show abstract art because there is no`);
+    console.log(`      photograph for them: ${withoutPhoto.join(", ")}.`);
+    console.log("      They sort below the photographed personas in the deck, but a long recording");
+    console.log("      will reach them. More source photos is the only fix.");
   }
 
   console.log("");
