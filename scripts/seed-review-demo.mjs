@@ -789,6 +789,41 @@ async function ensureMatchAndConversation(reviewId, partnerId) {
 // Removal
 // =============================================================================
 
+/** Deletes demo accounts that this file no longer describes.
+ *
+ * Every other write here is idempotent for the personas the file DOES list, because each
+ * child table is delete-then-inserted per id on every run. Nothing was idempotent about
+ * REMOVING a persona: dropping one from PERSONAS simply stopped updating its rows, and the
+ * account stayed in the database and stayed in the deck.
+ *
+ * That is not hypothetical. Seven personas were cut, the seeder reported "demo profiles: 7",
+ * and a recording made afterwards still swiped into Chase and Bea, because fourteen accounts
+ * were still live. The count it prints describes the file, not the database.
+ *
+ * The expected set is derived exactly the way the ids are, so it cannot drift from the file.
+ * Deleting the auth user cascades to profiles and everything referencing them, which is the
+ * same mechanism --remove relies on. */
+async function pruneRemovedDemoAccounts() {
+  const expected = new Set([REVIEW_ID, ...PERSONAS.map((p) => demoId(`profile:${p.slug}`))]);
+  const { data, error } = await db.from("profiles").select("id, display_name").eq("is_demo", true);
+  if (error) throw new Error(`demo-profile lookup failed: ${error.message}`);
+
+  const stale = (data ?? []).filter((row) => !expected.has(row.id));
+  if (stale.length === 0) return [];
+
+  const storagePaths = stale.flatMap((row) => [`${row.id}/profile.png`, `${row.id}/header.png`]);
+  const { error: rmErr } = await db.storage.from("profile-photos").remove(storagePaths);
+  if (rmErr) console.warn(`  storage removal warning: ${rmErr.message}`);
+
+  for (const row of stale) {
+    const { error: delErr } = await db.auth.admin.deleteUser(row.id);
+    if (delErr && !(delErr.status === 404 || /not.*found/i.test(delErr.message ?? ""))) {
+      throw new Error(`deleteUser failed for ${row.display_name} (${row.id}): ${delErr.message}`);
+    }
+  }
+  return stale.map((row) => row.display_name);
+}
+
 async function removeAll() {
   const allIds = [REVIEW_ID, ...PERSONAS.map((p) => demoId(`profile:${p.slug}`))];
   console.log(`Removing ${allIds.length} demo/review accounts and everything that hangs off them...`);
@@ -874,6 +909,11 @@ async function main() {
     console.log(`Ensuring demo profile: ${p.displayName} (${p.slug})...`);
     await ensureAuthUser(id, `duoqueue.demo.${p.slug}@duoqueue.io`, p, { resetPassword: false });
     await seedPersonaTree(id, p, { gameIdByName, showIdByName, promptIdByQuestion, filming });
+  }
+
+  const pruned = await pruneRemovedDemoAccounts();
+  if (pruned.length > 0) {
+    console.log(`Pruned ${pruned.length} demo account(s) no longer in this file: ${pruned.join(", ")}`);
   }
 
   console.log("Resetting the review account's own deck/match/standout state...");
