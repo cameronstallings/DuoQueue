@@ -14,6 +14,7 @@ import { postDuration } from "@/lib/duration";
 import { FPS, VIDEO_H, VIDEO_W } from "@/lib/scale";
 import { NativeCompositions } from "@/native/register";
 import type { Hook } from "@/types";
+import { V6Compositions } from "@/v6/register";
 
 /** 1080x1920 at 30fps is the shape every post shares, and the one Instagram, TikTok and
  * Shorts all take without reframing. */
@@ -96,6 +97,12 @@ export const RemotionRoot = () => (
         plan is the comment at the top of src/kinetic-native/KineticNative.tsx. This is the
         one to watch; B and A stay registered so the three can be compared. */}
     <KineticNativeCompositions />
+    {/* The sixth script, in three genuinely different looks. Cameron's note on the fifth was
+        that he does not like how it looks at all besides the end card, so these are three
+        approaches rather than three settings of one: the app as the hero, the end card's own
+        language extended backwards through the whole film, and a gameplay led trailer. They
+        render from src/v6/ and register themselves there. */}
+    <V6Compositions />
     <Composition id="BrandSheet" component={BrandSheet} {...FRAME} durationInFrames={30} />
     {/* Registered because a composition that is not registered cannot be rendered, not
         because anyone should open it. See the header of Normalize.tsx for when it is used. */}

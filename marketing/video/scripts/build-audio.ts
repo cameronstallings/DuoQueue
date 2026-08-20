@@ -29,6 +29,8 @@ import { KINETIC_NATIVE } from "../src/kinetic-native/script";
 import { voPlanForKineticNative } from "../src/kinetic-native/vo";
 import { postDuration } from "../src/lib/duration";
 import { FPS } from "../src/lib/scale";
+import { V6 } from "../src/v6/script";
+import { voPlanForV6 } from "../src/v6/vo";
 
 /**
  * THE AUDIO PATH. `pnpm video:audio` from the repo root ends with a finished, loudness
@@ -680,6 +682,10 @@ const emit = (rows: PostAudio[]): string => {
 export const allPlans = (): VoPlan[] => [
   ...hooks.map((hook) => voPlanFor(hook, postDuration(hook))),
   voPlanForKineticNative(KINETIC_NATIVE),
+  // The sixth script, read ONCE for all three of its directions. They differ in look and in
+  // which clip sits under which beat, never in a word and never in a frame, which is the whole
+  // reason the three renders are comparable. See src/v6/script.ts.
+  voPlanForV6(V6),
 ];
 
 /**
@@ -725,7 +731,7 @@ export const buildAudio = (options: BuildOptions): BuildResult => {
   if (wanted !== null) {
     for (const id of wanted) {
       if (!plans.some((plan) => plan.id === id)) {
-        throw new Error(`"${id}" is not a hook id in src/data/hooks.ts nor the kinetic-native script.`);
+        throw new Error(`"${id}" is not a hook id in src/data/hooks.ts, nor the kinetic-native script, nor the v6 script.`);
       }
     }
   }

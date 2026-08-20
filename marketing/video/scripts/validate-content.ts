@@ -15,6 +15,9 @@ import { voPlanForKineticNative } from "../src/kinetic-native/vo";
 import { postDuration } from "../src/lib/duration";
 import { FPS } from "../src/lib/scale";
 import type { Hook } from "../src/types";
+import { V6 } from "../src/v6/script";
+import { beatFrames, beatStarts, BEAT_LEAD_FRAMES as V6_LEAD, v6Duration } from "../src/v6/timing";
+import { voPlanForV6 } from "../src/v6/vo";
 
 /**
  * The rules a type cannot hold. TypeScript already guarantees that a `pain` hook has `lines`
@@ -265,7 +268,10 @@ const FIT_TOLERANCE_SECONDS = 1;
 const misfits: { id: string; delta: number }[] = [];
 
 for (const id of Object.keys(AUDIO)) {
-  if (!hooks.some((hook) => hook.id === id) && !id.startsWith("kinetic-native")) {
+  // The two direction experiments are not `Hook`s and never will be, so they are named rather
+  // than looked up. Anything else in the table is a post that has been deleted from the queue
+  // and whose mix is now a file nothing plays.
+  if (!hooks.some((hook) => hook.id === id) && !id.startsWith("kinetic-native") && id !== V6.id) {
     error(
       `audio.${id}`,
       "src/audio/timings.generated.ts holds a post that no longer exists. Re-run pnpm video:audio.",
@@ -418,6 +424,107 @@ for (const hook of hooks) {
 }
 
 checkKineticNative();
+
+/**
+ * THE SIXTH SCRIPT, and the three directions that share it.
+ *
+ * Its beat table is DERIVED from the measured read rather than transcribed from it (see
+ * src/v6/timing.ts), so two of the four checks below can no longer fail by hand. They are here
+ * anyway, because a derivation can be wrong in ways a transcription cannot: `beatFrames` falls
+ * back to an ESTIMATE when the audio has not been built, and a film rendered off that estimate
+ * would be silently out of time with its own voice at every cut. Asserting the property rather
+ * than trusting the function is what catches that.
+ *
+ * The other two are about the copy, and they are the two notes Cameron gave that a type system
+ * cannot see. The rendered lines must rejoin to exactly the phrase that was spoken, so the eye
+ * and the ear never drift. And a multi-line stack may not leave a single word alone on a line,
+ * which is the "SAME GAME / SAME / HOURS" orphan he caught in the fifth cut.
+ */
+const checkV6 = (): void => {
+  for (const [index, beat] of V6.beats.entries()) {
+    const where = `${V6.id}.beat${String(index + 1)}`;
+    if (beat.lines.join(" ") !== beat.phrase) {
+      error(
+        where,
+        `the frame renders ${JSON.stringify(beat.lines.join(" "))} and the voice says ${JSON.stringify(beat.phrase)}. The lines are the phrase broken by hand and must rejoin to it exactly.`,
+      );
+    }
+    if (beat.lines.length > 1) {
+      const orphan = beat.lines.find((line) => line.trim().split(/\s+/).length < 2);
+      if (orphan !== undefined) {
+        error(
+          where,
+          `${JSON.stringify(orphan)} is one word alone on a line of a ${String(beat.lines.length)} line stack, which reads as a mistake. Re-break the phrase or set it on one line.`,
+        );
+      }
+    }
+    for (const text of [beat.phrase, ...beat.lines]) {
+      if (text.includes(EM_DASH)) {
+        error(where, `contains an em dash: ${JSON.stringify(text)}`);
+      }
+      if (DATING.test(text)) {
+        error(where, `names the category this film exists not to be filed under: ${JSON.stringify(text)}`);
+      }
+    }
+  }
+
+  const audio = AUDIO[V6.id];
+  if (audio === undefined) {
+    warn(
+      `${V6.id}.audio`,
+      "no voiceover built yet, so all three directions render silent and their beats are estimates. Run pnpm video:audio --only v6-001 twice; see the header of src/v6/timing.ts for why twice.",
+    );
+    return;
+  }
+
+  const written = voPlanForV6(V6).lines.map((line) => line.written);
+  const recorded = audio.lines.map((line) => line.written);
+  if (JSON.stringify(written) !== JSON.stringify(recorded)) {
+    error(
+      `${V6.id}.audio`,
+      `the mix says ${JSON.stringify(recorded)} and the beats now read ${JSON.stringify(written)}. Re-run pnpm video:audio --only v6-001.`,
+    );
+  }
+
+  const filmFrames = v6Duration(V6);
+  if (audio.frames !== filmFrames) {
+    error(
+      `${V6.id}.audio`,
+      `the mix is ${audio.frames} frames and the film is ${filmFrames}. They are one clock, and the usual cause is that the audio was built once against an estimated length: run pnpm video:audio --only v6-001 again.`,
+    );
+  }
+
+  const frames = beatFrames(V6);
+  const starts = beatStarts(V6);
+  starts.forEach((from, index) => {
+    const line = audio.lines[index];
+    if (line === undefined) {
+      error(
+        `${V6.id}.beats`,
+        `beat ${String(index + 1)} has no phrase in the mix. The read has ${String(audio.lines.length)} lines and the cut has ${String(V6.beats.length)} beats.`,
+      );
+      return;
+    }
+    const lead = line.startFrame - from;
+    if (Math.abs(lead - V6_LEAD) > 1) {
+      error(
+        `${V6.id}.beats`,
+        `beat ${String(index + 1)} starts at frame ${String(from)} and its phrase at ${String(line.startFrame)}, a lead of ${String(lead)} frames where every other beat leads by ${String(V6_LEAD)}.`,
+      );
+    }
+    const ends = from + (frames[index] ?? 0);
+    if (line.endFrame > ends) {
+      error(
+        `${V6.id}.beats`,
+        `beat ${String(index + 1)} ends at frame ${String(ends)} and its phrase runs to ${String(line.endFrame)}, so the last of it is heard over the next beat's picture.`,
+      );
+    }
+  });
+
+  checkLoudness(V6.id, audio);
+};
+
+checkV6();
 
 /**
  * One line, not one per post.

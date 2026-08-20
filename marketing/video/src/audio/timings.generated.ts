@@ -385,4 +385,22 @@ export const AUDIO: Record<string, PostAudio> = {
     ],
     loudness: { integratedLufs: -14.7, truePeakDb: -2.1, lra: 11 },
   },
+  "v6-001": {
+    id: "v6-001",
+    voice: "af_heart",
+    file: "audio/mix/v6-001.wav",
+    voEndSeconds: 11.097,
+    voEndFrame: 333,
+    seconds: 12.567,
+    frames: 377,
+    lines: [
+      { written: "queue up with a duo", spoken: "queue up with a duo.", startSeconds: 0.2, endSeconds: 1.971, startFrame: 6, endFrame: 59 },
+      { written: "you match on the game", spoken: "you match on the game.", startSeconds: 2.537, endSeconds: 4.244, startFrame: 76, endFrame: 127 },
+      { written: "and how they play", spoken: "and how they play.", startSeconds: 4.811, endSeconds: 6.112, startFrame: 144, endFrame: 183 },
+      { written: "duo locked", spoken: "duo locked.", startSeconds: 6.679, endSeconds: 7.724, startFrame: 200, endFrame: 232 },
+      { written: "send a message", spoken: "send a message.", startSeconds: 8.291, endSeconds: 9.464, startFrame: 249, endFrame: 284 },
+      { written: "then go play", spoken: "then go play.", startSeconds: 10.031, endSeconds: 11.097, startFrame: 301, endFrame: 333 },
+    ],
+    loudness: { integratedLufs: -14.6, truePeakDb: -1.7, lra: 2.6 },
+  },
 };
