@@ -1,16 +1,45 @@
 /**
- * DIRECTION B+A, "kinetic native". The combined direction, assembled.
+ * DIRECTION B+A, "kinetic native". The combined direction, assembled. SECOND CUT.
  *
- * Base is B, kinetic type, because that is the one Cameron picked: huge fitted type filling
- * the frame, leading with the claim, legible at thumbnail size, the hook present in frame one.
+ * Base is B, kinetic type, because that is the one Cameron picked: huge fitted type filling the
+ * frame, leading with the claim, legible at thumbnail size, the hook present in frame one.
  * Combined into it is A's treatment, a small caption rail low in the frame revealed word by
  * word with one keyword in the accent, composited as an OVERLAY on top of the film rather than
  * as a band the layout makes room for.
  *
  * Governed throughout by the motion doctrine and the cut-the-curve catalog. The doctrine is
- * written for a timeline runtime; this is Remotion, which is frame based, so the principles
- * and parameters carry over and the API does not. That translation is done once, in motion.ts,
- * and nowhere else.
+ * written for a timeline runtime; this is Remotion, which is frame based, so the principles and
+ * parameters carry over and the API does not. That translation is done once, in motion.ts, and
+ * nowhere else.
+ *
+ * =====================================================================================
+ * THE THIRD CUT
+ * =====================================================================================
+ *
+ * The first cut was 14.1 seconds of nine beats and Cameron gave it three notes. The second cut
+ * answered them in 9.8 seconds of five. This one is 10.9 seconds of six, and it exists because
+ * the second was reviewed frame by frame and sample by sample and a list of measured defects
+ * came back. The full list, with what each one cost, is at the top of ./script.ts. In one line
+ * each:
+ *
+ *   TOO LONG               Still the shortest thing this direction has produced that says the
+ *                          whole argument. It got one second LONGER, once, deliberately, to buy
+ *                          the chat beat below, and nothing in it is elaboration: the statement
+ *                          lands at 3.4s and everything after it is proof.
+ *   NOT ENOUGH GAMEPLAY    Unchanged at two full bleed live beats, but the two swapped places.
+ *                          The opening is the sunlit map, which reads as a video game at
+ *                          thumbnail size where the dark interior read as a brown rectangle,
+ *                          and the firefight moved under the word ENERGY where it belongs.
+ *   DOES NOT SHOW THE APP  THREE product beats now, not two: the deck, DUO LOCKED, and a chat
+ *                          with a first message going out. That is three of the four things
+ *                          the note named, and the fourth, playstyle, is a card's own tag under
+ *                          beat 2 and the rail's line under beat 3.
+ *
+ * The payoff also changed person. The DUO LOCKED screen is a photograph in a ring above a
+ * message button, which is the product and cannot be redrawn; what was in the ring was a
+ * shirtless beach selfie, which is a category signal this film cannot afford. It is now a man
+ * standing next to a suit of samurai armour, and the beat after it is somebody asking when he
+ * is going to be online.
  *
  * =====================================================================================
  * THE SEAM PLAN
@@ -28,77 +57,85 @@
  * There is no crossfade anywhere: a crossfade has no carrier at all.
  *
  * CARRIERS: at a text seam the carrier is the word group itself, peeling out and cascading in
- * on one continuous wave. Under it the carrier is the CAMERA, which runs at one constant
- * velocity for the entire film, panning left at 4.4px per frame and pushing in at 0.0034
- * scale per frame, so the plate either side of every hard cut is moving at the same speed in
- * the same direction. Twelve seconds of that reads as one camera move, not as nine shots.
- * The one exception is the proof beat, which keeps the rate and changes only its base scale
- * and how long it travels for; the reasons are in Plate.tsx and script.ts.
+ * on one continuous wave. Under it the carrier is the CAMERA, and the thing this cut fixed is
+ * that the camera used to STOP. A live plate pans left at 4.4px per frame and pushes in at
+ * 0.0034 scale per frame; an app plate has no horizontal headroom to pan into, so it used to
+ * pan for twelve frames and then park, which left it frozen through its own cut. It now runs
+ * the same push for the whole beat with the pan taken out, which needs no headroom at all. No
+ * plate in this film is stationary at any seam. The reasons are in Plate.tsx.
  *
  *  seam  cut@  technique          exit vector                       entry vector
  *  ----  ----  -----------------  --------------------------------  --------------------------------
- *  S0       0  none, film opens   n/a                               beat 1 is ALREADY LANDED at
- *                                                                   frame 0, its last word 3 frames
- *                                                                   into a power4.out. The first
- *                                                                   frame carries the hook; fading
- *                                                                   up into an empty frame spends
- *                                                                   the only half second there is.
- *  S1      50  waterfall cut      x, LEFT. words peel on            x, LEFT. words cascade from
- *  S2      92  waterfall cut      power4.in over 130px, lines       +130px on power4.out, igniting
- *  S3     130  waterfall cut      staggered 2.5f and words 0.66f    at 0.35 opacity mid path,
- *  S4     162  waterfall cut      inside them, opacity dead at      gaps 1.5f decaying x0.84.
- *  S5     192  waterfall cut      ~50% of travel. The chain is      Under it the plate hard cuts
- *  S6     222  waterfall cut      scheduled BACKWARDS so the        with matched camera velocity.
- *  S7     256  waterfall cut      last word dies ON the cut.
+ *  S0       0  none, film opens   n/a                               beat 1 is ALREADY IN FLIGHT at
+ *                                                                   frame 0: all four lines placed,
+ *                                                                   the last of them 2 frames into
+ *                                                                   its own power4.out. The first
+ *                                                                   frame carries the WHOLE hook,
+ *                                                                   at full size, over a sunlit
+ *                                                                   map, and is visibly moving
+ *                                                                   while it does.
+ *  S1      54  waterfall cut      x, LEFT. words peel on            x, LEFT. words cascade from
+ *  S2     103  waterfall cut      power4.in over 130px, lines       +130px on power4.out, igniting
+ *  S3     173  waterfall cut      staggered 2.5f and words 0.66f    at 0.35 opacity mid path,
+ *  S5     251  waterfall cut      inside them, opacity dead at      gaps 1.5f decaying x0.84.
+ *                                 ~50% of travel. The chain is      Under it the plate hard cuts
+ *                                 scheduled BACKWARDS so the        with matched camera velocity.
+ *                                 last word dies ON the cut.
  *
- *  S8     306  INVERSE ZOOM       Z, PULL. beat 8 recedes 1 to      Z, PULL. beat 9 arrives
+ *  S4     213  INVERSE ZOOM       Z, PULL. beat 4 recedes 1 to      Z, PULL. beat 5 arrives
  *              (reserved)         0.8 on power3.in over 6f,         OVERSIZED at 1.25 and retracts
  *                                 blur 0 to 10px, opacity on        on expo.out over 15f, blur 10
  *                                 its own linear tween to 0.15.     to 0, opacity 0.15 to 1. Its
  *                                 Everything SHRINKS.               words are COMPOSED, not
  *                                                                   cascaded: a grow-from-small
  *                                                                   entrance here would flip the
- *                                                                   scale sign and turn the arrival
- *                                                                   into a push. Its plate is held
- *                                                                   still for the same reason.
+ *                                                                   scale sign and turn the
+ *                                                                   arrival into a push. Its
+ *                                                                   plate is held still for the
+ *                                                                   same reason, until frame 15.
  *                                 Why here and only here: the reserved backward-Z means ARRIVAL,
- *                                 something bigger landing. This is the payoff, and it is the
- *                                 film's chapter boundary, which is what licenses the axis change.
+ *                                 something bigger landing. What lands is the product, on the
+ *                                 frame it says DUO LOCKED. Spending the reserved vector on the
+ *                                 app arriving is the reason it was reserved.
  *
- *  S9     356  cut the curve      x, LEFT. the payoff BLOCK         x, LEFT. the end card enters
- *                                 accelerates 130px on              from +130px on power4.out over
- *                                 power4.in over 14f, its           10f at 0.35 opacity, composed
- *                                 opacity landing ON the            rather than assembling itself.
- *                                 boundary rather than before it.
- *                                 Returns to the current immediately after the reserved spend.
+ *  S6     298  cut the curve      x, LEFT. the chat BLOCK           x, LEFT. the end card enters
+ *                                 accelerates 130px on power4.in    from +130px on power4.out over
+ *                                 from frame 287, which is the      10f at 0.35 opacity, composed
+ *                                 frame the read ends on. Its       rather than assembling itself.
+ *                                 opacity lands ON the boundary
+ *                                 rather than before it.
+ *                                 The current is returned to immediately after the reserved
+ *                                 spend, which is S5, and held to the end.
  *
- * STILLNESS BEFORE CLIMAX: beat 8's last staged reveal lands at local frame 27 and its
- * receding exit begins at 44, and its camera is already parked, so the composition holds
- * unchanged for 17 frames, 0.57s, inside the doctrine's 0.3 to 0.75s window. That pause is
- * the dramatic comma between the major action, the product finally shown plainly, and its
- * result, the payoff. Measured on the render it is the longest motionless stretch in the
- * body by a clear margin, which is the shape it is supposed to have.
+ * STILLNESS BEFORE CLIMAX: beat 4's second line settles at local frame 20 and its camera parks
+ * at 22, and its receding exit begins at 34. The composition therefore holds unchanged for 12
+ * frames, 0.40s, inside the doctrine's 0.3 to 0.75s window. That pause is the dramatic comma
+ * between the major action and its result, and it is the only motionless stretch in the film.
+ * It is also why the flood sits fourth rather than third even though "not faces" reads well
+ * straight after the deck: the comma is only worth anything immediately before the payoff.
  *
- * NO IDLE WOBBLE, AND NO DEAD AIR EITHER, which is the failure the first render actually had.
- * Every beat's held phase is owned by the doctrine's STAGED REVEAL route: the statement is
- * not composed at the beat's first frame, it FINISHES on screen. Beat 1 lands three lines
- * before frame 0, pays off APP at 10 and stamps the slab under NOT at 22. Beat 2 pays off
- * FIND at 9, A DUO at 16 and the slab at 25. Beats 3 and 5 to 7 hold their last line back to
- * 8 or 12. Beat 8 stages its second line at 11 and its mono note at 22. Beat 9 arrives
- * composed, as the inverse zoom's sign discipline requires, then stamps its slab at 24.
- * Under all of it the camera is a mapped path at one constant velocity, and it now moves at
- * a rate a viewer can actually see: at the 1.8px per frame it started at, across a plate
- * blurred and sunk to near black, the whole thing measured as pixel for pixel identical for
- * up to 1.2 seconds at a time. Direction B's per-frame random camera weave and its per-word
- * springs are both gone: a spring starts from rest, and starting from rest after a cut is a
- * dead beat.
+ * NO IDLE WOBBLE, AND NO DEAD AIR EITHER. Every beat's held phase is owned by a named
+ * sustained-motion route, and no beat is allowed to coast on a stationary plate:
  *
- * PACING: Cameron's note was that direction B is a little fast when switching between clips.
- * Beats are longer here, with a floor of 30 frames where B went down to 18, because an 18
- * frame beat cannot contain a 0.6s seam and still hold. But the fix that matters is that the
- * cuts are now velocity matched and land mid motion on both sides. B's cuts were hard and
- * unmatched, so the eye's momentum died at every one of them, and eight dead stops in nine
- * seconds is what "too fast" actually feels like.
+ *   beat 1  STAGED REVEAL      the four lines land across frames -9 to 7, so the hook is whole
+ *           + camera path      in frame 0 and still arriving; the slab is stamped under NOT at
+ *                              24. Under it the map travels for the whole beat.
+ *   beat 2  SEQUENCED UI LIFE  the deck is swiped mid beat and the next card arrives, and the
+ *           + staged reveal    plate pushes under it from the first frame to the last. This is
+ *           + camera path      the beat the review found frozen for 23 frames and cut out of
+ *                              while it was stopped; it is the reason app plates push now.
+ *   beat 3  STAGED REVEAL      three lines land ON the three phrases as they are spoken, at 2,
+ *           + camera path      21 and 41, over one unbroken 2.3s shot of a firefight. All three
+ *                              offsets are measured off the read's RMS envelope, not estimated.
+ *   beat 4  STAGED REVEAL      FACES paid off at 11, then the deliberate stillness above.
+ *   beat 5  ANIMATED SEQUENCE  the app arrives oversized and retracts into the focal plane, the
+ *                              slab wipes under DUO at 16 with its leading edge crossing the
+ *                              word as the word is said, and the plate pushes from 15 to the
+ *                              cut.
+ *   beat 6  SEQUENCED UI LIFE  a message is sent and its bubble arrives, under two lines that
+ *           + staged reveal    land on their own words at 0 and 9.
+ *
+ * The doctrine's test is to pause at any second and find something meaningful mid flight.
  *
  * =====================================================================================
  *
@@ -118,25 +155,22 @@ import { Soundtrack } from "@/audio/Soundtrack";
 import type { Cta } from "@/config/phase";
 
 import { Beat, type SeamIn, type SeamOut } from "./Beat";
-import { END_FRAMES, EndCard } from "./EndCard";
+import { EndCard } from "./EndCard";
 import { Rail } from "./Rail";
-import { bodyFrames, type KineticNativeScript } from "./script";
+import { bodyFrames, END_FRAMES, type KineticNativeScript } from "./script";
 import { K } from "./skin";
 
 export type KineticNativeProps = { script: KineticNativeScript; cta: Cta };
-
-export const kineticNativeDuration = (script: KineticNativeScript): number =>
-  bodyFrames(script) + END_FRAMES;
 
 /**
  * The seam each boundary gets, derived from the data rather than typed twice.
  *
  * The rule is short enough to read in one line: the beat that declares itself the arrival
  * enters on the inverse zoom, the beat before it therefore exits on the matching recession,
- * the last beat exits on a block level cut the curve into the end card, and everything else
- * is the waterfall cut. Deriving it is what stops a retimed script leaving an exit and an
- * entry pointing in different directions, which the doctrine treats as a plan bug rather than
- * as something to fix with easing.
+ * the last beat exits on a block level cut the curve into the end card, and everything else is
+ * the waterfall cut. Deriving it is what stops a retimed script leaving an exit and an entry
+ * pointing in different directions, which the doctrine treats as a plan bug rather than as
+ * something to fix with easing.
  */
 const seamsFor = (script: KineticNativeScript, index: number): { in: SeamIn; out: SeamOut } => {
   const beat = script.beats[index];

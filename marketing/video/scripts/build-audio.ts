@@ -10,10 +10,12 @@ import {
   BED_GAIN_DB,
   CARVE_BANDS,
   DUCK,
+  ENCODER_PRIMING_SAMPLES,
   MIX_TARGET,
   VOICE_CHAIN,
   VOICE_TARGET_LUFS,
 } from "../src/audio/mix";
+import { AUDIO as COMMITTED } from "../src/audio/timings.generated";
 import type { AudioLine, MixLoudness, PostAudio } from "../src/audio/timings";
 import { GAP_FRAMES, LEAD_IN_FRAMES, voPlanFor, type VoPlan } from "../src/audio/vo";
 import { hooks } from "../src/data/hooks";
@@ -60,9 +62,6 @@ const BED = path.join(AUDIO_DIR, "bed-01.mp3");
 /** Outside public/, because only the finished mix needs to be a static asset. Every phrase
  * WAV in here would otherwise land in the bundler's manifest for no reason at all. */
 const CACHE_DIR = path.join(PROJECT, ".audio-cache");
-/** What has been measured so far, so `--only` can rewrite one post's row without blanking
- * every other post's clock. The generated module is emitted from this, never parsed back. */
-const STORE = path.join(CACHE_DIR, "timings.json");
 const WORK_DIR = path.join(PROJECT, "out", "_audio");
 const GENERATED = path.join(PROJECT, "src", "audio", "timings.generated.ts");
 
@@ -163,8 +162,6 @@ interface Measured {
   inputI: number;
   inputTp: number;
   inputLra: number;
-  inputThresh: number;
-  targetOffset: number;
 }
 
 const numberField = (blob: Record<string, unknown>, key: string): number => {
@@ -200,43 +197,72 @@ const measure = (file: string): Measured => {
     inputI: numberField(blob, "input_i"),
     inputTp: numberField(blob, "input_tp"),
     inputLra: numberField(blob, "input_lra"),
-    inputThresh: numberField(blob, "input_thresh"),
-    targetOffset: numberField(blob, "target_offset"),
   };
 };
 
 /**
- * The summary the brief asks to see quoted, read back off the FINISHED file.
+ * The check, read back off the FINISHED file with EBU R128 rather than with loudnorm.
  *
  * Not taken from the mastering pass's own report. That pass prints what it INTENDED, and the
  * only number worth printing is the one that is actually in the WAV. Measuring the output as
  * a fresh input is the difference between a claim and a check.
+ *
+ * WHY THIS IS NOT loudnorm, AND WHAT WAS ACTUALLY WRONG WITH IT. A review of the delivered
+ * file said loudnorm's "Input Integrated" is target-dependent, so the recorded numbers could
+ * not be reproduced. Tested on ffmpeg 9.0 that specific claim does not hold: the same mix
+ * reads -15.2 LUFS at I=-14, at -14.7, at -16 and at -20, identically. The number does not
+ * move with the target.
+ *
+ * What IS wrong is worse and simpler. loudnorm's analysis pass and ffmpeg's own `ebur128`
+ * filter disagree about the same file, by up to 0.9 LU:
+ *
+ *   file                loudnorm   ebur128
+ *   pain-006             -15.2      -14.3
+ *   reframe-005          -15.1      -14.2
+ *   demo-001             -15.1      -14.8
+ *   kinetic-native-001   -14.8      -14.7
+ *
+ * `ebur128` is ffmpeg's implementation of BS.1770, and BS.1770 is what every platform's
+ * normaliser runs. So the committed table was describing something no player will ever agree
+ * with, and, worse, the corrective trim below was CLOSING THE LOOP on the wrong number: it was
+ * pushing every mix about half a dB past the target and then recording the miss as if it were
+ * the target. Reading the standard meter fixes the record and the trim in one move.
+ *
+ * `measure` above still uses loudnorm and that is deliberate: it is an open loop estimator
+ * whose only job is to get a first gain into the right neighbourhood, and for the master this
+ * function is the loop that closes around it. The one place its bias survives is the voice
+ * anchor, which has no second pass, and moving that would move the balance between the read
+ * and the bed that Cameron has already listened to and signed off.
  */
 const verify = (file: string): { loudness: MixLoudness; summary: string } => {
   const stderr = ffmpeg(
-    ["-i", file, "-af", loudnormArgs(["print_format=summary"]), "-f", "null", "-"],
+    ["-i", file, "-af", "ebur128=peak=true", "-f", "null", "-"],
     `verifying ${rel(file)}`,
   );
-  const lines = stderr
-    .split(/\r?\n/)
-    .filter((line) => /^\s*Input (Integrated|True Peak|LRA|Threshold):/.test(line));
-  const field = (label: string): number => {
-    const line = lines.find((candidate) => candidate.includes(`Input ${label}:`));
-    const value = Number(
-      line?.replace(/^[^:]*:/, "").replace(/LUFS|dBTP|LU/g, "").trim(),
-    );
+  // The summary block is the last thing ebur128 writes, and its three numbers are on their own
+  // lines under their own headings, so each is found by its label rather than by position.
+  const tail = stderr.slice(stderr.lastIndexOf("Summary:"));
+  const after = (heading: string, label: string): number => {
+    const section = tail.slice(tail.indexOf(heading));
+    const found = new RegExp(`${label}:\\s*(-?[\\d.]+|-inf)`).exec(section);
+    const value = Number(found?.[1]);
     if (!Number.isFinite(value)) {
-      throw new Error(`loudnorm's summary for ${rel(file)} had no Input ${label}.`);
+      throw new Error(`ebur128's summary for ${rel(file)} had no ${heading} / ${label}.`);
     }
     return value;
   };
+  const loudness: MixLoudness = {
+    integratedLufs: after("Integrated loudness", "I"),
+    truePeakDb: after("True peak", "Peak"),
+    lra: after("Loudness range", "LRA"),
+  };
   return {
-    loudness: {
-      integratedLufs: field("Integrated"),
-      truePeakDb: field("True Peak"),
-      lra: field("LRA"),
-    },
-    summary: lines.map((line) => line.trim()).join("\n    "),
+    loudness,
+    summary: [
+      `Integrated:  ${loudness.integratedLufs.toFixed(1)} LUFS`,
+      `True peak:   ${loudness.truePeakDb.toFixed(1)} dBTP`,
+      `LRA:         ${loudness.lra.toFixed(1)} LU`,
+    ].join("\n    "),
   };
 };
 
@@ -414,7 +440,23 @@ const buildVoice = (plan: VoPlan, phrases: Phrase[], laid: Laid, voFile: string)
   const measured = measure(raw);
   const gainDb = VOICE_TARGET_LUFS - measured.inputI;
   ffmpeg(
-    ["-i", raw, "-af", `volume=${gainDb.toFixed(2)}dB`, "-ar", "48000", "-ac", "2", "-c:a", "pcm_f32le", voFile],
+    [
+      "-i", raw,
+      "-af",
+      [
+        `volume=${gainDb.toFixed(2)}dB`,
+        // The ceiling goes AFTER the anchor, which is the whole reason it is a second pass.
+        // Limiting first and then applying the anchor gain puts the peaks straight back where
+        // they were: the first version of this did exactly that and the stem still measured
+        // +0.7 dBTP afterwards. A limiter is only a ceiling if nothing follows it.
+        //
+        // `level=disabled` matters as much. alimiter's default is to normalise its own output
+        // back up to the limit, which would hand the mix a signal peaking at exactly the
+        // ceiling rather than one that fits under it.
+        `alimiter=limit=${dbToLinear(VOICE_CHAIN.ceilingDbfs).toFixed(6)}:attack=5:release=50:level=disabled`,
+      ].join(","),
+      "-ar", "48000", "-ac", "2", "-c:a", "pcm_f32le", voFile,
+    ],
     `anchoring the voice for ${plan.id}`,
   );
   return gainDb;
@@ -440,9 +482,21 @@ const carveChain = (): string =>
       `equalizer=f=${String(band.hz)}:width_type=q:w=${String(band.q)}:g=${String(band.gainDb)}`,
   ).join(",");
 
-/** Returns loudnorm's own word for what the master did: Linear, or Dynamic if it could not
- * hit the target with one static gain. Dynamic is not a failure but it is worth seeing. */
-const buildMix = (plan: VoPlan, voFile: string, mixSeconds: number, outFile: string): string => {
+interface Mastered {
+  /** The static gain the master applied to reach the target, and the peak it had to hand the
+   * limiter to do it. Printed because the second number is what says how hard the ceiling is
+   * working: a mix that arrives needing +7 dB is mostly bed, and it is the picture that made
+   * it so. */
+  masterGainDb: number;
+  preLimitTpDb: number;
+  /** How far the corrective pass had to move the finished file, in dB. 0 means the static
+   * gain landed inside the tolerance on its own. */
+  trimDb: number;
+  loudness: MixLoudness;
+  summary: string;
+}
+
+const buildMix = (plan: VoPlan, voFile: string, mixSeconds: number, outFile: string): Mastered => {
   const length = mixSeconds.toFixed(3);
   const start = bedOffset(plan.id, mixSeconds, durationOf(BED));
   const fadeOutAt = Math.max(0, mixSeconds - BED_FADE.outSeconds).toFixed(3);
@@ -466,30 +520,97 @@ const buildMix = (plan: VoPlan, voFile: string, mixSeconds: number, outFile: str
     `mixing ${plan.id}`,
   );
 
-  // Two pass, and `linear=true`, so the master is one static gain rather than a compressor
-  // walking over the read. A single pass loudnorm is dynamic by definition: it would push the
-  // bed up in every gap between phrases, which is the exact motion the duck exists to stop.
+  // THE MASTER: measure, then ONE static gain, and let the ceiling below catch the peaks.
+  //
+  // This used to be a two pass `loudnorm` with `linear=true`, on the reasoning that a static
+  // gain does not walk over the read the way a dynamic normaliser does. The reasoning was
+  // right and the implementation did not achieve it: `linear=true` is a REQUEST, and loudnorm
+  // silently falls back to its dynamic normaliser whenever the static gain it would need
+  // would push the true peak past the target. That was every post here, without exception,
+  // and the log said so on all twenty five: "Normalization Type: Dynamic".
+  //
+  // The measurement of why, on reframe-001. The raw mix is -18.63 LUFS with a -2.56 dBTP
+  // peak, so reaching -14 takes +4.63 dB, which would land the peak at +2.07 dBTP against a
+  // -1.2 target. loudnorm refuses, goes dynamic, and rides the gain instead.
+  //
+  // And riding the gain is the one thing this mix must not have done to it, because the gaps
+  // between phrases are where the bed is supposed to be DUCKED. A normaliser that lifts quiet
+  // passages lifts exactly those. Measured on the same file:
+  //
+  //     raw mix                        -18.63 LUFS   -2.56 dBTP   LRA 4.60
+  //     loudnorm dynamic + trim        -14.0         -1.5         LRA 2.40
+  //     static gain + limiter          -14.1         -1.5         LRA 4.30
+  //
+  // Same loudness, same ceiling, and 1.9 LU more of the range kept. That range is the duck.
+  //
+  // The gain is applied at 192kHz so the limiter that follows it sees a waveform close enough
+  // to the true one for its ceiling to mean something, and the file stays float here because
+  // the corrective pass below may still move it and should not be moving quantised samples.
   const measured = measure(raw);
-  const stderr = ffmpeg(
+  const masterGainDb = MIX_TARGET.lufs - measured.inputI;
+  const normalised = path.join(WORK_DIR, `${plan.id}-mix-norm.wav`);
+  ffmpeg(
     [
       "-i", raw,
       "-af",
-      loudnormArgs([
-        `measured_I=${measured.inputI.toFixed(2)}`,
-        `measured_TP=${measured.inputTp.toFixed(2)}`,
-        `measured_LRA=${measured.inputLra.toFixed(2)}`,
-        `measured_thresh=${measured.inputThresh.toFixed(2)}`,
-        `offset=${measured.targetOffset.toFixed(2)}`,
-        "linear=true",
-        "print_format=summary",
-      ]),
+      [
+        "aresample=192000",
+        `volume=${masterGainDb.toFixed(2)}dB`,
+        `alimiter=limit=${dbToLinear(MIX_TARGET.ceilingDbfs).toFixed(6)}:attack=5:release=50:level=disabled`,
+        "aresample=48000",
+      ].join(","),
+      "-ar", "48000", "-ac", "2", "-c:a", "pcm_f32le", normalised,
+    ],
+    `mastering ${plan.id}`,
+  );
+
+  // THE CORRECTIVE PASS, and it is here because measuring said it was needed. The master's
+  // gain is computed from the loudness of the file BEFORE the ceiling touched it, and a
+  // limiter that is doing real work takes a few tenths of a LU back out. So the mastered file
+  // is measured and, if it is off by more than the tolerance, trimmed by exactly the
+  // difference. Measure, trim, measure again, and the last measurement is what gets recorded.
+  const landed = verify(normalised);
+  const residualDb = MIX_TARGET.lufs - landed.loudness.integratedLufs;
+  const trimDb = Math.abs(residualDb) > MIX_TARGET.toleranceLu ? residualDb : 0;
+
+  ffmpeg(
+    [
+      "-i", normalised,
+      "-af",
+      [
+        // THE DELIVERY TRIM, and it happens first because it is counted in samples at the
+        // file's own rate. Remotion's AAC encode delays every mix by exactly 2048 samples and
+        // its edit list only takes 512 of them back, so the mp4 plays the read 42.67ms late.
+        // Taking them off the head here cancels it, and the committed clock below then
+        // describes the delivered video instead of a file 1.28 frames ahead of it. See
+        // ENCODER_PRIMING_SAMPLES in src/audio/mix.ts for the null test that measured it.
+        `atrim=start_sample=${String(ENCODER_PRIMING_SAMPLES)}`,
+        "asetpts=N/SR/TB",
+        // 4x. The limiter below sees samples, and a true peak lives between them: at 48kHz a
+        // -1.5 dBFS ceiling let three of these mixes out at -0.6 to -0.9 dBTP, over the brief's
+        // ceiling. At 192kHz the samples are close enough to the waveform for the number to mean
+        // what it says.
+        "aresample=192000",
+        `volume=${trimDb.toFixed(2)}dB`,
+        // Always, not only when there is a trim, because the ceiling is the one guarantee this
+        // file makes and a guarantee that is conditional is not one.
+        `alimiter=limit=${dbToLinear(MIX_TARGET.ceilingDbfs).toFixed(6)}:attack=5:release=50:level=disabled`,
+        "aresample=48000",
+      ].join(","),
       // pcm_s16le at 48k, not a lossy codec: an encoder can push a true peak back over the
       // ceiling this file was just normalised to, and the platforms re-encode anyway.
       "-ar", "48000", "-ac", "2", "-c:a", "pcm_s16le", outFile,
     ],
-    `mastering ${plan.id}`,
+    `trimming ${plan.id}`,
   );
-  return /Normalization Type:\s*(\w+)/.exec(stderr)?.[1] ?? "unknown";
+
+  return {
+    masterGainDb: Number(masterGainDb.toFixed(2)),
+    preLimitTpDb: Number((measured.inputTp + masterGainDb).toFixed(2)),
+    trimDb: Number(trimDb.toFixed(2)),
+    loudness: landed.loudness,
+    summary: landed.summary,
+  };
 };
 
 // ---- The generated table ----
@@ -536,19 +657,6 @@ const emit = (rows: PostAudio[]): string => {
   ].join("\n");
 };
 
-const readStore = (): Record<string, PostAudio> => {
-  if (!fs.existsSync(STORE)) {
-    return {};
-  }
-  try {
-    return JSON.parse(fs.readFileSync(STORE, "utf8")) as Record<string, PostAudio>;
-  } catch {
-    // A corrupt cache is not worth a stack trace: the cure is to rebuild, which is what an
-    // empty store makes happen.
-    return {};
-  }
-};
-
 // ---- The build ----
 
 /** Every post this pipeline can speak: the four shipping formats, plus the combined direction
@@ -558,10 +666,19 @@ export const allPlans = (): VoPlan[] => [
   voPlanForKineticNative(KINETIC_NATIVE),
 ];
 
-export interface Overrun {
+/**
+ * How the read and the picture line up, for every post that was built.
+ *
+ * Both directions matter and only one of them used to. An OVERRUN, a read longer than its
+ * video, cuts a word off. An UNDERRUN, a read that finishes with seconds of video left, is the
+ * note Cameron actually gave: the statement lands and the rest is elaboration. Audio is the
+ * clock in both cases, so both are printed and neither is fixed by changing the read.
+ */
+export interface Fit {
   id: string;
   voSeconds: number;
   compositionSeconds: number;
+  deltaSeconds: number;
 }
 
 export interface BuildOptions {
@@ -572,7 +689,7 @@ export interface BuildOptions {
 
 export interface BuildResult {
   rows: PostAudio[];
-  overruns: Overrun[];
+  fit: Fit[];
 }
 
 export const buildAudio = (options: BuildOptions): BuildResult => {
@@ -607,9 +724,12 @@ export const buildAudio = (options: BuildOptions): BuildResult => {
   );
   console.log("");
 
-  const store = readStore();
+  // The committed table is its own store. A `--only` run starts from what is already recorded
+  // and replaces one row, so rebuilding today's three posts cannot blank the other twenty
+  // three clocks. It is read at import time, before anything rewrites the file it came from.
+  const store: Record<string, PostAudio> = { ...COMMITTED };
   const built: PostAudio[] = [];
-  const overruns: Overrun[] = [];
+  const fit: Fit[] = [];
 
   for (const plan of building) {
     const started = Date.now();
@@ -617,7 +737,7 @@ export const buildAudio = (options: BuildOptions): BuildResult => {
     const laid = layOut(phrases);
 
     const voFile = path.join(WORK_DIR, `${plan.id}-vo.wav`);
-    buildVoice(plan, phrases, laid, voFile);
+    const anchorDb = buildVoice(plan, phrases, laid, voFile);
 
     const compositionSeconds = plan.durationInFrames / FPS;
     // The mix always covers the whole composition, so the bed keeps playing under the end
@@ -625,12 +745,17 @@ export const buildAudio = (options: BuildOptions): BuildResult => {
     // full rather than cut off mid word. When those two disagree it is the PICTURE that is
     // wrong: audio is the clock, so the overrun is reported and the visuals get re-cut to it.
     const mixSeconds = round3(Math.max(laid.voEndSeconds, compositionSeconds));
-    if (laid.voEndSeconds > compositionSeconds) {
-      overruns.push({ id: plan.id, voSeconds: round3(laid.voEndSeconds), compositionSeconds });
-    }
+    fit.push({
+      id: plan.id,
+      voSeconds: round3(laid.voEndSeconds),
+      compositionSeconds,
+      deltaSeconds: round3(laid.voEndSeconds - compositionSeconds),
+    });
 
     const mixFile = path.join(MIX_DIR, `${plan.id}.wav`);
-    const normalisation = buildMix(plan, voFile, mixSeconds, mixFile);
+    const mastered = buildMix(plan, voFile, mixSeconds, mixFile);
+    // Measured off the FINISHED file, after the trim and the limiter, so what goes into the
+    // committed table is what is in the WAV rather than what the master was aiming at.
     const checked = verify(mixFile);
 
     const row: PostAudio = {
@@ -653,7 +778,20 @@ export const buildAudio = (options: BuildOptions): BuildResult => {
     );
     if (!options.quiet) {
       console.log(`    ${checked.summary}`);
-      console.log(`    Normalization Type:   ${normalisation}`);
+      // The master's static gain, and the peak it would have reached without the ceiling. The
+      // second number is the one to watch: it is how far over the limit this mix arrived, and
+      // it is large here because these videos are far longer than their reads, so most of the
+      // file is bed alone and the integrated loudness it is measured by comes out low.
+      console.log(
+        `    Master static gain:   ${mastered.masterGainDb > 0 ? "+" : ""}${mastered.masterGainDb.toFixed(2)} dB, peak ${mastered.preLimitTpDb > 0 ? "+" : ""}${mastered.preLimitTpDb.toFixed(2)} dBTP into the ${String(MIX_TARGET.ceilingDbfs)} dBFS ceiling`,
+      );
+      console.log(
+        `    Corrective trim:      ${mastered.trimDb === 0 ? "none needed" : `${mastered.trimDb > 0 ? "+" : ""}${mastered.trimDb.toFixed(2)} dB from ${mastered.loudness.integratedLufs.toFixed(1)} LUFS`}`,
+      );
+      // Worth seeing next to the rest: it is how far this particular read had to move to sit
+      // at the anchor, and a figure that jumps between two hooks of the same voice means the
+      // model produced something unusual rather than that the mix drifted.
+      console.log(`    Voice anchor gain:    ${anchorDb > 0 ? "+" : ""}${anchorDb.toFixed(2)} dB to ${String(VOICE_TARGET_LUFS)} LUFS`);
     }
   }
 
@@ -664,15 +802,9 @@ export const buildAudio = (options: BuildOptions): BuildResult => {
     .filter((row) => live.has(row.id))
     .sort((a, b) => a.id.localeCompare(b.id));
 
-  fs.mkdirSync(path.dirname(STORE), { recursive: true });
-  fs.writeFileSync(
-    STORE,
-    `${JSON.stringify(Object.fromEntries(rows.map((row) => [row.id, row])), null, 2)}\n`,
-    "utf8",
-  );
   fs.writeFileSync(GENERATED, emit(rows), "utf8");
 
-  return { rows: built, overruns };
+  return { rows: built, fit };
 };
 
 // ---- CLI ----
@@ -717,29 +849,41 @@ const parseOptions = (argv: string[]): BuildOptions => {
   return options;
 };
 
-/** The overrun report, printed by the CLI and by render-day, because it is the one thing in
- * this pipeline that says the picture has to change. */
-export const reportOverruns = (overruns: Overrun[]): void => {
-  if (overruns.length === 0) {
+/** Anything under this is the read and the picture agreeing closely enough to leave alone. */
+const FIT_TOLERANCE_SECONDS = 1;
+
+/**
+ * The fit report, printed by the CLI and by render-day, because it is the one output of this
+ * pipeline that says the PICTURE has to change.
+ *
+ * Nothing here is fixable by speeding a read up, and that is the point of printing it rather
+ * than quietly stretching or squashing something. A read longer than its video loses a word; a
+ * read that ends with four seconds of video left is four seconds of a viewer waiting for the
+ * thing that already happened.
+ */
+export const reportFit = (fit: Fit[]): void => {
+  const off = fit.filter((row) => Math.abs(row.deltaSeconds) > FIT_TOLERANCE_SECONDS);
+  if (off.length === 0) {
     return;
   }
   console.log("");
-  console.log("AUDIO IS THE CLOCK. These reads are longer than the video they belong to, so the");
-  console.log("picture is what needs re-cutting. Do not speed the read up to fit the slot:");
-  for (const overrun of overruns) {
+  console.log("AUDIO IS THE CLOCK. These videos do not match the length of their own read, so");
+  console.log("the PICTURE is what needs re-cutting. Do not re-time the voice to fit the slot.");
+  for (const row of off.sort((a, b) => a.deltaSeconds - b.deltaSeconds)) {
+    const sign = row.deltaSeconds > 0 ? "OVERRUN " : "underrun";
     console.log(
-      `  ${overrun.id.padEnd(22)} read ${overrun.voSeconds.toFixed(2)}s, video ${overrun.compositionSeconds.toFixed(2)}s   (+${(overrun.voSeconds - overrun.compositionSeconds).toFixed(2)}s)`,
+      `  ${sign}  ${row.id.padEnd(22)} read ${row.voSeconds.toFixed(2)}s, video ${row.compositionSeconds.toFixed(2)}s   ${row.deltaSeconds > 0 ? "+" : ""}${row.deltaSeconds.toFixed(2)}s`,
     );
   }
 };
 
 const main = (): void => {
   const options = parseOptions(process.argv.slice(2));
-  const { rows, overruns } = buildAudio(options);
+  const { rows, fit } = buildAudio(options);
   console.log("");
   console.log(`${rel(MIX_DIR)}: ${String(rows.length)} mix(es) written`);
   console.log(`${rel(GENERATED)} rewritten`);
-  reportOverruns(overruns);
+  reportFit(fit);
 };
 
 // tsx runs this file directly; render-day imports buildAudio from it and must not trigger the

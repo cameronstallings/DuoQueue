@@ -13,7 +13,7 @@ import { readLedger, writeLedger, type Ledger } from "../src/lib/ledger";
 import { FORMAT_CYCLE, selectDay, unrenderedByFormat } from "../src/lib/select";
 import { webpackOverride } from "../src/lib/webpack-override";
 import type { ClipName, Format, Hook } from "../src/types";
-import { buildAudio, reportOverruns } from "./build-audio";
+import { buildAudio, reportFit } from "./build-audio";
 import { syncAssets } from "./sync-assets";
 import { reportContent } from "./validate-content";
 
@@ -459,7 +459,7 @@ const main = async (): Promise<void> => {
     quiet: true,
   });
   console.log(`audio ready in ${took(audioStarted)}`);
-  reportOverruns(audio.overruns);
+  reportFit(audio.fit);
   console.log("");
 
   // 7. Once for the whole batch. This is the slow step, roughly a minute cold, and doing it

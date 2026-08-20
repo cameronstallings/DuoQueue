@@ -2,10 +2,18 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { MIX_TARGET } from "../src/audio/mix";
+import { AUDIO } from "../src/audio/timings.generated";
+import type { PostAudio } from "../src/audio/timings";
+import { writtenLinesOf } from "../src/audio/vo";
 import { captionsFor } from "../src/config/captions";
 import { CTA, type Phase } from "../src/config/phase";
 import { clips } from "../src/data/clips";
 import { hooks } from "../src/data/hooks";
+import { KINETIC_NATIVE, kineticNativeDuration } from "../src/kinetic-native/script";
+import { voPlanForKineticNative } from "../src/kinetic-native/vo";
+import { postDuration } from "../src/lib/duration";
+import { FPS } from "../src/lib/scale";
 import type { Hook } from "../src/types";
 
 /**
@@ -234,6 +242,156 @@ hooks.forEach((hook, index) => {
     }
   }
 });
+
+// ---- Rule 8, the audio. ----
+/**
+ * The voiceover is DERIVED from a hook's own copy, so the words spoken and the words on screen
+ * cannot drift while both are being produced from one source. What can drift is the recording:
+ * edit a hook and the WAV on the disk is now of the previous sentence, and nothing about that
+ * is visible until somebody watches the video.
+ *
+ * So the committed table is checked against the copy it claims to be of. That is the one rule
+ * here that is an error rather than a warning: a stale mix ships a video whose voice says
+ * something the frame does not, which is worse than no voice at all. The fix is one command.
+ *
+ * Everything else is a warning, because everything else is a state the pipeline handles: a
+ * post with no audio yet renders silent, and a read that does not fill its video renders fine
+ * and is a note about the cut rather than a fault in it.
+ */
+const MIX_TOLERANCE_LU = 0.5;
+const FIT_TOLERANCE_SECONDS = 1;
+
+/** Collected rather than warned about one at a time. See the aggregate below. */
+const misfits: { id: string; delta: number }[] = [];
+
+for (const id of Object.keys(AUDIO)) {
+  if (!hooks.some((hook) => hook.id === id) && !id.startsWith("kinetic-native")) {
+    error(
+      `audio.${id}`,
+      "src/audio/timings.generated.ts holds a post that no longer exists. Re-run pnpm video:audio.",
+    );
+  }
+}
+
+/**
+ * The loudness rule, once, for every post that has audio.
+ *
+ * It reads MIX_TARGET rather than carrying its own copy of the number, and that is the whole
+ * point of it being a function: the target moved from -14 to -15 when the mix was rebalanced,
+ * and a validator holding a literal would have warned on all twenty five posts for being
+ * exactly where they were asked to be. A gate that has its own opinion of the spec is a gate
+ * that goes off when the spec changes.
+ */
+const checkLoudness = (id: string, audio: PostAudio): void => {
+  const { integratedLufs, truePeakDb } = audio.loudness;
+  if (Math.abs(integratedLufs - MIX_TARGET.lufs) > MIX_TOLERANCE_LU) {
+    warn(
+      `${id}.audio`,
+      `mix measures ${integratedLufs} LUFS, off the ${MIX_TARGET.lufs} target by more than ${MIX_TOLERANCE_LU} LU`,
+    );
+  }
+  if (truePeakDb > MIX_TARGET.truePeakDb + 0.2) {
+    warn(`${id}.audio`, `mix true peak is ${truePeakDb} dBTP, which is not under -1`);
+  }
+};
+
+/**
+ * THE DIRECTION, checked the same way a hook is, and it was not before.
+ *
+ * kinetic-native is not a `Hook`, so it is not in `hooks`, so the stale mix rule above never
+ * saw it. That is not a cosmetic gap: the direction was edited from nine beats to five, the
+ * audio was NOT rebuilt, and the film rendered with a voice saying the previous script over
+ * captions saying the new one. `pnpm validate` reported zero errors on that state, because
+ * the one rule written to catch exactly it was iterating a list the direction is not in.
+ *
+ * So the same three questions are asked here. Does the recorded read still match the copy the
+ * frame renders. Does the length of the read still match the length of the film. Is the mix
+ * where the mix target says it should be. The first is an ERROR for the same reason it is on
+ * a hook: a video whose voice says something the picture does not is worse than a silent one.
+ */
+const checkKineticNative = (): void => {
+  const audio = AUDIO[KINETIC_NATIVE.id];
+  if (audio === undefined) {
+    warn(
+      `${KINETIC_NATIVE.id}.audio`,
+      "no voiceover built yet, so the direction renders silent. Run pnpm video:audio.",
+    );
+    return;
+  }
+
+  const written = voPlanForKineticNative(KINETIC_NATIVE).lines.map((line) => line.written);
+  const recorded = audio.lines.map((line) => line.written);
+  if (JSON.stringify(written) !== JSON.stringify(recorded)) {
+    error(
+      `${KINETIC_NATIVE.id}.audio`,
+      `the mix says ${JSON.stringify(recorded)} and the beats now read ${JSON.stringify(written)}. Re-run pnpm video:audio.`,
+    );
+  }
+
+  // Audio is the clock, so a mismatch here means the picture is the wrong length rather than
+  // the read being wrong. A whole frame of slack, because the mix is padded to the film and
+  // the last comparison worth making is whether the read fits inside it at all.
+  const filmFrames = kineticNativeDuration(KINETIC_NATIVE);
+  if (audio.frames !== filmFrames) {
+    error(
+      `${KINETIC_NATIVE.id}.audio`,
+      `the mix is ${audio.frames} frames and the film is ${filmFrames}. They are one clock. Re-run pnpm video:audio.`,
+    );
+  }
+  if (audio.voEndFrame > filmFrames) {
+    error(
+      `${KINETIC_NATIVE.id}.audio`,
+      `the read ends at frame ${audio.voEndFrame} and the film ends at ${filmFrames}, so the last words are never heard.`,
+    );
+  }
+
+  checkLoudness(KINETIC_NATIVE.id, audio);
+};
+
+for (const hook of hooks) {
+  const audio = AUDIO[hook.id];
+  if (audio === undefined) {
+    warn(`${hook.id}.audio`, "no voiceover built yet, so this renders silent. Run pnpm video:audio.");
+    continue;
+  }
+
+  const written = writtenLinesOf(hook);
+  const recorded = audio.lines.map((line) => line.written);
+  if (JSON.stringify(written) !== JSON.stringify(recorded)) {
+    error(
+      `${hook.id}.audio`,
+      `the mix says ${JSON.stringify(recorded)} and the hook now reads ${JSON.stringify(written)}. Re-run pnpm video:audio.`,
+    );
+  }
+
+  checkLoudness(hook.id, audio);
+
+  const videoSeconds = postDuration(hook) / FPS;
+  const delta = audio.voEndSeconds - videoSeconds;
+  if (Math.abs(delta) > FIT_TOLERANCE_SECONDS) {
+    misfits.push({ id: hook.id, delta });
+  }
+}
+
+checkKineticNative();
+
+/**
+ * One line, not one per post.
+ *
+ * Every hook in the queue currently misfits, and twenty four identical warnings is how a
+ * warning list becomes something nobody reads. It is also one finding rather than twenty four:
+ * the videos were timed before there was a voice to time them against. `pnpm video:audio`
+ * prints the per post table, which is where somebody who is about to re-cut one wants it.
+ */
+if (misfits.length > 0) {
+  const worst = [...misfits].sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))[0]!;
+  const overruns = misfits.filter((row) => row.delta > 0).length;
+  const smallest = Math.min(...misfits.map((row) => Math.abs(row.delta)));
+  warn(
+    "audio.fit",
+    `${misfits.length} of ${hooks.length} posts do not match the length of their own read, by ${smallest.toFixed(1)}s to ${Math.abs(worst.delta).toFixed(1)}s (worst: ${worst.id}${worst.delta > 0 ? ", which overruns" : ""}). ${overruns > 0 ? `${overruns} overrun and lose a word. ` : ""}Audio is the clock, so the picture is what needs re-cutting. pnpm video:audio prints the table.`,
+  );
+}
 
 // ---- Report ----
 /**

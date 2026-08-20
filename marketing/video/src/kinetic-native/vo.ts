@@ -19,8 +19,11 @@
  */
 import { VOICE_BY_FORMAT, speakable, type VoPlan } from "@/audio/vo";
 
-import { kineticNativeDuration } from "./KineticNative";
-import type { KineticNativeScript } from "./script";
+// From ./script and never from ./KineticNative, for the same reason END_FRAMES lives there:
+// `scripts/build-audio.ts` imports this module under node to work out how long a bed has to
+// be, and reaching the composition would pull `@/lib/fonts` in behind it, which opens a
+// `delayRender` handle at module scope with no render to hold back.
+import { kineticNativeDuration, type KineticNativeScript } from "./script";
 
 export const voPlanForKineticNative = (script: KineticNativeScript): VoPlan => ({
   id: script.id,

@@ -38,7 +38,7 @@ import { Fragment } from "react";
 import { interpolate, useCurrentFrame } from "remotion";
 
 import { cascade, CURRENT, EASE, TRAVEL, WATERFALL_CUT } from "./motion";
-import { K, LEADING, TRACKING } from "./skin";
+import { baselineIn, FACE, K, LEADING, TRACKING } from "./skin";
 import { DISPLAY_FACE } from "./type-fit";
 
 /**
@@ -49,6 +49,31 @@ import { DISPLAY_FACE } from "./type-fit";
  * about two frames in which the leading part of the word was vermillion on vermillion.
  */
 const SLAB_WIPE = 6;
+
+/**
+ * THE SLAB'S EDGES, and they are computed rather than typed.
+ *
+ * They used to be a fixed `inset: 0.06em -0.045em 0.1em -0.045em`, which is an inset from the
+ * LINE BOX. At the display leading of 0.82 the baseline sits 0.027em above the bottom of that
+ * box, so a 0.1em bottom inset put the slab's lower edge 0.073em ABOVE the baseline and cut
+ * the bottom tenth off every letter it was supposed to be behind. On the film's last and
+ * largest word that turned DUO into a red bar with three holes in it, and at feed size it
+ * stopped being a word at all.
+ *
+ * So the field is placed from the baseline, which is where the letters actually are:
+ * SLAB_PAD of field above the cap and the same below the baseline. See FACE in ./skin.
+ * All caps, so the descender is not in this sum; the pad covers the O's baseline overshoot.
+ */
+const SLAB_PAD = 0.05;
+const SLAB_BASELINE = baselineIn(LEADING);
+/** Distance from the top of the line box down to the top of the slab. */
+const SLAB_TOP = SLAB_BASELINE - FACE.cap - SLAB_PAD;
+/** Inset from the BOTTOM of the line box, and negative on purpose: the slab has to reach past
+ * the box to get below the baseline. */
+const SLAB_BOTTOM = LEADING - SLAB_BASELINE - SLAB_PAD;
+/** Sideways, so the field has a margin on the first and last letter without widening the
+ * line: the slab is absolutely positioned and adds no layout width. */
+const SLAB_SIDE = -0.045;
 
 export type WordEntry =
   /**
@@ -77,12 +102,9 @@ interface WordProps {
   slabColor?: string;
   /** Local frame the accent slab starts wiping. */
   slabAt?: number;
-  /** Renders the word's box but not its ink, so a second pass can paint only the slabs while
-   * staying in exact register with the first. See `only` on WordsProps. */
-  ghost?: boolean;
 }
 
-const Word = ({ text, entryAt, exitAt, entry, color, slabColor, slabAt, ghost }: WordProps) => {
+const Word = ({ text, entryAt, exitAt, entry, color, slabColor, slabAt }: WordProps) => {
   const frame = useCurrentFrame();
 
   // Entry. Leftward means the incoming waits to the RIGHT of home and continues left into it,
@@ -169,7 +191,7 @@ const Word = ({ text, entryAt, exitAt, entry, color, slabColor, slabAt, ghost }:
         <span
           style={{
             position: "absolute",
-            inset: "0.06em -0.045em 0.1em -0.045em",
+            inset: `${SLAB_TOP.toFixed(4)}em ${SLAB_SIDE.toFixed(4)}em ${SLAB_BOTTOM.toFixed(4)}em ${SLAB_SIDE.toFixed(4)}em`,
             backgroundColor: slabColor,
             transformOrigin: "0% 50%",
             transform: `scaleX(${wipe.toFixed(4)})`,
@@ -179,7 +201,7 @@ const Word = ({ text, entryAt, exitAt, entry, color, slabColor, slabAt, ghost }:
       <span
         style={{
           position: "relative",
-          color: ghost === true ? "transparent" : color,
+          color,
           opacity: 1 - flip,
         }}
       >
@@ -204,7 +226,6 @@ export interface WordsProps {
   reveal?: number[];
   accent?: string[];
   slab?: string[];
-  align: "center" | "left";
   /** Base ink for words that are neither accented nor slabbed. */
   ink: string;
   /** Ink for accented words. On a flooded frame the accent IS the field, so the beat passes
@@ -219,18 +240,6 @@ export interface WordsProps {
   cutAt: number | null;
   /** Local frame the accent slab wipes. Defaults to each slabbed word's own entrance. */
   slabAt?: number;
-  /**
-   * Renders ONLY the slabbed words, with every other word present but inkless.
-   *
-   * This exists for the knockout treatment, where the plate is multiplied over the whole type
-   * layer to make the letterforms a window. A slab caught in that multiply comes out as a
-   * muddy red rectangle with the app's own card copy showing through it and its black text
-   * invisible, which is what the payoff beat looked like on the first render. So a knockout
-   * beat draws the type twice: once inside the multiply for the letterforms, and once above it
-   * for the slab alone. The layout is identical in both passes, so the two stay in exact
-   * register frame for frame without a shared measurement.
-   */
-  only?: "slab";
 }
 
 export const Words = ({
@@ -239,13 +248,11 @@ export const Words = ({
   reveal,
   accent = [],
   slab = [],
-  align,
   ink,
   accentInk,
   entry,
   cutAt,
   slabAt,
-  only,
 }: WordsProps) => {
   const upper = lines.map((line) => line.toUpperCase());
   const accentSet = new Set(accent.map((word) => word.toUpperCase()));
@@ -267,7 +274,11 @@ export const Words = ({
         WATERFALL_CUT.exitStagger * ((words[lastLine]?.length ?? 1) - 1);
 
   return (
-    <div style={{ width: "100%", textAlign: align }}>
+    // Centred, always. Every line of a statement is fitted to the SAME width, so a full width
+    // block is flush either way and only a `fitWidth` block can tell the difference: left
+    // alignment parks all of its leftover margin on the right hand side and the frame reads as
+    // unbalanced rather than as deliberate. Centre splits it.
+    <div style={{ width: "100%", textAlign: "center" }}>
       {words.map((line, lineIndex) => {
         const fontSize = sizes[lineIndex] ?? 0;
         // The staging. Each line is its own arrival with its own cascade inside it, which is
@@ -311,7 +322,6 @@ export const Words = ({
                     color={accentSet.has(word) ? accentInk : ink}
                     slabColor={isSlab ? K.hot : undefined}
                     slabAt={isSlab ? slabAt : undefined}
-                    ghost={only === "slab" && !isSlab}
                   />
                 </Fragment>
               );

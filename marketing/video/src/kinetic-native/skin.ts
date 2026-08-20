@@ -50,13 +50,17 @@ export const K = {
  * The display safe box. Symmetrical, because the captions doctrine is explicit that a caption
  * line is an OVERLAY composited on top of the film and never a band the layout is shifted up
  * to avoid: a composition centred at 0.42 of the height with a dead lower strip is the bug,
- * not the fix. So the type block centres on the true frame centre, y = 960, and the rail
+ * not the fix. So a centred type block centres on the true frame centre, y = 960, and the rail
  * rides over the bottom of the frame on its own layer.
  *
  * What the layout does respect is the doctrine's one soft courtesy rule, that critical
  * readable text should not be parked exactly where the caption line sits. STACK is the height
  * budget the fitted type is shrunk into, and it is sized so a centred stack ends above the
  * rail's tallest line rather than under it. That is a size decision, not a shifted centre.
+ *
+ * BAND, TOP and BOTTOM are the anchored beats, and they are not a shifted centre either. They
+ * are the two APP beats getting out of the product's way in opposite directions, which is a
+ * composition decision about a specific screenshot. See `Anchor` in ./script.ts.
  */
 export const BOX = {
   side: 72,
@@ -72,6 +76,38 @@ export const BOX = {
    */
   stack: 1040,
   /**
+   * Height budget for a `top` anchored stack, and the number that decides how much of the
+   * phone screen behind it stays visible.
+   *
+   * A little under half what a centred beat gets, which is what makes an app beat read as type
+   * over a product rather than as type with a product behind it.
+   *
+   * 445, down from 480, and the 35px is the app camera's doing rather than a taste change. The
+   * app beats no longer park their plate: they push for the whole beat (see Plate.tsx), and a
+   * push moves everything AWAY from the frame centre, so content above the centre travels UP.
+   * The deck card's top edge starts at 640 and reaches 591 by the end of the longest app beat.
+   * A block spanning 130 to 610 would have been landing on it for the last third of the beat.
+   * 130 to 575 clears the card at its highest by 16px.
+   */
+  bandTop: 445,
+  /**
+   * Height budget for a `bottom` anchored stack, and it is smaller than the top one because
+   * the DUO LOCKED screen leaves less room than the deck does.
+   *
+   * The measurements that fix it: the app's Send a message button ends at 1104, its Keep
+   * swiping link sits at 1210, and the rail's tallest line tops out at 1488. So the block gets
+   * 1135 to 1455, which is everything between the button and the rail. That is what makes DUO
+   * come out at about 290px rather than 460: the payoff word is smaller than it could be, and
+   * in exchange the whole product reads, which is the trade Cameron's third note asks for.
+   */
+  bandBottom: 320,
+  /** Frame top to the top of a `top` anchored stack. It clears the app's own status row and
+   * lands the block over the deck header, which is the part of that screen worth covering. */
+  top: 130,
+  /** Frame bottom to the bottom of a `bottom` anchored stack. 465 puts it at 1455, which is
+   * 33px clear of the rail. */
+  bottom: 465,
+  /**
    * Ceiling for any one fitted line, and it exists only as a guard against a one letter line.
    *
    * It used to be 380, and that was the bug behind the ragged right edge on the first render.
@@ -83,6 +119,34 @@ export const BOX = {
    */
   cap: 520,
 } as const;
+
+/**
+ * THE FACE, MEASURED OFF THE FILE. Manrope ExtraBold, public/fonts/Manrope_800ExtraBold.ttf:
+ * unitsPerEm 2000, hhea ascent 2132, descent -600, OS/2 capHeight 1440. As fractions of an em
+ * that is ascent 1.066, descent 0.300, cap 0.720. The lowercase descender is measured rather
+ * than taken from the metric, by rendering H and Hgp at 200px and reading the ink: the cap is
+ * 144px, the g and the p reach 51px below the baseline, so the real descender is 0.255em where
+ * the font's own descent field says 0.300.
+ *
+ * These four numbers exist because of one bug that shipped twice. A line box is only
+ * one lineHeight tall, the glyphs are centred inside it by half leading, and both of
+ * this direction's leadings are TIGHTER than the face's own 1.366em content box. So the
+ * capitals hang out of the box at the top, the baseline sits ABOVE the box bottom, and
+ * anything painting a filled field behind a word by insetting from the box edges cuts the
+ * letterforms. That is what put a red bar with holes in it under the last word of the film,
+ * and what turned the rail word wrong into wronq. A field is positioned from the BASELINE,
+ * never from the box, and every such field in this direction computes its edges from here.
+ */
+export const FACE = { ascent: 1.066, descent: 0.3, cap: 0.72, tail: 0.255 } as const;
+
+/**
+ * Distance from the top of a line box to the baseline, in em, at a given leading.
+ *
+ * halfLeading = (leading - ascent - descent) / 2, and the baseline is one ascent below that.
+ * At the display leading of 0.82 it comes out at 0.793em, which is 0.027em ABOVE the bottom of
+ * the box: an inset measured from the bottom has to be NEGATIVE to reach the baseline at all.
+ */
+export const baselineIn = (leading: number): number => (leading + FACE.ascent - FACE.descent) / 2;
 
 /** Tracking for display type. Negative, because at 300px the default spacing of a grotesque
  * reads as gappy, and tight tracking is most of what separates kinetic type from a slide. */
@@ -126,6 +190,17 @@ export const RAIL = {
   /** The black keyline, as a fraction of the font size, so it holds at any fitted size. The
    * stroke is centred on the glyph edge, so half of it sits outside the measured width. */
   outline: 0.15,
+  /**
+   * Field around the glyph on the highlighted word, in em, above the cap and below the tail.
+   *
+   * The highlighter's edges are computed from the BASELINE using FACE above, never inset from
+   * the line box: at this leading the box bottom is 0.127em above the descender, so the old
+   * fixed 0.07em bottom inset cut the g of "wrong" and the p of "platonic" clean off and the
+   * rail read "wronq" for the whole opening beat. Both of the film's two promoted words carry
+   * a descender, so a highlighter that covers one is the correct shape here as well as the
+   * correct arithmetic.
+   */
+  boxPad: 0.045,
   /** Manrope ExtraBold is the heaviest face in this repo and it is still not a black. A
    * stroke in the fill colour fattens it into one. */
   weightBoost: 0.045,

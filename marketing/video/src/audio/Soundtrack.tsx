@@ -2,7 +2,9 @@
  * One track, mounted once, at the root of a post.
  *
  * The mix is already finished when it gets here: the voice is anchored, the bed is carved and
- * ducked under it, and the sum is normalised to -14 LUFS with the true peak under -1 dBTP.
+ * ducked under it, and the sum is normalised to MIX_TARGET.lufs with the true peak under
+ * -1 dBTP. See src/audio/mix.ts for the levels, and for why the DISTANCE between the voice
+ * and the bed carries the balance rather than the master's target doing it.
  * There is deliberately nothing to tune at this end. Doing any of it in Remotion would mean
  * the level depended on which frames were rendered, and a mix that changes when you re-render
  * it is not a mix.

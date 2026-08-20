@@ -50,13 +50,25 @@ stops corepack from honoring the root pin.
 | --- | --- |
 | `pnpm video:install` | Installs this project's dependencies, workspace-safely |
 | `pnpm video:studio` | Opens Remotion Studio to preview and scrub compositions |
+| `pnpm video:audio` | Generates the voiceovers, mixes them over the bed, and rewrites the timings |
 | `pnpm video:day` | Renders the day's three videos, covers, captions and manifest |
 | `pnpm video:verify` | typecheck + lint + content validation. Required before committing |
+
+`video:audio` needs two things on this machine that nothing else here does: `ffmpeg` (found on
+PATH, then at the WinGet install, then at `$FFMPEG_DIR`) and `HYPERFRAMES_PYTHON` pointing at a
+Python 3.12 for the voice model to run in.
+
+```powershell
+$env:HYPERFRAMES_PYTHON = "C:\Users\stall\AppData\Local\Programs\Python\Python312\python.exe"
+pnpm video:audio
+```
 
 ## Layout
 
 ```
 public/            fonts/, footage/ and noise.png are synced or supplied, all gitignored
+public/audio/      bed-01.mp3 is a licensed source asset and IS tracked; mix/ is generated
+src/audio/         the voiceover: what is said, how it is mixed, and when each line lands
 src/components/    DOM ports of the app's primitives, plus shared video furniture
 src/formats/       one component per format: reframe, pain, demo, spec
 src/data/          hooks.ts (the queue) and clips.ts (footage in and out points)
@@ -92,6 +104,109 @@ its trimmed range. A clip shorter than the slot that plays it does not loop and 
 freeze on its last frame; it leaves an empty frame with the hook line floating on it. Every
 clip must be at least as long as the longest slot that asks for it.
 
+## Audio
+
+Every post carries a voiceover with a music bed under it, and `pnpm video:audio` is the one
+command that produces both. The finished mixes land in `public/audio/mix/<id>.wav` and
+`render-day` bakes them into the MP4.
+
+**The read is derived, never written.** `src/audio/vo.ts` turns a hook into its spoken lines
+using the same fields the frame renders: a reframe speaks its two beats, a pain hook speaks its
+lines, a spec speaks its title and items. Editing a hook changes what is heard and what is seen
+at the same time, or neither. The only transform in between is `speakable`, which adds terminal
+punctuation and spells out the few tokens a speech model reads as noise ("18+" is said
+"eighteen plus"); it never changes a word. A `demo` is the exception and speaks its `caption`,
+because its only on-screen words are step labels and "01 / DECK" read aloud is not a sentence.
+
+**Audio is the clock.** The doctrine's rule is that scenes get re-timed to the voice's real
+timestamps and a read is never rushed to fit a slot, so nothing here estimates a duration. Each
+phrase is synthesised as its own WAV and measured with `ffprobe`, and the track is assembled
+from those measurements; `src/audio/timings.generated.ts` is the committed result, holding the
+start and end of every line in seconds and in frames. When a read and its video disagree by
+more than a second, `video:audio` and `pnpm validate` both say so and both say the same thing:
+the picture is what needs re-cutting.
+
+**The mix**, and every number in it is in `src/audio/mix.ts` with the reason it is that number:
+
+```
+voice   highpass 80Hz -> gentle compressor -> static gain to -16 LUFS -> limiter at -3 dBFS
+bed     3 peaking dips (400/1000/1600Hz) -> -15 dB -> duck keyed by the voice
+sum     voice + carved bed -> measure -> static gain -> limiter -> -14.7 LUFS, under -1 dBTP
+```
+
+The bed is carved rather than simply turned down: the dips give the voice the bands it needs
+and leave the music its low end and its top, and the sidechain takes about 9 dB more while a
+word is actually being said. -14 LUFS is what Instagram, TikTok and YouTube all normalise to.
+
+**Every mix is measured with `ebur128` after it has been written**, and the numbers are
+recorded, so the committed table says what is in the file rather than what was asked for. It
+used to be measured with `loudnorm`'s own analysis pass and that was a real defect rather than
+a preference: on the same finished WAV the two disagree by up to 0.9 LU (`pain-006` reads
+-15.2 by loudnorm and -14.3 by `ebur128`), `ebur128` is ffmpeg's implementation of BS.1770,
+and BS.1770 is what every platform's normaliser runs. The corrective trim closes its loop on
+this measurement too, so reading the wrong meter was pushing every mix about half a dB past
+its target and then recording the miss as if it were the target. After the change, 23 of the
+25 posts land inside the 0.15 LU tolerance where 18 of them used to sit outside it, and every
+true peak is under -1 dBTP.
+
+**The master is trimmed by 2048 samples at the head, and that is a delivery fix.** Remotion's
+AAC encode delays the audio by exactly that much and the edit list it writes takes only 512
+samples back, so every mp4 this pipeline has ever produced played its read 42.67ms, 1.28 video
+frames, late. It is small and it is systematic, which is the worst combination for a build
+whose one doctrinal rule is that audio is the clock. The figure was measured by null testing a
+delivered mp4 against its own WAV one sample shift at a time: the residual sits at -15.2 dB at
+lag 0 and collapses to -53.7 dB at lag 2048. What gets trimmed is 42.67ms of a 0.6s bed fade
+in under 0.2s of lead in silence, so nothing audible is lost, and the committed line timings
+then describe where the words land in the delivered video. Verified on the finished file by
+cross correlating it against the voice stem: the read now lands 10.0ms after the clock says it
+should, down from 52.7ms, and the 10ms that is left is the mix graph's own filter latency and
+is in the WAV as well as in the mp4.
+
+**A "too loud" note is answered by the gap, not by the master.** Cameron watched the first
+mixed cut and said to turn the music down and the voice down. Turning the master down does
+nothing that survives delivery, because every platform normalises back to about -14 LUFS and
+hands you the same balance at the same volume. What normalisation cannot undo is the DISTANCE
+between the voice and the bed, so the bed moved 4 dB (-11 to -15) and the duck went back to
+ratio 4, and the master moved only the 0.7 dB the note's own "-14 to -15" window would pay
+for. Measured on `kinetic-native-001`, mean volume over the bed-alone gaps and the spoken
+windows: the bed fell 5.5 dB, the read fell 1.1, and the distance between them went from
+8.4 dB to 12.8. The delivered mp4 lands at -14.7 LUFS, -1.5 dBTP.
+
+The target aims the WAV at -14.7 rather than -15 because the WAV is an intermediate: the AAC
+encode Remotion muxes it into costs about 0.2 LU, and targeting -15 put the rendered file at
+-15.1, outside the window by exactly that. Target the file that gets watched.
+
+One consequence worth knowing about. The four `demo` and most `spec` posts are two to four
+times longer than their reads, so most of the file is bed alone, the integrated loudness comes
+out low, and the master has to lift them 6 to 9 dB with the limiter taking the difference.
+Dropping the bed made that lift larger, and those posts now keep about 11 dB of crest over
+their reads where `kinetic-native` keeps 16. The real fix is not in the mix: it is the
+`audio.fit` warning `pnpm validate` already prints, which is that the picture is too long for
+the read on 24 of 24 posts. Audio is the clock.
+
+**The master is a static gain, and that is the second design.** The first asked ffmpeg's
+`loudnorm` to do it with `linear=true`, which is a request rather than an instruction: it
+falls back to a dynamic normaliser whenever the static gain it would need would push the true
+peak past the target, and that was every one of the twenty five posts. A dynamic normaliser
+lifts quiet passages, the quiet passages in these mixes are the ducked gaps between phrases,
+and lifting them undoes the duck. Measured on `reframe-001`, same loudness and same ceiling
+either way:
+
+| master | integrated | true peak | LRA |
+| --- | --- | --- | --- |
+| raw mix, before mastering | -18.6 LUFS | -2.6 dBTP | 4.6 LU |
+| loudnorm, dynamic fallback | -14.0 LUFS | -1.5 dBTP | 2.4 LU |
+| static gain + limiter | -14.1 LUFS | -1.5 dBTP | 4.2 LU |
+
+Across all twenty five, 23 kept more range under the static master and the mean gain was
+about 1.7 LU. The two that did not are `demo-001` and `spec-001`, and both are the underrun
+in another form: a read of 1.97s under 17.5s of video leaves a file that is almost entirely
+bed, so the master has to lift it 7.6 dB and the ceiling does the rest of the work. That is
+the picture's problem, not the mix's.
+
+**The cache** is per phrase, keyed on the text and the voice, and lives in `.audio-cache/`.
+Editing one line of a hook re-synthesises that line. Re-rendering a day runs no TTS at all.
+
 ## Rules this project holds itself to
 
 - One source of truth for the identity. Colors, radii, spacing, motion and the type scale are
@@ -104,10 +219,49 @@ clip must be at least as long as the longest slot that asks for it.
 - No copy may imply dating. The app is a platonic gaming-partner app. The banned words are
   allowed only inside a denial, because "no, this is not a dating app" is the strongest hook
   there is.
+- No gameplay audio ever reaches a mix. Every `OffthreadVideo` in this project sets `muted` on
+  the element, which is where the b-roll's game music and in-game voice are stopped. That is
+  the constraint the render's own `muted` flag used to stand in for; the flag is now off,
+  because there is a voiceover to hear.
 
 ## Status
 
-Renders. `Post` switches on a hook's format and produces a finished 1080x1920 video for any of
-the four, and the app footage is cut and timed. Two things are outstanding: `render-day` and
-its ledger (so `pnpm video:day` is not wired up yet), and the gameplay b-roll, without which
-the `pain` format shows its placeholder panel.
+Renders, with sound. `Post` switches on a hook's format and produces a finished 1080x1920
+video for any of the four, the app footage is cut and timed, and every post now carries a
+voiceover read off its own copy with a licensed bed carved under it.
+
+Outstanding, and the thing the audio path measured on its way past: **every read is far
+shorter than the video it belongs to.** All 24 posts underrun, and `pnpm video:audio` prints
+the gap per post:
+
+```
+demo-001      read  1.97s   video 17.50s   -15.53s
+demo-003      read  3.78s   video 17.50s   -13.72s
+demo-002      read  3.48s   video 16.50s   -13.02s
+reframe-002   read  3.07s   video 10.50s    -7.43s
+...
+spec-004      read  9.20s   video 13.50s    -4.30s
+```
+
+That is Cameron's first note about the combined direction, in numbers, and it belongs to the
+next task rather than to the audio path: the doctrine's rule is that audio is the clock, so
+the cut moves to the read and not the other way round. It is also why the master has to lift
+these mixes 6 to 9 dB, because a file that is two thirds bed measures quiet however loud the
+voice in it is. Re-cutting the picture to the read fixes the mixes for free.
+
+The combined direction is the one post that agrees with itself. `kinetic-native-001` reads
+9.55s against 10.93s of composition, and the 1.38s is not slack: it is the 0.20s lead-in plus
+the 1.00s end card plus the 0.18s the last beat spends leaving, all of which are bed alone by
+design. Inside the body every phrase sits inside its own beat with the picture leading the
+voice by about 0.17s, because the beats were cut from the measured read rather than the read
+being laid over a cut. The check that proves it, and the one to re-run after any retime, is
+the table at the top of `src/kinetic-native/script.ts`.
+
+It is on its third cut. The first was 14.1s and Cameron gave it three notes; the second was
+9.8s and answered them; the third is 10.9s and answers a frame by frame and sample by sample
+review of the second. What it changed, and the measurement behind each, is the essay at the
+top of `src/kinetic-native/script.ts`. The short version: the payoff photograph, a chat beat,
+four accent fields that were cutting their own letterforms, an app camera that used to park
+and stop dead at its own cut, the gameplay window and its clipped HUD, the end card's timing,
+and the 42.67ms of encoder delay above. It renders to
+`out/_directions/kinetic-native-v4.mp4`, 328 frames, 10.93s, -14.7 LUFS, -1.5 dBTP.

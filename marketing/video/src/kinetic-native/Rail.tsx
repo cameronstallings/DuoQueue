@@ -37,10 +37,27 @@ import { AbsoluteFill, interpolate, Sequence, useCurrentFrame } from "remotion";
 
 import { cascade, EASE, WATERFALL_ENTRY } from "./motion";
 import type { Cue } from "./script";
-import { K, RAIL, RAIL_TRACKING } from "./skin";
+import { baselineIn, FACE, K, RAIL, RAIL_TRACKING } from "./skin";
 import { DISPLAY_FACE, useDisplayFonts } from "./type-fit";
 
 const strip = (word: string): string => word.toLowerCase().replace(/[.,!?]/g, "");
+
+/**
+ * THE HIGHLIGHTER'S EDGES, computed from the baseline for the same reason the display slab's
+ * are. See the header of ./Words and FACE in ./skin.
+ *
+ * The old figures were `top: 0.03em, bottom: 0.07em`, inset from the LINE BOX. At the rail's
+ * leading of 1.02 the box bottom sits 0.127em above where a descender ends, so the box cut the
+ * tail off every g and p: "everyone gets this wrong" read "wronq" for the whole opening beat,
+ * which is the film's first 1.8 seconds and its poster frame. Both promoted words in the film
+ * carry a descender, so covering one is right as a shape as well as as a sum.
+ */
+const BOX_BASELINE = baselineIn(RAIL.leading);
+/** Top of the box, measured down from the top of the line box. */
+const BOX_TOP = BOX_BASELINE - FACE.cap - RAIL.boxPad;
+/** Inset from the BOTTOM of the line box. Negative: the box has to reach past it to cover a
+ * descender that already hangs outside. */
+const BOX_BOTTOM = RAIL.leading - BOX_BASELINE - FACE.tail - RAIL.boxPad;
 
 /** The largest size at which the line still fits the box. The keyline is centred on the glyph
  * edge, so half of it sits outside the measured width and fitting to the full box would put
@@ -123,8 +140,8 @@ const RailWord = ({ text, size, delay, weight, mark, instant }: WordProps) => {
             position: "absolute",
             left: "-0.10em",
             right: "-0.10em",
-            top: "0.03em",
-            bottom: "0.07em",
+            top: `${BOX_TOP.toFixed(4)}em`,
+            bottom: `${BOX_BOTTOM.toFixed(4)}em`,
             backgroundColor: K.hot,
             borderRadius: "0.10em",
           }}

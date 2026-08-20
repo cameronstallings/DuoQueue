@@ -10,8 +10,8 @@ import { Composition } from "remotion";
 import { CTA } from "@/config/phase";
 import { FPS, VIDEO_H, VIDEO_W } from "@/lib/scale";
 
-import { KineticNative, kineticNativeDuration } from "./KineticNative";
-import { KINETIC_NATIVE } from "./script";
+import { KineticNative } from "./KineticNative";
+import { KINETIC_NATIVE, kineticNativeDuration } from "./script";
 
 const FRAME = { width: VIDEO_W, height: VIDEO_H, fps: FPS } as const;
 
