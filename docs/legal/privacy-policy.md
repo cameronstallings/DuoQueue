@@ -21,7 +21,7 @@ This policy explains what DuoQueue collects, why, who we share it with, and what
 DuoQueue is a swipe-based app for finding gaming duos, built for players 18 and older.
 
 - **Legal entity:** DuoQueue is operated by Cameron Shaw Stallings, as an individual (a sole proprietor), not a company or LLC.
-- **Mailing address:** 201 N Becket St, Cary, NC 27513, USA
+- **Mailing address:** {{POSTAL_ADDRESS}}
 - **Contact email for privacy questions and rights requests:** `support@duoqueue.io`, the same monitored address used for support and safety reports throughout the app (see `apps/mobile/src/lib/legal.ts`).
 - **Data Protection Officer / EU representative:** Not applicable. DuoQueue is currently offered only in the United States and is not directed to users in the EU, UK, or EEA. If that changes, we'll appoint a DPO or EU representative as required and update this policy before expanding there.
 

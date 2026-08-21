@@ -51,7 +51,7 @@
 //     AA fails the build with the measured ratio (see CONTRAST_PAIRS).
 // ---------------------------------------------------------------------------
 
-import { readFileSync, writeFileSync, mkdirSync, statSync, copyFileSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, statSync, copyFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -1632,9 +1632,66 @@ function buildTryAgainPage() {
 // Legal pages
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// THE POSTAL ADDRESS COMES FROM THE EDGE FUNCTION, NOT FROM HERE.
+//
+// It used to be written out five times: the welcome email's footer, a "Mailing
+// address" line in each of the two legal documents, the arbitration opt-out
+// sentence, and the DMCA agent. Five copies of a fact that is going to change,
+// where missing one leaves a published legal page disagreeing with the email
+// that links to it about where the company can be served.
+//
+// supabase/functions/_shared/org.ts owns it, because `supabase functions deploy`
+// bundles only what it can reach from the entrypoint and cannot reach out here.
+// So the runtime that SENDS the email owns the value and this build borrows it,
+// by parsing the literal out of that file.
+//
+// Parsed rather than imported: this script is deliberately zero-dependency and
+// runs under plain node, while that file is Deno TypeScript. A regex over one
+// string literal is the whole cost, and the failure mode is loud.
+// ---------------------------------------------------------------------------
+const ORG_TS = path.join(ROOT, "supabase", "functions", "_shared", "org.ts");
+
+function readPostalAddress() {
+  if (!existsSync(ORG_TS)) {
+    throw new Error(`build-site: ${ORG_TS} is missing; the legal pages cannot be built without it`);
+  }
+  const src = readFileSync(ORG_TS, "utf8");
+  const m = /export const POSTAL_ADDRESS\s*=\s*"([^"]+)"/.exec(src);
+  if (!m) {
+    throw new Error(
+      "build-site: could not parse POSTAL_ADDRESS out of supabase/functions/_shared/org.ts. " +
+        "If that constant was renamed or turned into a template literal, update this reader — " +
+        "do not hardcode the address back into the legal documents.",
+    );
+  }
+  return m[1];
+}
+
+/** Substitutes the address tokens and refuses to publish a page still carrying one.
+ *
+ * The unresolved-token check is the point of the whole arrangement. A page that shipped
+ * reading "Mailing address: {{POSTAL_ADDRESS}}" would be worse than the duplication it
+ * replaced, so a leftover token fails the build the same way a TODO marker does. */
+function substituteOrgTokens(markdown, srcFile) {
+  const address = readPostalAddress();
+  const out = markdown
+    .replace(/\{\{POSTAL_ADDRESS_WITH_NAME\}\}/g, `DuoQueue, ${address}`)
+    .replace(/\{\{POSTAL_ADDRESS\}\}/g, address);
+
+  const leftover = /\{\{[A-Z_]+\}\}/.exec(out);
+  if (leftover) {
+    throw new Error(
+      `build-site: ${srcFile} still contains the unresolved token ${leftover[0]} after substitution. ` +
+        "Every {{TOKEN}} in docs/legal/*.md must be handled here before the page is written.",
+    );
+  }
+  return out;
+}
+
 function buildLegalPage({ srcFile, destDir, description, canonical }) {
   const srcPath = path.join(LEGAL_DIR, srcFile);
-  const markdown = readFileSync(srcPath, "utf8");
+  const markdown = substituteOrgTokens(readFileSync(srcPath, "utf8"), srcFile);
   const { html, title } = mdToHtml(markdown);
   const lastUpdated = resolveLastUpdated(srcPath, markdown);
   const pageHtml = pageShell({

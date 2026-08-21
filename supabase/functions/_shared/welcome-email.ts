@@ -28,10 +28,17 @@
 // load webfonts and a missing face here would silently reset the whole design.
 // ---------------------------------------------------------------------------
 
+import { POSTAL_ADDRESS_WITH_NAME, SUPPORT_EMAIL as ORG_SUPPORT_EMAIL } from "./org.ts";
+
 export const SITE_ORIGIN = "https://duoqueue.io";
-export const FROM_ADDRESS = "DuoQueue <support@duoqueue.io>";
-export const SUPPORT_EMAIL = "support@duoqueue.io";
-export const POSTAL_ADDRESS = "DuoQueue, 201 N Becket St, Cary, NC 27513, USA";
+export const FROM_ADDRESS = `DuoQueue <${ORG_SUPPORT_EMAIL}>`;
+export const SUPPORT_EMAIL = ORG_SUPPORT_EMAIL;
+
+/** Re-exported rather than declared, so the footer, the two legal pages and the
+ * arbitration clause cannot disagree about where the company can be served. The value
+ * lives in ./org.ts; see the note there on why deleting it is not an option and why a PO
+ * Box is the fix. */
+export const POSTAL_ADDRESS = POSTAL_ADDRESS_WITH_NAME;
 
 /** The 80/day cap on welcome sends. It is not about Resend's 3,000/month; it is
  * about the 100/day ceiling, which this shares with Supabase Auth's account

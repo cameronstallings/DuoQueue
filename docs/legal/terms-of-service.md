@@ -26,7 +26,7 @@ Welcome to DuoQueue. These Terms of Service ("Terms") are a contract between you
 
 If you don't agree, don't use DuoQueue.
 
-**Mailing address:** 201 N Becket St, Cary, NC 27513, USA
+**Mailing address:** {{POSTAL_ADDRESS}}
 
 ---
 
@@ -172,7 +172,7 @@ We reserve the right, at our own expense, to assume the exclusive defense and co
 
 **Fees.** DuoQueue will pay the AAA filing and administrative fees for your arbitration to the extent required by the AAA's Consumer Arbitration Rules.
 
-**Your right to opt out.** You can opt out of this entire arbitration agreement (including the class action waiver) by sending written notice to DuoQueue, 201 N Becket St, Cary, NC 27513, USA, or to `support@duoqueue.io`, within 30 days of the date you first agree to these Terms (for example, the date you create your account). Your notice must include your name and a clear statement that you're opting out of arbitration. Opting out doesn't affect any other part of these Terms and doesn't limit your ability to use DuoQueue.
+**Your right to opt out.** You can opt out of this entire arbitration agreement (including the class action waiver) by sending written notice to {{POSTAL_ADDRESS_WITH_NAME}}, or to `support@duoqueue.io`, within 30 days of the date you first agree to these Terms (for example, the date you create your account). Your notice must include your name and a clear statement that you're opting out of arbitration. Opting out doesn't affect any other part of these Terms and doesn't limit your ability to use DuoQueue.
 
 **Governing law.** These Terms, and any dispute not subject to arbitration, are governed by the laws of the State of North Carolina, without regard to its conflict-of-laws rules.
 
@@ -189,7 +189,7 @@ If you believe content on DuoQueue infringes your copyright, send a notice to ou
 5. A statement that you have a good-faith belief that the use is not authorized by the copyright owner, its agent, or the law.
 6. A statement, made under penalty of perjury, that the information in the notice is accurate and that you are the copyright owner or authorized to act on their behalf.
 
-**Designated DMCA Agent:** Cameron Shaw Stallings, registered with the U.S. Copyright Office's DMCA Designated Agent Directory. Reach the agent at `support@duoqueue.io`. 201 N Becket St, Cary, NC 27513, USA
+**Designated DMCA Agent:** Cameron Shaw Stallings, registered with the U.S. Copyright Office's DMCA Designated Agent Directory. Reach the agent at `support@duoqueue.io`. {{POSTAL_ADDRESS}}
 
 We will remove or disable access to material that we determine, in good faith, is infringing, and we may terminate the accounts of repeat infringers.
 
