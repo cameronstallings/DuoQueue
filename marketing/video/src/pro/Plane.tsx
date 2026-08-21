@@ -35,9 +35,11 @@
 import type { CSSProperties, ReactNode } from "react";
 import { AbsoluteFill } from "remotion";
 
-import { CAMERA, elevation, INK, sheen } from "./ground";
+import { CAMERA } from "./ground";
 import { SmearDef, smearFilter } from "./Smear";
 import type { Pose } from "./motion";
+import { elevationOf, faceLight, SURFACE } from "./surface";
+import { useAppTheme } from "./theme";
 
 /** The film's one camera. Everything that rotates is a direct child of one of these. */
 export const Stage = ({
@@ -74,7 +76,8 @@ export interface PlaneProps {
   gloss?: number;
   /**
    * Painted under the content, so a rounded corner reveals the app's own field rather than a
-   * sliver of the ground through an antialiased edge.
+   * sliver of the ground through an antialiased edge. Left unset it is whichever theme's
+   * background this film was shot in; see ./theme.tsx.
    *
    * "transparent" means THIS PLANE IS NOT AN OBJECT, only a rotating frame of reference, and it
    * turns off the shadow, the sheen and the rim with it. On the dark ground that distinction cost
@@ -83,6 +86,13 @@ export interface PlaneProps {
    * arriving inside a 760x620 grey halo with nothing in it.
    */
   fill?: string;
+  /**
+   * How far a caller has already washed this plane's CONTENT toward the paper, 0 to 1, for a
+   * caller that recedes an object by drawing a scrim inside it rather than by taking its opacity
+   * down. The shadow and the rim are outside that scrim and would otherwise survive it; see the
+   * `veil` note in ./surface.
+   */
+  veil?: number;
   children: ReactNode;
 }
 
@@ -96,11 +106,15 @@ export const Plane = ({
   radius = 26,
   z = 0,
   gloss = 0.34,
-  fill = INK.app,
+  fill,
+  veil = 0,
   children,
 }: PlaneProps) => {
-  const { shadow, rim } = elevation(pose.rotX, pose.rotY);
-  const solid = fill !== "transparent";
+  const theme = useAppTheme();
+  const paint = fill ?? SURFACE[theme].field;
+  const { shadow, rim, rimWidth } = elevationOf(pose.rotX, pose.rotY, theme, veil);
+  const key = faceLight(pose.rotY, gloss, theme);
+  const solid = paint !== "transparent";
   return (
     <>
       <SmearDef name={name} x={pose.smearX} y={pose.smearY} />
@@ -112,7 +126,7 @@ export const Plane = ({
           width,
           height,
           borderRadius: radius,
-          backgroundColor: fill,
+          backgroundColor: paint,
           boxShadow: solid ? shadow : undefined,
           opacity: pose.opacity,
           filter: smearFilter(name, pose.smearX, pose.smearY),
@@ -135,20 +149,23 @@ export const Plane = ({
               position: "absolute",
               inset: 0,
               borderRadius: radius,
-              backgroundImage: sheen(pose.rotY, gloss),
-              mixBlendMode: "screen",
+              backgroundImage: key.image,
+              mixBlendMode: key.blend,
               pointerEvents: "none",
             }}
           />
         ) : null}
-        {/* The bevel. One hairline, inset, so it survives the rounded corner. */}
+        {/* The bevel, and on the light films the app's own hairline in the same slot: a white
+            bevel catching a key light is nothing on a near-white face, and #C9CFBB at luma 192
+            against a ground of 224 is a boundary whatever the footage behind it happens to be.
+            Inset either way, so it survives the rounded corner. */}
         {solid ? (
           <div
             style={{
               position: "absolute",
               inset: 0,
               borderRadius: radius,
-              boxShadow: `inset 0 0 0 1px ${rim}, inset 0 1px 0 0 ${rim}`,
+              boxShadow: `inset 0 0 0 ${String(rimWidth)}px ${rim}, inset 0 ${String(rimWidth)}px 0 0 ${rim}`,
               pointerEvents: "none",
             }}
           />

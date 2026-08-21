@@ -5,10 +5,19 @@
  * own true pixel size and nothing here is ever letterboxed, stretched or cropped a second time.
  * `public/footage/README.md` carries the crop rectangle and the exact ffmpeg line for each.
  *
- * DARK ONLY. Cameron shot both themes to settle the question and the arithmetic settles it:
- * #CDFF3D is about 1.4:1 on white and about 13:1 on the app's own off-black, so a light-themed
- * app deletes the brand's only signature colour. The light halves of the table stay in
- * src/data/clips.ts for the rejected direction that used them.
+ * BOTH THEMES, ONE ROW EACH, and the row is chosen by ./theme.tsx rather than by the caller.
+ *
+ * This table used to be dark only, on the argument that #CDFF3D is about 1.4:1 on white and about
+ * 13:1 on the app's own off-black, so a light-themed app deletes the brand's signature colour.
+ * That argument is still true and it is still the reason the DARK films are the ones that shipped
+ * for review. It is not a reason the light films cannot be built: Cameron recorded both themes
+ * specifically so the two could be compared on real footage, and a comparison in which the light
+ * cut is a different edit is not a comparison. So the two halves live side by side here, the crop
+ * rectangles are identical because the two themes are pixel-identical in layout, and the ONLY
+ * thing that moves between Pro-B and Pro-B-Light is which column of this table is read.
+ *
+ * What a light fragment then has to do to read as an object on a light ground, and the ring by
+ * ring measurement that says it does not get it for free, is the header of ./theme.tsx.
  *
  * =====================================================================================
  * WHAT IS LEGIBLE UNDER EACH LINE, and why two crops the rejected direction used are absent
@@ -52,21 +61,36 @@ import { clips } from "@/data/clips";
 import { FPS } from "@/lib/scale";
 import type { ClipName } from "@/types";
 
+import { SURFACE } from "./surface";
+import { useAppTheme } from "./theme";
+
 export const FRAGMENTS = {
   /** Kofi's card, top edge to under the playstyle chip. The hero object of the whole film. */
-  card: { clip: "frag-dark-card-top", source: [1032, 660] },
-  games: { clip: "frag-dark-games", source: [490, 100] },
-  role: { clip: "frag-dark-role", source: [670, 90] },
+  card: { dark: "frag-dark-card-top", light: "frag-light-card-top", source: [1032, 660] },
+  games: { dark: "frag-dark-games", light: "frag-light-games", source: [490, 100] },
+  role: { dark: "frag-dark-role", light: "frag-light-role", source: [670, 90] },
   /** The reticle closing round the photo and the DUO LOCKED banner, as one continuous take. */
-  locked: { clip: "frag-dark-locked", source: [520, 640] },
-  send: { clip: "frag-dark-send", source: [1070, 206] },
-  bubble: { clip: "frag-dark-bubble", source: [460, 200] },
-  actions: { clip: "frag-dark-actions", source: [720, 226] },
-  /** The whole phone screen, for the direction that draws a device. */
-  screen: { clip: "deck-dark-raw", source: [1180, 2556] },
-  /** The only landscape piece, and the only one that is not the app. */
-  play: { clip: "frag-play", source: [1660, 934] },
-} as const satisfies Record<string, { clip: ClipName; source: readonly [number, number] }>;
+  locked: { dark: "frag-dark-locked", light: "frag-light-locked", source: [520, 640] },
+  /** The same rectangle AFTER the reticle has settled. The film wants the closing, because the
+   * closing is real product motion and a beat can spend it; a still wants the settled banner,
+   * because the first frame of `locked` is mid-animation. Used by the carousel and by nothing in
+   * the three films, which is why it sits here rather than in a table of its own: a still made of
+   * the campaign's footage should read the campaign's footage table. */
+  duo: { dark: "frag-dark-duo", light: "frag-light-duo", source: [520, 640] },
+  send: { dark: "frag-dark-send", light: "frag-light-send", source: [1070, 206] },
+  bubble: { dark: "frag-dark-bubble", light: "frag-light-bubble", source: [460, 200] },
+  actions: { dark: "frag-dark-actions", light: "frag-light-actions", source: [720, 226] },
+  /** The whole phone screen, for the direction that draws a device. The light half is a window
+   * into `raw-light` rather than `deck-light-raw`, because that recording holds a different
+   * person's card; see the entry in src/data/clips.ts. */
+  screen: { dark: "deck-dark-raw", light: "raw-light-card", source: [1180, 2556] },
+  /** The only landscape piece, the only one that is not the app, and therefore the only row
+   * whose two halves are the same file: the thing being compared is the app's theme. */
+  play: { dark: "frag-play", light: "frag-play", source: [1660, 934] },
+} as const satisfies Record<
+  string,
+  { dark: ClipName; light: ClipName; source: readonly [number, number] }
+>;
 
 export type FragName = keyof typeof FRAGMENTS;
 
@@ -117,10 +141,11 @@ export const Fragment = ({
   startAt?: number;
 }) => {
   const frame = useCurrentFrame();
-  const entry = clips[FRAGMENTS[frag].clip];
+  const theme = useAppTheme();
+  const entry = clips[FRAGMENTS[frag][theme]];
   const path = `footage/${entry.file}`;
   if (!isPresent(path)) {
-    return <AbsoluteFill style={{ backgroundColor: "#0A0B09" }} />;
+    return <AbsoluteFill style={{ backgroundColor: SURFACE[theme].field }} />;
   }
 
   const video = (

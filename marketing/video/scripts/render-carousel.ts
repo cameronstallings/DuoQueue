@@ -9,6 +9,7 @@ import { captionsMarkdown } from "../src/carousel/captions";
 import { CARD_COUNT, CARDS, PIECES, WAITLIST_LABEL } from "../src/carousel/plan";
 import { assertPhaseConfigured, CTA, PHASE, type Cta } from "../src/config/phase";
 import { clips } from "../src/data/clips";
+import { FRAGMENTS } from "../src/pro/media";
 import { webpackOverride } from "../src/lib/webpack-override";
 import { syncAssets } from "./sync-assets";
 
@@ -78,9 +79,12 @@ const main = async (): Promise<void> => {
   // Every clip the cards draw is cropped footage that is gitignored and filled by hand. A
   // missing file renders the labelled panel instead of the app, which on a video is a visible
   // reminder and on a still is a post that would go up with a grey rectangle in it.
-  const missing = [
-    ...new Set(Object.values(PIECES).map((piece) => clips[piece.clip].file)),
-  ].filter((file) => !fs.existsSync(path.join(FOOTAGE_DIR, file)));
+  // The set is DARK, so it is the dark half of the film's own fragment table that has to be on
+  // this disk. Reading it from there rather than from a second list is what stops this check from
+  // passing while the cards render the missing-footage panel.
+  const missing = [...new Set(PIECES.map((piece) => clips[FRAGMENTS[piece].dark].file))].filter(
+    (file) => !fs.existsSync(path.join(FOOTAGE_DIR, file)),
+  );
   if (missing.length > 0) {
     throw new Error(
       [

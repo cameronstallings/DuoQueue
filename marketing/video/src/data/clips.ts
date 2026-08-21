@@ -44,6 +44,18 @@ export const clips = {
   // still from 0 to 16.4s in this take; `to` stops at 16.2 so no beat can run into the swipe
   // that ends it. 1180x2556, the iPhone capture's own pixels, same as every app source here.
   "deck-dark-raw": { file: "deck-dark-raw.mp4", from: 0, to: 16.2 },
+  // THE SAME SHOT IN THE LIGHT THEME, and it is a window into `raw-light` rather than a file of
+  // its own because `deck-light-raw` holds SANA's card and every fragment the light film lifts
+  // off the glass was cut from Kofi's. A device showing one person while another person's DUO
+  // LOCKED banner rises off it is not a theme comparison, it is a continuity error.
+  //
+  // 4.30 to 8.02 is the window public/footage/README.md records for the light Kofi card, and
+  // both ends are load bearing: `raw-light` carries deleted personas at 0.0-4.0 and again at
+  // 8.05-9.60, and the card's swipe starts a frame after 8.02. It is 3.72s where the dark take
+  // is 16.2, which the film absorbs rather than works around: the card is dead still in both
+  // recordings, `Fragment` freezes on the last frame it has rather than running out, and a held
+  // still of a motionless card is the same picture.
+  "raw-light-card": { file: "raw-light.mp4",     from: 4.3, to: 8.02 },
   "match-kofi":    { file: "match-kofi.mp4",    from: 0, to: 5.2 },
   "duo-locked":    { file: "duo-locked.mp4",    from: 0, to: 8.2 },
   // The list for 2.5s, then it opens the Priya thread. It has to reach 6s to cover a reframe,

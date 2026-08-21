@@ -76,6 +76,7 @@ import {
 } from "../motion";
 import { Plane, Stage } from "../Plane";
 import type { ProScript } from "../script";
+import { AppThemed } from "../theme";
 import { beatFrames, beatStarts, bodyFrames, END_FRAMES } from "../timing";
 import { groupSize, useFaces, wordCount } from "../type";
 import { Words } from "../Words";
@@ -190,6 +191,10 @@ const Lift = ({
       // It travels toward the camera, and it recedes with everything else when the words arrive.
       z={320 * t + RECEDE.z * (1 - focus) * 0.6}
       gloss={0.2}
+      // The scrim below washes the CONTENT toward the paper; the shadow and the hairline are
+      // outside it and have to be told, or a receded light chip is an empty outlined box sitting
+      // on the statement. Same number, stated once. See the `veil` note in ../surface.
+      veil={(1 - focus) * 0.72}
     >
       <Fragment frag={shot.frag} startAt={shot.at} />
       {/* THE LIFTED CHIP RECEDES LIKE EVERY OTHER OBJECT IN THE THREE FILMS, and on the dark
@@ -430,3 +435,21 @@ export const ProA = ({ script, cta }: { script: ProScript; cta: Cta }) => {
     </Field>
   );
 };
+
+/**
+ * THE SAME FILM, SHOT IN THE APP'S OTHER THEME.
+ *
+ * Not a variant and not a setting: the identical component, the identical script, read, mix, beat
+ * table, schedule, ground, grid, type, wipe, flood and end card, wrapped in the one context that
+ * decides which column of the footage table ../media reads and which surface law an object made
+ * of that footage obeys. See ../theme.tsx for the measurement that makes the second half of that
+ * sentence necessary and for what the light law actually does.
+ *
+ * Put the two files side by side and every statement builds on the same frame, which is the only
+ * arrangement under which the comparison Cameron recorded both themes for means anything.
+ */
+export const ProALight = (props: { script: ProScript; cta: Cta }) => (
+  <AppThemed theme="light">
+    <ProA {...props} />
+  </AppThemed>
+);

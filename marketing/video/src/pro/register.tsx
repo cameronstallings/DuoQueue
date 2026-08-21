@@ -5,27 +5,41 @@
  * `render-day` selects the composition called `Post` by id and nothing else, so registering here
  * cannot change what `pnpm video:day` renders.
  *
- * THREE COMPOSITIONS, ONE ARGUMENT. All three take the same script, resolve the same beat table
- * out of the same measured WAV, play the same mix and end on the same card. The only variable is
- * the direction, which is what makes them comparable: a difference between two of the rendered
- * files is a difference of look and of nothing else.
+ * ONE ARGUMENT PER PAIR. Every composition here takes the same script, resolves the same beat
+ * table out of the same measured WAV, plays the same mix and ends on the same card. Between the
+ * three directions the only variable is the direction; between a direction and its `-Light` half
+ * the only variable is which theme of the app was recorded. That is what makes any two of the
+ * rendered files comparable: a difference between them is a difference of exactly one thing.
  */
 import { Composition } from "remotion";
 
 import { CTA } from "@/config/phase";
 import { FPS, VIDEO_H, VIDEO_W } from "@/lib/scale";
 
-import { ProA } from "./a/DirectionA";
-import { ProB } from "./b/DirectionB";
+import { ProA, ProALight } from "./a/DirectionA";
+import { ProB, ProBLight } from "./b/DirectionB";
 import { ProC } from "./c/DirectionC";
 import { PRO } from "./script";
 import { proDuration } from "./timing";
 
 const FRAME = { width: VIDEO_W, height: VIDEO_H, fps: FPS } as const;
 
+/**
+ * FIVE COMPOSITIONS, THREE DIRECTIONS, TWO THEMES.
+ *
+ * The two `-Light` entries are the same components under ./theme.tsx's context. They are listed
+ * beside their dark halves rather than in a table of their own, because they take the same props
+ * from the same script and resolve the same duration from the same measured WAV, and the moment
+ * that stops being true the comparison they exist for has already been lost.
+ *
+ * Direction C has no light half on purpose. It is the rejected one; it stays registered and
+ * untouched, and building on it is the one thing Cameron asked for by name not to happen.
+ */
 const DIRECTIONS = [
   { id: "Pro-A", component: ProA },
+  { id: "Pro-A-Light", component: ProALight },
   { id: "Pro-B", component: ProB },
+  { id: "Pro-B-Light", component: ProBLight },
   { id: "Pro-C", component: ProC },
 ] as const;
 

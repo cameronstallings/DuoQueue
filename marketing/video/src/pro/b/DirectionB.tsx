@@ -73,6 +73,7 @@ import { Backdrop, Hero, type HeroPlan } from "../Hero";
 import { EASE, flashAt, FLIP_FRAMES, ramp } from "../motion";
 import { Stage } from "../Plane";
 import type { ProScript } from "../script";
+import { AppThemed } from "../theme";
 import { beatFrames, beatStarts, bodyFrames, END_FRAMES } from "../timing";
 import { groupSize, useFaces, wordCount } from "../type";
 import { Words } from "../Words";
@@ -215,3 +216,21 @@ export const ProB = ({ script, cta }: { script: ProScript; cta: Cta }) => {
     </Field>
   );
 };
+
+/**
+ * THE SAME FILM, SHOT IN THE APP'S OTHER THEME.
+ *
+ * Not a variant and not a setting: the identical component, the identical script, read, mix, beat
+ * table, schedule, ground, grid, type, wipe, flood and end card, wrapped in the one context that
+ * decides which column of the footage table ../media reads and which surface law an object made
+ * of that footage obeys. See ../theme.tsx for the measurement that makes the second half of that
+ * sentence necessary and for what the light law actually does.
+ *
+ * Put the two files side by side and every statement builds on the same frame, which is the only
+ * arrangement under which the comparison Cameron recorded both themes for means anything.
+ */
+export const ProBLight = (props: { script: ProScript; cta: Cta }) => (
+  <AppThemed theme="light">
+    <ProB {...props} />
+  </AppThemed>
+);

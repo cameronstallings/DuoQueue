@@ -64,6 +64,21 @@ Sources:
 | `raw-dark.mp4` | 60.7s | Sana DUO LOCKED 6.0-11.9, chat and send, Matches, the Priya thread, Settings, Power-Ups |
 | `raw-light.mp4` | 52.2s | Kofi card 4.30-8.02, Kofi DUO LOCKED 9.60-13.20, chat and send, Matches, Priya, Settings, Power-Ups |
 
+### The whole screen, per theme
+
+`src/pro/a/` draws a phone as a real object and therefore needs a whole 1180x2556 frame rather
+than a crop. Dark is `deck-dark-raw` entire. Light is a **window into `raw-light`**, 4.30 to 8.02,
+registered in `clips.ts` as `raw-light-card`, and it is that rather than `deck-light-raw` because
+`deck-light-raw` holds SANA's card while every light fragment that lifts off the glass was cut
+from Kofi's. A device showing one person while another person's DUO LOCKED banner rises off it is
+a continuity error, not a theme comparison.
+
+It is 3.72s against the dark take's 16.2, and the film absorbs that rather than working around it:
+the card is dead still in both recordings, `Fragment` freezes on the last frame it has instead of
+running out, and a held still of a motionless card is the same picture. Both ends of the window
+are load bearing. `raw-light` carries deleted personas at 0.0-4.0 and again at 8.05-9.60, and the
+card's swipe starts one frame after 8.02.
+
 Kofi is the duo in **both** halves so the two deliverables tell the same story: dark from
 `deck-dark-raw`, light from `raw-light`. `frag-dark-bubble` is the one exception, cut from
 raw-dark's Sana thread because the dark recording has no Kofi chat; its crop excludes the

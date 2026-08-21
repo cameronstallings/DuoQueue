@@ -30,10 +30,12 @@
 import type { ReactNode } from "react";
 import { AbsoluteFill } from "remotion";
 
-import { elevation, INK, PAPER, sheen } from "../ground";
+import { elevation, PAPER, sheen } from "../ground";
 import { Fragment } from "../media";
 import type { Pose } from "../motion";
 import { SmearDef, smearFilter } from "../Smear";
+import { SURFACE } from "../surface";
+import { useAppTheme } from "../theme";
 
 /** The recording's own pixels. Every position on the glass is expressed in these and scaled. */
 export const SCREEN = { w: 1180, h: 2556 } as const;
@@ -141,7 +143,14 @@ export const Device = ({
   startAt?: number;
   children?: ReactNode;
 }) => {
+  const theme = useAppTheme();
   const height = deviceHeight(width);
+  // THE BODY TAKES THE DARK LAW IN BOTH FILMS, deliberately. ../surface strengthens the shadow
+  // and swaps the bevel for the app's own hairline when an object is MADE OF light-theme footage
+  // and has therefore lost its own contrast against the paper. This body is drawn rather than
+  // photographed, and it is near-black machined hardware whichever theme is running on the glass
+  // inside it, so it keeps its 200 luma step for free. Giving it the light law would move the
+  // dark film's shadow for a reason that has nothing to do with the app.
   const { shadow, rim } = elevation(pose.rotX, pose.rotY);
   const k = width / (SCREEN.w + BEZEL * 2);
   const bezel = Math.max(2, Math.round(BEZEL * k));
@@ -182,7 +191,7 @@ export const Device = ({
             inset: bezel,
             borderRadius: Math.round(radius - bezel * 0.7),
             overflow: "hidden",
-            backgroundColor: INK.app,
+            backgroundColor: SURFACE[theme].field,
             filter: defocus > 0.05 ? `blur(${(defocus * 9).toFixed(1)}px)` : undefined,
           }}
         >
@@ -220,11 +229,22 @@ export const Device = ({
               because 0.655 is past the top of the text rather than above it: the opaque stop has
               to land before 0.647, not near it. The label at 0.629 is left half lit on purpose,
               since it says nothing that contradicts the voice and a gradient that dies mid-label
-              is what makes this read as falloff rather than as a mask. */}
+              is what makes this read as falloff rather than as a mask.
+
+              THE COLOUR IT FALLS TO IS THE THEME'S, and it is the one place the light film is not
+              simply the dark film with other footage in it. Both stops are lighting rather than
+              graphics. On the dark screen the light dies into the app's own near black and the
+              gradient is invisible AS a gradient, because everything it crosses is already that
+              value. On the light screen that same near black would be a hard horizontal bar laid
+              across a bright phone, and it would still be there below the card, where the app's
+              own field is #F2F4EB. So the light screen BLOWS OUT instead: the wash runs to the
+              app's own paper, which erases dark type exactly as the black erases light type, and
+              which below the card IS the field colour already, so the falloff has no visible edge
+              on either theme. The 60.7 to 64.3 span is identical in both and lands over the card's
+              photograph in both, because the deck card is a photograph in both themes. */}
           <AbsoluteFill
             style={{
-              backgroundImage:
-                "linear-gradient(to bottom, rgba(8,9,7,0) 60.7%, rgba(8,9,7,1) 64.3%, rgba(8,9,7,1) 100%)",
+              backgroundImage: `linear-gradient(to bottom, rgba(${SURFACE[theme].falloff},0) 60.7%, rgba(${SURFACE[theme].falloff},1) 64.3%, rgba(${SURFACE[theme].falloff},1) 100%)`,
               pointerEvents: "none",
             }}
           />

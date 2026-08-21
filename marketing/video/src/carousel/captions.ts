@@ -50,12 +50,21 @@ const HASHTAGS = [
 
 const TIKTOK_HASHTAG_COUNT = 5;
 
-/** The hook, in one line, for a reader who is looking at card one and deciding. */
-const HOOK = "how you find a duo on duoqueue, in six cards";
+/**
+ * The hook, in one line, for a reader who is looking at card one and deciding.
+ *
+ * IT IS THE FILM'S OPENING LINE, and that is the one job the caption does that the cards cannot.
+ * "your best games were the ones you played with someone else" is the best sentence in the
+ * campaign and it is eleven words, which at the measure is three lines of 72px type: thirteen
+ * display pixels in a feed thumbnail. Card one carries three words instead, because three words is
+ * what stops a scroll. The sentence lands here, one line lower, for the reader who did stop.
+ */
+const HOOK = "your best games were the ones you played with someone else.";
 
 /** The loop, end to end, for the reader who never swipes at all. */
 const BODY = [
-  "match on the game and how they play, lock the duo, send a message, then go play.",
+  "duoqueue is where you find the next one.",
+  "you match on the games you play and how you play them, lock the duo, send a message, and go play.",
   "18 plus and platonic, for people who want somebody to queue with.",
   "card six has the url. it is also down here, so you do not have to type it off a picture.",
 ].join("\n\n");
@@ -71,7 +80,7 @@ export const carouselCaptions = (cta: Cta): CarouselCaptions => {
     instagram: [HOOK, "", BODY, "", call, "", HASHTAGS.join(" ")].join("\n"),
     tiktok: [
       HOOK,
-      "swipe for the whole loop.",
+      "six cards, one loop. swipe.",
       call,
       HASHTAGS.slice(0, TIKTOK_HASHTAG_COUNT).join(" "),
     ].join(" "),
