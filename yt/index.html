@@ -3,21 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DuoQueue Privacy Policy | DuoQueue</title>
-<meta name="description" content="DuoQueue's Privacy Policy: what we collect, why, and who we share it with.">
-<link rel="canonical" href="https://duoqueue.io/privacy/">
+<title>DuoQueue: join the waitlist</title>
+<meta name="description" content="DuoQueue is an 18+ app for finding people to play games with. Platonic, not dating. Join the waitlist and get one email the day it goes live.">
+<link rel="canonical" href="https://duoqueue.io/">
 
 <link rel="icon" href="/favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="/favicon.png">
 <meta name="theme-color" content="#F6F3EA">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="DuoQueue">
-<meta property="og:title" content="DuoQueue Privacy Policy | DuoQueue">
-<meta property="og:description" content="DuoQueue's Privacy Policy: what we collect, why, and who we share it with.">
+<meta property="og:title" content="DuoQueue: join the waitlist">
+<meta property="og:description" content="DuoQueue is an 18+ app for finding people to play games with. Platonic, not dating. Join the waitlist and get one email the day it goes live.">
 <meta property="og:image" content="https://duoqueue.io/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:url" content="https://duoqueue.io/privacy/">
+<meta property="og:url" content="https://duoqueue.io/">
 <meta name="twitter:card" content="summary_large_image">
 <style>
   @font-face{font-family:"Unbounded";src:url(/fonts/unbounded-700.woff2) format("woff2");font-weight:700;font-style:normal;font-display:swap;}
@@ -541,88 +541,105 @@
   </div>
 </header>
 <main id="main">
-<div class="wrap"><article>
-<h1 id="duoqueue-privacy-policy">DuoQueue Privacy Policy</h1>
-<p><strong>Effective date:</strong> August 21, 2026 <strong>Version:</strong> 1.1</p>
-<p>This policy explains what DuoQueue collects, why, who we share it with, and what control you have over it. It's written in plain language on purpose. If anything here is unclear, contact us using the details below.</p>
-<hr>
-<h2 id="1-who-we-are">1. Who we are</h2>
-<p>DuoQueue is a swipe-based app for finding gaming duos, built for players 18 and older.</p>
-<ul><li><strong>Legal entity:</strong> DuoQueue is operated by Cameron Shaw Stallings, as an individual (a sole proprietor), not a company or LLC.</li><li><strong>Mailing address:</strong> 201 N Becket St, Cary, NC 27513, USA</li><li><strong>Contact email for privacy questions and rights requests:</strong> <code>support@duoqueue.io</code>, the same monitored address used for support and safety reports throughout the app (see <code>apps/mobile/src/lib/legal.ts</code>).</li><li><strong>Data Protection Officer / EU representative:</strong> Not applicable. DuoQueue is currently offered only in the United States and is not directed to users in the EU, UK, or EEA. If that changes, we'll appoint a DPO or EU representative as required and update this policy before expanding there.</li></ul>
-<p>Wherever this policy says "contact us," use the email above.</p>
-<hr>
-<h2 id="2-what-we-collect-and-why">2. What we collect, and why</h2>
-<p>We only collect what the app actually uses. Here's every category, itemized.</p>
-<h3 id="account-information">Account information</h3>
-<ul><li><strong>Email address and password.</strong> Your password is never stored or seen by us in plain text. Authentication is handled by our infrastructure provider, Supabase Auth, which stores a salted hash. We use your email to let you sign in, confirm your address (a one-time 6-digit code), and send account-related messages.</li></ul>
-<h3 id="profile-information">Profile information</h3>
-<ul><li><strong>Display name:</strong> shown on your profile and in chat.</li><li><strong>Date of birth:</strong> collected once at signup. We use it for two things: confirming you're 18 or older (DuoQueue is not available to anyone younger; see <a href="#9-age-restriction">Section 9</a>) and calculating the age shown on your profile. Your exact birth date is never shown to other users, only your calculated age.</li><li><strong>Gender:</strong> collected at onboarding and shown on your profile to other users. It is never used to filter or rank who you're shown.</li><li><strong>Region:</strong> collected at onboarding and shown on your profile to other users; also used to filter candidates when someone sets a region preference, and to slightly favor same-region matches in ranking.</li><li><strong>Spoken language(s):</strong> collected at onboarding; used as a premium filter so users can require a shared language, and to favor candidates who share a language with you in ranking.</li><li><strong>Photos:</strong> a profile photo, an optional header photo, and up to six gallery photos. Every uploaded photo is automatically re-processed to strip embedded location and camera metadata (EXIF/GPS data) before it's stored. Every photo also goes through our moderation pipeline before it becomes visible to anyone else. When our automated moderation provider (Sightengine) is configured, most photos are screened automatically and only borderline or undetermined cases go to a human moderator; if the automated provider isn't configured, every photo instead goes straight to human review. See <a href="#3-who-we-share-data-with">Section 3</a>.</li><li><strong>Bio and prompt answers:</strong> free-text fields you write about yourself.</li><li><strong>Games, shows/movies/anime, and platforms:</strong> what you play or watch, your self-reported skill level and rank per game, and which platforms (PC, PlayStation, Xbox, Switch, mobile) you play on.</li><li><strong>Playstyle tags and "vibe" answers:</strong> self-reported traits (e.g. chill vs. competitive, mic preference) and three sliders (session intensity, communication style, coaching preference) plus a tilt-handling answer, used to help match you with compatible players.</li><li><strong>Schedule/timezone:</strong> your device timezone (detected automatically at signup) and an optional "usual play window" (hours of day you typically play), used to rank candidates who are actually awake and playing when you are.</li><li><strong>Discord username (optional):</strong> never shown automatically. It's only revealed to a specific match if and when you tap "Share my Discord" in that conversation.</li></ul>
-<h3 id="content">Content</h3>
-<ul><li><strong>Messages.</strong> Chat messages you send to a match (or a party) are stored so the conversation is available across your devices. Messages are automatically screened by an on-device-adjacent profanity filter before being delivered. Messages are intended to be private between the participants of that conversation, with one exception: if a message is reported, a human moderator on our team reviews the reported conversation to investigate. This is a <strong>policy commitment about how we access messages, not an absolute technical restriction</strong>: our moderation tooling is built so an admin account is able to open any conversation to investigate a report, and admins are instructed to only do so in direct response to an open report. The limits of that control are described plainly in <a href="#7-security">Section 7</a>.</li></ul>
-<h3 id="usage-information">Usage information</h3>
-<ul><li><strong>Presence / "Online Now" status:</strong> an explicit toggle you turn on to signal you're free to duo right now (it expires automatically after 60 minutes). We also track a general "last active" timestamp used to rank the deck and to show partners when you're around.</li><li><strong>Swipes and matches:</strong> who you liked, passed on, or matched with, needed to run the core matching feature and prevent the same profile from being shown to you twice.</li><li><strong>Reports and blocks:</strong> who you've reported or blocked, and why, so we can act on it and keep that person from reappearing in your deck.</li><li><strong>Match feedback tags:</strong> optional, non-public tags ("good comms," "showed up on time," "flaked," etc.) you can leave about a match after the fact, used to build a lightweight reputation signal.</li></ul>
-<h3 id="device-information">Device information</h3>
-<ul><li><strong>Push notification token.</strong> If you grant notification permission, we store a device-specific push token (via Expo's push service) so we can deliver notifications like new matches and messages. No other device identifiers are collected. (Our schema has a <code>device_info</code> column reserved for future use; as of this writing no code path writes to it, so nothing is collected there.)</li></ul>
-<h3 id="purchases">Purchases</h3>
-<ul><li><strong>Subscription and purchase status</strong> (DuoQueue+, Boosts, Roses). Purchases are handled entirely by Apple's App Store or Google Play, and processed for us by RevenueCat. <strong>We never see or store your card number, billing address, or any other payment credential.</strong> We only receive purchase/subscription status (active, expired, product purchased, renewal date) from RevenueCat.</li></ul>
-<h3 id="optional-linked-gaming-accounts">Optional linked gaming accounts</h3>
-<ul><li><strong>Steam.</strong> If you choose to link your Steam account, we verify it's really yours via Steam's own sign-in (OpenID), then store your Steam ID, persona name, and avatar. We separately pull your owned-games playtime for titles in our catalog (e.g. "42.3h on Counter-Strike 2") so your stats are verified rather than self-reported. Steam's profile lookup can return additional public-profile fields (real name, country/state, account-creation time, and more, depending on the linked account's own Steam privacy settings). Our server only persists the Steam ID, persona name, and avatar into your profile; the rest of that response is discarded and never stored.</li><li>We only ever read the specific fields disclosed above. We do not read your friends list, purchase history, private messages, or anything else on Steam.</li></ul>
-<h3 id="bot-protection-signals">Bot-protection signals</h3>
-<ul><li>At signup, we may run Cloudflare Turnstile, an anti-bot challenge, to block automated account creation. Cloudflare processes device/browser signals for this purpose; we don't receive or store the details itself, only a pass/fail token.</li></ul>
-<h3 id="website-and-waitlist-duoqueueio">Website and waitlist (duoqueue.io)</h3>
-<p>This is the one category on this list that is about our website rather than the app.</p>
-<ul><li><strong>Your email address, if you give it to us on duoqueue.io.</strong> DuoQueue has not launched yet, and while it hasn't, our website runs a waitlist. If you enter your email address there, we store that address, the date, and which of our links you arrived from (so we know which channel worked), and we use it for two things and nothing else: an immediate email confirming you are on the list, and one message on the day the app goes live. That second message is marketing, and we are calling it that rather than describing it as transactional. We do not add waitlist addresses to any other mailing list, we do not sell or rent them, and we do not use them to advertise to you anywhere else. You can ask us to remove your address at any time by replying to either email or contacting us at the address in <a href="#1-who-we-are">Section 1</a>.</li><li><strong>A short-lived hash of your IP address, only to stop bots.</strong> We do not store your IP address alongside your signup. When the form is submitted we compute a salted, one-way hash of the connecting IP address and keep only that, for 48 hours, purely to rate-limit automated abuse of the form. It is deleted automatically after that and it is never linked to your email address.</li><li><strong>The 18-or-older box on that form is a self-declaration.</strong> You tell us your age; we do not check it, and we do not describe it as verification or age assurance. It is there because DuoQueue is an adults-only product and we do not want an underage person on a mailing list for it.</li><li><strong>No cookies, no analytics, and no advertising scripts on duoqueue.io.</strong> Our pages set no cookies, carry no analytics or advertising tag, and load nothing from a third-party server: every page is self-contained HTML and the only files it requests are its own fonts, served from the same domain. There is no JavaScript on the site at all.</li><li><strong>Two things do happen off our pages, and we would rather say so than let "no third parties" stand unqualified.</strong> First, duoqueue.io is published as a static site on <strong>GitHub Pages</strong>, so GitHub operates the server that answers your request and sees your IP address and user agent the way any web host would. Second, submitting the waitlist form posts it to our backend at <code>supabase.co</code>, which sits behind <strong>Cloudflare</strong>; Cloudflare's bot protection sets a short-lived cookie called <code>__cf_bm</code> on that <code>supabase.co</code> domain, not on duoqueue.io. It lasts 30 minutes, it is not readable by our pages, and it is not used for advertising or cross-site tracking. Both providers are listed in <a href="#3-who-we-share-data-with">Section 3</a>.</li></ul>
-<h3 id="what-we-do-not-collect">What we do NOT collect</h3>
-<p>We do not collect precise GPS location, contacts-list access, or browsing history outside the app. We do not run any advertising or analytics SDK: there is no Meta/Google ad pixel, no Mixpanel/Amplitude/Segment-style tracker, or any comparable dependency anywhere in the app's code today.</p>
-<hr>
-<h2 id="3-who-we-share-data-with">3. Who we share data with</h2>
-<p>We use a small number of specialized service providers ("processors") to run the app and the website: Supabase, Sightengine, Expo, Resend, RevenueCat, Apple, Google, Cloudflare, GitHub, and Steam. We use each of them as a service provider/processor under that provider's own standard terms of service, and none of them can use your data for their own purposes beyond providing their service to us.</p>
-<div class="table-scroll"><table><thead><tr><th>Provider</th><th>Role</th><th>What they receive</th><th>Location</th></tr></thead><tbody><tr><td><strong>Supabase</strong></td><td>Hosting, database, authentication, file storage, and realtime chat delivery (the backbone the whole app runs on)</td><td>Effectively all account and profile data described in Section 2</td><td>United States</td></tr><tr><td><strong>Sightengine</strong></td><td>Automated photo moderation, when configured (see below)</td><td>When our automated moderation provider is active, every photo you upload is sent to Sightengine to be automatically screened for nudity, graphic content, and whether the person in the photo appears to be a minor, before it's shown to anyone else</td><td>United States</td></tr><tr><td><strong>Expo (push notification service)</strong></td><td>Delivers push notifications</td><td>Your device push token and the notification content (e.g. "You matched with X")</td><td>United States</td></tr><tr><td><strong>Resend</strong></td><td>Sends our email: transactional messages (signup confirmation, account emails) and the two waitlist messages described in Section 2, one of which is a marketing announcement</td><td>Your email address and the content of the email being sent</td><td>United States</td></tr><tr><td><strong>GitHub (GitHub Pages)</strong></td><td>Hosts duoqueue.io, our public website — the waitlist page and these legal documents</td><td>The IP address, user agent, and requested URL of every visit to duoqueue.io, as any web host receives. We do not receive or keep server logs from GitHub, and there is no analytics on the site</td><td>United States / global edge network</td></tr><tr><td><strong>RevenueCat</strong></td><td>Manages subscriptions and in-app purchases</td><td>Your app-level user ID and purchase/subscription events from Apple/Google (never your payment details)</td><td>United States</td></tr><tr><td><strong>Apple (App Store) / Google (Play Store)</strong></td><td>Processes your payment when you buy a subscription or consumable</td><td>Your payment details, handled entirely by Apple/Google; we never receive them</td><td>Varies by platform</td></tr><tr><td><strong>Cloudflare</strong></td><td>Two separate roles: the Turnstile bot-protection challenge at signup in the app, and the network in front of our Supabase backend, which every waitlist form submission passes through</td><td>Device/browser signals used to distinguish humans from bots. Its bot protection sets a 30-minute <code>__cf_bm</code> cookie on the <code>supabase.co</code> domain when you submit the waitlist form — never on duoqueue.io, and never for advertising</td><td>Global network (may include US)</td></tr><tr><td><strong>Steam</strong></td><td>Only if you choose to link an account</td><td>We send your account link request to Steam and receive back the public profile fields listed in Section 2</td><td>United States (approximate, platform-dependent)</td></tr></tbody></table></div>
-<p><strong>Sightengine and Resend are config-gated, not hard-wired.</strong> Our photo-moderation pipeline defaults to routing every photo straight to human review and only calls Sightengine when a provider setting and API credentials are set in our live environment; if that configuration is ever unset, no photo is sent to Sightengine at all. As of this writing, our live production environment has that provider setting and both Sightengine credentials configured, so automated screening is active. Transactional email (account confirmation codes and similar) is sent through Resend, which is configured as our custom SMTP provider. The waitlist emails described in Section 2 are sent through Resend as well.</p>
-<p><strong>Where your data is processed.</strong> DuoQueue is currently offered only in the United States, and your data is processed in the United States by the providers listed above. DuoQueue is not directed to, and is not currently offered to, users in the EU, UK, or Switzerland. If that changes, we'll put an appropriate international transfer mechanism in place and update this section before it does.</p>
-<p><strong>We do not sell your personal information.</strong> We do not share your data with data brokers or advertising networks, and we don't run any advertising or analytics SDK that would make this a "sale" or "share" under CCPA/CPRA. See <a href="#6-your-rights">Section 6</a> for the CCPA-specific disclosures.</p>
-<hr>
-<h2 id="4-legal-bases-for-processing-for-users-in-the-euukeea">4. Legal bases for processing (for users in the EU/UK/EEA)</h2>
-<p>DuoQueue is currently offered only in the United States and is not directed to users in the EU, UK, or EEA (see <a href="#1-who-we-are">Section 1</a>). We're including this section for completeness in case that changes. If you're in a region covered by the GDPR or UK GDPR, here's the legal basis for each category of processing:</p>
-<ul><li><strong>Performance of a contract:</strong> running the account you signed up for. Email, password, profile data, matching, messaging, purchases, and account deletion all rely on this basis, since we can't provide the app without them.</li><li><strong>Legitimate interests:</strong> content moderation (photo screening, report handling), fraud/bot prevention (Turnstile), keeping the deck functional (swipe/match history), and security logging. We've weighed these against your privacy interests and believe they're necessary and proportionate to keep the app safe.</li><li><strong>Consent:</strong> anything genuinely optional, including linking a Steam account, sharing your Discord username with a specific match, and push notifications (which require your device-level permission). You can withdraw consent at any time by unlinking the account, not sharing, or disabling notifications (see <a href="#6-your-rights">Section 6</a>).</li></ul>
-<hr>
-<h2 id="5-how-long-we-keep-data">5. How long we keep data</h2>
-<ul><li><strong>Active accounts.</strong> We keep your data for as long as your account exists and you're using the app.</li><li><strong>Deleted accounts.</strong> DuoQueue has in-app account deletion (Settings → Delete Account). When you delete your account:<ul><li>Your profile, photos, messages, matches, swipe history, preferences, linked accounts, and push tokens are <strong>permanently deleted</strong>, including the underlying stored files (not just hidden). Because a conversation is tied to the match between you and your match partner, deleting your account also deletes your match partner's copy of any conversation you shared with them, not just yours.</li><li>This is irreversible. There is no "undo" or account-recovery grace period once deletion completes.</li><li><strong>Exception:</strong> if someone else's report about you is on file when you delete your account, the report record itself, and an internal reference id, are retained after your profile and identifying data are otherwise deleted, so we can maintain a history of safety actions (e.g. confirming a pattern of reported behavior) without your profile continuing to exist. This is a reference id, not an anonymization process: it is not linked to your profile once your profile is gone, but it isn't scrubbed of the report's own content (e.g. the reason and details given) either. This retention currently only works in one direction: <strong>if you are the one who filed a report and you delete your own account, that report record is deleted along with your account, not retained.</strong> We don't yet have a way to preserve a report you filed after you leave.</li></ul></li><li><strong>Waitlist signups (duoqueue.io).</strong> The salted hash of the IP address that submitted the form is deleted automatically 48 hours after it was created. Your email address and the link you arrived from are kept until you ask us to delete them, or until we delete the list, whichever comes first. Waitlist rows are stored separately from app accounts and are not connected to one: joining the waitlist does not create an account, and deleting your DuoQueue account does not remove your address from the waitlist. If you want both gone, tell us and we will do both.</li><li><strong>Backups.</strong> As of this writing, our hosting provider's automated point-in-time recovery and scheduled backup snapshots are not enabled for our production database, so there is no additional backup-retention window beyond the deletion described above. If backups are enabled in the future, deleted data could persist in a backup for that backup's retention period before being purged in the normal course of our hosting provider's backup rotation.</li><li><strong>Legal holds.</strong> We may retain specific records longer than normal if we're legally required to (e.g. an active law enforcement request), for as long as that requirement lasts.</li></ul>
-<hr>
-<h2 id="6-your-rights">6. Your rights</h2>
-<p>You have the following rights over your data. Most are available directly in the app; the rest are a quick email away.</p>
-<div class="table-scroll"><table><thead><tr><th>Right</th><th>What it means</th><th>How to exercise it</th></tr></thead><tbody><tr><td><strong>Access</strong></td><td>See what we hold about you</td><td>View it directly in the app (profile, matches, messages, settings), or email us for a full export</td></tr><tr><td><strong>Correction</strong></td><td>Fix inaccurate data</td><td>Edit your profile directly in the app for anything editable; email us for anything you can't change yourself (e.g. date of birth)</td></tr><tr><td><strong>Deletion</strong></td><td>Delete your account and data</td><td>Settings → Delete Account, or email us if you'd rather we do it</td></tr><tr><td><strong>Portability</strong></td><td>Get a copy of your data in a portable format</td><td>Email us. There's no self-service export button in the app yet, so this is handled manually, within a reasonable turnaround (GDPR: 30 days; CCPA: 45 days)</td></tr><tr><td><strong>Objection</strong></td><td>Object to processing based on legitimate interests</td><td>Email us with what you're objecting to</td></tr><tr><td><strong>Withdraw consent</strong></td><td>Revoke any consent-based processing at any time</td><td>Unlink a gaming account, stop sharing Discord in a chat, or turn off notification permissions (all directly in the app)</td></tr></tbody></table></div>
-<h3 id="california-residents-ccpacpra">California residents (CCPA/CPRA)</h3>
-<p>In the last 12 months, we've collected the categories of personal information described in Section 2 (identifiers, including an email address given to us on our website; profile/characteristics data; commercial/purchase information; internet/app activity, including a short-lived salted hash of the IP address that submitted our website's waitlist form; and information about your other online activity from linked gaming accounts). We've disclosed those same categories to the service providers listed in Section 3, for the business purposes described there.</p>
-<p>Sending you the one-time launch announcement you asked for by joining our waitlist is direct marketing, not a sale or a share, and it is not cross-context behavioral advertising. We do not disclose waitlist addresses to anyone except the email provider that delivers the message.</p>
-<ul><li><strong>We do not sell or share (as CPRA defines "share," which includes cross-context behavioral advertising) your personal information</strong>, and we don't operate any advertising-technology pipeline that would make this happen. There is nothing to opt out of.</li><li>You have the right to know, delete, and correct your personal information, and the right to non-discrimination for exercising any of these rights. We will never charge you more or provide a worse experience because you made a privacy request.</li><li>To exercise any CCPA/CPRA right, use the contact email in Section 1.</li></ul>
-<h3 id="euukeea-residents-gdpr">EU/UK/EEA residents (GDPR)</h3>
-<p>DuoQueue is currently offered only in the United States and is not directed to users in the EU, UK, or EEA. We don't have a lead EU/UK supervisory authority because we don't yet operate there. If we expand to those regions, we'll designate one and update this section before we do.</p>
-<hr>
-<h2 id="7-security">7. Security</h2>
-<p>We take reasonable steps to protect your data, but no system is perfectly secure, and we can't guarantee absolute security.</p>
-<ul><li><strong>Encryption in transit.</strong> All traffic between the app and our servers is encrypted (HTTPS/TLS), including chat messages, photos, and account data.</li><li><strong>Encryption at rest.</strong> Our hosting provider, Supabase, encrypts stored data at rest.</li><li><strong>Access controls.</strong> We use row-level database access controls so that, by default, a user's private data (messages, profile, preferences) is only readable by that user or the specific people it's meant to be shared with (e.g. your match partner in a conversation). Administrative access to broader data (e.g. for moderation) is restricted to designated accounts and gated by an admin flag that isn't self-grantable. That access is not currently logged.</li><li><strong>Content moderation.</strong> Photos go through our moderation pipeline (automated when configured, human review otherwise; see <a href="#2-what-we-collect-and-why">Section 2</a>/<a href="#3-who-we-share-data-with">Section 3</a>) before becoming visible to others, and reported content can be reviewed by our moderation team.</li><li><strong>What we don't promise.</strong> We do not claim our systems are unhackable or that a breach could never happen. If one does, we will notify affected users and relevant authorities as required by applicable law.</li></ul>
-<p>If you believe you've found a security vulnerability, please report it to the contact email in Section 1 rather than exploiting or publicly disclosing it first.</p>
-<hr>
-<h2 id="8-automated-decision-making-photo-moderation">8. Automated decision-making (photo moderation)</h2>
-<p>When you upload a photo, and our automated moderation provider (Sightengine) is configured (see <a href="#3-who-we-share-data-with">Section 3</a>), it analyzes the photo to check for nudity, graphic content, and whether the person appears to be a minor, and can automatically reject a photo without a human reviewing it first. If your photo is rejected and you believe that was a mistake, you can contact us to request human review. Photos that the automated system can't confidently judge (or every photo, if the automated provider isn't configured) are held for manual review by our team rather than being auto-approved or auto-rejected.</p>
-<hr>
-<h2 id="9-age-restriction">9. Age restriction</h2>
-<p>DuoQueue is for adults only: you must be 18 or older to create an account.</p>
-<p>We ask for your date of birth at signup, and we enforce the 18+ rule on the date you give us: a date of birth under 18 is rejected by the app and again by our database, which will not store a profile with one, so an under-18 date cannot complete a profile. What we do <strong>not</strong> do is verify that the date is true. We do not check identity documents and we do not use a third-party age-assurance service. It is a self-declaration that we then enforce, and we describe it that way here rather than calling it verification, which would imply a check we do not perform. The 18-or-older box on our website's waitlist form (<a href="#2-what-we-collect-and-why">Section 2</a>) is a self-declaration in the same sense, with no profile behind it to enforce against.</p>
-<p>If we learn that someone under 18 has created an account (for example, through a report using the "underage" report reason, or otherwise), we will terminate that account and delete the associated data as described in Section 5. If you believe a minor is using DuoQueue, please report that profile in the app (profile → Report) or contact us directly using the email in Section 1.</p>
-<p>We do not knowingly collect personal information from anyone under 18. If you're a parent or guardian and believe your child has provided us with personal information, contact us and we will investigate and delete it.</p>
-<hr>
-<h2 id="10-changes-to-this-policy">10. Changes to this policy</h2>
-<p>We may update this policy as the app changes. If we make a material change, we'll update the effective date at the top of this document. For significant changes, we'll also make a reasonable effort to notify users in-app before the change takes effect. We encourage you to review this policy periodically.</p>
-<hr>
-<h2 id="contact-us">Contact us</h2>
-<p>Email <code>support@duoqueue.io</code> with any question about this policy. For our full legal entity name and business address, see <a href="#1-who-we-are">Section 1</a>.</p>
-</article></div>
+
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow">The waitlist</p>
+        <h1 class="display">queue up<br>with a <span class="key">duo</span></h1>
+        <p class="lede">DuoQueue is an 18+ app for finding people to play games with. It is not dating.</p>
+        <p class="sub">You match on the games you play, the hours you are online, and how you like to play them. Then you talk, and queue up.</p>
+      </div>
+      <div class="hero-act">
+
+      <form class="signup" id="waitlist-form" method="post" action="https://oflexcazqfuvcikrewnb.supabase.co/functions/v1/waitlist-signup">
+        <label class="field-label" for="email">Your email</label>
+        <input id="email" type="email" name="email" placeholder="you@example.com"
+               autocomplete="email" inputmode="email" spellcheck="false"
+               maxlength="254" required>
+
+        <div class="hp" aria-hidden="true">
+          <label for="company">Company</label>
+          <input id="company" type="text" name="company" tabindex="-1" autocomplete="off">
+        </div>
+
+        <div class="adult">
+          <input id="adult" type="checkbox" name="adult" value="yes" required>
+          <label for="adult">I am 18 or older</label>
+        </div>
+
+        <input type="hidden" name="source" value="yt">
+        <button class="cta" type="submit">join the waitlist</button>
+      </form>
+      <p class="promise">One email, on the day it goes live. That is the only one you get.</p>
+      <p class="fineprint">We do not share your address. No analytics, no trackers and no cookies on this page &mdash; submitting the form sets one 30-minute anti-bot cookie on our backend&rsquo;s own domain, and nothing else. See the <a href="/privacy/">Privacy Policy</a>.</p>
+      </div>
+      <div class="hero-aside">
+        <div class="object"><div class="overlap"><span>&gt;&gt; 3 GAMES IN COMMON</span></div></div>
+        <p class="caption">you match on what you actually play</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="stage">
+  <div class="wrap">
+    <h2 class="eyebrow">What you are joining</h2>
+    <div class="fragments">
+      <div class="fragment frag-lead"><div class="object"><div class="overlap"><span>&gt;&gt; 3 GAMES IN COMMON</span></div></div><p class="caption">you match on what you actually play</p></div>
+      <div class="fragment"><div class="object"><div class="chips">
+      <span class="chip"><b>Rocket League</b><i>&middot; Ranked Grinder</i></span>
+      <span class="chip"><b>Valorant</b><i>&middot; Competitive</i></span>
+    </div></div><p class="caption">and on how they play it</p></div>
+      <div class="fragment"><div class="object"><div class="composer">
+      <div class="box">Message&hellip;</div>
+      <div class="send"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0A0B09" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg></div>
+    </div></div><p class="caption">then you talk, and queue up</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="plain">
+  <div class="wrap">
+    <h2 class="eyebrow">The plain version</h2>
+    <ul class="plain-list">
+      <li>
+        <h3>18+ only</h3>
+        <p>DuoQueue is for adults. The box on that form is you telling us your age. It is not us checking it, and we do not pretend otherwise.</p>
+      </li>
+      <li>
+        <h3>Platonic, not dating</h3>
+        <p>You are looking for someone to play with. The profile is games, hours and playstyle, and there is nothing romantic anywhere in the app.</p>
+      </li>
+      <li>
+        <h3>Everyone starts together</h3>
+        <p>The whole list gets the app on the same day on purpose, so the first people in find someone to play with instead of an empty screen.</p>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<section class="lockup">
+  <div class="wrap">
+    <div class="lockup-inner">
+      <svg class="brand-mark" width="250" height="250" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <circle cx="660.992" cy="512" r="215.04" fill="none" stroke="var(--mark-duo)" stroke-width="98.9184" />
+    <circle cx="842.425508224487" cy="693.433508224487" r="55.394304000000005" fill="var(--mark-duo)" />
+    <circle cx="338.432" cy="512" r="215.04" fill="none" stroke="var(--mark-ink)" stroke-width="98.9184" />
+    <path d="M 583.6133027625533 712.6358363150401 A 215.04 215.04 0 0 1 452.25814711396214 563.6950699714191" fill="none" stroke="var(--mark-duo)" stroke-width="98.9184" />
+  </svg>
+      <div class="wordmark">duoqueue</div>
+      <a class="cta" href="#waitlist-form">join the waitlist</a>
+      <div class="url">duoqueue.io</div>
+    </div>
+  </div>
+</section>
+
 </main>
 <footer class="site-footer">
   <div class="wrap">
-    <p>DuoQueue is an 18+ app for finding people to play games with. It is platonic, not dating. Last updated: August 21, 2026</p>
+    <p>DuoQueue is an 18+ app for finding people to play games with. It is platonic, not dating.</p>
     <nav>
       <a href="/">Home</a> <span aria-hidden="true">&middot;</span>
       <a href="/privacy/">Privacy Policy</a> <span aria-hidden="true">&middot;</span>
