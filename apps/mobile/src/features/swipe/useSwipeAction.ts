@@ -4,6 +4,7 @@ import type { SwipeResult } from "@duoqueue/shared-types";
 import { supabase } from "@/lib/supabase";
 
 import type { SwipeDirection } from "./types";
+import { SWIPE_QUOTA_QUERY_KEY } from "./useSwipeQuota";
 
 export class SwipeLimitReachedError extends Error {
   constructor() {
@@ -34,7 +35,7 @@ export function useSwipeAction() {
     mutationFn: ({ targetId, direction }: { targetId: string; direction: SwipeDirection }) =>
       performSwipe(targetId, direction),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["swipe-quota"] });
+      void queryClient.invalidateQueries({ queryKey: SWIPE_QUOTA_QUERY_KEY });
       // A duo-back here can match/remove someone from the requests list…
       void queryClient.invalidateQueries({ queryKey: ["admirers"] });
       void queryClient.invalidateQueries({ queryKey: ["admirers-count"] });

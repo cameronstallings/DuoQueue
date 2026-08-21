@@ -62,11 +62,17 @@ export default function DeckScreen() {
       // front of the deck instead of silently discarding an unrecorded swipe.
       restoreTop(card);
       if (err instanceof SwipeLimitReachedError) {
-        Alert.alert(
-          "Daily limit reached",
-          "You've used all your free swipes for today. Upgrade to DuoQueue+ for unlimited swipes.",
-          [{ text: "Not now" }, { text: "Upgrade", onPress: () => router.push("/paywall") }],
-        );
+        // Straight to the paywall rather than an alert that asks permission to show it.
+        //
+        // This is the app's highest-intent moment: somebody who has just spent every free swipe
+        // is, by definition, using the thing the subscription unlocks. An OS alert in front of it
+        // added a tap, put "Not now" in the reflexive-dismiss position, and named a price and a
+        // benefit the paywall was about to state properly anyway.
+        //
+        // Nothing is lost by skipping it, because the paywall is a modal with "Continue with
+        // Free" on it: dismissing is one gesture, and the deck is still underneath with the card
+        // restored above.
+        router.push("/paywall");
       } else {
         Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
       }

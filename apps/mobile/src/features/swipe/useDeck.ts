@@ -4,6 +4,7 @@ import type { DeckCandidate } from "@duoqueue/shared-types";
 
 import { supabase } from "@/lib/supabase";
 
+import { mergeDeckPage, shouldRefill } from "./deckQueue";
 import { enrichCandidates } from "./enrichCandidates";
 import type { DeckCard } from "./types";
 
@@ -71,13 +72,13 @@ export function useDeck() {
     try {
       const page = await fetchDeckPage();
       setQueue((prev) => {
-        const have = new Set(prev.map((card) => card.profile_id));
-        const added = page.filter((card) => !have.has(card.profile_id));
-        if (added.length === 0) {
-          exhaustedRef.current = true;
-          return prev;
-        }
-        return [...prev, ...added];
+        const { queue: next, exhausted } = mergeDeckPage(prev, page);
+        // Setting the ref from inside an updater is a side effect in a function that should be
+        // pure, and React may invoke this twice in development. It is safe only because the
+        // write is idempotent: exhaustion is a latch, and setting it true twice says the same
+        // thing once. Nothing else in here may follow that pattern.
+        if (exhausted) exhaustedRef.current = true;
+        return next;
       });
     } catch {
       // A failed refill must not strand the deck behind a permanent empty state, so it is
@@ -117,13 +118,15 @@ export function useDeck() {
   // Not gated on queue.length > 0: a first page that comes back shorter than REFILL_AT should
   // still ask once, and that call is what sets exhaustedRef so it never asks again.
   useEffect(() => {
-    if (query.isLoading) return;
-    // A failed first page leaves the queue empty with isLoading false, which looks exactly like a
-    // drained deck to the check below. Refilling there spends a request on the same failure the
-    // query just hit; recovery belongs to the query's own retry and to the empty state's refresh.
-    if (query.error) return;
-    if (queue.length > REFILL_AT) return;
-    void refill();
+    const go = shouldRefill({
+      queueLength: queue.length,
+      refillAt: REFILL_AT,
+      isLoading: query.isLoading,
+      hasError: query.error != null,
+      exhausted: exhaustedRef.current,
+      refilling: refillingRef.current,
+    });
+    if (go) void refill();
   }, [queue.length, query.isLoading, query.error, refill]);
 
   const refetch = useCallback(async () => {

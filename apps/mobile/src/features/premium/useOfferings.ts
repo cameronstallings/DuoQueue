@@ -4,6 +4,8 @@ import type { PurchasesPackage } from "react-native-purchases";
 
 import { isPurchasesConfigured } from "@/lib/revenuecat";
 
+import { SWIPE_QUOTA_QUERY_KEY } from "@/features/swipe/useSwipeQuota";
+
 import { CONSUMABLE_CREDITS_QUERY_KEY } from "./useConsumables";
 
 // See src/lib/revenuecat.ts: react-native-purchases can't be imported at module scope
@@ -50,6 +52,10 @@ export function usePurchasePackage() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["subscription"] });
       void queryClient.invalidateQueries({ queryKey: CONSUMABLE_CREDITS_QUERY_KEY });
+      // The deck reads its "N swipes left today" label and its is_premium flag from this cache.
+      // Without this, somebody who upgrades BECAUSE they ran out lands straight back on a screen
+      // still telling them they have none left, which is the worst moment in the app to be wrong.
+      void queryClient.invalidateQueries({ queryKey: SWIPE_QUOTA_QUERY_KEY });
     },
   });
 }
@@ -61,6 +67,9 @@ export function useRestorePurchases() {
     mutationFn: () => loadPurchases().restorePurchases(),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["subscription"] });
+      // Restoring on a new device grants the same entitlement a purchase does, so it has to
+      // refresh the same caches.
+      void queryClient.invalidateQueries({ queryKey: SWIPE_QUOTA_QUERY_KEY });
     },
   });
 }

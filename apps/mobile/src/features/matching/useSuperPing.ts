@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { SwipeResult } from "@duoqueue/shared-types";
 
+import { SWIPE_QUOTA_QUERY_KEY } from "@/features/swipe/useSwipeQuota";
 import { supabase } from "@/lib/supabase";
 
 export class SuperPingRequiresPremiumError extends Error {
@@ -32,7 +33,7 @@ export function useSuperPing() {
       return result ?? { matched: false, match_id: null };
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["swipe-quota"] });
+      void queryClient.invalidateQueries({ queryKey: SWIPE_QUOTA_QUERY_KEY });
       // A Super Ping can match/remove someone from the requests list…
       void queryClient.invalidateQueries({ queryKey: ["admirers"] });
       void queryClient.invalidateQueries({ queryKey: ["admirers-count"] });

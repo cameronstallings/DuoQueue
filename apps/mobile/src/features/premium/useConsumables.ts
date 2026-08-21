@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ConsumableCredits, SwipeResult } from "@duoqueue/shared-types";
 
+import { SWIPE_QUOTA_QUERY_KEY } from "@/features/swipe/useSwipeQuota";
 import { supabase } from "@/lib/supabase";
 
 export const CONSUMABLE_CREDITS_QUERY_KEY = ["consumable-credits"] as const;
@@ -72,7 +73,7 @@ export function useSendRose() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: CONSUMABLE_CREDITS_QUERY_KEY });
-      void queryClient.invalidateQueries({ queryKey: ["swipe-quota"] });
+      void queryClient.invalidateQueries({ queryKey: SWIPE_QUOTA_QUERY_KEY });
       // A Legendary Like can match/remove someone from the requests list…
       void queryClient.invalidateQueries({ queryKey: ["admirers"] });
       void queryClient.invalidateQueries({ queryKey: ["admirers-count"] });
