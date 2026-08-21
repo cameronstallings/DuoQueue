@@ -16,6 +16,7 @@ import { postDuration } from "@/lib/duration";
 import { FPS, VIDEO_H, VIDEO_W } from "@/lib/scale";
 import { NativeCompositions } from "@/native/register";
 import { ProCompositions } from "@/pro/register";
+import { StaticCompositions } from "@/static/register";
 import type { Hook } from "@/types";
 import { TypeCleanCompositions } from "@/type-clean/register";
 import { V6Compositions } from "@/v6/register";
@@ -121,6 +122,13 @@ export const RemotionRoot = () => (
         than restating them, so it cannot drift away from the finished ads. It registers ONE
         composition and the script drives it six times by index. */}
     <CarouselCompositions />
+    {/* The same direction again in the format that has neither time nor a swipe: a static ad, in
+        two sizes and both app themes, rendered as four stills by scripts/render-static.ts. It is
+        built on src/pro/ the way the carousel is, and the whole of what it adds is a reading
+        order made out of size and contrast, because a still cannot control where the eye starts.
+        See the header of src/static/ground.ts. It registers ONE composition and the script drives
+        it four times by props. */}
+    <StaticCompositions />
     {/* The third of the three ads, and the one Cameron asked for as "the type that we
         originally started". It is a rebuild rather than a tune: the original fitted every line
         to the full frame width, which assigned size by spelling and left no margin anywhere, so
