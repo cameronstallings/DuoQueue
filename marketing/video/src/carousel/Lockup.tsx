@@ -100,7 +100,12 @@ export const Lockup = ({ cta }: { cta: Cta }) => (
         fontFamily: FONT_FAMILY.monoSemibold,
         fontSize: `${String(URL)}px`,
         letterSpacing: "0.16em",
-        color: INK.dim,
+        // The one string on the whole set somebody has to read off a screen and then TYPE, so it
+        // is the last thing that should be set quietly. Dim (#5C6450) is 5.5:1 as a swatch but
+        // does not survive being set: small, wide-tracked mono has strokes barely over a pixel,
+        // antialiasing spends most of them, and the same treatment measured about 4.4:1 rendered
+        // on the static sheets. Same fix here as there.
+        color: INK.type,
       }}
     >
       {cta.url}

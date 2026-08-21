@@ -247,7 +247,12 @@ const Furniture = ({ text, align }: { text: string; align: "left" | "right" }) =
       lineHeight: `${String(LABEL.leading)}px`,
       letterSpacing: LABEL.tracking,
       textTransform: "uppercase",
-      color: INK.dim,
+      // The spine label is the card's title (THE DECK, THE MATCH) and the counter tells a reader
+      // there are six of these, so neither is decoration a viewer can afford to miss. Dim measured
+      // about 4.4:1 once actually set at this size and tracking; see the note on the URL in
+      // ./Lockup. Size and tracking already keep this subordinate to the headline without also
+      // spending contrast on it.
+      color: INK.type,
       textAlign: align,
       whiteSpace: "pre",
     }}

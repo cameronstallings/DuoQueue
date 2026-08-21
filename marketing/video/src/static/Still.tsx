@@ -211,7 +211,21 @@ const Mono = ({
       lineHeight: `${String(leading)}px`,
       letterSpacing: MONO.tracking,
       textTransform: "uppercase",
-      color: INK.dim,
+      // INK.type, not INK.dim, and the reason is measured rather than stylistic.
+      //
+      // Both mono rows used to be dim (#5C6450), which is 5.5:1 on the ground as a flat swatch
+      // and passes AA on paper. It does not survive being SET: at 22px with 0.18em tracking the
+      // strokes are a pixel and a half wide, antialiasing spends most of them, and the rendered
+      // line measured ink 98 against a ground of 222, about 4.4:1. The two rows that came out
+      // weakest on the sheet were the URL somebody has to read and type, and the line that says
+      // 18 PLUS and PLATONIC, which is the sheet's whole defence against being filed as a dating
+      // ad.
+      //
+      // The hierarchy that dim was buying is already paid for twice over: the stamp is 22px
+      // against the address's 28, and the address has the mark beside it. Spending contrast on
+      // the same distinction as well is what pushed the quiet line under the floor. At INK.type
+      // the foot measures about 15.9:1 and the sheet still ends on its smallest row.
+      color: INK.type,
       whiteSpace: "pre",
     }}
   >
