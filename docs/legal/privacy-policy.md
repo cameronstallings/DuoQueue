@@ -9,8 +9,8 @@
 -->
 # DuoQueue Privacy Policy
 
-**Effective date:** August 5, 2026
-**Version:** 1.0 (draft)
+**Effective date:** August 21, 2026
+**Version:** 1.1
 
 This policy explains what DuoQueue collects, why, who we share it with, and what control you have over it. It's written in plain language on purpose. If anything here is unclear, contact us using the details below.
 
@@ -71,6 +71,16 @@ We only collect what the app actually uses. Here's every category, itemized.
 ### Bot-protection signals
 - At signup, we may run Cloudflare Turnstile, an anti-bot challenge, to block automated account creation. Cloudflare processes device/browser signals for this purpose; we don't receive or store the details itself, only a pass/fail token.
 
+### Website and waitlist (duoqueue.io)
+
+This is the one category on this list that is about our website rather than the app.
+
+- **Your email address, if you give it to us on duoqueue.io.** DuoQueue has not launched yet, and while it hasn't, our website runs a waitlist. If you enter your email address there, we store that address, the date, and which of our links you arrived from (so we know which channel worked), and we use it for two things and nothing else: an immediate email confirming you are on the list, and one message on the day the app goes live. That second message is marketing, and we are calling it that rather than describing it as transactional. We do not add waitlist addresses to any other mailing list, we do not sell or rent them, and we do not use them to advertise to you anywhere else. You can ask us to remove your address at any time by replying to either email or contacting us at the address in [Section 1](#1-who-we-are).
+- **A short-lived hash of your IP address, only to stop bots.** We do not store your IP address alongside your signup. When the form is submitted we compute a salted, one-way hash of the connecting IP address and keep only that, for 48 hours, purely to rate-limit automated abuse of the form. It is deleted automatically after that and it is never linked to your email address.
+- **The 18-or-older box on that form is a self-declaration.** You tell us your age; we do not check it, and we do not describe it as verification or age assurance. It is there because DuoQueue is an adults-only product and we do not want an underage person on a mailing list for it.
+- **No cookies, no analytics, and no advertising scripts on duoqueue.io.** Our pages set no cookies, carry no analytics or advertising tag, and load nothing from a third-party server: every page is self-contained HTML and the only files it requests are its own fonts, served from the same domain. There is no JavaScript on the site at all.
+- **Two things do happen off our pages, and we would rather say so than let "no third parties" stand unqualified.** First, duoqueue.io is published as a static site on **GitHub Pages**, so GitHub operates the server that answers your request and sees your IP address and user agent the way any web host would. Second, submitting the waitlist form posts it to our backend at `supabase.co`, which sits behind **Cloudflare**; Cloudflare's bot protection sets a short-lived cookie called `__cf_bm` on that `supabase.co` domain, not on duoqueue.io. It lasts 30 minutes, it is not readable by our pages, and it is not used for advertising or cross-site tracking. Both providers are listed in [Section 3](#3-who-we-share-data-with).
+
 ### What we do NOT collect
 We do not collect precise GPS location, contacts-list access, or browsing history outside the app. We do not run any advertising or analytics SDK: there is no Meta/Google ad pixel, no Mixpanel/Amplitude/Segment-style tracker, or any comparable dependency anywhere in the app's code today.
 
@@ -78,20 +88,21 @@ We do not collect precise GPS location, contacts-list access, or browsing histor
 
 ## 3. Who we share data with
 
-We use a small number of specialized service providers ("processors") to run the app: Supabase, Sightengine, Expo, Resend, RevenueCat, Apple, Google, Cloudflare, and Steam. We use each of them as a service provider/processor under that provider's own standard terms of service, and none of them can use your data for their own purposes beyond providing their service to us.
+We use a small number of specialized service providers ("processors") to run the app and the website: Supabase, Sightengine, Expo, Resend, RevenueCat, Apple, Google, Cloudflare, GitHub, and Steam. We use each of them as a service provider/processor under that provider's own standard terms of service, and none of them can use your data for their own purposes beyond providing their service to us.
 
 | Provider | Role | What they receive | Location |
 |---|---|---|---|
 | **Supabase** | Hosting, database, authentication, file storage, and realtime chat delivery (the backbone the whole app runs on) | Effectively all account and profile data described in Section 2 | United States |
 | **Sightengine** | Automated photo moderation, when configured (see below) | When our automated moderation provider is active, every photo you upload is sent to Sightengine to be automatically screened for nudity, graphic content, and whether the person in the photo appears to be a minor, before it's shown to anyone else | United States |
 | **Expo (push notification service)** | Delivers push notifications | Your device push token and the notification content (e.g. "You matched with X") | United States |
-| **Resend** | Sends transactional email (signup confirmation, account emails), if configured as our email provider | Your email address and the content of the email being sent | United States |
+| **Resend** | Sends our email: transactional messages (signup confirmation, account emails) and the two waitlist messages described in Section 2, one of which is a marketing announcement | Your email address and the content of the email being sent | United States |
+| **GitHub (GitHub Pages)** | Hosts duoqueue.io, our public website — the waitlist page and these legal documents | The IP address, user agent, and requested URL of every visit to duoqueue.io, as any web host receives. We do not receive or keep server logs from GitHub, and there is no analytics on the site | United States / global edge network |
 | **RevenueCat** | Manages subscriptions and in-app purchases | Your app-level user ID and purchase/subscription events from Apple/Google (never your payment details) | United States |
 | **Apple (App Store) / Google (Play Store)** | Processes your payment when you buy a subscription or consumable | Your payment details, handled entirely by Apple/Google; we never receive them | Varies by platform |
-| **Cloudflare (Turnstile)** | Bot-protection challenge at signup | Device/browser signals used to distinguish humans from bots | Global network (may include US) |
+| **Cloudflare** | Two separate roles: the Turnstile bot-protection challenge at signup in the app, and the network in front of our Supabase backend, which every waitlist form submission passes through | Device/browser signals used to distinguish humans from bots. Its bot protection sets a 30-minute `__cf_bm` cookie on the `supabase.co` domain when you submit the waitlist form — never on duoqueue.io, and never for advertising | Global network (may include US) |
 | **Steam** | Only if you choose to link an account | We send your account link request to Steam and receive back the public profile fields listed in Section 2 | United States (approximate, platform-dependent) |
 
-**Sightengine and Resend are config-gated, not hard-wired.** Our photo-moderation pipeline defaults to routing every photo straight to human review and only calls Sightengine when a provider setting and API credentials are set in our live environment; if that configuration is ever unset, no photo is sent to Sightengine at all. As of this writing, our live production environment has that provider setting and both Sightengine credentials configured, so automated screening is active. Transactional email (account confirmation codes and similar) is sent through Resend, which is configured as our custom SMTP provider.
+**Sightengine and Resend are config-gated, not hard-wired.** Our photo-moderation pipeline defaults to routing every photo straight to human review and only calls Sightengine when a provider setting and API credentials are set in our live environment; if that configuration is ever unset, no photo is sent to Sightengine at all. As of this writing, our live production environment has that provider setting and both Sightengine credentials configured, so automated screening is active. Transactional email (account confirmation codes and similar) is sent through Resend, which is configured as our custom SMTP provider. The waitlist emails described in Section 2 are sent through Resend as well.
 
 **Where your data is processed.** DuoQueue is currently offered only in the United States, and your data is processed in the United States by the providers listed above. DuoQueue is not directed to, and is not currently offered to, users in the EU, UK, or Switzerland. If that changes, we'll put an appropriate international transfer mechanism in place and update this section before it does.
 
@@ -116,6 +127,7 @@ DuoQueue is currently offered only in the United States and is not directed to u
   - Your profile, photos, messages, matches, swipe history, preferences, linked accounts, and push tokens are **permanently deleted**, including the underlying stored files (not just hidden). Because a conversation is tied to the match between you and your match partner, deleting your account also deletes your match partner's copy of any conversation you shared with them, not just yours.
   - This is irreversible. There is no "undo" or account-recovery grace period once deletion completes.
   - **Exception:** if someone else's report about you is on file when you delete your account, the report record itself, and an internal reference id, are retained after your profile and identifying data are otherwise deleted, so we can maintain a history of safety actions (e.g. confirming a pattern of reported behavior) without your profile continuing to exist. This is a reference id, not an anonymization process: it is not linked to your profile once your profile is gone, but it isn't scrubbed of the report's own content (e.g. the reason and details given) either. This retention currently only works in one direction: **if you are the one who filed a report and you delete your own account, that report record is deleted along with your account, not retained.** We don't yet have a way to preserve a report you filed after you leave.
+- **Waitlist signups (duoqueue.io).** The salted hash of the IP address that submitted the form is deleted automatically 48 hours after it was created. Your email address and the link you arrived from are kept until you ask us to delete them, or until we delete the list, whichever comes first. Waitlist rows are stored separately from app accounts and are not connected to one: joining the waitlist does not create an account, and deleting your DuoQueue account does not remove your address from the waitlist. If you want both gone, tell us and we will do both.
 - **Backups.** As of this writing, our hosting provider's automated point-in-time recovery and scheduled backup snapshots are not enabled for our production database, so there is no additional backup-retention window beyond the deletion described above. If backups are enabled in the future, deleted data could persist in a backup for that backup's retention period before being purged in the normal course of our hosting provider's backup rotation.
 - **Legal holds.** We may retain specific records longer than normal if we're legally required to (e.g. an active law enforcement request), for as long as that requirement lasts.
 
@@ -136,7 +148,9 @@ You have the following rights over your data. Most are available directly in the
 
 ### California residents (CCPA/CPRA)
 
-In the last 12 months, we've collected the categories of personal information described in Section 2 (identifiers, profile/characteristics data, commercial/purchase information, internet/app activity, and information about your other online activity from linked gaming accounts). We've disclosed those same categories to the service providers listed in Section 3, for the business purposes described there.
+In the last 12 months, we've collected the categories of personal information described in Section 2 (identifiers, including an email address given to us on our website; profile/characteristics data; commercial/purchase information; internet/app activity, including a short-lived salted hash of the IP address that submitted our website's waitlist form; and information about your other online activity from linked gaming accounts). We've disclosed those same categories to the service providers listed in Section 3, for the business purposes described there.
+
+Sending you the one-time launch announcement you asked for by joining our waitlist is direct marketing, not a sale or a share, and it is not cross-context behavioral advertising. We do not disclose waitlist addresses to anyone except the email provider that delivers the message.
 
 - **We do not sell or share (as CPRA defines "share," which includes cross-context behavioral advertising) your personal information**, and we don't operate any advertising-technology pipeline that would make this happen. There is nothing to opt out of.
 - You have the right to know, delete, and correct your personal information, and the right to non-discrimination for exercising any of these rights. We will never charge you more or provide a worse experience because you made a privacy request.
@@ -170,7 +184,9 @@ When you upload a photo, and our automated moderation provider (Sightengine) is 
 
 ## 9. Age restriction
 
-DuoQueue is for adults only: you must be 18 or older to create an account. We verify your date of birth at signup and technically block anyone under 18 from completing a profile.
+DuoQueue is for adults only: you must be 18 or older to create an account.
+
+We ask for your date of birth at signup, and we enforce the 18+ rule on the date you give us: a date of birth under 18 is rejected by the app and again by our database, which will not store a profile with one, so an under-18 date cannot complete a profile. What we do **not** do is verify that the date is true. We do not check identity documents and we do not use a third-party age-assurance service. It is a self-declaration that we then enforce, and we describe it that way here rather than calling it verification, which would imply a check we do not perform. The 18-or-older box on our website's waitlist form ([Section 2](#2-what-we-collect-and-why)) is a self-declaration in the same sense, with no profile behind it to enforce against.
 
 If we learn that someone under 18 has created an account (for example, through a report using the "underage" report reason, or otherwise), we will terminate that account and delete the associated data as described in Section 5. If you believe a minor is using DuoQueue, please report that profile in the app (profile → Report) or contact us directly using the email in Section 1.
 

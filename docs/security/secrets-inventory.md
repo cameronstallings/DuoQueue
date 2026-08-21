@@ -32,6 +32,40 @@ import path reaches them — only comments referencing the names (e.g.
 | Google OAuth **web** client secret | Entered directly into the Supabase Dashboard (Authentication → Providers → Google) — README step 2.7 | Supabase Auth (GoTrue), managed service | Project owner; never enters this codebase. Only the three OAuth **client IDs** (not secrets — see below) live client-side, for the native/PKCE id-token flow via `expo-auth-session`. |
 | Cloudflare Turnstile **secret** key | Entered directly into the Supabase Dashboard (Authentication → Settings → Bot and Abuse Protection) | Supabase Auth (GoTrue) validates the token server-side | Project owner; never enters this codebase — only the paired **site** key (public by design) ships client-side |
 | `IGDB_CLIENT_ID` / `IGDB_CLIENT_SECRET` | `.env.example` placeholder only | Not currently referenced by any script in `scripts/` — reserved for a future offline seed-generation script | Not live; nothing to rotate today |
+| `RESEND_SEND_API_KEY` | Supabase function secret (`supabase secrets set`) | `waitlist-signup`, to send the one welcome email per signup | Whoever deploys `waitlist-signup`. **Create a NEW Resend key with Sending access only, restricted to `duoqueue.io`. Do not reuse the key Supabase Auth uses as its custom SMTP password** — that one is on the account-confirmation path, and rotating this one must never be able to break account creation. Left unset, the function still stores every signup and marks its welcome email `deferred`; it never fails a signup and never 500s. Those `deferred` rows are recoverable with `node scripts/waitlist.mjs send-deferred --send`, which reads the SAME key from the local gitignored `.env` and honours the same 80/day cap. That is the only reason this value may also appear in `.env`: the endpoint's copy is the function secret, and the local copy is optional. |
+| `WAITLIST_IP_SALT` | Supabase function secret | `waitlist-signup`, to compute `sha256(salt + first hop of X-Forwarded-For)` for the rate limit | Whoever deploys `waitlist-signup`. 32 random bytes, base64url. It is what stops the 48-hour hashes in `public.waitlist_attempts` from being reversible by brute force: an IPv4 address is a 32-bit space, so an unsalted hash of one is not a pseudonym, it is a lookup. Left unset, the function logs a warning and skips rate limiting rather than storing an unsalted hash. |
+| `RESEND_ADMIN_API_KEY` | Local gitignored root `.env` only | Reserved for the Phase C launch-blast commands (`sync` / `broadcast` / `check`), which need contacts/broadcast access that a sending-only key does not have. Those commands are not written yet, so nothing reads this today — `scripts/waitlist.mjs` exists but its two current commands (`stats`, `send-deferred`) use the service role key and `RESEND_SEND_API_KEY` | Project owner, locally. Never a function secret: nothing deployed needs more than send access. |
+
+### `waitlist-signup` is this project's first unauthenticated public write endpoint
+
+Worth calling out separately, because it is a new shape for this codebase rather than a
+new secret. Every other `verify_jwt = false` function is gated by a shared secret
+(`_shared/require-secret-auth.ts`) or by a signed third-party assertion
+(`link-steam-callback`). `waitlist-signup` is gated by neither and cannot be: it is POSTed
+to by an ordinary HTML `<form>` on a static page, by a member of the public who has no
+account.
+
+What bounds it, all in `supabase/functions/waitlist-signup/index.ts` and
+`supabase/migrations/0061_waitlist.sql`:
+
+- a 4 KB body cap enforced while streaming, not from `Content-Length`
+- one attempt row per request, written **before** any decision, so rejected attempts spend
+  the allowance too
+- 10 requests/hour and 30/24h per salted IP hash
+- a honeypot field, and server-side validation of every field
+- a four-value allow-list on `source`, the only string a stranger can influence
+- a kill switch: `update public.app_config set value = 'false' where key = 'waitlist_open'`
+- an 80/day cap on outbound email, leaving 20/day of the shared Resend quota for the
+  account-confirmation emails Supabase Auth sends through the same provider
+- its only write is one insert into `public.waitlist_signups`, which has RLS on, **zero**
+  policies and **zero** grants to `anon` or `authenticated`. Verified after applying 0061:
+  `information_schema.role_table_grants` returns rows only for `postgres` and
+  `service_role`.
+
+The endpoint returns a 303 redirect on every path except an oversized body (413). It never
+returns a body a prober can read, and accepted, duplicate, honeypot-tripped and
+rate-limited requests all land on the same page, so it cannot be used to test whether an
+address is on the list.
 
 ## Public-by-design (ship in the client — not a finding)
 

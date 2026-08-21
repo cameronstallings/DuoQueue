@@ -68,7 +68,13 @@ otp_expiry = 3600
 
 [auth.email.template.confirmation]
 subject = "Your DuoQueue confirmation code"
-content_path = "./templates/confirmation.html"
+# Relative to the PROJECT ROOT (the directory containing supabase/), not to this file.
+# It read "./templates/confirmation.html" until 2026-08-21, which CLI 2.115 resolves to
+# <root>/templates/confirmation.html — a path that does not exist — and it refuses to parse
+# the config at all, so `supabase functions deploy` failed for EVERY function with an error
+# that names the auth template and nothing to do with functions. Matches the form the
+# Supabase docs use ("./supabase/templates/invite.html").
+content_path = "./supabase/templates/confirmation.html"
 
 [auth.external.apple]
 enabled = false
@@ -116,4 +122,19 @@ verify_jwt = false
 # the verify_jwt=true default (or a --no-verify-jwt flag in someone's shell history)
 # so that this endpoint's posture is reviewable in source.
 [functions.link-steam-callback]
+verify_jwt = false
+
+# POSTed to by an ordinary HTML <form> on the static duoqueue.io waitlist page, by a
+# member of the public who has no account and therefore no Supabase JWT to send. So unlike
+# every other verify_jwt = false function above, this one has NO shared secret gate and no
+# signed third-party assertion behind it either — it cannot, and that is the point of it.
+#
+# What bounds it instead: a 4 KB streamed body cap, one attempt row per request written
+# before any decision, 10/hour and 30/day per salted IP hash, a honeypot, server-side
+# validation of every field, a four-value allow-list on the only influenceable string, a
+# kill switch row in app_config, an 80/day budget on outbound email, and the fact that its
+# only write is one insert into a table with RLS on, zero policies and zero grants to anon
+# or authenticated (0061_waitlist.sql). Stated here rather than left to a flag in
+# somebody's shell history so that the posture is reviewable in source.
+[functions.waitlist-signup]
 verify_jwt = false

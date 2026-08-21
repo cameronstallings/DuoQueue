@@ -285,6 +285,102 @@ pnpm typecheck   # tsc --noEmit across all workspace packages
 pnpm lint        # eslint across all workspace packages
 ```
 
+## The website and the waitlist (duoqueue.io)
+
+`duoqueue.io` is served from the `gh-pages` branch and is the App Store's registered
+Privacy Policy URL and Support URL, so treat it as production.
+
+```bash
+node scripts/build-site.mjs           # build site/ from docs/legal/*.md + the page templates
+node scripts/deploy-site.mjs --dry-run # build, assert every output, check the worktree, touch nothing
+node scripts/deploy-site.mjs          # ...then commit, push, and verify the LIVE site
+```
+
+Both are zero-dependency Node scripts, so they run without installing anything. The build
+refuses to write anything if a legal document still has a `TODO(Cameron)` / `TODO(lawyer)`
+marker, if a brand font is missing from `site/fonts/`, if any text pair falls below WCAG
+AA (it prints every measured ratio), or if `PHASE` is `"launched"` while `APP_STORE_URL`
+is still null.
+
+**Deploy the site before anything points at the endpoint.** The `waitlist-signup`
+function is already live and public, but a successful signup redirects to
+`https://duoqueue.io/waitlist/thanks/`, which does not exist until the site is deployed.
+Nothing published links to the endpoint yet, so this is an ordering rule rather than an
+outage — but the URL is guessable, so run `node scripts/deploy-site.mjs` before the ads
+start sending traffic, and confirm with:
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" https://duoqueue.io/waitlist/thanks/   # want 200
+```
+
+**Flipping the site to launched** is one line in `scripts/build-site.mjs`: set
+`PHASE = "launched"` and fill `APP_STORE_URL` with the real App Store link, then rebuild
+and deploy. The build will not let you do one without the other.
+
+### Regenerating the generated assets
+
+Neither of these runs during a build; their outputs are committed.
+
+```bash
+# The five subsetted brand fonts in site/fonts/ (only needed if the character set changes)
+python -m pip install --target <somewhere-outside-this-repo> fonttools brotli
+PYTHONPATH=<that-somewhere> python scripts/site-fonts/subset.py
+PYTHONPATH=<that-somewhere> python scripts/site-fonts/export-og-glyphs.py   # scripts/og-glyphs.json
+
+# site/og.png, the 1200x630 link preview (needs sharp, already a root devDependency)
+node scripts/make-og.mjs
+```
+
+### The signup endpoint
+
+The form POSTs to the `waitlist-signup` Edge Function, which is deliberately reachable
+without a JWT (`supabase/config.toml` says why). It needs two function secrets, neither of
+which belongs in `.env`:
+
+```bash
+npx supabase secrets set RESEND_SEND_API_KEY=<a NEW sending-only Resend key>
+npx supabase secrets set WAITLIST_IP_SALT=<32 random bytes, base64url>
+npx supabase functions deploy waitlist-signup --project-ref oflexcazqfuvcikrewnb
+```
+
+Without `RESEND_SEND_API_KEY` the endpoint still records every signup and marks the
+welcome email `deferred`. It never loses a signup.
+
+**Set that secret before the site goes live, or run `send-deferred` afterwards.** A
+`deferred` row is recoverable, not lost, but it is only recoverable because something
+sends it later:
+
+```bash
+node scripts/waitlist.mjs stats                     # counts by status and source, budget left
+node scripts/waitlist.mjs send-deferred             # dry run — prints, sends nothing
+node scripts/waitlist.mjs send-deferred --send      # mails them, oldest first
+```
+
+`send-deferred` reads the same 80/day budget from the same table the endpoint does, so it
+cannot spend the 20/day the account-confirmation email needs, and it refuses before it
+looks for a key. It needs `RESEND_SEND_API_KEY` in the local `.env` for `--send`. Both
+senders import the message itself from `supabase/functions/_shared/welcome-email.ts`, so
+the welcome a recovered row receives is byte-identical to the one the endpoint sends.
+
+**The 80/day welcome cap is not tunable without thinking.** Resend's free plan is 100
+emails per day and that bucket is shared with the account-confirmation emails Supabase
+Auth sends through Resend as its custom SMTP provider. Spending all 100 on welcome emails
+means a real user arriving from the App Store cannot receive their six-digit code and
+therefore cannot create an account. 80 leaves 20/day of headroom for auth.
+
+**Turning the form off** takes one statement and no redeploy:
+
+```powershell
+.\scripts\db\run-sql.ps1 -Query "update public.app_config set value = 'false' where key = 'waitlist_open'"
+```
+
+**Reading the list** (service role only; `waitlist_signups` has RLS on, zero policies and
+zero grants to `anon` or `authenticated`):
+
+```powershell
+.\scripts\db\run-sql.ps1 -Query "select source, welcome_status, count(*) from public.waitlist_signups group by 1,2 order by 1,2"
+```
+
 ## Schema & security notes
 
 - Every table has RLS enabled with no default-permissive policy — access is opt-in per

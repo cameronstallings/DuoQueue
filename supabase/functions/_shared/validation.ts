@@ -32,24 +32,33 @@ export function jsonError(message: string, status: number): Response {
 
 export type BodyResult<T> = { ok: true; data: T } | { ok: false; response: Response };
 
+/** Why a byte-capped read gave up. Callers map these onto whatever response shape their
+ * own protocol wants — JSON for the app-facing functions, a redirect for the public
+ * waitlist form — which is the only reason this is a reason code and not a Response. */
+export type BodyReadFailure = "too_large" | "empty" | "unreadable";
+
+export type BytesResult =
+  | { ok: true; bytes: Uint8Array }
+  | { ok: false; reason: BodyReadFailure };
+
 /**
- * Reads and JSON-parses a request body with a hard byte cap enforced during the read
- * itself, not just a header check. Returns a clean 413/400 Response on any failure
- * (oversized, empty, unreadable, malformed JSON, or a top-level non-object) instead of
- * letting an exception reach the caller as a raw 500, or letting a parse failure get
- * silently swallowed into `{}`.
+ * Reads a request body into memory with a hard byte cap enforced DURING the read, not
+ * just from the Content-Length header — that header is caller-supplied and can be absent
+ * or wrong for a streamed body, so trusting it alone leaves the multi-MB memory/CPU DoS
+ * wide open. The header check stays as a cheap early exit for honest clients.
+ *
+ * Extracted from readJsonBody so that the cap logic exists exactly once. The public
+ * waitlist form endpoint reads `application/x-www-form-urlencoded`, not JSON, and must
+ * not answer a browser navigation with a JSON error body; it shares this and nothing else.
  */
-export async function readJsonBody<T = Record<string, unknown>>(
-  req: Request,
-  maxBytes: number = DEFAULT_MAX_BODY_BYTES,
-): Promise<BodyResult<T>> {
+export async function readBodyBytes(req: Request, maxBytes: number): Promise<BytesResult> {
   const contentLength = req.headers.get("content-length");
   if (contentLength && Number(contentLength) > maxBytes) {
-    return { ok: false, response: jsonError("Request body too large", 413) };
+    return { ok: false, reason: "too_large" };
   }
 
   if (!req.body) {
-    return { ok: false, response: jsonError("Request body is required", 400) };
+    return { ok: false, reason: "empty" };
   }
 
   const reader = req.body.getReader();
@@ -62,16 +71,16 @@ export async function readJsonBody<T = Record<string, unknown>>(
       total += value.byteLength;
       if (total > maxBytes) {
         await reader.cancel();
-        return { ok: false, response: jsonError("Request body too large", 413) };
+        return { ok: false, reason: "too_large" };
       }
       chunks.push(value);
     }
   } catch {
-    return { ok: false, response: jsonError("Failed to read request body", 400) };
+    return { ok: false, reason: "unreadable" };
   }
 
   if (total === 0) {
-    return { ok: false, response: jsonError("Request body is required", 400) };
+    return { ok: false, reason: "empty" };
   }
 
   const bytes = new Uint8Array(total);
@@ -80,6 +89,49 @@ export async function readJsonBody<T = Record<string, unknown>>(
     bytes.set(chunk, offset);
     offset += chunk.byteLength;
   }
+  return { ok: true, bytes };
+}
+
+/**
+ * Reads a `application/x-www-form-urlencoded` body with the same hard byte cap, and
+ * returns it parsed. Used by the one endpoint in this project that is reached by an
+ * ordinary HTML form POST from a static page rather than by the app.
+ *
+ * Note that URLSearchParams cannot fail: a body that is not valid urlencoded parses to
+ * whatever key/value pairs can be salvaged from it, and the caller validates every field
+ * it cares about anyway. So the only failure modes are the read's own.
+ */
+export async function readFormBody(
+  req: Request,
+  maxBytes: number = DEFAULT_MAX_BODY_BYTES,
+): Promise<{ ok: true; form: URLSearchParams } | { ok: false; reason: BodyReadFailure }> {
+  const read = await readBodyBytes(req, maxBytes);
+  if (!read.ok) return read;
+  return { ok: true, form: new URLSearchParams(new TextDecoder().decode(read.bytes)) };
+}
+
+/**
+ * Reads and JSON-parses a request body with a hard byte cap enforced during the read
+ * itself, not just a header check. Returns a clean 413/400 Response on any failure
+ * (oversized, empty, unreadable, malformed JSON, or a top-level non-object) instead of
+ * letting an exception reach the caller as a raw 500, or letting a parse failure get
+ * silently swallowed into `{}`.
+ */
+export async function readJsonBody<T = Record<string, unknown>>(
+  req: Request,
+  maxBytes: number = DEFAULT_MAX_BODY_BYTES,
+): Promise<BodyResult<T>> {
+  const read = await readBodyBytes(req, maxBytes);
+  if (!read.ok) {
+    if (read.reason === "too_large") {
+      return { ok: false, response: jsonError("Request body too large", 413) };
+    }
+    if (read.reason === "unreadable") {
+      return { ok: false, response: jsonError("Failed to read request body", 400) };
+    }
+    return { ok: false, response: jsonError("Request body is required", 400) };
+  }
+  const bytes = read.bytes;
 
   let data: unknown;
   try {

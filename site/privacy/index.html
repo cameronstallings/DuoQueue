@@ -5,144 +5,545 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>DuoQueue Privacy Policy | DuoQueue</title>
 <meta name="description" content="DuoQueue's Privacy Policy: what we collect, why, and who we share it with.">
+<link rel="canonical" href="https://duoqueue.io/privacy/">
+
+<link rel="icon" href="/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="/favicon.png">
+<meta name="theme-color" content="#F6F3EA">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="DuoQueue">
+<meta property="og:title" content="DuoQueue Privacy Policy | DuoQueue">
+<meta property="og:description" content="DuoQueue's Privacy Policy: what we collect, why, and who we share it with.">
+<meta property="og:image" content="https://duoqueue.io/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://duoqueue.io/privacy/">
+<meta name="twitter:card" content="summary_large_image">
 <style>
+  @font-face{font-family:"Unbounded";src:url(/fonts/unbounded-700.woff2) format("woff2");font-weight:700;font-style:normal;font-display:swap;}
+  @font-face{font-family:"Manrope";src:url(/fonts/manrope-800.woff2) format("woff2");font-weight:800;font-style:normal;font-display:swap;}
+  @font-face{font-family:"Manrope";src:url(/fonts/manrope-700.woff2) format("woff2");font-weight:700;font-style:normal;font-display:swap;}
+  @font-face{font-family:"Manrope";src:url(/fonts/manrope-500.woff2) format("woff2");font-weight:500;font-style:normal;font-display:swap;}
+  @font-face{font-family:"IBM Plex Mono";src:url(/fonts/plex-mono-600.woff2) format("woff2");font-weight:600;font-style:normal;font-display:swap;}
+
   :root {
-    --bg: #0A0B09;
-    --surface: #12140F;
-    --seam: #232720;
-    --ink: #EDF1E6;
-    --muted: #98A18A;
-    --accent: #CDFF3D;
-    --amber: #FFB627;
-    --mark-ink: #F5F3EE;
-    --mark-duo: #92918D;
-    color-scheme: dark;
-  }
-  @media (prefers-color-scheme: light) {
-    :root {
-      --bg: #F2F4EB;
-      --surface: #FFFFFF;
-      --seam: #DDE1D0;
-      --ink: #161A0F;
-      --muted: #5C6450;
-      --accent: #4A6B00;
-      --amber: #FFB627;
-      --mark-ink: #161A0F;
-      --mark-duo: #72766b;
-      color-scheme: light;
-    }
+    --ground: #F6F3EA;
+    --ink: #161A0F;
+    --muted: #5C6450;
+    --accent: #4A6B00;
+    --brand: #CDFF3D;
+    --slab: #0A0B09;
+    --field: #FFFFFF;
+    --rule: #C9CFBB;
+    --mark-ink: #161A0F;
+    --mark-duo: #72766b;
+    --x0: clamp(20px, 10.93%, 118px);
+    --app-bg: #0A0B09;
+    --app-surface: #12140F;
+    --app-alt: #1A1D15;
+    --app-border: #232720;
+    --app-text: #EDF1E6;
+    --app-muted: #B4BDA6;
+    --app-volt: #CDFF3D;
+    --app-on-volt: #0A0B09;
+    --app-amber: #FFB627;
+    /* One ground, no scheme swap. See the design-system note in build-site.mjs. */
+    color-scheme: light;
   }
 
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
   body {
-    background: var(--bg);
+    /* Pool over sweep over base: the lit surface the whole campaign sits on. */
+    background-color: var(--ground);
+    background-image: radial-gradient(56% 32% at 42% 58%, rgba(255,255,251,0.5) 0%, rgba(255,255,251,0) 74%), linear-gradient(178deg, #FAF8F2 0%, #F6F3EA 52%, #F3EFE5 100%);
+    background-attachment: fixed, fixed;
     color: var(--ink);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    line-height: 1.7;
+    font-family: Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-weight: 500;
+    font-size: 17px;
+    line-height: 1.6;
+    letter-spacing: -0.005em;
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
   }
 
-  a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
-  a:hover { text-decoration: none; }
+  a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+  a:hover { text-decoration-thickness: 2px; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
   .skip-link {
     position: absolute; left: -9999px; top: 0;
-    background: var(--surface); color: var(--ink); padding: 0.75em 1em;
-    border: 1px solid var(--seam);
+    background: var(--slab); color: var(--brand); padding: 0.75em 1em; text-decoration: none;
   }
-  .skip-link:focus { left: 0.5em; top: 0.5em; z-index: 10; }
+  .skip-link:focus { left: 0.5em; top: 0.5em; z-index: 20; }
 
-  header.site-header {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 1em; flex-wrap: wrap;
-    padding: 1.25em 1.25em;
-    border-bottom: 1px solid var(--seam);
+  /* ---- shared measure ---------------------------------------------------- */
+  /* One left edge for the type and for every object, exactly as the campaign
+     does it: 118/1080 of the field, clamped so it stops growing past the
+     literal number the ads use. */
+  .wrap { max-width: 1180px; margin: 0 auto; padding-left: var(--x0); padding-right: var(--x0); }
+
+  /* ---- header ------------------------------------------------------------ */
+  header.site-header { padding: 22px 0 4px; }
+  header.site-header .wrap { display: flex; align-items: center; justify-content: space-between; gap: 1em; flex-wrap: wrap; }
+  .brand { display: inline-flex; align-items: baseline; gap: 0.42em; color: var(--ink); text-decoration: none; }
+  .brand .brand-mark { align-self: center; }
+  .brand span {
+    font-family: Unbounded, Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 700; font-size: 19px; letter-spacing: 0.02em; line-height: 1;
   }
-  .brand {
-    display: inline-flex; align-items: center; gap: 0.6em;
-    color: var(--ink); text-decoration: none; font-weight: 600; font-size: 1.05em;
-    letter-spacing: 0.01em;
+  .brand:hover { text-decoration: none; }
+  header.site-header nav { display: flex; gap: 1.1em; flex-wrap: wrap; }
+  header.site-header nav a {
+    font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 600; font-size: 11px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--muted); text-decoration: none;
   }
-  .brand:hover { text-decoration: none; color: var(--accent); }
-  .brand-mark { display: block; flex: none; }
-  header.site-header nav { display: flex; gap: 1.25em; flex-wrap: wrap; }
-  header.site-header nav a { color: var(--muted); text-decoration: none; font-size: 0.95em; }
   header.site-header nav a:hover { color: var(--accent); text-decoration: underline; }
 
-  main {
-    max-width: 68ch;
-    margin: 0 auto;
-    padding: 2.5em 1.25em 4em;
+  /* ---- the mono furniture ------------------------------------------------ */
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 600; font-size: clamp(11px, 2.41vw, 26px);
+    letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted);
+    margin: 0 0 1.1em;
   }
 
-  article h1 { font-size: 1.7em; line-height: 1.3; margin: 0 0 0.3em; }
-  article h2 { font-size: 1.3em; line-height: 1.35; margin: 1.8em 0 0.6em; padding-top: 0.6em; border-top: 1px solid var(--seam); }
+  /* ---- display type ------------------------------------------------------ */
+  /* Manrope 800 at -2% is the campaign's headline face and tracking. The accent
+     word is the app's own olive resolution of chartreuse on paper, and there is
+     exactly one of them per headline, which is the campaign's rule too. */
+  h1.display, h2.display {
+    font-family: Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 800;
+    font-size: clamp(34px, 8.4vw, 76px); line-height: 1.34; letter-spacing: -0.02em;
+    color: var(--ink); margin: 0 0 0.42em; text-wrap: balance;
+  }
+  .display .key { color: var(--accent); }
+
+  .lede { font-size: clamp(17px, 2.1vw, 22px); line-height: 1.5; margin: 0 0 0.7em; max-width: 30ch; }
+  .sub { color: var(--muted); font-size: clamp(15px, 1.7vw, 18px); margin: 0 0 1.9em; max-width: 38ch; }
+
+  /* ---- hero -------------------------------------------------------------- */
+  main { display: block; }
+  /* THE HERO GRID IS THREE NAMED AREAS, NOT TWO COLUMNS.
+     The type, the form and the product object are separate grid children so the
+     composition can be re-cut per viewport SHAPE rather than only per width. On a
+     phone they stack in reading order. On a tall desktop window the type and the
+     form share the left column with the object beside them, which is the ad's
+     composition. On a short landscape window — the shape where a stacked hero puts
+     the button below the fold — the form moves next to the type instead of under
+     it. Same markup, same order in the DOM, three cuts. */
+  section.hero { padding: 34px 0 60px; }
+  .hero-grid {
+    display: grid; grid-template-columns: 1fr; gap: 0;
+    grid-template-areas: "copy" "act" "aside";
+    align-items: start;
+  }
+  .hero-copy { grid-area: copy; }
+  .hero-act { grid-area: act; }
+  .hero-aside { grid-area: aside; }
+
+  /* ---- the form ---------------------------------------------------------- */
+  /* Sharp corners. Every piece of the campaign's own furniture is square (the end
+     card's slab, the swipe cue) and every piece of the PRODUCT carries the app's
+     radii. The form is furniture, so it is square; the fragments below are the
+     product, so they are not. */
+  form.signup { max-width: 460px; }
+  .field-label {
+    display: block; font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 600; font-size: 11px;
+    letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
+  }
+  input[type="email"] {
+    width: 100%; display: block;
+    background: var(--field); color: var(--ink);
+    border: 1.5px solid var(--ink); border-radius: 0;
+    padding: 15px 16px; font-family: Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 500; font-size: 17px; line-height: 1.3;
+    appearance: none;
+  }
+  input[type="email"]::placeholder { color: var(--muted); opacity: 1; }
+  input[type="email"]:focus { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  /* 24px, not the browser's 13px default: WCAG 2.5.8 wants a 24x24 target and this
+     is the one control between a visitor and the list. The label is the same height
+     and is bound to the input, so the whole line is the target. */
+  .adult { display: flex; align-items: center; gap: 11px; margin: 16px 0 20px; }
+  .adult input[type="checkbox"] {
+    flex: none; width: 24px; height: 24px; margin: 0; accent-color: var(--slab);
+  }
+  .adult label { font-size: 15px; line-height: 24px; min-height: 24px; color: var(--ink); cursor: pointer; }
+
+  /* THE END CARD'S SLAB, which is the one element of this campaign that has
+     survived ten design rounds, used here as the page's primary control. Off-black
+     fill, raw chartreuse words, square. In a feed the shape of a button is read
+     before the words in it are, and chartreuse has no shape on this ground. */
+  .cta {
+    display: block; width: 100%; text-align: center; cursor: pointer;
+    background: var(--slab); color: var(--brand);
+    border: 1.5px solid var(--slab); border-radius: 0;
+    padding: 0.36em 0.6em 0.42em;
+    font-family: Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 800; font-size: clamp(21px, 5.4vw, 44px); line-height: 1.3;
+    letter-spacing: -0.02em;
+    text-decoration: none;
+  }
+  .cta:hover { background: #000; border-color: #000; text-decoration: none; }
+  .cta:active { transform: translateY(1px); }
+
+  .promise { font-size: 15px; line-height: 1.5; margin: 16px 0 0; max-width: 44ch; }
+  .fineprint { font-size: 13.5px; line-height: 1.55; color: var(--muted); margin: 8px 0 0; max-width: 46ch; }
+
+  /* The honeypot. Off-canvas rather than display:none, because some form-filling
+     bots skip anything that is not rendered. tabindex, autocomplete and aria-hidden
+     on the input itself keep it away from keyboards and screen readers. */
+  .hp { position: absolute; left: -9999px; top: auto; width: 1px; height: 1px; overflow: hidden; }
+
+  /* ---- the stage: isolated product fragments ----------------------------- */
+  /* One perspective container for every object on the page, so the fragments read
+     as several views from one camera position. Copied from the campaign's TILT. */
+  section.stage { padding: 22px 0 64px; }
+  .fragments { display: grid; grid-template-columns: 1fr; gap: 46px; perspective: 2400px; align-items: start; }
+  /* container-type makes the fragment the query container its own object measures
+     itself against, which is what lets the shadow below be written once as a ratio
+     of the object instead of as a number per breakpoint. */
+  .fragment { max-width: 520px; container-type: inline-size; }
+  .object {
+    transform-origin: 44% 54%;
+    transform: rotateY(7deg) rotateX(2deg);
+    /* px first for anything without container query units, cqw second. A browser
+       that understands cqw takes the second and the shadow tracks the object at
+       every width; one that does not drops it as invalid and keeps the first. */
+    box-shadow: 5.31px 3.32px 8.63px rgba(41,34,18,0.1), 12.61px 14.6px 30.52px -6.64px rgba(41,34,18,0.28);
+    box-shadow: 1.8957cqw 1.1848cqw 3.0806cqw rgba(41,34,18,0.1), 4.5024cqw 5.2133cqw 10.9005cqw -2.3697cqw rgba(41,34,18,0.28);
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    border-radius: 10px;
+    /* MEASURED OFF 02-the-match.png, not chosen. In the ad the dark slab frames
+       the amber chip by 28px left / 20px right / 13px top / 17px bottom on an
+       835px slab — about 2.9% of the object's width horizontally and 1.8%
+       vertically, an asymmetric frame that is tighter top-to-bottom than it is
+       side-to-side. A uniform 18px was 6.28%, roughly double, and it is why the
+       chip filled 54.8% of its slab's height on the page against 82.9% in the ad:
+       the cards read as mostly empty black instead of as product. */
+    padding: 6px 10px;
+    padding: 1.8cqw 2.9cqw;
+  }
+  /* The object was display:flex, which made its single child a flex ITEM and so
+     shrink-to-fit: the chat composer drew at 152px inside a 303px card, 57% of the
+     width it was given, and read as an unloaded placeholder rather than as the
+     product. Block layout gives every fragment's content the full content box. */
+  .fragment .object > * { width: 100%; }
+  /* The gap under the object is part of the shadow's geometry, not decoration.
+     The cast layer reaches (44 - 20) / 844 of the object's width below its bottom
+     edge and then fades over a 92/844 blur; at a fixed 22px the caption sat inside
+     that reach on any object wider than about 310px and lost contrast to it. Held
+     at the same ratio as the shadow, the caption sits at a constant, measured
+     distance out of the cast at every object size — see the shadow model in
+     checkContrast(). */
+  .caption {
+    font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 600; letter-spacing: 0.14em;
+    font-size: 11.5px;
+    font-size: clamp(11.5px, 3.8cqw, 15px);
+    text-transform: uppercase; color: var(--muted);
+    margin: 22px 0 0;
+    margin-top: clamp(22px, 7.261cqw, 52px);
+  }
+
+  /* THE PRODUCT IS SET IN cqw, NOT px.
+     Every size in this block is a percentage of the object's own width, so a
+     fragment fills its frame identically at 280px on a small phone and at 580px in
+     a desktop column. It replaced a set of fixed px sizes that made the badge 11px
+     — smaller than this page's own 15.5px body copy, and the smallest type on the
+     page, for the element that is the second-largest thing on the ad frame the
+     visitor just watched. The ratios are measured from the ads: the badge spans
+     73.1% of the frame there and about 45.8% here before this change.
+     Each rule keeps a px fallback first for browsers without container units. */
+
+  /* The overlap read, drawn from SwipeCard.tsx's overlapLabel() at the "many"
+     tier, whose ink is darkColors.overlap.many. Mono, uppercase, outlined,
+     3px corners: the app's chip geometry. */
+  .overlap {
+    display: inline-flex; border: 1px solid var(--app-amber); border-radius: 3px;
+    background: var(--app-surface); padding: 0.52em 0.86em;
+  }
+  .overlap span {
+    font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 600;
+    font-size: clamp(13px, 4.2vw, 26px);
+    font-size: clamp(13px, 5.4cqw, 34px);
+    letter-spacing: 0.08em; color: var(--app-amber); white-space: nowrap;
+  }
+
+  /* The game chips, from Chip.tsx: a sharp 3px mono tag, label in chipText and
+     the skill level after a middle dot in caption. */
+  .chips { display: flex; flex-wrap: wrap; gap: 0.6em; }
+  .chip {
+    display: inline-flex; align-items: baseline; gap: 0.42em;
+    border: 1px solid var(--app-border); border-radius: 3px; padding: 0.5em 0.72em;
+    font-size: clamp(11.5px, 3.4vw, 21px);
+    font-size: clamp(11.5px, 4.3cqw, 26px);
+  }
+  .chip b {
+    font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 600; font-size: 1em; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--app-muted);
+  }
+  .chip i { font-style: normal; font-size: 1.08em; color: var(--app-muted); opacity: 0.8; }
+
+  /* The chat composer, from app/chat/[matchId].tsx: surfaceAlt field with a 6px
+     radius and a 40px round chartreuse send button. This is the one place raw
+     chartreuse is filled at size anywhere on this site, and it is legal because it
+     is inside a dark object. */
+  .composer {
+    display: flex; align-items: center; gap: 0.62em;
+    font-size: clamp(15px, 4.4vw, 27px);
+    font-size: clamp(15px, 5.6cqw, 34px);
+  }
+  .composer .box {
+    flex: 1; background: var(--app-alt); border: 1px solid var(--app-border); border-radius: 6px;
+    padding: 0.72em 0.92em; color: var(--app-muted); font-size: 1em; line-height: 1.45;
+  }
+  .composer .send {
+    flex: none; width: 2.62em; height: 2.62em; border-radius: 999px; background: var(--app-volt);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .composer .send svg { width: 1.3em; height: 1.3em; }
+  .composer .send svg { display: block; }
+
+  /* ---- the plain version ------------------------------------------------- */
+  section.plain { padding: 12px 0 66px; }
+  .plain-list { display: grid; grid-template-columns: 1fr; gap: 28px; margin: 0; padding: 0; list-style: none; }
+  .plain-list li { border-top: 1px solid var(--rule); padding-top: 18px; }
+  .plain-list h3 {
+    font-family: Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 800; font-size: 20px; letter-spacing: -0.02em;
+    margin: 0 0 6px; color: var(--ink);
+  }
+  .plain-list p { margin: 0; color: var(--muted); font-size: 15.5px; line-height: 1.55; max-width: 42ch; }
+
+  /* ---- the closing lockup ------------------------------------------------ */
+  /* The campaign's end card, standing still. Proportions are FragEnd.tsx's, taken
+     as ratios of the 1080 field: mark 250, wordmark 152 at +2% tracking, 40px gaps,
+     the slab 26 below at 22x42 padding, the URL 44 in mono at +12% tracking. */
+  section.lockup { padding: 20px 0 78px; text-align: center; }
+  /* The lockup breaks the page's own grid, exactly as the end card breaks the
+     campaign's: the wordmark is the widest element in the frame, running to about
+     88.5% of the field where every other element stops at the 10.93% inset. So this
+     one section gets the end card's own margin (62/1080 = 5.7%) instead. */
+  .lockup .wrap { padding-left: clamp(12px, 5.7%, 62px); padding-right: clamp(12px, 5.7%, 62px); }
+  .lockup-inner { display: flex; flex-direction: column; align-items: center; gap: clamp(16px, 3.7vw, 40px); }
+  /* The end card draws the mark at 250 on a 1080 field, but its SVG is cropped tight
+     to the rings and this one carries the app icon's full 1024 canvas, whose ink
+     occupies 83.1% of it. So the box is scaled by 1/0.831 to put the same amount of
+     ink on the page: measured, the mark is then 26% of the wordmark's width, which is
+     what 06-the-waitlist.png measures (248 / 956). */
+  .lockup .brand-mark { width: clamp(101px, 27.7vw, 300px); height: auto; margin-bottom: -2%; }
+  /* 6.38em is the measured advance of "duoqueue" in Unbounded 700 at +2% tracking,
+     so 13.6vw lands the wordmark at ~87% of the viewport, which is where the end
+     card puts it (measured 956/1080 on 06-the-waitlist.png). */
+  .wordmark {
+    font-family: Unbounded, Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 700; font-size: clamp(42px, 13.6vw, 148px);
+    line-height: 1.16; letter-spacing: 0.02em; color: var(--ink); white-space: nowrap;
+  }
+  /* The end card sets its call to action at 68 on a 1080 field (6.3%) with 22x42 of
+     padding, which is a much larger slab than the hero's in-form button. Same element,
+     two jobs: in the form it is a control sized to the field above it, and here it is
+     the campaign's closing frame. */
+  .lockup .cta {
+    display: inline-block; width: auto; margin-top: 2px;
+    font-size: clamp(24px, 6.3vw, 76px); padding: 0.32em 0.62em 0.38em;
+  }
+  .url {
+    font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 600; font-size: clamp(14px, 3.2vw, 30px);
+    letter-spacing: 0.12em; color: var(--ink);
+  }
+
+  /* ---- outcome pages ----------------------------------------------------- */
+  section.outcome { padding: 8vh 0 12vh; }
+  .outcome .display { max-width: 16ch; }
+  .outcome p { max-width: 44ch; }
+
+  /* ---- legal + support --------------------------------------------------- */
+  /* The legal documents contain long unbreakable tokens (email addresses, file paths
+     in code spans). At 320px they pushed the page 8px wider than the viewport, which
+     is a horizontal scrollbar on the two pages App Review opens. */
+  article { max-width: 68ch; padding: 26px 0 40px; overflow-wrap: anywhere; }
+  article h1 { font-family: Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 800; font-size: clamp(28px, 5vw, 40px); line-height: 1.18; letter-spacing: -0.02em; margin: 0 0 0.4em; }
+  article h2 { font-family: Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 800; font-size: 1.28em; line-height: 1.3; letter-spacing: -0.015em; margin: 1.9em 0 0.6em; padding-top: 0.7em; border-top: 1px solid var(--rule); }
   article h2:first-child { border-top: none; padding-top: 0; margin-top: 0; }
-  article h3 { font-size: 1.05em; margin: 1.4em 0 0.5em; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  /* The source documents put a --- before most section headings, which used to draw
+     the markdown's rule and the heading's own rule as two lines 20px apart. */
+  article hr + h2 { border-top: none; padding-top: 0; margin-top: 0.7em; }
+  article h3 { font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 600; font-size: 0.78em; margin: 1.5em 0 0.5em; color: var(--muted); text-transform: uppercase; letter-spacing: 0.14em; }
   article p { margin: 0 0 1em; }
   article ul, article ol { margin: 0 0 1em; padding-left: 1.4em; }
-  article li { margin: 0.3em 0; }
-  article li > ul, article li > ol { margin-top: 0.3em; }
-  article hr { border: none; border-top: 1px solid var(--seam); margin: 2em 0; }
-  article strong { color: var(--ink); }
+  article li { margin: 0.35em 0; }
+  article li > ul, article li > ol { margin-top: 0.35em; }
+  article hr { border: none; border-top: 1px solid var(--rule); margin: 2em 0; }
+  article strong { font-weight: 700; color: var(--ink); }
   article code {
-    background: var(--surface); border: 1px solid var(--seam);
-    padding: 0.15em 0.4em; font-size: 0.9em;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background: rgba(22,26,15,0.05); border: 1px solid var(--rule);
+    padding: 0.15em 0.4em; font-size: 0.86em; font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 600;
   }
 
-  .table-scroll { overflow-x: auto; margin: 0 0 1.4em; border: 1px solid var(--seam); }
-  table { border-collapse: collapse; width: 100%; min-width: 480px; font-size: 0.92em; }
-  th, td { text-align: left; padding: 0.6em 0.75em; border-bottom: 1px solid var(--seam); vertical-align: top; }
-  thead th { background: var(--surface); color: var(--muted); font-weight: 600; white-space: nowrap; }
+  .table-scroll { overflow-x: auto; margin: 0 0 1.4em; border: 1px solid var(--rule); }
+  table { border-collapse: collapse; width: 100%; min-width: 480px; font-size: 0.9em; }
+  th, td { text-align: left; padding: 0.6em 0.75em; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  thead th { background: rgba(22,26,15,0.04); color: var(--muted); font-weight: 700; white-space: nowrap; }
   tbody tr:last-child td { border-bottom: none; }
 
-  .intro { font-size: 1.1em; color: var(--ink); }
-  .lede { color: var(--muted); }
-
-  section.card {
-    border: 1px solid var(--seam); background: var(--surface);
-    padding: 1.5em; margin: 1.5em 0;
-  }
+  section.card { border: 1px solid var(--rule); padding: 1.5em; margin: 1.6em 0; max-width: 68ch; }
   section.card h2 { margin-top: 0; border-top: none; padding-top: 0; }
 
-  footer.site-footer {
-    border-top: 1px solid var(--seam);
-    padding: 1.5em 1.25em 2.5em;
-    max-width: 68ch; margin: 0 auto;
-    color: var(--muted); font-size: 0.9em;
-  }
-  footer.site-footer nav { margin-top: 0.5em; }
-  footer.site-footer nav a { color: var(--muted); }
-  footer.site-footer nav a:hover { color: var(--accent); }
+  /* ---- footer ------------------------------------------------------------ */
+  footer.site-footer { border-top: 1px solid var(--rule); padding: 24px 0 44px; color: var(--muted); font-size: 13.5px; }
+  footer.site-footer nav { margin-top: 8px; display: flex; gap: 10px; flex-wrap: wrap; }
+  footer.site-footer a { color: var(--muted); }
+  footer.site-footer a:hover { color: var(--accent); }
 
-  @media (max-width: 480px) {
-    header.site-header { padding: 1em; }
-    main { padding: 2em 1em 3em; }
+  /* ---- wide viewports ---------------------------------------------------- */
+  /* The hero becomes two columns and the product moves up beside the form, which
+     is the campaign's own composition (left-aligned column of type, object off to
+     the side) laid into a landscape field. On a phone it stays one column and the
+     product sits below the fold on purpose: the ad already spent nine seconds
+     showing the product, so the first screen's only job is to close. */
+  @media (min-width: 900px) {
+    /* Tall desktop: type over form on the left, object on the right spanning both.
+       This is what the page looked like before the hero became three areas, and it
+       is the composition the campaign's stills use. */
+    .hero-grid {
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+      grid-template-areas: "copy aside" "act aside";
+      grid-template-rows: auto auto;
+      column-gap: 64px; row-gap: 0;
+      align-items: start;
+    }
+    .hero-aside { align-self: center; }
+    /* ONE object beside the type, not three. The campaign's second rule is that a
+       fragment owns its frame: pull one element out and draw it large. Three small
+       plates stacked here would restate the section below it and shrink every one of
+       them to do it. */
+    .hero-aside { perspective: 2400px; display: block; container-type: inline-size; }
+    section.hero { padding: 44px 0 76px; }
+
+    /* TWO columns below, not three, because the third object is already in the
+       hero. The badge and its caption used to render twice on a desktop page —
+       once beside the form and again as the first fragment, the same object under
+       the same sentence 700px apart. Exactly one of the two is in the DOM's
+       rendered tree at any width (display:none also removes it from the
+       accessibility tree), so neither sighted nor screen-reader visitors get it
+       twice, and neither loses it. Dropping to two columns is also what lets the
+       remaining objects grow from 286px to about 580px: the product gets bigger by
+       showing less of it, which is the campaign's whole fragment argument. */
+    .fragments { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 46px; align-items: start; }
+    .fragment.frag-lead { display: none; }
+    .fragment { max-width: none; }
+    .plain-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 34px; }
+  }
+  @media (max-width: 899px) {
+    /* Below 900 the hero is one column and the aside's object would push the form
+       down the screen, so the lead fragment does its job in the stage instead. */
+    .hero-aside { display: none; }
+  }
+
+  /* SHORT SINGLE-COLUMN WINDOWS. Two shapes fail the "button on the first screen"
+     test with the phone layout's default type: a 320x568 handset, where the stack
+     runs 86px past the fold, and a 899x700 window, where the layout is still one
+     column but 8.4vw has grown the headline to 75px and the stack runs 112px past.
+     Same remedy as the desktop tier — the type steps down and the rhythm tightens,
+     nothing is removed — and it is keyed on height so a normal phone held normally
+     never sees it. The lede is the sentence carrying "18+" and "not dating", so it
+     is the least compressed thing here and never goes below 15.5px. */
+  @media (max-width: 899px) and (max-height: 760px) {
+    section.hero { padding: 20px 0 40px; }
+    h1.display { font-size: clamp(30px, 7.2vw, 52px); margin-bottom: 0.28em; }
+    .lede { font-size: clamp(15.5px, 4.3vw, 19px); margin-bottom: 0.5em; }
+    .sub { font-size: clamp(13.5px, 3.6vw, 16px); margin-bottom: 1.15em; }
+    .eyebrow { font-size: clamp(10.5px, 2.41vw, 15px); margin-bottom: 0.75em; }
+    .field-label { margin-bottom: 6px; }
+    input[type="email"] { padding: 13px 14px; }
+    .adult { margin: 12px 0 14px; }
+    .cta { font-size: clamp(21px, 5.1vw, 34px); }
+  }
+
+  /* ---- short landscape windows ------------------------------------------- */
+  /* The hero is 1005px tall at its full size, which puts the button's bottom edge
+     at y=870 no matter how short the window is. Measured: fine at 1440x900, but
+     130px below the fold on a MacBook with browser chrome (1440x740), 210px below
+     on the commonest laptop size (1366x660), and at 1280x600 the input's own top
+     edge is at the fold. A desktop visitor arriving from the ad saw a headline and
+     no form.
+     This block is keyed on HEIGHT, not width, so the full-size campaign
+     composition survives on every window tall enough to hold it and only a window
+     that cannot gets the compressed one. Nothing is removed — the display drops
+     one step, the vertical rhythm tightens, and the aside shrinks. */
+  /* The second clause is not redundant. The full-size composition needs room in
+     BOTH axes: at exactly 900px wide the two-column hero squeezes the type column
+     to about 430px, the 76px headline wraps to three lines, and the button lands
+     at y=981 — below the fold even in a 920px-tall window. So anything under
+     1200px wide gets the compressed hero whatever its height. */
+  @media (min-width: 900px) and (max-height: 940px),
+         (min-width: 900px) and (max-width: 1199px) {
+    section.hero { padding: 24px 0 44px; }
+    .hero-grid { column-gap: 48px; }
+    h1.display { font-size: clamp(34px, 5.1vw, 58px); margin-bottom: 0.3em; }
+    .lede { font-size: clamp(16px, 1.42vw, 19px); margin-bottom: 0.45em; }
+    .sub { font-size: clamp(14px, 1.18vw, 16px); margin-bottom: 1.1em; }
+    .eyebrow { margin-bottom: 0.7em; }
+    .field-label { margin-bottom: 5px; }
+    input[type="email"] { padding: 12px 14px; font-size: 16px; }
+    .adult { margin: 12px 0 14px; }
+    .cta { font-size: clamp(21px, 3.3vw, 34px); }
+    .promise { margin-top: 12px; }
+  }
+
+  /* SHORT AND WIDE: the form moves BESIDE the type, not under it.
+     Below about 760px of viewport height, compressing the stack stops being
+     enough — measured, the button's bottom edge sits at y=689 however hard the
+     block above squeezes, because the eyebrow, a two-line 58px headline, a
+     three-line lede and a three-line sub are 400px of type before the field
+     starts. Stacking is simply the wrong shape for a landscape window.
+     So the second column stops being the product and becomes the form. The form
+     then starts at the top of its own column instead of at the bottom of 400px of
+     copy, which is what puts it on the first screen at 1366x660 and 1280x600 —
+     the two commonest laptop shapes, and the two that failed. The product is not
+     lost, it is the next thing down the page. */
+  @media (min-width: 900px) and (max-height: 760px) {
+    section.hero { padding: 20px 0 34px; }
+    .hero-grid {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 460px);
+      grid-template-areas: "copy act";
+      grid-template-rows: auto;
+      column-gap: clamp(32px, 5vw, 72px);
+      align-items: start;
+    }
+    .hero-aside { display: none; }
+    .hero-copy .sub { margin-bottom: 0; }
+    /* The aside is gone, so the lead fragment comes back into the stage: the
+       object and its caption exist exactly once at every viewport, never zero
+       times and never twice. */
+    .fragments { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px; }
+    .fragment.frag-lead { display: block; }
   }
 </style>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
 <header class="site-header">
-  <a class="brand" href="/"><svg class="brand-mark" width="28" height="28" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="DuoQueue">
+  <div class="wrap">
+    <a class="brand" href="/"><svg class="brand-mark" width="26" height="26" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="DuoQueue">
     <circle cx="660.992" cy="512" r="215.04" fill="none" stroke="var(--mark-duo)" stroke-width="98.9184" />
     <circle cx="842.425508224487" cy="693.433508224487" r="55.394304000000005" fill="var(--mark-duo)" />
     <circle cx="338.432" cy="512" r="215.04" fill="none" stroke="var(--mark-ink)" stroke-width="98.9184" />
     <path d="M 583.6133027625533 712.6358363150401 A 215.04 215.04 0 0 1 452.25814711396214 563.6950699714191" fill="none" stroke="var(--mark-duo)" stroke-width="98.9184" />
-  </svg><span>DuoQueue</span></a>
-  <nav>
-    <a href="/">Home</a>
-    <a href="/privacy/">Privacy</a>
-    <a href="/terms/">Terms</a>
-    <a href="/#support">Support</a>
-  </nav>
+  </svg><span>duoqueue</span></a>
+    <nav>
+      <a href="/privacy/">Privacy</a>
+      <a href="/terms/">Terms</a>
+      <a href="/#support">Support</a>
+    </nav>
+  </div>
 </header>
 <main id="main">
-<article>
+<div class="wrap"><article>
 <h1 id="duoqueue-privacy-policy">DuoQueue Privacy Policy</h1>
-<p><strong>Effective date:</strong> August 5, 2026 <strong>Version:</strong> 1.0 (draft)</p>
+<p><strong>Effective date:</strong> August 21, 2026 <strong>Version:</strong> 1.1</p>
 <p>This policy explains what DuoQueue collects, why, who we share it with, and what control you have over it. It's written in plain language on purpose. If anything here is unclear, contact us using the details below.</p>
 <hr>
 <h2 id="1-who-we-are">1. Who we are</h2>
@@ -168,13 +569,16 @@
 <ul><li><strong>Steam.</strong> If you choose to link your Steam account, we verify it's really yours via Steam's own sign-in (OpenID), then store your Steam ID, persona name, and avatar. We separately pull your owned-games playtime for titles in our catalog (e.g. "42.3h on Counter-Strike 2") so your stats are verified rather than self-reported. Steam's profile lookup can return additional public-profile fields (real name, country/state, account-creation time, and more, depending on the linked account's own Steam privacy settings). Our server only persists the Steam ID, persona name, and avatar into your profile; the rest of that response is discarded and never stored.</li><li>We only ever read the specific fields disclosed above. We do not read your friends list, purchase history, private messages, or anything else on Steam.</li></ul>
 <h3 id="bot-protection-signals">Bot-protection signals</h3>
 <ul><li>At signup, we may run Cloudflare Turnstile, an anti-bot challenge, to block automated account creation. Cloudflare processes device/browser signals for this purpose; we don't receive or store the details itself, only a pass/fail token.</li></ul>
+<h3 id="website-and-waitlist-duoqueueio">Website and waitlist (duoqueue.io)</h3>
+<p>This is the one category on this list that is about our website rather than the app.</p>
+<ul><li><strong>Your email address, if you give it to us on duoqueue.io.</strong> DuoQueue has not launched yet, and while it hasn't, our website runs a waitlist. If you enter your email address there, we store that address, the date, and which of our links you arrived from (so we know which channel worked), and we use it for two things and nothing else: an immediate email confirming you are on the list, and one message on the day the app goes live. That second message is marketing, and we are calling it that rather than describing it as transactional. We do not add waitlist addresses to any other mailing list, we do not sell or rent them, and we do not use them to advertise to you anywhere else. You can ask us to remove your address at any time by replying to either email or contacting us at the address in <a href="#1-who-we-are">Section 1</a>.</li><li><strong>A short-lived hash of your IP address, only to stop bots.</strong> We do not store your IP address alongside your signup. When the form is submitted we compute a salted, one-way hash of the connecting IP address and keep only that, for 48 hours, purely to rate-limit automated abuse of the form. It is deleted automatically after that and it is never linked to your email address.</li><li><strong>The 18-or-older box on that form is a self-declaration.</strong> You tell us your age; we do not check it, and we do not describe it as verification or age assurance. It is there because DuoQueue is an adults-only product and we do not want an underage person on a mailing list for it.</li><li><strong>No cookies, no analytics, and no advertising scripts on duoqueue.io.</strong> Our pages set no cookies, carry no analytics or advertising tag, and load nothing from a third-party server: every page is self-contained HTML and the only files it requests are its own fonts, served from the same domain. There is no JavaScript on the site at all.</li><li><strong>Two things do happen off our pages, and we would rather say so than let "no third parties" stand unqualified.</strong> First, duoqueue.io is published as a static site on <strong>GitHub Pages</strong>, so GitHub operates the server that answers your request and sees your IP address and user agent the way any web host would. Second, submitting the waitlist form posts it to our backend at <code>supabase.co</code>, which sits behind <strong>Cloudflare</strong>; Cloudflare's bot protection sets a short-lived cookie called <code>__cf_bm</code> on that <code>supabase.co</code> domain, not on duoqueue.io. It lasts 30 minutes, it is not readable by our pages, and it is not used for advertising or cross-site tracking. Both providers are listed in <a href="#3-who-we-share-data-with">Section 3</a>.</li></ul>
 <h3 id="what-we-do-not-collect">What we do NOT collect</h3>
 <p>We do not collect precise GPS location, contacts-list access, or browsing history outside the app. We do not run any advertising or analytics SDK: there is no Meta/Google ad pixel, no Mixpanel/Amplitude/Segment-style tracker, or any comparable dependency anywhere in the app's code today.</p>
 <hr>
 <h2 id="3-who-we-share-data-with">3. Who we share data with</h2>
-<p>We use a small number of specialized service providers ("processors") to run the app: Supabase, Sightengine, Expo, Resend, RevenueCat, Apple, Google, Cloudflare, and Steam. We use each of them as a service provider/processor under that provider's own standard terms of service, and none of them can use your data for their own purposes beyond providing their service to us.</p>
-<div class="table-scroll"><table><thead><tr><th>Provider</th><th>Role</th><th>What they receive</th><th>Location</th></tr></thead><tbody><tr><td><strong>Supabase</strong></td><td>Hosting, database, authentication, file storage, and realtime chat delivery (the backbone the whole app runs on)</td><td>Effectively all account and profile data described in Section 2</td><td>United States</td></tr><tr><td><strong>Sightengine</strong></td><td>Automated photo moderation, when configured (see below)</td><td>When our automated moderation provider is active, every photo you upload is sent to Sightengine to be automatically screened for nudity, graphic content, and whether the person in the photo appears to be a minor, before it's shown to anyone else</td><td>United States</td></tr><tr><td><strong>Expo (push notification service)</strong></td><td>Delivers push notifications</td><td>Your device push token and the notification content (e.g. "You matched with X")</td><td>United States</td></tr><tr><td><strong>Resend</strong></td><td>Sends transactional email (signup confirmation, account emails), if configured as our email provider</td><td>Your email address and the content of the email being sent</td><td>United States</td></tr><tr><td><strong>RevenueCat</strong></td><td>Manages subscriptions and in-app purchases</td><td>Your app-level user ID and purchase/subscription events from Apple/Google (never your payment details)</td><td>United States</td></tr><tr><td><strong>Apple (App Store) / Google (Play Store)</strong></td><td>Processes your payment when you buy a subscription or consumable</td><td>Your payment details, handled entirely by Apple/Google; we never receive them</td><td>Varies by platform</td></tr><tr><td><strong>Cloudflare (Turnstile)</strong></td><td>Bot-protection challenge at signup</td><td>Device/browser signals used to distinguish humans from bots</td><td>Global network (may include US)</td></tr><tr><td><strong>Steam</strong></td><td>Only if you choose to link an account</td><td>We send your account link request to Steam and receive back the public profile fields listed in Section 2</td><td>United States (approximate, platform-dependent)</td></tr></tbody></table></div>
-<p><strong>Sightengine and Resend are config-gated, not hard-wired.</strong> Our photo-moderation pipeline defaults to routing every photo straight to human review and only calls Sightengine when a provider setting and API credentials are set in our live environment; if that configuration is ever unset, no photo is sent to Sightengine at all. As of this writing, our live production environment has that provider setting and both Sightengine credentials configured, so automated screening is active. Transactional email (account confirmation codes and similar) is sent through Resend, which is configured as our custom SMTP provider.</p>
+<p>We use a small number of specialized service providers ("processors") to run the app and the website: Supabase, Sightengine, Expo, Resend, RevenueCat, Apple, Google, Cloudflare, GitHub, and Steam. We use each of them as a service provider/processor under that provider's own standard terms of service, and none of them can use your data for their own purposes beyond providing their service to us.</p>
+<div class="table-scroll"><table><thead><tr><th>Provider</th><th>Role</th><th>What they receive</th><th>Location</th></tr></thead><tbody><tr><td><strong>Supabase</strong></td><td>Hosting, database, authentication, file storage, and realtime chat delivery (the backbone the whole app runs on)</td><td>Effectively all account and profile data described in Section 2</td><td>United States</td></tr><tr><td><strong>Sightengine</strong></td><td>Automated photo moderation, when configured (see below)</td><td>When our automated moderation provider is active, every photo you upload is sent to Sightengine to be automatically screened for nudity, graphic content, and whether the person in the photo appears to be a minor, before it's shown to anyone else</td><td>United States</td></tr><tr><td><strong>Expo (push notification service)</strong></td><td>Delivers push notifications</td><td>Your device push token and the notification content (e.g. "You matched with X")</td><td>United States</td></tr><tr><td><strong>Resend</strong></td><td>Sends our email: transactional messages (signup confirmation, account emails) and the two waitlist messages described in Section 2, one of which is a marketing announcement</td><td>Your email address and the content of the email being sent</td><td>United States</td></tr><tr><td><strong>GitHub (GitHub Pages)</strong></td><td>Hosts duoqueue.io, our public website — the waitlist page and these legal documents</td><td>The IP address, user agent, and requested URL of every visit to duoqueue.io, as any web host receives. We do not receive or keep server logs from GitHub, and there is no analytics on the site</td><td>United States / global edge network</td></tr><tr><td><strong>RevenueCat</strong></td><td>Manages subscriptions and in-app purchases</td><td>Your app-level user ID and purchase/subscription events from Apple/Google (never your payment details)</td><td>United States</td></tr><tr><td><strong>Apple (App Store) / Google (Play Store)</strong></td><td>Processes your payment when you buy a subscription or consumable</td><td>Your payment details, handled entirely by Apple/Google; we never receive them</td><td>Varies by platform</td></tr><tr><td><strong>Cloudflare</strong></td><td>Two separate roles: the Turnstile bot-protection challenge at signup in the app, and the network in front of our Supabase backend, which every waitlist form submission passes through</td><td>Device/browser signals used to distinguish humans from bots. Its bot protection sets a 30-minute <code>__cf_bm</code> cookie on the <code>supabase.co</code> domain when you submit the waitlist form — never on duoqueue.io, and never for advertising</td><td>Global network (may include US)</td></tr><tr><td><strong>Steam</strong></td><td>Only if you choose to link an account</td><td>We send your account link request to Steam and receive back the public profile fields listed in Section 2</td><td>United States (approximate, platform-dependent)</td></tr></tbody></table></div>
+<p><strong>Sightengine and Resend are config-gated, not hard-wired.</strong> Our photo-moderation pipeline defaults to routing every photo straight to human review and only calls Sightengine when a provider setting and API credentials are set in our live environment; if that configuration is ever unset, no photo is sent to Sightengine at all. As of this writing, our live production environment has that provider setting and both Sightengine credentials configured, so automated screening is active. Transactional email (account confirmation codes and similar) is sent through Resend, which is configured as our custom SMTP provider. The waitlist emails described in Section 2 are sent through Resend as well.</p>
 <p><strong>Where your data is processed.</strong> DuoQueue is currently offered only in the United States, and your data is processed in the United States by the providers listed above. DuoQueue is not directed to, and is not currently offered to, users in the EU, UK, or Switzerland. If that changes, we'll put an appropriate international transfer mechanism in place and update this section before it does.</p>
 <p><strong>We do not sell your personal information.</strong> We do not share your data with data brokers or advertising networks, and we don't run any advertising or analytics SDK that would make this a "sale" or "share" under CCPA/CPRA. See <a href="#6-your-rights">Section 6</a> for the CCPA-specific disclosures.</p>
 <hr>
@@ -183,13 +587,14 @@
 <ul><li><strong>Performance of a contract:</strong> running the account you signed up for. Email, password, profile data, matching, messaging, purchases, and account deletion all rely on this basis, since we can't provide the app without them.</li><li><strong>Legitimate interests:</strong> content moderation (photo screening, report handling), fraud/bot prevention (Turnstile), keeping the deck functional (swipe/match history), and security logging. We've weighed these against your privacy interests and believe they're necessary and proportionate to keep the app safe.</li><li><strong>Consent:</strong> anything genuinely optional, including linking a Steam account, sharing your Discord username with a specific match, and push notifications (which require your device-level permission). You can withdraw consent at any time by unlinking the account, not sharing, or disabling notifications (see <a href="#6-your-rights">Section 6</a>).</li></ul>
 <hr>
 <h2 id="5-how-long-we-keep-data">5. How long we keep data</h2>
-<ul><li><strong>Active accounts.</strong> We keep your data for as long as your account exists and you're using the app.</li><li><strong>Deleted accounts.</strong> DuoQueue has in-app account deletion (Settings → Delete Account). When you delete your account:<ul><li>Your profile, photos, messages, matches, swipe history, preferences, linked accounts, and push tokens are <strong>permanently deleted</strong>, including the underlying stored files (not just hidden). Because a conversation is tied to the match between you and your match partner, deleting your account also deletes your match partner's copy of any conversation you shared with them, not just yours.</li><li>This is irreversible. There is no "undo" or account-recovery grace period once deletion completes.</li><li><strong>Exception:</strong> if someone else's report about you is on file when you delete your account, the report record itself, and an internal reference id, are retained after your profile and identifying data are otherwise deleted, so we can maintain a history of safety actions (e.g. confirming a pattern of reported behavior) without your profile continuing to exist. This is a reference id, not an anonymization process: it is not linked to your profile once your profile is gone, but it isn't scrubbed of the report's own content (e.g. the reason and details given) either. This retention currently only works in one direction: <strong>if you are the one who filed a report and you delete your own account, that report record is deleted along with your account, not retained.</strong> We don't yet have a way to preserve a report you filed after you leave.</li></ul></li><li><strong>Backups.</strong> As of this writing, our hosting provider's automated point-in-time recovery and scheduled backup snapshots are not enabled for our production database, so there is no additional backup-retention window beyond the deletion described above. If backups are enabled in the future, deleted data could persist in a backup for that backup's retention period before being purged in the normal course of our hosting provider's backup rotation.</li><li><strong>Legal holds.</strong> We may retain specific records longer than normal if we're legally required to (e.g. an active law enforcement request), for as long as that requirement lasts.</li></ul>
+<ul><li><strong>Active accounts.</strong> We keep your data for as long as your account exists and you're using the app.</li><li><strong>Deleted accounts.</strong> DuoQueue has in-app account deletion (Settings → Delete Account). When you delete your account:<ul><li>Your profile, photos, messages, matches, swipe history, preferences, linked accounts, and push tokens are <strong>permanently deleted</strong>, including the underlying stored files (not just hidden). Because a conversation is tied to the match between you and your match partner, deleting your account also deletes your match partner's copy of any conversation you shared with them, not just yours.</li><li>This is irreversible. There is no "undo" or account-recovery grace period once deletion completes.</li><li><strong>Exception:</strong> if someone else's report about you is on file when you delete your account, the report record itself, and an internal reference id, are retained after your profile and identifying data are otherwise deleted, so we can maintain a history of safety actions (e.g. confirming a pattern of reported behavior) without your profile continuing to exist. This is a reference id, not an anonymization process: it is not linked to your profile once your profile is gone, but it isn't scrubbed of the report's own content (e.g. the reason and details given) either. This retention currently only works in one direction: <strong>if you are the one who filed a report and you delete your own account, that report record is deleted along with your account, not retained.</strong> We don't yet have a way to preserve a report you filed after you leave.</li></ul></li><li><strong>Waitlist signups (duoqueue.io).</strong> The salted hash of the IP address that submitted the form is deleted automatically 48 hours after it was created. Your email address and the link you arrived from are kept until you ask us to delete them, or until we delete the list, whichever comes first. Waitlist rows are stored separately from app accounts and are not connected to one: joining the waitlist does not create an account, and deleting your DuoQueue account does not remove your address from the waitlist. If you want both gone, tell us and we will do both.</li><li><strong>Backups.</strong> As of this writing, our hosting provider's automated point-in-time recovery and scheduled backup snapshots are not enabled for our production database, so there is no additional backup-retention window beyond the deletion described above. If backups are enabled in the future, deleted data could persist in a backup for that backup's retention period before being purged in the normal course of our hosting provider's backup rotation.</li><li><strong>Legal holds.</strong> We may retain specific records longer than normal if we're legally required to (e.g. an active law enforcement request), for as long as that requirement lasts.</li></ul>
 <hr>
 <h2 id="6-your-rights">6. Your rights</h2>
 <p>You have the following rights over your data. Most are available directly in the app; the rest are a quick email away.</p>
 <div class="table-scroll"><table><thead><tr><th>Right</th><th>What it means</th><th>How to exercise it</th></tr></thead><tbody><tr><td><strong>Access</strong></td><td>See what we hold about you</td><td>View it directly in the app (profile, matches, messages, settings), or email us for a full export</td></tr><tr><td><strong>Correction</strong></td><td>Fix inaccurate data</td><td>Edit your profile directly in the app for anything editable; email us for anything you can't change yourself (e.g. date of birth)</td></tr><tr><td><strong>Deletion</strong></td><td>Delete your account and data</td><td>Settings → Delete Account, or email us if you'd rather we do it</td></tr><tr><td><strong>Portability</strong></td><td>Get a copy of your data in a portable format</td><td>Email us. There's no self-service export button in the app yet, so this is handled manually, within a reasonable turnaround (GDPR: 30 days; CCPA: 45 days)</td></tr><tr><td><strong>Objection</strong></td><td>Object to processing based on legitimate interests</td><td>Email us with what you're objecting to</td></tr><tr><td><strong>Withdraw consent</strong></td><td>Revoke any consent-based processing at any time</td><td>Unlink a gaming account, stop sharing Discord in a chat, or turn off notification permissions (all directly in the app)</td></tr></tbody></table></div>
 <h3 id="california-residents-ccpacpra">California residents (CCPA/CPRA)</h3>
-<p>In the last 12 months, we've collected the categories of personal information described in Section 2 (identifiers, profile/characteristics data, commercial/purchase information, internet/app activity, and information about your other online activity from linked gaming accounts). We've disclosed those same categories to the service providers listed in Section 3, for the business purposes described there.</p>
+<p>In the last 12 months, we've collected the categories of personal information described in Section 2 (identifiers, including an email address given to us on our website; profile/characteristics data; commercial/purchase information; internet/app activity, including a short-lived salted hash of the IP address that submitted our website's waitlist form; and information about your other online activity from linked gaming accounts). We've disclosed those same categories to the service providers listed in Section 3, for the business purposes described there.</p>
+<p>Sending you the one-time launch announcement you asked for by joining our waitlist is direct marketing, not a sale or a share, and it is not cross-context behavioral advertising. We do not disclose waitlist addresses to anyone except the email provider that delivers the message.</p>
 <ul><li><strong>We do not sell or share (as CPRA defines "share," which includes cross-context behavioral advertising) your personal information</strong>, and we don't operate any advertising-technology pipeline that would make this happen. There is nothing to opt out of.</li><li>You have the right to know, delete, and correct your personal information, and the right to non-discrimination for exercising any of these rights. We will never charge you more or provide a worse experience because you made a privacy request.</li><li>To exercise any CCPA/CPRA right, use the contact email in Section 1.</li></ul>
 <h3 id="euukeea-residents-gdpr">EU/UK/EEA residents (GDPR)</h3>
 <p>DuoQueue is currently offered only in the United States and is not directed to users in the EU, UK, or EEA. We don't have a lead EU/UK supervisory authority because we don't yet operate there. If we expand to those regions, we'll designate one and update this section before we do.</p>
@@ -203,7 +608,8 @@
 <p>When you upload a photo, and our automated moderation provider (Sightengine) is configured (see <a href="#3-who-we-share-data-with">Section 3</a>), it analyzes the photo to check for nudity, graphic content, and whether the person appears to be a minor, and can automatically reject a photo without a human reviewing it first. If your photo is rejected and you believe that was a mistake, you can contact us to request human review. Photos that the automated system can't confidently judge (or every photo, if the automated provider isn't configured) are held for manual review by our team rather than being auto-approved or auto-rejected.</p>
 <hr>
 <h2 id="9-age-restriction">9. Age restriction</h2>
-<p>DuoQueue is for adults only: you must be 18 or older to create an account. We verify your date of birth at signup and technically block anyone under 18 from completing a profile.</p>
+<p>DuoQueue is for adults only: you must be 18 or older to create an account.</p>
+<p>We ask for your date of birth at signup, and we enforce the 18+ rule on the date you give us: a date of birth under 18 is rejected by the app and again by our database, which will not store a profile with one, so an under-18 date cannot complete a profile. What we do <strong>not</strong> do is verify that the date is true. We do not check identity documents and we do not use a third-party age-assurance service. It is a self-declaration that we then enforce, and we describe it that way here rather than calling it verification, which would imply a check we do not perform. The 18-or-older box on our website's waitlist form (<a href="#2-what-we-collect-and-why">Section 2</a>) is a self-declaration in the same sense, with no profile behind it to enforce against.</p>
 <p>If we learn that someone under 18 has created an account (for example, through a report using the "underage" report reason, or otherwise), we will terminate that account and delete the associated data as described in Section 5. If you believe a minor is using DuoQueue, please report that profile in the app (profile → Report) or contact us directly using the email in Section 1.</p>
 <p>We do not knowingly collect personal information from anyone under 18. If you're a parent or guardian and believe your child has provided us with personal information, contact us and we will investigate and delete it.</p>
 <hr>
@@ -212,13 +618,18 @@
 <hr>
 <h2 id="contact-us">Contact us</h2>
 <p>Email <code>support@duoqueue.io</code> with any question about this policy. For our full legal entity name and business address, see <a href="#1-who-we-are">Section 1</a>.</p>
-</article>
+</article></div>
 </main>
 <footer class="site-footer">
-  <p>Last updated: August 5, 2026</p>
-  <nav>
-    <a href="/">Home</a> &middot; <a href="/privacy/">Privacy Policy</a> &middot; <a href="/terms/">Terms of Service</a>
-  </nav>
+  <div class="wrap">
+    <p>DuoQueue is an 18+ app for finding people to play games with. It is platonic, not dating. Last updated: August 21, 2026</p>
+    <nav>
+      <a href="/">Home</a> <span aria-hidden="true">&middot;</span>
+      <a href="/privacy/">Privacy Policy</a> <span aria-hidden="true">&middot;</span>
+      <a href="/terms/">Terms of Service</a> <span aria-hidden="true">&middot;</span>
+      <a href="mailto:support@duoqueue.io">support@duoqueue.io</a>
+    </nav>
+  </div>
 </footer>
 </body>
 </html>
