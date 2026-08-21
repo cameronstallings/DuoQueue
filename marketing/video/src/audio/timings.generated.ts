@@ -168,6 +168,22 @@ export const AUDIO: Record<string, PostAudio> = {
     ],
     loudness: { integratedLufs: -14.8, truePeakDb: -1.5, lra: 8.8 },
   },
+  "pro-001": {
+    id: "pro-001",
+    voice: "af_heart",
+    file: "audio/mix/pro-001.wav",
+    voEndSeconds: 16.279,
+    voEndFrame: 488,
+    seconds: 18.367,
+    frames: 551,
+    lines: [
+      { written: "your best games were the ones you played with someone else", spoken: "your best games were the ones you played with someone else.", startSeconds: 0.2, endSeconds: 4.061, startFrame: 6, endFrame: 122 },
+      { written: "duoqueue is where you find the next one", spoken: "duo queue is where you find the next one.", startSeconds: 4.628, endSeconds: 7.593, startFrame: 139, endFrame: 228 },
+      { written: "you match on the games you play and how you play them", spoken: "you match on the games you play and how you play them.", startSeconds: 8.16, endSeconds: 12.277, startFrame: 245, endFrame: 368 },
+      { written: "lock the duo, send a message, and go play", spoken: "lock the duo, send a message, and go play.", startSeconds: 12.844, endSeconds: 16.279, startFrame: 385, endFrame: 488 },
+    ],
+    loudness: { integratedLufs: -14.7, truePeakDb: -1.9, lra: 2.4 },
+  },
   "reframe-001": {
     id: "reframe-001",
     voice: "af_heart",

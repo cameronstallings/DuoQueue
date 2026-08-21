@@ -14,6 +14,14 @@ import { KINETIC_NATIVE, kineticNativeDuration } from "../src/kinetic-native/scr
 import { voPlanForKineticNative } from "../src/kinetic-native/vo";
 import { postDuration } from "../src/lib/duration";
 import { FPS } from "../src/lib/scale";
+import { PRO } from "../src/pro/script";
+import {
+  beatFrames as proBeatFrames,
+  beatStarts as proBeatStarts,
+  BEAT_LEAD_FRAMES as PRO_LEAD,
+  proDuration,
+} from "../src/pro/timing";
+import { voPlanForPro } from "../src/pro/vo";
 import type { Hook } from "../src/types";
 import { BEATS as TYPE_CLEAN_BEATS } from "../src/type-clean/plan";
 import { V6 } from "../src/v6/script";
@@ -272,7 +280,12 @@ for (const id of Object.keys(AUDIO)) {
   // The two direction experiments are not `Hook`s and never will be, so they are named rather
   // than looked up. Anything else in the table is a post that has been deleted from the queue
   // and whose mix is now a file nothing plays.
-  if (!hooks.some((hook) => hook.id === id) && !id.startsWith("kinetic-native") && id !== V6.id) {
+  if (
+    !hooks.some((hook) => hook.id === id) &&
+    !id.startsWith("kinetic-native") &&
+    id !== V6.id &&
+    id !== PRO.id
+  ) {
     error(
       `audio.${id}`,
       "src/audio/timings.generated.ts holds a post that no longer exists. Re-run pnpm video:audio.",
@@ -526,6 +539,132 @@ const checkV6 = (): void => {
 };
 
 checkV6();
+
+/**
+ * THE SEVENTH SCRIPT, checked on exactly the same terms as the sixth, plus one rule the sixth
+ * did not need.
+ *
+ * The copy rules are the same three and for the same reasons: the rendered lines must rejoin
+ * to the spoken phrase exactly, a multi-line stack may not leave one word alone on a line, and
+ * neither register may carry an em dash or name the category. The audio rules are the same
+ * four: the mix must say what the beats now read, the mix and the film must be one length,
+ * every phrase must be fully contained by its own beat, and the lead must be flat.
+ *
+ * THE NEW RULE IS THE NEGATION RULE, and it is here because it is the note Cameron gave twice
+ * and the property this script is built around. `src/pro/script.ts` claims in its header that
+ * there is not a single "not", "no" or "never" in the read. A claim in a comment is worth
+ * nothing; a sentence added later that quietly reintroduces one is exactly how the fifth
+ * script became every beat a negation. So the claim is asserted.
+ *
+ * It is deliberately narrower than a rule about the word "no": DATING above already permits a
+ * denial where a denial is the strongest thing to say, and that is a different film's problem.
+ * This one is a rule about THIS script only.
+ */
+const NEGATION = /\b(not|no|never|isn['’]?t|don['’]?t|doesn['’]?t|won['’]?t|can['’]?t)\b/i;
+
+const checkPro = (): void => {
+  for (const [index, beat] of PRO.beats.entries()) {
+    const where = `${PRO.id}.beat${String(index + 1)}`;
+    if (beat.lines.join(" ") !== beat.phrase) {
+      error(
+        where,
+        `the frame renders ${JSON.stringify(beat.lines.join(" "))} and the voice says ${JSON.stringify(beat.phrase)}. The lines are the phrase broken by hand and must rejoin to it exactly.`,
+      );
+    }
+    if (beat.lines.length > 1) {
+      const orphan = beat.lines.find((line) => line.trim().split(/\s+/).length < 2);
+      if (orphan !== undefined) {
+        error(
+          where,
+          `${JSON.stringify(orphan)} is one word alone on a line of a ${String(beat.lines.length)} line stack, which reads as a mistake. Re-break the phrase or set it on one line.`,
+        );
+      }
+    }
+    if (!new RegExp(`\\b${beat.key}\\b`, "i").test(beat.phrase)) {
+      error(
+        where,
+        `the accent word ${JSON.stringify(beat.key)} is not in ${JSON.stringify(beat.phrase)}, so no direction can mark it.`,
+      );
+    }
+    if (/[.!?]$/.test(beat.phrase)) {
+      error(
+        where,
+        `${JSON.stringify(beat.phrase)} carries its own terminal punctuation. speakable() adds the full stop the synthesiser needs and the frame should not render one.`,
+      );
+    }
+    for (const text of [beat.phrase, ...beat.lines]) {
+      if (text.includes(EM_DASH)) {
+        error(where, `contains an em dash: ${JSON.stringify(text)}`);
+      }
+      if (DATING.test(text)) {
+        error(where, `names the category this film exists not to be filed under: ${JSON.stringify(text)}`);
+      }
+      if (NEGATION.test(text)) {
+        error(
+          where,
+          `contains a negation: ${JSON.stringify(text)}. This script says what the product does and never what it lacks; see the header of src/pro/script.ts.`,
+        );
+      }
+    }
+  }
+
+  const audio = AUDIO[PRO.id];
+  if (audio === undefined) {
+    warn(
+      `${PRO.id}.audio`,
+      "no voiceover built yet, so all three directions render silent and their beats are estimates. Run pnpm video:audio --only pro-001 twice; see the header of src/pro/timing.ts for why twice.",
+    );
+    return;
+  }
+
+  const written = voPlanForPro(PRO).lines.map((line) => line.written);
+  const recorded = audio.lines.map((line) => line.written);
+  if (JSON.stringify(written) !== JSON.stringify(recorded)) {
+    error(
+      `${PRO.id}.audio`,
+      `the mix says ${JSON.stringify(recorded)} and the beats now read ${JSON.stringify(written)}. Re-run pnpm video:audio --only pro-001.`,
+    );
+  }
+
+  const filmFrames = proDuration(PRO);
+  if (audio.frames !== filmFrames) {
+    error(
+      `${PRO.id}.audio`,
+      `the mix is ${audio.frames} frames and the film is ${filmFrames}. They are one clock, and the usual cause is that the audio was built once against an estimated length: run pnpm video:audio --only pro-001 again.`,
+    );
+  }
+
+  const frames = proBeatFrames(PRO);
+  const starts = proBeatStarts(PRO);
+  starts.forEach((from, index) => {
+    const line = audio.lines[index];
+    if (line === undefined) {
+      error(
+        `${PRO.id}.beats`,
+        `beat ${String(index + 1)} has no phrase in the mix. The read has ${String(audio.lines.length)} lines and the cut has ${String(PRO.beats.length)} beats.`,
+      );
+      return;
+    }
+    const lead = line.startFrame - from;
+    if (Math.abs(lead - PRO_LEAD) > 1) {
+      error(
+        `${PRO.id}.beats`,
+        `beat ${String(index + 1)} starts at frame ${String(from)} and its phrase at ${String(line.startFrame)}, a lead of ${String(lead)} frames where every other beat leads by ${String(PRO_LEAD)}.`,
+      );
+    }
+    const ends = from + (frames[index] ?? 0);
+    if (line.endFrame > ends) {
+      error(
+        `${PRO.id}.beats`,
+        `beat ${String(index + 1)} ends at frame ${String(ends)} and its phrase runs to ${String(line.endFrame)}, so the last of it is heard over the next beat's picture.`,
+      );
+    }
+  });
+
+  checkLoudness(PRO.id, audio);
+};
+
+checkPro();
 
 /**
  * THE TYPE DIRECTION'S BREAK TABLE.

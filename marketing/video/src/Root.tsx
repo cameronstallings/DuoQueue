@@ -15,6 +15,7 @@ import { KineticNativeCompositions } from "@/kinetic-native/register";
 import { postDuration } from "@/lib/duration";
 import { FPS, VIDEO_H, VIDEO_W } from "@/lib/scale";
 import { NativeCompositions } from "@/native/register";
+import { ProCompositions } from "@/pro/register";
 import type { Hook } from "@/types";
 import { TypeCleanCompositions } from "@/type-clean/register";
 import { V6Compositions } from "@/v6/register";
@@ -129,6 +130,13 @@ export const RemotionRoot = () => (
         fragment ad; the type and the absence of the tilt are the whole difference. It renders
         from src/type-clean/ and registers itself there. */}
     <TypeCleanCompositions />
+    {/* The tenth direction, and the first built from a frame-by-frame MEASUREMENT of the three
+        reels Cameron sent rather than from an impression of them. Nine were rejected for looking
+        cheap; the measurement says why, in numbers, in src/pro/motion.ts. Three genuinely
+        different films on one script, one read and one mix: a device in studio light, a card in
+        space, and a scrolling editorial line. They render from src/pro/ and register themselves
+        there. */}
+    <ProCompositions />
     <Composition id="BrandSheet" component={BrandSheet} {...FRAME} durationInFrames={30} />
     {/* Registered because a composition that is not registered cannot be rendered, not
         because anyone should open it. See the header of Normalize.tsx for when it is used. */}

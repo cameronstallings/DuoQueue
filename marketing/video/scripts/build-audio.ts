@@ -29,6 +29,8 @@ import { KINETIC_NATIVE } from "../src/kinetic-native/script";
 import { voPlanForKineticNative } from "../src/kinetic-native/vo";
 import { postDuration } from "../src/lib/duration";
 import { FPS } from "../src/lib/scale";
+import { PRO } from "../src/pro/script";
+import { voPlanForPro } from "../src/pro/vo";
 import { V6 } from "../src/v6/script";
 import { voPlanForV6 } from "../src/v6/vo";
 
@@ -686,6 +688,10 @@ export const allPlans = (): VoPlan[] => [
   // which clip sits under which beat, never in a word and never in a frame, which is the whole
   // reason the three renders are comparable. See src/v6/script.ts.
   voPlanForV6(V6),
+  // The seventh script, on the same terms: one read for pro-a, pro-b and pro-c, so the only
+  // variable between the three rendered files is the direction. See src/pro/script.ts for why
+  // it is four sentences rather than six fragments.
+  voPlanForPro(PRO),
 ];
 
 /**

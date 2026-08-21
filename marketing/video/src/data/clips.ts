@@ -37,6 +37,13 @@ export const clips = {
   // what is on a card rather than about matching.
   "deck-cards":    { file: "deck-cards.mp4",    from: 0, to: 8.8 },
   "deck-light":    { file: "deck-light.mp4",    from: 0, to: 7.4 },
+  // THE WHOLE SCREEN, UNCUT, and the only entry here that is not a cropped region.
+  //
+  // src/pro/a/ draws a phone as a real object in studio light, so it needs the recording the
+  // fragment crops were cut FROM rather than any of the crops. Kofi's card is held perfectly
+  // still from 0 to 16.4s in this take; `to` stops at 16.2 so no beat can run into the swipe
+  // that ends it. 1180x2556, the iPhone capture's own pixels, same as every app source here.
+  "deck-dark-raw": { file: "deck-dark-raw.mp4", from: 0, to: 16.2 },
   "match-kofi":    { file: "match-kofi.mp4",    from: 0, to: 5.2 },
   "duo-locked":    { file: "duo-locked.mp4",    from: 0, to: 8.2 },
   // The list for 2.5s, then it opens the Priya thread. It has to reach 6s to cover a reframe,
