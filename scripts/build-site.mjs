@@ -140,18 +140,35 @@ const INK = {
   rule: "#C9CFBB", // lightColors.border
 };
 
-// The app's dark palette, for the product fragments. These are objects made of the
-// real thing, so they are drawn in the real tokens.
+// The app's LIGHT palette, for the product fragments. These are objects made of the
+// real thing, so they are drawn in the real tokens — apps/mobile/src/theme/tokens.ts,
+// `lightColors`, verbatim.
+//
+// It was the DARK palette until Cameron committed the campaign to light: "i think we
+// should just commit to the light UI as the main one we use". That is a real trade and
+// the measurement is on record. A light-themed app substitutes an olive for chartreuse
+// in every control it draws, so the brand colour all but leaves the product: the same
+// swap measured across the films took pro-a from 0.330% chartreuse on screen to 0.027%.
+//
+// What saves it here, and what a static page can do that a film could not, is that the
+// CTA is FURNITURE rather than footage. The waitlist slab below is ours to colour, and
+// it stays off-black with raw #CDFF3D at 16.88:1. So the product reads light and the one
+// moment of decision still carries the brand.
+//
+// The other consequence is structural: a light fragment on a light ground has almost no
+// tonal step left, so `border` is no longer a detail. It is the only thing separating an
+// object from the paper, and the cast shadow underneath it is the other. Neither is
+// decoration on this palette.
 const APP = {
-  background: "#0A0B09",
-  surface: "#12140F",
-  surfaceAlt: "#1A1D15",
-  border: "#232720",
-  text: "#EDF1E6",
-  textMuted: "#B4BDA6",
-  volt: "#CDFF3D",
-  onVolt: "#0A0B09",
-  amber: "#FFB627", // darkColors.overlap.many — three or more games in common
+  background: "#F2F4EB",
+  surface: "#FFFFFF",
+  surfaceAlt: "#E7EBDB",
+  border: "#C9CFBB",
+  text: "#161A0F",
+  textMuted: "#5C6450",
+  volt: "#4A6B00", // lightColors.volt — the olive the app resolves chartreuse to on paper
+  onVolt: "#F7F9F0",
+  amber: "#8F5E00", // lightColors.overlap.many — three or more games in common
 };
 
 // marketing/video/src/frag/ground.ts:241-257. One perspective container and one
