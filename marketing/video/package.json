@@ -8,7 +8,7 @@
     "studio": "remotion studio src/index.ts",
     "render-day": "tsx scripts/render-day.ts",
     "audio": "tsx scripts/build-audio.ts",
-    "stills": "tsx scripts/render-stills.ts",
+    "carousel": "tsx scripts/render-carousel.ts",
     "assets:sync": "tsx scripts/sync-assets.ts",
     "validate": "tsx scripts/validate-content.ts",
     "typecheck": "tsc --noEmit",

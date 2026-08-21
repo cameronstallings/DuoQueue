@@ -1,5 +1,6 @@
 import { Composition } from "remotion";
 
+import { CarouselCompositions } from "@/carousel/register";
 import { BrandSheet } from "@/compositions/BrandSheet";
 import { Normalize, NORMALIZE_DEFAULTS } from "@/compositions/Normalize";
 import { Post } from "@/compositions/Post";
@@ -7,6 +8,7 @@ import { CTA } from "@/config/phase";
 import { hooks } from "@/data/hooks";
 // The direction experiments each register themselves, so adding or dropping one is a line.
 import { MontageCompositions } from "@/directions/montage/register";
+import { FragCompositions } from "@/frag/register";
 import { kineticSample } from "@/kinetic/beats";
 import { KineticPost, kineticDuration } from "@/kinetic/KineticPost";
 import { KineticNativeCompositions } from "@/kinetic-native/register";
@@ -14,6 +16,7 @@ import { postDuration } from "@/lib/duration";
 import { FPS, VIDEO_H, VIDEO_W } from "@/lib/scale";
 import { NativeCompositions } from "@/native/register";
 import type { Hook } from "@/types";
+import { TypeCleanCompositions } from "@/type-clean/register";
 import { V6Compositions } from "@/v6/register";
 
 /** 1080x1920 at 30fps is the shape every post shares, and the one Instagram, TikTok and
@@ -103,6 +106,29 @@ export const RemotionRoot = () => (
         language extended backwards through the whole film, and a gameplay led trailer. They
         render from src/v6/ and register themselves there. */}
     <V6Compositions />
+    {/* The seventh direction, and the first built from reference rather than from a note.
+        Cameron sent three reels he wants to look like; all three hold ONE light ground, none of
+        them ever shows a phone, and every one of them pulls a single UI element out and lets it
+        own the frame on empty space. So: warm off-white ground, the DARK app as isolated
+        fragments floating on it, 58px type, one shadow, one camera. Same script, same read, same
+        mix as V6-A/B/C. It renders from src/frag/ as a PAIR that differs only in which app theme
+        was recorded, because that is the comparison Cameron shot both recordings to make. */}
+    <FragCompositions />
+    {/* The same direction in the one format that is not a film: a 1080x1350 swipeable
+        carousel, six cards, rendered as stills by scripts/render-carousel.ts. It imports the
+        ground, the inks, the grid, the tilt, the shadow and the type cap from src/frag/ rather
+        than restating them, so it cannot drift away from the finished ads. It registers ONE
+        composition and the script drives it six times by index. */}
+    <CarouselCompositions />
+    {/* The third of the three ads, and the one Cameron asked for as "the type that we
+        originally started". It is a rebuild rather than a tune: the original fitted every line
+        to the full frame width, which assigned size by spelling and left no margin anywhere, so
+        this one names ONE hero line a beat and sets everything else three times smaller in the
+        opposite tracking, the opposite case and the app's own paper volt. Same ground, same
+        inks, same script, same read, same mix, same shot plan and the same end card as the
+        fragment ad; the type and the absence of the tilt are the whole difference. It renders
+        from src/type-clean/ and registers itself there. */}
+    <TypeCleanCompositions />
     <Composition id="BrandSheet" component={BrandSheet} {...FRAME} durationInFrames={30} />
     {/* Registered because a composition that is not registered cannot be rendered, not
         because anyone should open it. See the header of Normalize.tsx for when it is used. */}

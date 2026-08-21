@@ -15,6 +15,7 @@ import { voPlanForKineticNative } from "../src/kinetic-native/vo";
 import { postDuration } from "../src/lib/duration";
 import { FPS } from "../src/lib/scale";
 import type { Hook } from "../src/types";
+import { BEATS as TYPE_CLEAN_BEATS } from "../src/type-clean/plan";
 import { V6 } from "../src/v6/script";
 import { beatFrames, beatStarts, BEAT_LEAD_FRAMES as V6_LEAD, v6Duration } from "../src/v6/timing";
 import { voPlanForV6 } from "../src/v6/vo";
@@ -525,6 +526,75 @@ const checkV6 = (): void => {
 };
 
 checkV6();
+
+/**
+ * THE TYPE DIRECTION'S BREAK TABLE.
+ *
+ * src/type-clean/ sets each beat as one SUPPORT line over one HERO line, and it breaks the
+ * phrase at a different place than src/v6/script.ts does, because there a break balances two
+ * halves of a sentence and here it decides which words are the frame and which word is the
+ * subject. Two registers means two chances for the copy and the read to drift apart, so the
+ * three properties that stop it are asserted rather than trusted.
+ *
+ *   THE WORDS ARE THE SCRIPT'S. `support` and `hero` joined by one space must equal the beat's
+ *   spoken `phrase` exactly. Not one word added, dropped, re-ordered or re-spelled.
+ *
+ *   THE STACK IS EXACTLY TWO LINES, one per register. That is what makes the orphan Cameron
+ *   caught in the fifth cut impossible here rather than merely absent. "SAME GAME / SAME /
+ *   HOURS" read as broken because three lines in ONE register held one word between them; a one
+ *   word line is only ever a mistake when nothing tells the eye it was intended. With exactly
+ *   two lines three times apart in size, three weight steps apart, tracked in opposite
+ *   directions and set in opposite case, every line is unmistakably in a register of its own.
+ *
+ *   THE HERO IS ONE OR TWO WORDS. This is the arithmetic that lets the whole film be set at ONE
+ *   hero size: a longer hero fits at a smaller size, and the size the film picks is the
+ *   smallest of them, so a five word hero would drag every beat down with it and hand the
+ *   decision back to spelling, which is the defect the direction was rebuilt to remove.
+ */
+const checkTypeClean = (): void => {
+  TYPE_CLEAN_BEATS.forEach((beat, index) => {
+    const where = `type-clean.beat${String(index + 1)}`;
+    const phrase = V6.beats[index]?.phrase;
+    if (phrase === undefined) {
+      error(where, `there is no beat ${String(index + 1)} in ${V6.id} for this stack to set.`);
+      return;
+    }
+    const joined = `${beat.support} ${beat.hero}`;
+    if (joined !== phrase) {
+      error(
+        where,
+        `the frame renders ${JSON.stringify(joined)} and the voice says ${JSON.stringify(phrase)}. The support and the hero are the phrase broken by hand and must rejoin to it exactly.`,
+      );
+    }
+    const heroWords = beat.hero.trim().split(/\s+/).length;
+    if (heroWords > 2) {
+      error(
+        where,
+        `the hero ${JSON.stringify(beat.hero)} is ${String(heroWords)} words. The film is set at one hero size, which is the smallest fit of them all, so a long hero shrinks every other beat and hands the size back to spelling. Two words is the ceiling.`,
+      );
+    }
+    if (beat.support.trim() === "") {
+      error(where, "the support line is empty, so this beat has no label register at all.");
+    }
+    for (const text of [beat.support, beat.hero]) {
+      if (text.includes(EM_DASH)) {
+        error(where, `contains an em dash: ${JSON.stringify(text)}`);
+      }
+      if (DATING.test(text)) {
+        error(where, `names the category this film exists not to be filed under: ${JSON.stringify(text)}`);
+      }
+    }
+  });
+
+  if (TYPE_CLEAN_BEATS.length !== V6.beats.length) {
+    error(
+      "type-clean.beats",
+      `the direction sets ${String(TYPE_CLEAN_BEATS.length)} stacks and ${V6.id} has ${String(V6.beats.length)} beats. They are one film.`,
+    );
+  }
+};
+
+checkTypeClean();
 
 /**
  * One line, not one per post.

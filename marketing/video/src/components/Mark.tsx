@@ -20,25 +20,33 @@ import {
   VB_Y,
   W,
 } from "@app/theme/logo-geometry";
-import { darkColors } from "@app/theme/tokens";
+import { darkColors, lightColors } from "@app/theme/tokens";
 
 // Deliberately hue-free: one ink at two strengths, computed exactly as the app computes
-// it. Every video is dark, so darkColors stands where useTheme() resolves on device.
-const ink = darkColors.text;
-const duo = mix(darkColors.text, darkColors.background, 0.58);
+// it. Both tones are here rather than one, because src/frag/ holds a LIGHT ground for the
+// whole film and the app's own mark on paper is the light theme's text, not an inverted
+// copy of the dark one. `tone` stands where useTheme() resolves on device, and it defaults
+// to dark so every composition that predates the light direction is untouched.
+const TONE = {
+  dark: { ink: darkColors.text, duo: mix(darkColors.text, darkColors.background, 0.58) },
+  light: { ink: lightColors.text, duo: mix(lightColors.text, lightColors.background, 0.58) },
+} as const;
 
-export const Mark = ({ width }: { width: number }) => (
-  // The app's <Svg/> is tagged as an image for VoiceOver. A frame of video has no
-  // accessibility tree to serve, so here the mark is decorative markup and nothing more.
-  <svg
-    width={width}
-    height={width * LOGO_MARK_ASPECT}
-    viewBox={`${VB_X} ${VB_Y} ${VB_W} ${VB_H}`}
-    aria-hidden
-  >
-    <circle cx={CXB} cy={CY} r={R} fill="none" stroke={duo} strokeWidth={W} />
-    <circle cx={NUB.cx} cy={NUB.cy} r={NUB.r} fill={duo} />
-    <circle cx={CXA} cy={CY} r={R} fill="none" stroke={ink} strokeWidth={W} />
-    <path d={SEG_PATH} fill="none" stroke={duo} strokeWidth={W} />
-  </svg>
-);
+export const Mark = ({ width, tone = "dark" }: { width: number; tone?: keyof typeof TONE }) => {
+  const { ink, duo } = TONE[tone];
+  return (
+    // The app's <Svg/> is tagged as an image for VoiceOver. A frame of video has no
+    // accessibility tree to serve, so here the mark is decorative markup and nothing more.
+    <svg
+      width={width}
+      height={width * LOGO_MARK_ASPECT}
+      viewBox={`${VB_X} ${VB_Y} ${VB_W} ${VB_H}`}
+      aria-hidden
+    >
+      <circle cx={CXB} cy={CY} r={R} fill="none" stroke={duo} strokeWidth={W} />
+      <circle cx={NUB.cx} cy={NUB.cy} r={NUB.r} fill={duo} />
+      <circle cx={CXA} cy={CY} r={R} fill="none" stroke={ink} strokeWidth={W} />
+      <path d={SEG_PATH} fill="none" stroke={duo} strokeWidth={W} />
+    </svg>
+  );
+};

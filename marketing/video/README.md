@@ -54,6 +54,19 @@ stops corepack from honoring the root pin.
 | `pnpm video:day` | Renders the day's three videos, covers, captions and manifest |
 | `pnpm video:verify` | typecheck + lint + content validation. Required before committing |
 
+The carousel is not a video and has no day, so it is run from this directory rather than from
+the root: `pnpm carousel` writes six 1080x1350 PNGs and a captions file into `out/_carousel/`.
+It touches neither the ledger nor a day folder, so it can be re-run any number of times.
+
+The three campaign ads are not on the day queue either, because they are one script rendered
+three ways rather than a day's posts. They render by composition id from this directory:
+
+```
+npx remotion render Frag-Dark   out/_directions/frag-dark.mp4
+npx remotion render Frag-Light  out/_directions/frag-light.mp4
+npx remotion render Type-Clean  out/_directions/type-clean.mp4
+```
+
 `video:audio` needs two things on this machine that nothing else here does: `ffmpeg` (found on
 PATH, then at the WinGet install, then at `$FFMPEG_DIR`) and `HYPERFRAMES_PYTHON` pointing at a
 Python 3.12 for the voice model to run in.
@@ -74,7 +87,10 @@ src/formats/       one component per format: reframe, pain, demo, spec
 src/data/          hooks.ts (the queue) and clips.ts (footage in and out points)
 src/config/        phase (waitlist or launched) and caption templates
 src/lib/           scale, fonts, selection, ledger, webpack override
-scripts/           render-day, render-stills, sync-assets, validate-content
+src/frag/          the shipped ad: light ground, isolated app fragments, small type
+src/carousel/      the same direction as a 4:5 swipeable post. Imports src/frag/ground.ts
+src/type-clean/    the type ad: the same ground and shot plan under a hero/support headline
+scripts/           render-day, render-carousel, sync-assets, validate-content
 state/             rendered.json, the committed ledger of what has shipped
 types/             the react-native TYPE stub, see types/react-native.d.ts
 ```
@@ -265,3 +281,23 @@ four accent fields that were cutting their own letterforms, an app camera that u
 and stop dead at its own cut, the gameplay window and its clipped HUD, the end card's timing,
 and the 42.67ms of encoder delay above. It renders to
 `out/_directions/kinetic-native-v4.mp4`, 328 frames, 10.93s, -14.7 LUFS, -1.5 dBTP.
+
+### The three ads
+
+Cameron asked for three: a swipeable carousel, the dimensional one, and "the type that we
+originally started". All three run the same script (`v6-001`), the same read, the same mix and
+the same shot plan, on the same warm off-white ground with the same off-black app fragments and
+the same end card. They differ in one thing each.
+
+| | Where | What makes it itself |
+| --- | --- | --- |
+| The fragment ad | `out/_directions/frag-dark.mp4`, `frag-light.mp4` | 377 frames, 12.63s, -14.9 LUFS, -1.7 dBTP. Objects tilted 7 degrees inside one perspective, type at 76px. Rendered as a pair so the app's two themes can be judged on real footage |
+| The carousel | `out/_carousel/01..06.png` | 1080x1350 stills, no timing and no read, so the whole budget goes into composition. A mono spine label names each stage of the loop and the last card is the waitlist |
+| The type ad | `out/_directions/type-clean.mp4` | 377 frames, 12.63s, -14.7 LUFS, -1.7 dBTP. One 193px hero word a beat over a 61px volt label, three times smaller in the opposite tracking and case. No tilt: this is the one that is about its own words |
+
+The type ad is a rebuild of `src/kinetic-native/` rather than a tune of it. That cut fitted
+every line to the full frame width, which assigns size by spelling: on its opening frame APP, a
+three letter function word, was at about 500px and THIS IS was at about 215. Cameron's verdict
+was that the words were too big and it felt cheap, and both halves of that are answered in
+`src/type-clean/type.ts`, which sets the whole film at ONE hero size and one support size and
+records what each line measured.

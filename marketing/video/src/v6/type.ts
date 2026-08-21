@@ -84,18 +84,31 @@ const fitOne = (text: string, within: number): number =>
   }).fontSize * SAFETY;
 
 /**
- * The one size this film is set at, for a given measure and cap.
+ * The one size a SET of lines is set at, for a given measure and cap.
  *
- * Every line of every beat is measured and the smallest fit wins, so the longest line in the
- * script decides the size and every other line is set at it. Call it once per direction, never
- * per beat: calling it per beat is the per-beat fitting this function exists to replace.
+ * Every line is measured and the smallest fit wins, so the longest line decides the size and
+ * every other line is set at it. Call it once per deliverable, never per beat or per card:
+ * calling it per beat is the per-beat fitting this module exists to replace.
+ *
+ * It is separate from `filmSize` because the carousel is set from the same rule but is not a
+ * film: its lines come from six cards rather than from a script's beats, and duplicating the
+ * fit here would have been a second place for the safety factor and the cap to drift.
  */
-export const filmSize = (script: V6Script, measure: number, cap: number): number => {
-  const smallest = script.beats
-    .flatMap((beat) => beat.lines)
-    .reduce((size, line) => Math.min(size, fitOne(line, measure)), Number.POSITIVE_INFINITY);
+export const linesSize = (lines: readonly string[], measure: number, cap: number): number => {
+  const smallest = lines.reduce(
+    (size, line) => Math.min(size, fitOne(line, measure)),
+    Number.POSITIVE_INFINITY,
+  );
   return Math.floor(Math.min(cap, smallest));
 };
+
+/** The one size this film is set at. Every line of every beat, through `linesSize`. */
+export const filmSize = (script: V6Script, measure: number, cap: number): number =>
+  linesSize(
+    script.beats.flatMap((beat) => beat.lines),
+    measure,
+    cap,
+  );
 
 /** Splits a line into words, marking the one the script named as this beat's key. Case
  * insensitive, and it matches whole words so "play" does not light up inside "playstyle". */
