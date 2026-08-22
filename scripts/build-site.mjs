@@ -432,6 +432,63 @@ const GRID = {
   wordmark: "clamp(42px, 13.6vw, 148px)",
 };
 
+// ---------------------------------------------------------------------------
+// THE VERTICAL SCALE, AND WHY IT IS THE HORIZONTAL ONE.
+//
+// The page's vertical gaps used to be whatever fell out of each section: 22/64 under the
+// stage, 12/66 under the plain version, 20/78 under the lockup, 34/60 in the hero, 46
+// between fragments. Nine numbers, none of them related to each other or to anything the
+// campaign measures, which is how a page ends up with a 428px hole in it and no way to
+// argue that the hole is wrong — if every gap is arbitrary, no gap can be too big.
+//
+// So the vertical rhythm is now the SAME four measurements the campaign already uses
+// horizontally, on the same 1080px field, and there are only four:
+//
+//   G1   26/1080 =  2.41%   the mono step. It is GRID.label exactly — the size of the
+//                           furniture type IS the tightest gap on the page, which is not a
+//                           coincidence, it is the same measurement used twice. This is the
+//                           gap that holds one plate to the next inside the scene, and it is
+//                           deliberately SMALLER than a plate's cast shadow reaches (see
+//                           FRAG_SHADOW_LAYERS: the cast clears 8.3% of the object's width
+//                           below its bottom edge), so a plate's shadow lands on the plate
+//                           BELOW it rather than on bare paper. That is the whole depth
+//                           argument of the composition and it is a spacing value.
+//   G2   40/1080 =  3.70%   the end card's own internal gap (FragEnd.tsx), already used by
+//                           .lockup-inner. Block to block inside one composition.
+//   G3   62/1080 =  5.74%   the end card's margin. Between the parts of a section.
+//   G4  118/1080 = 10.93%   the grid's own inset, GRID.x0's own ceiling. Section to section,
+//                           so the page's biggest vertical gap is exactly its horizontal one
+//                           and the field reads as square rather than as a tall ribbon.
+//
+// Each is written the way GRID.x0 is: a vw ratio between a floor and the literal number the
+// campaign uses, so a 320px phone gets a proportionate gap rather than the desktop one.
+// Nothing on the recomposed page uses a vertical gap that is not one of these four, with a
+// single stated exception — the gap between a plate and its caption, which is not rhythm at
+// all but shadow geometry (CAPTION_GAP), and is a ratio of the OBJECT rather than of the
+// field for the reason its own note gives.
+const RHYTHM = {
+  g1: "clamp(10px, 2.41vw, 26px)",
+  g2: "clamp(16px, 3.70vw, 40px)",
+  g3: "clamp(24px, 5.74vw, 62px)",
+  g4: "clamp(36px, 10.93vw, 118px)",
+};
+
+// THE SCENE'S THREE DEPTHS, in the stage's own perspective.
+//
+// marketing/video/src/pro/Plane.tsx takes a `z` per plane for exactly this — "extra Z, in
+// the stage's perspective, for layers that live at different depths ... what makes a camera
+// move produce parallax rather than a zoom" — and the film's own recede is -520 at a 1400px
+// perspective (film.ts RECEDE.z), which is 37% of the camera distance. This page's camera is
+// 2400px and its objects are furniture rather than a subject being pushed out of frame, so
+// the separation is small on purpose: +-46px is 1.9% of the perspective, which projects to
+// about +-2% of apparent size. That is under the threshold at which anyone would call it a
+// size difference and over the threshold at which the three plates stop looking coplanar.
+//
+// It is also what makes the scroll parallax below honest rather than decorative: the plates
+// really are at three depths, so moving them at three rates is showing the reader something
+// true about the composition instead of animating for the sake of it.
+const DEPTH = { back: -46, mid: 0, front: 46 };
+
 // The five faces, subsetted and committed by scripts/site-fonts/subset.py. Family
 // names are the app's token values verbatim (apps/mobile/src/theme/tokens.ts), so
 // the site, the app and the ad campaign all name the same typefaces the same way.
@@ -580,16 +637,39 @@ function groundUnderCta(layers, extra = 0) {
   return groundUnder(layers, CTA_PROMISE_GAP + extra);
 }
 
-/** Every object width the layout actually produces.
-// MEASURED ON THE BUILT PAGE at the ten viewports in the responsive matrix, not guessed:
-// 280 is a 320px phone at the corrected 20px inset, 305 a 390px iPhone, 377 a 1024px tablet
-// in portrait, 399 a 1080px portrait monitor, 449 a 1280-1440px laptop, 520 a 768px tablet
-// in one column, 634 the widened stage at 1500px and up, 640 the hero's own object in that
-// same tier (the aside column, which is the widest object on the page), and 660 the ceiling
-// `.fragment { max-width: 660px }` now pins so no future grid change can produce an object
-// this list has not measured. Above ~716px the caption gap stops tracking the shadow (it
-// hits CAPTION_GAP.maxPx) and the pair starts falling, which is what that ceiling is for. */
-const FRAG_WIDTHS = [280, 305, 377, 399, 449, 520, 634, 640, 660];
+/** EVERY OBJECT WIDTH THE LAYOUT CAN PRODUCE — a swept range, not a list of samples.
+ *
+ * This used to be twelve hand-picked numbers, each annotated with the viewport that
+ * produced it. That shape of guard rots silently: the numbers are only true until the
+ * next time the grid moves, and nothing fails when they stop being true. It had already
+ * rotted. Sweeping the built page continuously — every measure from 300 to 1700 CSS px,
+ * two at a time, reading `.object`'s painted box — produces widths from 252.7 to 637.0,
+ * and of the twelve widths the old list named, the recomposed scene actually draws ONE.
+ * Thirty-three real widths were going through a guard that had never seen them, and the
+ * floor was set 12px ABOVE the narrowest object the layout can actually draw.
+ *
+ * So the range is swept instead. The two ends, both measured rather than reasoned:
+ *
+ *   252.7  the narrowest, at a 300px measure — a 320px phone whose browser reserves a
+ *          20px scrollbar. Below the old 265 floor, i.e. previously unchecked.
+ *   637.0  the widest, at about 806px of measure. This is the PROJECTED box: DEPTH.front
+ *          puts the front plate 46px toward the camera in a 2400px perspective and scales
+ *          it — and its cast shadow — by 1.0195, and `getBoundingClientRect` already has
+ *          that in it. So the projection needs no separate entry the way it used to.
+ *
+ * The bounds below carry margin past both measurements and the guard checks every
+ * integer between them. They stop well short of ~716px, where `captionGapPx` hits
+ * CAPTION_GAP.maxPx, the caption gap stops tracking the shadow that is darkening the
+ * ground beneath it, and the pair starts falling — which is what the 640px ceiling in
+ * the @container rule exists to prevent. If the layout ever draws an object wider than
+ * FRAG_WIDTH_CEIL, widen this range and let the guard tell you whether it still passes,
+ * rather than trusting that it does. */
+const FRAG_WIDTH_FLOOR = 250;
+const FRAG_WIDTH_CEIL = 660;
+const FRAG_WIDTHS = Array.from(
+  { length: FRAG_WIDTH_CEIL - FRAG_WIDTH_FLOOR + 1 },
+  (_, i) => FRAG_WIDTH_FLOOR + i
+);
 
 const CONTRAST_PAIRS = [
   { what: "body / caption ink on the ground", fg: INK.type, bg: GROUND.darkest, min: 4.5 },
@@ -603,6 +683,11 @@ const CONTRAST_PAIRS = [
   { what: "app text on app surface", fg: APP.text, bg: APP.surface, min: 4.5 },
   { what: "app muted text on app surfaceAlt", fg: APP.textMuted, bg: APP.surfaceAlt, min: 4.5 },
   { what: "overlap amber on app surface", fg: APP.amber, bg: APP.surface, min: 4.5 },
+  // The DUO LOCKED label and its two bracket glyphs, which are the app's own volt on the
+  // app's own surface. The middle plate is the only place on the page where volt is TYPE
+  // rather than a button fill, so it gets the 4.5 that type is held to and not the 3.0 a
+  // control's silhouette gets.
+  { what: "volt label and brackets on app surface (the DUO LOCKED plate)", fg: APP.volt, bg: APP.surface, min: 4.5 },
 
   // THE CALL TO ACTION, in all three of its states.
   //
@@ -633,18 +718,35 @@ function checkContrast() {
   // against clean paper. This is the check that the flat-ground version of this
   // guard was missing; it is what the 4.02:1 failure would have tripped.
   console.log("\nCaption ink on the ground UNDER a fragment's cast shadow:");
-  let worst = null;
-  for (const w of FRAG_WIDTHS) {
+  const describe = (w) => {
     const g = groundUnderCaption(w);
     const ratio = contrastRatio(INK.muted, g.hex);
-    const line =
-      `  ${ratio.toFixed(2).padStart(6)}:1  (needs 4.5)  ${INK.muted} on ${g.hex}  ` +
-      `object ${String(w).padStart(3)}px, caption gap ${g.gap}px, shadow alpha ${g.alpha.toFixed(3)}`;
+    return {
+      ratio,
+      line:
+        `  ${ratio.toFixed(2).padStart(6)}:1  (needs 4.5)  ${INK.muted} on ${g.hex}  ` +
+        `object ${String(w).padStart(3)}px, caption gap ${g.gap}px, shadow alpha ${g.alpha.toFixed(3)}`,
+    };
+  };
+  // Every integer width in the range is checked; only the two ends and the worst are
+  // printed, because 411 near-identical lines would bury everything else in this report.
+  let worst = null;
+  let worstW = null;
+  for (const w of FRAG_WIDTHS) {
+    const { ratio, line } = describe(w);
     if (ratio < 4.5) failures.push(line);
-    else console.log(line);
-    if (worst === null || ratio < worst) worst = ratio;
+    if (worst === null || ratio < worst) {
+      worst = ratio;
+      worstW = w;
+    }
   }
-  console.log(`  worst caption pair across every object width: ${worst.toFixed(2)}:1`);
+  console.log(`${describe(FRAG_WIDTH_FLOOR).line}   <- floor`);
+  console.log(`${describe(worstW).line}   <- worst`);
+  console.log(`${describe(FRAG_WIDTH_CEIL).line}   <- ceiling`);
+  console.log(
+    `  worst caption pair across all ${FRAG_WIDTHS.length} object widths ` +
+      `from ${FRAG_WIDTH_FLOOR} to ${FRAG_WIDTH_CEIL}px: ${worst.toFixed(2)}:1 (at ${worstW}px)`
+  );
 
   // THE SAME CHECK FOR THE CALL TO ACTION'S NEW SHADOW.
   //
@@ -1102,7 +1204,10 @@ const CSS = `
   .wrap { max-width: 1180px; margin: 0 auto; padding-left: var(--x0); padding-right: var(--x0); }
 
   /* ---- header ------------------------------------------------------------ */
-  header.site-header { padding: 22px 0 4px; }
+  /* On the ladder, like every other block gap on this page: G1 above the mark, nothing
+     below it, because the hero's own G2 is the gap under the header and two blocks cannot
+     both pay for one boundary. It was 22 and 4, which were neither. */
+  header.site-header { padding: ${RHYTHM.g1} 0 0; }
   header.site-header .wrap { display: flex; align-items: center; justify-content: space-between; gap: 1em; flex-wrap: wrap; }
   .brand { display: inline-flex; align-items: baseline; gap: 0.42em; color: var(--ink); text-decoration: none; }
   .brand .brand-mark { align-self: center; }
@@ -1140,23 +1245,46 @@ const CSS = `
 
   /* ---- hero -------------------------------------------------------------- */
   main { display: block; }
-  /* THE HERO GRID IS THREE NAMED AREAS, NOT TWO COLUMNS.
-     The type, the form and the product object are separate grid children so the
-     composition can be re-cut per viewport SHAPE rather than only per width. On a
-     phone they stack in reading order. On a tall desktop window the type and the
-     form share the left column with the object beside them, which is the ad's
-     composition. On a short landscape window — the shape where a stacked hero puts
-     the button below the fold — the form moves next to the type instead of under
-     it. Same markup, same order in the DOM, three cuts. */
-  section.hero { padding: 34px 0 60px; }
+  /* THE HERO GRID IS THREE NAMED AREAS, AND THE THIRD IS NOW THE WHOLE SCENE.
+     The type, the form and the product are separate grid children so the composition can
+     be re-cut per viewport SHAPE rather than only per width. On a phone they stack in
+     reading order. Same markup, same order in the DOM, three cuts.
+
+     THE SCENE MOVED IN HERE, AND THAT IS WHAT CLOSED THE HOLE. Measured on the deployed
+     page at 1400x1000: the left column ran type-then-form from y=96 to y=1023, the right
+     column held one object that ended at y=698, and the next heading was at y=1126. Four
+     hundred and twenty-eight pixels of the right-hand column were empty, which is the
+     "450px of nothing" in the note, and no spacing value fixes it — it is a column that
+     runs out, and the only fix is either to fill it or not to have it.
+
+     Both, as it turns out. The product is no longer a column beside the hero; it is the
+     hero's own bottom row, full width, with the form promoted into the top row beside the
+     type. That composition already existed in this file for short landscape windows,
+     where it was written because "stacking is simply the wrong shape for a landscape
+     window" — it is now the desktop composition at every height, because putting the form
+     at the TOP of its own column rather than at the bottom of 400px of copy is strictly
+     better on every desktop shape, not only on short ones. Measured, the fineprint's
+     bottom edge went from y=1023 to y=449 at 1400x1000: the whole form was below the fold
+     on a 1000px window before this and now the scene starts there instead.
+
+     It also merges what used to be two sections into one, which is the other half of the
+     note. The page was all the words, then all the pictures, then all the words again;
+     the words and the pictures are now the same section. */
+  section.hero { padding: ${RHYTHM.g2} 0 0; }
   .hero-grid {
     display: grid; grid-template-columns: 1fr; gap: 0;
-    grid-template-areas: "copy" "act" "aside";
+    grid-template-areas: "copy" "act" "scene";
     align-items: start;
   }
   .hero-copy { grid-area: copy; }
   .hero-act { grid-area: act; }
-  .hero-aside { grid-area: aside; }
+  /* G3, not G4, and the distinction is the whole point of having a ladder. The scene and
+     the type-and-form row are two parts of ONE section now, and G3 is the between-the-parts
+     step; G4 is reserved for section to section, which is the boundary under the scene. Set
+     as a margin on the scene rather than as the grid's row-gap because the grid's other row
+     is two columns that end at different heights, and a row-gap would measure from the
+     taller of them. */
+  .hero-scene { grid-area: scene; margin-top: ${RHYTHM.g3}; }
 
   /* ---- the form ---------------------------------------------------------- */
   /* THE FORM USED TO BE SQUARE AND IS NOW THE APP'S OWN FORM.
@@ -1263,18 +1391,135 @@ const CSS = `
      on the input itself keep it away from keyboards and screen readers. */
   .hp { position: absolute; left: -9999px; top: auto; width: 1px; height: 1px; overflow: hidden; }
 
-  /* ---- the stage: isolated product fragments ----------------------------- */
-  /* One perspective container for every object on the page, so the fragments read
-     as several views from one camera position. Copied from the campaign's TILT. */
-  section.stage { padding: 22px 0 64px; }
-  .fragments { display: grid; grid-template-columns: 1fr; gap: 46px; perspective: ${TILT.perspective}; align-items: start; }
-  /* container-type makes the fragment the query container its own object measures
-     itself against, which is what lets the shadow below be written once as a ratio
-     of the object instead of as a number per breakpoint. */
-  .fragment { max-width: 520px; container-type: inline-size; }
+  /* ---- THE SCENE --------------------------------------------------------- */
+  /* WHAT THIS REPLACED, AND WHY IT IS A RECOMPOSITION RATHER THAN A SPACING PASS.
+     The page used to have a section called the STAGE whose pattern was: object in a
+     frame, mono caption underneath, repeat. Cameron's note on the deployed version was
+     that it looked "isolated and random, all the blocks", and the diagnosis he wrote is
+     the correct one: that pattern produces isolated cells BY CONSTRUCTION. Nothing in an
+     arrangement of independent cells relates one cell to the next, so no amount of
+     spacing tuning makes them cohere. Two objects sat in it at desktop, one of them
+     hoisted into the hero, at different widths and different alignments with no shared
+     edge, and a heading promising a tour was followed by a single message composer.
+
+     WHAT IS HERE INSTEAD IS ONE OBJECT. Not three pictures on a wall — one card, sliced
+     into three plates and pulled apart in Z. The composition is transcribed from the two
+     places the campaign already solved this, and both were re-read before it was built:
+
+       out/_static/feed-light.png — the badge and the card share a centre axis, are within
+       a percent of each other in width, sit a fraction of their own height apart, and the
+       upper one's cast shadow lands ON the lower one. That is the whole trick and it does
+       NOT involve occluding anything: the shadow is what says which of the two is in
+       front. The reference does not overlap its objects and neither does this.
+
+       out/_directions/pro-a-light.mp4 f300 and f9 — two planes, two velocities, one
+       camera (src/pro/film.ts states it in those words). The far plane is not a peer, it
+       is receded: pushed back in Z, defocused and washed toward the paper, so it becomes
+       ground for the near one. src/pro/Plane.tsx's z prop and film.ts's RECEDE are the
+       two mechanisms, and both are ported here — z as DEPTH, recede as the hover veil.
+
+     SO THE SCENE IS: three plates, ONE shared left edge (the page's own x0 — ground.ts's
+     first rule and the thing that stops several differently shaped objects reading as
+     several unrelated slides), ONE shared width, three depths, and a gap between them of
+     RHYTHM.g1, which is smaller than the cast shadow reaches. Each plate's shadow
+     therefore falls on the plate below it. They read as one stack of glass on a table
+     rather than as three cards in three frames, and the depth is provable rather than
+     asserted: it is in the shadows at rest and in the parallax on scroll.
+
+     AND THE COPY IS INSIDE IT, not in a zone above or below it. Once the scene is wide
+     enough to hold two columns (a container query, so it keys on the scene's own measure
+     rather than on the window's), each plate's sentence sits BESIDE it, vertically
+     centred on that plate's band. Type and object share a horizontal line instead of
+     stacking into a cell, which is the other half of the note: the page was "all the
+     words, then all the pictures, then all the words again". */
+  .scene {
+    /* Named, so the beats below can query the SCENE's measure. The scene is the hero's
+       full-width bottom row on a desktop and a phone-width column on a handset, and what
+       decides whether a sentence fits beside a plate is that measure, never the window's:
+       the same 760px of scene is the same composition at any viewport that produces it. */
+    container-type: inline-size;
+    container-name: scene;
+  }
+  /* G2 under the head against G3 above it: the eyebrow belongs to the stack, so the gap
+     that binds it there has to be smaller than the gap that separates it from the form. */
+  .scene > .eyebrow { margin: 0 0 ${RHYTHM.g2}; }
+  /* ONE RULE, TWO CONSEQUENCES: THE GAP UNDER A PLATE IS ALWAYS SHADOW GEOMETRY.
+     A plate's cast layer clears about 8.3% of its width below its bottom edge before it
+     fades. What sits in that band decides the gap, and there are only two possibilities:
+
+       TYPE sits there in the stacked cut, so the gap is CAPTION_GAP — the same ratio, for
+       the same reason, as the gap that used to sit under every fragment on the old page.
+       It keeps the next sentence out of the cast, which is a measured WCAG AA requirement
+       and not a rhythm value (see the shadow model in checkContrast()).
+
+       ANOTHER PLATE sits there in the two-column cut, because the sentences have moved out
+       of the column. Nothing needs protecting from the shadow any more, so the gap drops
+       to RHYTHM.g1 and the shadow lands on the plate below — which is the depth cue
+       feed-light.png uses, and the reason the stack reads as one object.
+
+     Written as a cqi of the SCENE rather than of the plate because .stack is not the
+     plate's query container; in the stacked cut the two are within a few percent of each
+     other, and where they differ the scene is the wider, so the gap errs long. */
+  .stack {
+    display: flex; flex-direction: column;
+    gap: 22px;
+    gap: clamp(${CAPTION_GAP.minPx}px, ${CAPTION_GAP_CQW}cqi, ${CAPTION_GAP.maxPx}px);
+  }
+
+  /* THE BEAT: one plate and the sentence that names it.
+     THE SENTENCE COMES FIRST, in the DOM and, in the stacked cut, on the page. Under the
+     plate it was 22px from the plate above it and 10px from the plate below it on a phone
+     — bound by proximity to the wrong object, which is the one thing a caption cannot be.
+     Above the plate, the small gap is the one INSIDE a beat and the large gap is the one
+     BETWEEN beats, so proximity and meaning agree; and the gap that has to clear the cast
+     shadow becomes the between-beats gap, which is the one that wanted to be large anyway.
+     The two constraints stopped fighting when the caption moved. */
+  .beat { display: grid; grid-template-columns: minmax(0, 1fr); row-gap: ${RHYTHM.g1}; }
+
+  /* THE PLATE'S FRAME, and it carries the camera — which is a correction, not a move.
+     perspective reaches an element's DIRECT CHILDREN only. It used to sit on the
+     fragments grid with the tilted .object two levels down, so it never applied: measured
+     on the built page with a translateZ(600px) probe, a grandchild of the perspective
+     element came back 216.74px before and 216.74px after, i.e. no foreshortening at all,
+     while the hero's object — whose .hero-aside carries the perspective and whose .object
+     is its direct child — went 200px to 266.67px, exactly 2400/(2400-600). So the stage's
+     "REAL 3D" was an affine shear, and .object > * { translateZ(14px) } was a no-op.
+     The perspective is on the plate's own frame now, which is the same construction
+     .hero-aside already used and the one that measurably works.
+
+     ONE CAMERA ANGLE, THREE CAMERA POSITIONS, and the trade is stated rather than hidden.
+     A single shared 3D rendering context would need transform-style: preserve-3d on every
+     element between the perspective and the plate, and layout containment forces
+     transform-style to flat — which container-type: inline-size implies, and which the
+     container-query shadow below cannot do without. So each plate is projected by its own
+     camera at the same distance and the same origin. What that costs is inter-plate
+     parallax at rest; what it keeps is that all three are seen at the same angle from the
+     same height, which is the part that makes them read as one view. The parallax the
+     composition does claim is the scroll one, and that is real.
+
+     perspective-origin sits on the LEFT EDGE rather than at the centre, and that is what
+     protects the shared edge: a plate pushed +46px toward the camera grows about 2%, and
+     centred that would push its left edge 6px past x0 while its neighbours stayed put —
+     three left edges instead of one, which is the exact failure ground.ts's MEASURE note
+     warns about. Anchored at 0%, the depth expresses itself entirely on the right edge and
+     in height, so the stack fans open toward the air rather than into the type. */
+  .plate-box {
+    container-type: inline-size;
+    perspective: ${TILT.perspective};
+    perspective-origin: 0% 50%;
+    /* --pm is set once on .stack so every plate is the same width. One shared edge on the
+       left (the page's x0) and one shared edge on the right is what makes three plates
+       read as three slices of one card rather than as three objects. */
+    width: 100%;
+    max-width: var(--pm, 640px);
+  }
   .object {
     transform-origin: ${TILT.origin};
-    transform: ${TILT.transform};
+    /* THE DEPTH IS IN THE TRANSFORM, not in three hand-tuned sizes. --z is DEPTH.back /
+       .mid / .front, set per beat; at a 2400px perspective it projects to about -2% / 0 /
+       +2% of apparent size, which is why the plates do not need three different widths to
+       stop looking coplanar. Defaults to 0 so an object outside the scene is unaffected. */
+    transform: translateZ(var(--z, 0px)) ${TILT.transform};
     /* REAL 3D, not a picture of it. preserve-3d puts the card's CONTENTS on their own
        plane (see .object > * below) instead of flattening them into the card's face, so
        the 7deg rotation projects the chip and the card edge by different amounts and the
@@ -1303,11 +1548,12 @@ const CSS = `
      shrink-to-fit: the chat composer drew at 152px inside a 303px card, 57% of the
      width it was given, and read as an unloaded placeholder rather than as the
      product. Block layout gives every fragment's content the full content box. */
-  .fragment .object > * {
+  .object > * {
     width: 100%;
     /* 14px forward of the card face, under a 2400px perspective: about 0.6% of parallax,
        which is small on purpose. The point is not that you see the offset, it is that the
-       object stops being a flat rectangle with a picture of a tilt printed on it. */
+       object stops being a flat rectangle with a picture of a tilt printed on it. This is
+       the declaration that was inert until the perspective moved onto .plate-box. */
     transform: translateZ(14px);
   }
 
@@ -1326,25 +1572,102 @@ const CSS = `
      4.6:1, which is inside the model's own error bars. So the shadow does not move, and the
      reason is written down rather than rediscovered. */
   @media (hover: hover) and (pointer: fine) {
-    .fragment .object { transition: transform var(--t-deliberate) var(--ease-out); }
-    .fragment:hover .object {
-      transform: rotateY(${+(TILT.rotY * 0.6).toFixed(2)}deg) rotateX(${+(TILT.rotX * 0.6).toFixed(2)}deg) translateZ(26px);
+    .plate-box .object { transition: transform var(--t-deliberate) var(--ease-out); }
+    .beat:hover .object {
+      transform: translateZ(calc(var(--z, 0px) + 26px)) rotateY(${+(TILT.rotY * 0.6).toFixed(2)}deg) rotateX(${+(TILT.rotX * 0.6).toFixed(2)}deg);
     }
+
+    /* THE OTHER TWO PLATES RECEDE, which is the campaign's own law rather than a flourish.
+       marketing/video/src/pro/film.ts states it as the rule that decides what is on the
+       frame at any instant: there is ONE peer element, and when something else becomes the
+       subject the rest "pushes back in Z, drops to 30% and takes a soft blur" (RECEDE).
+       Picking up one plate makes it the subject, so the other two stop being peers.
+
+       IT IS OPACITY ONLY, AT 0.86, AND NOT THE FILM'S NUMBERS. The film recedes to 0 with
+       a 7px blur because its receded plane has a whole statement built in front of it and
+       must stop competing. Here the two receded plates are still the reader's context, and
+       a blur on a card whose type is 11px of mono reads as a rendering fault rather than
+       as depth. 0.86 on a white plate over warm paper is a wash toward the ground of about
+       one shadow layer's worth — enough to rank the three, not enough to hide one.
+
+       It is also the only :has() on the page. Without it the rule would have to live on
+       .stack:hover, which fires in the gaps between plates where nothing is the subject. */
+    .stack:has(.beat:hover) .beat:not(:hover) .object { opacity: 0.86; }
+    .plate-box .object { transition: transform var(--t-deliberate) var(--ease-out), opacity var(--t-deliberate) ease; }
   }
-  /* The gap under the object is part of the shadow's geometry, not decoration.
-     The cast layer reaches (44 - 20) / 844 of the object's width below its bottom
-     edge and then fades over a 92/844 blur; at a fixed 22px the caption sat inside
-     that reach on any object wider than about 310px and lost contrast to it. Held
-     at the same ratio as the shadow, the caption sits at a constant, measured
-     distance out of the cast at every object size — see the shadow model in
-     checkContrast(). */
-  .caption {
+  /* THE SENTENCE THAT NAMES A PLATE. The campaign's mono furniture, unchanged.
+     Sized against the SCENE rather than the plate, because in the two-column cut it does
+     not live in the plate's container at all and a caption that changed size between the
+     two cuts would be two different pieces of furniture. 48ch stops it running the full
+     measure of a wide one-column scene, where an 829px line of tracked uppercase mono is
+     one long ribbon rather than a label. */
+  .beat-line {
     font-family: ${MONO}; font-weight: 600; letter-spacing: 0.14em;
     font-size: 11.5px;
-    font-size: clamp(11.5px, 3.8cqw, 15px);
+    font-size: clamp(11.5px, 1.9cqi, 15px);
     text-transform: uppercase; color: var(--muted);
-    margin: 22px 0 0;
-    margin-top: clamp(${CAPTION_GAP.minPx}px, ${CAPTION_GAP_CQW}cqw, ${CAPTION_GAP.maxPx}px);
+    margin: 0; max-width: 48ch;
+  }
+  /* THE INDEX, and it is doing two jobs rather than decorating.
+     The scene's head and its three captions are the same mono furniture at the same size
+     in the same ink, and on a phone the head sits 24px above the first caption: measured on
+     the built page, they read as one block of two lines rather than as a title and a label.
+     The index separates them at a glance, and it says the true thing about the scene, which
+     is that it is a SEQUENCE — match, lock, talk, in that order, which is the app's own loop
+     and the sentence the hero's sub already writes. apps/mobile/src/theme/tokens.ts calls
+     this style out by name: type.tick is the app's own face for "timestamps, statuses,
+     counters, index marks". Ink rather than accent, because the page's accent is spent on
+     one word in the headline and a number is not the second most important thing on it. */
+  .beat-line .no { color: var(--ink); margin-right: 0.85em; }
+
+  /* THE SECOND CUT: THE SENTENCE MOVES BESIDE THE PLATE.
+     Keyed on the SCENE's own measure rather than the window's, because what decides this
+     is whether there is room for a second column next to a plate — and the scene is a
+     full-width row on a desktop, a phone-width column on a handset, and the same 760px is
+     the same answer in both. Below the threshold the beat stays stacked; the fallback for
+     a browser without container queries is therefore the correct phone layout, not a
+     broken desktop one.
+
+     THIS IS THE INTERLEAVE. Above 760px each sentence sits on its plate's own horizontal
+     band, so a line of type and an object share a line instead of alternating in blocks.
+     It is what stops the page being all the words, then all the pictures, then all the
+     words again, and it is the composition pro-a-light.mp4 uses at f440, where the Send
+     fragment and the words "send a message," occupy the same band of the frame.
+
+     ONE CEILING OF 640, IN BOTH CUTS, AND IT IS THE GUARD'S NUMBER MINUS THE DEPTH. The
+     front plate is 2% larger than its box under the perspective, so 640 * 1.0195 = 652
+     keeps the widest thing this layout can draw inside 660 — the widest width the contrast
+     guard has ever measured, and the width above which the caption gap stops tracking the
+     cast shadow. It used to be 660 flat, which was the ceiling before the plates had depth.
+
+     THE PLATE MEASURE IS THE SCENE MINUS A FIXED CAPTION COLUMN, not a percentage of it,
+     and that is what stops the product SHRINKING when the layout gains a column. A
+     percentage split means the plate is smaller in two columns than it was in one at the
+     same width — measured, 64cqi took a 787px scene's 640px plate down to 504px the moment
+     the second column appeared, which is precisely the "the product gets smaller as the
+     screen gets bigger" fault the wide-screen block below exists to prevent. Reserving
+     330px (62 of gap plus a 268px sentence column) instead means the plate is 640 at every
+     scene wide enough to hold two columns, and the second column takes the growth.
+
+     The 900px threshold is then not a taste: it is where 100cqi - 330 first exceeds 570,
+     which is the narrowest plate worth trading a column for. Below it the beat stacks, and
+     that is also the fallback a browser without container queries gets — the correct phone
+     layout, never a broken desktop one. */
+  @container scene (min-width: 900px) {
+    .stack {
+      --pm: min(640px, calc(100cqi - 330px));
+      gap: ${RHYTHM.g1};
+    }
+    /* Placed rather than ordered, so the DOM keeps the sentence before the object it names
+       and the page keeps the object on the grid's own left edge. */
+    .beat {
+      grid-template-columns: minmax(0, var(--pm)) minmax(0, 1fr);
+      column-gap: ${RHYTHM.g3};
+      align-items: center;
+    }
+    .beat > .plate-box { grid-area: 1 / 1; }
+    .beat > .beat-line { grid-area: 1 / 2; }
+    .beat-line { max-width: 34ch; }
   }
 
   /* THE PRODUCT IS SET IN cqw, NOT px.
@@ -1406,10 +1729,50 @@ const CSS = `
   .composer .send svg { width: 1.3em; height: 1.3em; }
   .composer .send svg { display: block; }
 
+  /* THE MIDDLE BEAT, from app/match/[matchId].tsx — the celebration screen.
+     It is the one moment the whole app exists to produce and the page did not have it:
+     the two plates that were here read "you match on what you play" and "then you talk",
+     which is a sentence with its verb missing. Its strings and its type are the screen's
+     own: the label is type.label overridden to 16/22 at letterSpacing 3 (0.1875em) in
+     colors.volt, and the line under it is type.body — 15/22, medium — with the screen's
+     own fallback name, because a fragment on this site never carries a real person.
+
+     THE BRACKETS ARE A CROP DECISION AND THEY ARE THE ONLY ONE HERE. In the app the two
+     volt glyphs spring together around a 160px avatar at BRACKET_SIZE 64 — 0.4 of it —
+     and hug it by 10px. This fragment has no photograph, for the reason the FRAGMENTS
+     note gives, so they close around the words instead at the same 0.4 ratio to the
+     lockup they hug. Nothing else about them changes: same glyphs, same volt, same
+     proportion. They are what makes this beat recognisable as the match screen rather
+     than as a green line of text, and they are the app's own mark for the moment. */
+  .duo {
+    display: flex; align-items: center; justify-content: center;
+    gap: 0.62em;
+    font-size: clamp(15px, 4.4vw, 27px);
+    font-size: clamp(15px, 5.6cqw, 34px);
+    padding: 0.3em 0;
+  }
+  .duo .bracket {
+    flex: none; font-family: ${MONO}; font-weight: 600;
+    font-size: 2.35em; line-height: 0.74; color: var(--app-volt);
+  }
+  .duo .said { text-align: center; }
+  .duo .lock {
+    font-family: ${MONO}; font-weight: 600; font-size: 0.94em;
+    letter-spacing: 0.1875em; text-indent: 0.1875em;
+    text-transform: uppercase; color: var(--app-volt);
+    margin: 0 0 0.3em; line-height: 1.375; white-space: nowrap;
+  }
+  .duo .both {
+    font-size: 0.88em; line-height: 1.467; color: var(--app-text); margin: 0;
+  }
+
   /* ---- the plain version ------------------------------------------------- */
-  section.plain { padding: 12px 0 66px; }
-  .plain-list { display: grid; grid-template-columns: 1fr; gap: 28px; margin: 0; padding: 0; list-style: none; }
-  .plain-list li { border-top: 1px solid var(--rule); padding-top: 18px; }
+  /* G4 above and below, which is the page's one section-to-section gap. It used to be
+     12px above and 66px below — a value that said the plain version belonged to the stage
+     above it, which it does not. */
+  section.plain { padding: ${RHYTHM.g4} 0; }
+  .plain-list { display: grid; grid-template-columns: 1fr; gap: ${RHYTHM.g2}; margin: 0; padding: 0; list-style: none; }
+  .plain-list li { border-top: 1px solid var(--rule); padding-top: ${RHYTHM.g1}; }
   .plain-list h3 {
     font-family: ${SANS}; font-weight: 800; font-size: 20px; letter-spacing: -0.02em;
     margin: 0 0 6px; color: var(--ink);
@@ -1420,7 +1783,14 @@ const CSS = `
   /* The campaign's end card, standing still. Proportions are FragEnd.tsx's, taken
      as ratios of the 1080 field: mark 250, wordmark 152 at +2% tracking, 40px gaps,
      the slab 26 below at 22x42 padding, the URL 44 in mono at +12% tracking. */
-  section.lockup { padding: 20px 0 78px; text-align: center; }
+  /* Zero above, G4 below. The plain version's own G4 is the gap between them: two
+     sections cannot each pay for the same boundary, and the old 66 + 20 was 86px of
+     nothing that belonged to neither. */
+  section.lockup { padding: 0 0 ${RHYTHM.g4}; text-align: center; }
+  /* Only the root page carries a support block after the end card, and two sections cannot
+     each pay for the same boundary — the lockup's own G4 is it. This is the same rule the
+     hero's zero bottom padding follows; it is stated twice because it was broken twice. */
+  section.lockup + section.plain { padding-top: 0; }
   /* The lockup breaks the page's own grid, exactly as the end card breaks the
      campaign's: the wordmark is the widest element in the frame, running to about
      88.5% of the field where every other element stops at the 10.93% inset. So this
@@ -1433,7 +1803,9 @@ const CSS = `
        viewport is what makes that impossible at any width, including a widened one. */
     container-type: inline-size;
   }
-  .lockup-inner { display: flex; flex-direction: column; align-items: center; gap: clamp(16px, 3.7vw, 40px); }
+  /* Already RHYTHM.g2 to the digit — the end card's own 40/1080 gap is where g2 came
+     from, so this line is now the token rather than a copy of it. */
+  .lockup-inner { display: flex; flex-direction: column; align-items: center; gap: ${RHYTHM.g2}; }
   /* The end card draws the mark at 250 on a 1080 field, but its SVG is cropped tight
      to the rings and this one carries the app icon's full 1024 canvas, whose ink
      occupies 83.1% of it. So the box is scaled by 1/0.831 to put the same amount of
@@ -1444,8 +1816,31 @@ const CSS = `
      wordmark's size below, which is the ratio 27.7vw and 13.6vw had between them, so the
      mark and the wordmark keep the proportion 06-the-waitlist.png measures. The 96px floor
      is the old 101px one, adjusted for the container being narrower than the viewport. */
-  .lockup .brand-mark { width: clamp(101px, 27.7vw, 300px); height: auto; margin-bottom: -2%; }
-  .lockup .brand-mark { width: clamp(96px, 29.2cqi, 406px); }
+  /* THE MARK'S EMPTY BAND IS CANCELLED, WHICH IS WHY THE END CARD USED TO HAVE A HOLE IN IT.
+     Measured with getBBox() on the built page: the rings' ink occupies y 297 to 749 of the
+     1024 canvas, so 29.00% of the box is transparent above the ink and 26.86% below it. At
+     the 286px the mark draws on a 1400px window that is 83px of nothing over it and 77px
+     under it, on top of the 40px flex gap and the 118px section gap. Measured, the gap
+     between the plain version's last line and the first pixel of the mark was 222px where
+     the rhythm says 118, and the gap between the mark and the wordmark was 113px where it
+     says 40. Two of the three "holes" in the close were this one graphic's own padding.
+
+     The negative margins are the measured bands exactly, so every gap in the end card is
+     now INK to ink. That is also what FragEnd.tsx's own 40 is: its SVG is cropped tight to
+     the rings, so the campaign's number was always ink-to-ink and this is the first version
+     of the page that reproduces it rather than adding a transparent border to it.
+
+     They are calc() of the mark's own width rather than percentages because a percentage
+     margin resolves against the CONTAINING BLOCK's inline size, not the element's: the old
+     -2% was -21.1px of the lockup's 1055px measure, which is not any fraction of the mark.
+     --mark-w is therefore declared once and used three times. */
+  .lockup .brand-mark {
+    --mark-w: clamp(101px, 27.7vw, 300px);
+    width: var(--mark-w); height: auto;
+    margin-top: calc(var(--mark-w) * -0.29);
+    margin-bottom: calc(var(--mark-w) * -0.2686);
+  }
+  .lockup .brand-mark { --mark-w: clamp(96px, 29.2cqi, 406px); }
   /* 6.38em is the measured advance of "duoqueue" in Unbounded 700 at +2% tracking,
      so 13.6vw lands the wordmark at ~87% of the viewport, which is where the end
      card puts it (measured 956/1080 on 06-the-waitlist.png). */
@@ -1516,7 +1911,7 @@ const CSS = `
   section.card h2 { margin-top: 0; border-top: none; padding-top: 0; }
 
   /* ---- footer ------------------------------------------------------------ */
-  footer.site-footer { border-top: 1px solid var(--rule); padding: 24px 0 44px; color: var(--muted); font-size: 13.5px; }
+  footer.site-footer { border-top: 1px solid var(--rule); padding: ${RHYTHM.g1} 0 ${RHYTHM.g3}; color: var(--muted); font-size: 13.5px; }
   footer.site-footer nav { margin-top: 8px; display: flex; gap: 10px; flex-wrap: wrap; }
   footer.site-footer a { color: var(--muted); }
   footer.site-footer a:hover { color: var(--accent); }
@@ -1591,7 +1986,7 @@ const CSS = `
      it is a page that has failed to load. The rotation, the overshoot and the Z survive
      being scrubbed, so those are the parts that are here. */
   /* IT ENDS AT IDENTITY, AND THAT IS NOT A STYLE CHOICE.
-     This one is applied to .fragment, the GROUP, while the resting tilt lives on .object,
+     This one is applied to .plate-box, the GROUP, while the resting tilt lives on .object,
      the child inside it. So its to-state has to be the group's own resting transform, which
      is nothing at all. Written the way the hero's arrive is written - landing on the tilt -
      it composes with the child and the object finishes the scroll at 14deg instead of 7,
@@ -1606,6 +2001,36 @@ const CSS = `
     to { opacity: 1; transform: none; }
   }
 
+  /* THE PARALLAX, AND WHY IT IS A SEPARATE ANIMATION FROM THE ARRIVAL.
+     Two things move the plates and they are on two different timelines: the arrival is
+     scrubbed over the plate's ENTRY, the drift over its whole passage across the window
+     (cover 0% to 100%). Composing them as one keyframe set is impossible; running them as
+     two animations on one element is what the comma-separated animation-* lists are for.
+
+     It writes the translate PROPERTY rather than a transform function, so it composes
+     with .plate-box's enter transform instead of overwriting it. Independent transform
+     properties apply outside transform, which is also the right order here: the drift is
+     the camera moving, the tilt is the object.
+
+     THE AMPLITUDES ARE THE DEPTHS, NOT A TASTE. --par is +1 for the back plate, 0 for the
+     middle and -1 for the front, and the travel is 12px each way. A nearer object moves
+     further against a moving camera; that is the whole content of the word parallax, and
+     it is the only reason this is on the page. 24px of relative separation between the
+     front and back plates over a full screen of scroll is under the perception threshold
+     as motion and over it as depth: what a reader actually notices is the top plate's cast
+     shadow sliding across the plate below it, which is the composition explaining itself.
+
+     12 IS HALF OF RHYTHM.g1's CEILING, and that is the bound rather than the preference.
+     The plates sit 26px apart in the two-column cut; a drift of half that means the gap
+     can close to 14px and open to 38px and never leave the band where one plate's cast
+     shadow lands on the next, which is the relationship the whole composition rests on. In
+     the stacked cut the gap is CAPTION_GAP, never below 22px, so the bound holds there
+     too. */
+  @keyframes drift {
+    from { translate: 0 calc(var(--par, 0) * 12px); }
+    to   { translate: 0 calc(var(--par, 0) * -12px); }
+  }
+
   /* ---- the hero, on load ------------------------------------------------- */
   /* 60ms between blocks. The film's own cadence is 4.5 frames, 150ms, which is right for
      four words of a headline arriving one at a time and far too slow for five stacked
@@ -1617,21 +2042,19 @@ const CSS = `
   .hero-copy h1.display,
   .hero-copy .lede,
   .hero-copy .sub,
-  .hero-act,
-  .hero-aside .caption {
+  .hero-act {
     animation: rise var(--t-arrival) var(--ease-out) backwards;
   }
   .hero-copy h1.display { animation-delay: 60ms; }
   .hero-copy .lede      { animation-delay: 120ms; }
   .hero-copy .sub       { animation-delay: 180ms; }
   .hero-act             { animation-delay: 240ms; }
-  .hero-aside .caption  { animation-delay: 300ms; }
-  /* The one object in the hero gets the whole law: 267ms of arrival and 1133ms of settle.
-     It leads with the lede rather than with the eyebrow, because that is where the film
-     puts the object relative to the line that names it. */
-  .hero-aside .object {
-    animation: arrive ${ARRIVAL_TOTAL}ms linear 120ms backwards;
-  }
+  /* THE SCENE IS NOT ON THIS TIMELINE ANY MORE, even though it is now inside the hero.
+     It used to be, because a single object sat in the hero's right column and was on the
+     first screen at desktop. The scene is the hero's bottom row now: at 1400x1000 its
+     first plate starts at y=568 and its last is 900px below the fold, so firing all three
+     on load would spend the whole assembly on a reader who cannot see two thirds of it.
+     It is scroll-driven, with the rest of the scene, below. */
 
   /* ---- the stage and the close, on scroll -------------------------------- */
   /* SCROLL-DRIVEN, NATIVELY, WITH NO SCRIPT. animation-timeline: view() ties an
@@ -1651,18 +2074,51 @@ const CSS = `
      which this can leave a visible fragment invisible, which is the failure mode that
      would matter on a page whose product is the thing being revealed.
 
-     The 4% offsets stagger the two objects that share a row on a desktop grid. In scroll
-     space rather than in time, because on this timeline there is no clock. */
+     THE ASSEMBLY IS ORDERED WITHIN A BEAT AS WELL AS BETWEEN THEM, which is the difference
+     between a stagger and a considered arrival. The SENTENCE lands first, over entry 0-58%,
+     and the plate it names arrives 8% of scroll space behind it over 8-70%. That order is
+     the beat's own: the line is above the plate in the stacked cut and it is the first
+     thing a reader meets, so a label that appeared after the object it labels would be
+     arriving into a question that had already been answered. Between beats the offsets are
+     6% of scroll space rather than milliseconds, because on this timeline there is no clock
+     — the reader's own scroll rate sets the cadence, and a fast flick therefore produces a
+     fast assembly rather than three plates queueing up behind a fixed delay. */
   @supports (animation-timeline: view()) and (animation-range: entry) {
-    .stage .fragment {
-      animation-name: enter;
+    /* The scene's own head opens the assembly. It is the one eyebrow on the page that
+       moves: the plain version's deliberately does not (see the note above), because that
+       block's whole argument is that it is plain, while this one is the first beat of a
+       composition that is being assembled in front of the reader. */
+    .scene > .eyebrow {
+      animation-name: rise;
       animation-fill-mode: backwards;
       animation-timing-function: var(--ease-out);
       animation-timeline: view();
-      animation-range: entry 0% entry 65%;
+      animation-range: entry 0% entry 50%;
     }
-    .stage .fragment:nth-child(2) { animation-range: entry 4% entry 69%; }
-    .stage .fragment:nth-child(3) { animation-range: entry 8% entry 73%; }
+    .scene .beat-line {
+      animation-name: rise;
+      animation-fill-mode: backwards;
+      animation-timing-function: var(--ease-out);
+      animation-timeline: view();
+      animation-range: entry 0% entry 58%;
+    }
+    .scene .beat:nth-child(2) .beat-line  { animation-range: entry 6% entry 64%; }
+    .scene .beat:nth-child(3) .beat-line  { animation-range: entry 12% entry 70%; }
+
+    /* THE PARALLAX RIDES ON TOP OF THE ARRIVAL, on its own range and its own curve.
+       Linear, because a parallax that eases is a parallax that lies about where the camera
+       is; cover 0% to 100%, because it is a property of the plate's whole passage
+       across the window rather than of its entrance. The two animations are listed
+       together here so the shorthand does not clobber the block above. */
+    .scene .plate-box {
+      animation-name: enter, drift;
+      animation-fill-mode: backwards, both;
+      animation-timing-function: var(--ease-out), linear;
+      animation-timeline: view(), view();
+      animation-range: entry 8% entry 70%, cover 0% cover 100%;
+    }
+    .scene .beat:nth-child(2) .plate-box { animation-range: entry 14% entry 76%, cover 0% cover 100%; }
+    .scene .beat:nth-child(3) .plate-box { animation-range: entry 20% entry 82%, cover 0% cover 100%; }
 
     /* The end card. Same law as the hero's type, spent once at the close, which is where
        the campaign spends its own: the mark, the wordmark, the button and the URL arrive
@@ -1690,68 +2146,44 @@ const CSS = `
     .hero-copy .lede,
     .hero-copy .sub,
     .hero-act,
-    .hero-aside .caption,
-    .hero-aside .object,
-    .stage .fragment,
+    .scene > .eyebrow,
+    .scene .plate-box,
+    .scene .beat-line,
     .lockup-inner > * {
       animation: none;
     }
+    /* The drift writes the translate property, which 'animation: none' does not clear on its own if a
+       timeline has already committed a value; stating the resting value is the same rule
+       the rest of this block follows — the resting style is the truth. */
+    .scene .plate-box { translate: none; }
     .cta { transition-property: background-color, border-color; }
     .cta:hover, .cta:active { transform: none; box-shadow: ${shadowCss(CTA_SHADOW_LAYERS, FRAG_SHADOW_INK)}; }
-    .fragment .object { transition: none; }
-    .fragment:hover .object { transform: ${TILT.transform}; }
+    /* The tilt stops answering the pointer. The RECEDE does not: it is opacity, it is not
+       movement, and it is the one thing that tells a reader which of three overlapping
+       plates they are pointing at. Same distinction this block already draws for the
+       button's colour and the field's border. */
+    .plate-box .object { transition: opacity var(--t-deliberate) ease; }
+    .beat:hover .object { transform: translateZ(var(--z, 0px)) ${TILT.transform}; }
   }
 
   /* ---- wide viewports ---------------------------------------------------- */
-  /* The hero becomes two columns and the product moves up beside the form, which
-     is the campaign's own composition (left-aligned column of type, object off to
-     the side) laid into a landscape field. On a phone it stays one column and the
-     product sits below the fold on purpose: the ad already spent nine seconds
-     showing the product, so the first screen's only job is to close. */
+  /* THE FORM MOVES BESIDE THE TYPE AND THE SCENE TAKES THE FULL WIDTH.
+     Two dense columns that end near the same line, then one wide composition under them.
+     The 460px cap on the form column is the form's own max-width, so the column is the
+     control rather than a fraction that happens to contain it; the copy column takes
+     whatever is left, and the air falls on neither because both are filled. */
   @media (min-width: 900px) {
-    /* Tall desktop: type over form on the left, object on the right spanning both.
-       This is what the page looked like before the hero became three areas, and it
-       is the composition the campaign's stills use. */
     .hero-grid {
-      grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
-      grid-template-areas: "copy aside" "act aside";
+      grid-template-columns: minmax(0, 1fr) minmax(0, 460px);
+      grid-template-areas: "copy act" "scene scene";
       grid-template-rows: auto auto;
-      column-gap: 64px; row-gap: 0;
+      column-gap: clamp(40px, 5vw, 84px); row-gap: 0;
       align-items: start;
     }
-    .hero-aside { align-self: center; }
-    /* ONE object beside the type, not three. The campaign's second rule is that a
-       fragment owns its frame: pull one element out and draw it large. Three small
-       plates stacked here would restate the section below it and shrink every one of
-       them to do it. */
-    .hero-aside { perspective: ${TILT.perspective}; display: block; container-type: inline-size; }
-    section.hero { padding: 44px 0 76px; }
-
-    /* TWO columns below, not three, because the third object is already in the
-       hero. The badge and its caption used to render twice on a desktop page —
-       once beside the form and again as the first fragment, the same object under
-       the same sentence 700px apart. Exactly one of the two is in the DOM's
-       rendered tree at any width (display:none also removes it from the
-       accessibility tree), so neither sighted nor screen-reader visitors get it
-       twice, and neither loses it. Dropping to two columns is also what lets the
-       remaining objects grow from 286px to about 580px: the product gets bigger by
-       showing less of it, which is the campaign's whole fragment argument. */
-    .fragments { grid-template-columns: minmax(0, 1fr); gap: 46px; align-items: start; }
-    .fragment.frag-lead { display: none; }
-    /* A CEILING, NOT 'none'. Above about 716px of object the caption gap stops tracking the
-       cast shadow (it hits CAPTION_GAP.maxPx) and the caption's contrast starts falling
-       away from the 4.83:1 it holds at every size below that. 660 is the widest width in
-       FRAG_WIDTHS, which is to say the widest width the contrast guard has actually
-       measured, so this line is what keeps the grid and the guard talking about the same
-       page. It used to be 'none', which meant a wide enough window could produce an object
-       nothing had ever checked. */
-    .fragment { max-width: 660px; }
-    .plain-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 34px; }
-  }
-  @media (max-width: 899px) {
-    /* Below 900 the hero is one column and the aside's object would push the form
-       down the screen, so the lead fragment does its job in the stage instead. */
-    .hero-aside { display: none; }
+    /* The sub is the last line of the copy column and the form is the top of the other,
+       so its bottom margin is measuring against nothing. */
+    .hero-copy .sub { margin-bottom: 0; }
+    .plain-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: ${RHYTHM.g3}; }
   }
 
   /* ---- BIG SCREENS: SPEND THE FIELD ON THE PRODUCT, NEVER ON THE MEASURE ----
@@ -1780,19 +2212,25 @@ const CSS = `
      inside the objects' left edge on a 3440px monitor. Two left edges is worse than a
      narrow page.
 
-     The hero's two columns are then pinned rather than left as fractions. At 1.05fr/0.95fr
-     of a 1324px content box the copy column would balloon to 661px and leave a 460px form
-     sitting in it with 200px of air to its right; at a fixed 560/640 the form keeps the
-     same relationship to its column that it has at 1280, the object takes the width that is
-     actually spare, and the leftover falls on the RIGHT, which is where ground.ts's MEASURE
-     note says the air belongs. */
+     The hero's copy column is then capped rather than left as a fraction. A 1fr copy column
+     of a 1324px content box balloons to 780px, which is 60 characters of a headline meant
+     to break after two words; capped at 560 the type keeps the same relationship to its
+     column that it has at 1280 and the leftover falls between the two columns and then on
+     the RIGHT, which is where ground.ts's MEASURE note says the air belongs. The SCENE is
+     the thing that spends the extra field, because it is the product: its plates go from
+     548px at 1280 to their 640px ceiling. */
   @media (min-width: 1500px) {
     .wrap { max-width: 1560px; }
+    /* THREE COLUMNS, AND THE THIRD IS EMPTY ON PURPOSE. The top row is a 560px column of
+       type and a 460px column of form; the air is the third column, on the right, where it
+       belongs. The scene spans all three, so the product gets the whole 1324px field while
+       neither line of type gets a character longer. That is the same "the frame widens and
+       the measure does not" rule this block has always stated, applied to a grid that now
+       has a full-width row in it. */
     .hero-grid {
-      grid-template-columns: minmax(0, 560px) minmax(0, 640px);
-      justify-content: start;
+      grid-template-columns: minmax(0, 560px) minmax(0, 460px) minmax(0, 1fr);
+      grid-template-areas: "copy act ." "scene scene scene";
     }
-    .fragments { gap: 56px; }
   }
 
   /* SHORT SINGLE-COLUMN WINDOWS. Two shapes fail the "button on the first screen"
@@ -1875,14 +2313,15 @@ const CSS = `
      for, 844x390 the one it was measured on), and every portrait phone is below it and
      keeps the single-column stack, which is legible at 320px where two columns are not. */
   @media (min-width: 480px) and (max-width: 899px) and (max-height: 560px) {
-    section.hero { padding: 12px 0 28px; }
+    section.hero { padding: 12px 0 ${RHYTHM.g3}; }
     .hero-grid {
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      grid-template-areas: "copy act";
-      grid-template-rows: auto;
+      grid-template-areas: "copy act" "scene scene";
+      grid-template-rows: auto auto;
       column-gap: clamp(20px, 4vw, 40px);
       align-items: start;
     }
+    .hero-scene { margin-top: ${RHYTHM.g3}; }
     .hero-copy .sub { margin-bottom: 0; }
     h1.display { font-size: clamp(26px, 5.6vw, 40px); }
     .lede { font-size: clamp(14.5px, 2.4vw, 17px); }
@@ -1894,26 +2333,19 @@ const CSS = `
     .cta { font-size: clamp(17px, 3.6vw, 26px); }
   }
 
-  /* ---- short landscape windows ------------------------------------------- */
-  /* The hero is 1005px tall at its full size, which puts the button's bottom edge
-     at y=870 no matter how short the window is. Measured: fine at 1440x900, but
-     130px below the fold on a MacBook with browser chrome (1440x740), 210px below
-     on the commonest laptop size (1366x660), and at 1280x600 the input's own top
-     edge is at the fold. A desktop visitor arriving from the ad saw a headline and
-     no form.
-     This block is keyed on HEIGHT, not width, so the full-size campaign
-     composition survives on every window tall enough to hold it and only a window
-     that cannot gets the compressed one. Nothing is removed — the display drops
-     one step, the vertical rhythm tightens, and the aside shrinks. */
-  /* The second clause is not redundant. The full-size composition needs room in
-     BOTH axes: at exactly 900px wide the two-column hero squeezes the type column
-     to about 430px, the 76px headline wraps to three lines, and the button lands
-     at y=981 — below the fold even in a 920px-tall window. So anything under
-     1200px wide gets the compressed hero whatever its height. */
+  /* ---- narrow or short desktop windows ------------------------------------ */
+  /* The type steps down and the rhythm tightens. Nothing is removed.
+     This used to be the block that rescued the fold, because the hero stacked the form
+     under 400px of copy; the form is now at the top of its own column at every desktop
+     width, so what is left for this block to do is the width problem rather than the
+     height one. At exactly 900px wide the copy column is about 190px, and a 76px headline
+     in 190px is four lines of one word. The height clause stays because a 1366x660 laptop
+     still wants a shorter hero even with the form beside the type — it decides how much of
+     the SCENE is on the first screen, which is worth a step of type. */
   @media (min-width: 900px) and (max-height: 940px),
          (min-width: 900px) and (max-width: 1199px) {
-    section.hero { padding: 24px 0 44px; }
-    .hero-grid { column-gap: 48px; }
+    section.hero { padding: ${RHYTHM.g1} 0 ${RHYTHM.g3}; }
+    .hero-scene { margin-top: ${RHYTHM.g3}; }
     h1.display { font-size: clamp(34px, 5.1vw, 58px); margin-bottom: 0.3em; }
     .lede { font-size: clamp(16px, 1.42vw, 19px); margin-bottom: 0.45em; }
     .sub { font-size: clamp(14px, 1.18vw, 16px); margin-bottom: 1.1em; }
@@ -1923,35 +2355,6 @@ const CSS = `
     .adult { margin: 12px 0 14px; }
     .cta { font-size: clamp(21px, 3.3vw, 34px); }
     .promise { margin-top: 12px; }
-  }
-
-  /* SHORT AND WIDE: the form moves BESIDE the type, not under it.
-     Below about 760px of viewport height, compressing the stack stops being
-     enough — measured, the button's bottom edge sits at y=689 however hard the
-     block above squeezes, because the eyebrow, a two-line 58px headline, a
-     three-line lede and a three-line sub are 400px of type before the field
-     starts. Stacking is simply the wrong shape for a landscape window.
-     So the second column stops being the product and becomes the form. The form
-     then starts at the top of its own column instead of at the bottom of 400px of
-     copy, which is what puts it on the first screen at 1366x660 and 1280x600 —
-     the two commonest laptop shapes, and the two that failed. The product is not
-     lost, it is the next thing down the page. */
-  @media (min-width: 900px) and (max-height: 760px) {
-    section.hero { padding: 20px 0 34px; }
-    .hero-grid {
-      grid-template-columns: minmax(0, 1fr) minmax(0, 460px);
-      grid-template-areas: "copy act";
-      grid-template-rows: auto;
-      column-gap: clamp(32px, 5vw, 72px);
-      align-items: start;
-    }
-    .hero-aside { display: none; }
-    .hero-copy .sub { margin-bottom: 0; }
-    /* The aside is gone, so the lead fragment comes back into the stage: the
-       object and its caption exist exactly once at every viewport, never zero
-       times and never twice. */
-    .fragments { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px; }
-    .fragment.frag-lead { display: block; }
   }
 `;
 
@@ -2069,6 +2472,46 @@ const FRAGMENTS = [
       <span class="chip"><b>Valorant</b><i>&middot; Competitive</i></span>
     </div><div class="overlap"><span>&gt;&gt; 3 GAMES IN COMMON</span></div></div>`,
     caption: "you match on what you play, and how you play it",
+    depth: DEPTH.back,
+    par: 1,
+  },
+  {
+    // THE BEAT THE PAGE DID NOT HAVE, and it is the one the app is for.
+    //
+    // The two fragments above and below read "you match on what you play" and "then you
+    // talk". That is a sentence with its verb missing: nothing in it is the moment two
+    // people actually become a duo, which is the whole product and the thing the films
+    // build to. src/data/clips.ts carries five more cut fragments — the deck card,
+    // DUO LOCKED, the Send button, the highlights row and the pass/ping/boost row — and
+    // this is the only one of them that closes that gap, so it is the only one added.
+    //
+    // WHAT WAS REJECTED, AND WHY, BECAUSE "CHOOSE" MEANS SAYING NO THREE TIMES:
+    //   the deck card (frag-light-card-top) is the strongest fragment in the set and it is
+    //   unusable here: it IS a photograph of a real person, and the note at the top of this
+    //   block says why this build will not put one on a landing page;
+    //   the pass/ping/boost row is the swipe MECHANIC rather than any outcome, and three
+    //   unlabelled icon buttons lifted off a card they no longer sit on are furniture with
+    //   no referent — the exact fault the overlap badge had when it stood alone;
+    //   the highlights row is profile decoration, needs imagery to mean anything, and says
+    //   nothing about matching;
+    //   the chat bubble duplicates the composer's job one beat later.
+    //
+    // app/match/[matchId].tsx. The label is type.label at 16/22 with letterSpacing 3 in
+    // colors.volt; the line under it is type.body with the screen's own fallback name,
+    // because no fragment on this site carries a real one. The brackets are BracketGlyph:
+    // in the app they spring together around the avatar, and here they close around the
+    // words — the crop note is in the .duo CSS.
+    html: `<div class="object"><div class="duo">
+      <span class="bracket" aria-hidden="true">[</span>
+      <div class="said">
+        <p class="lock">Duo locked</p>
+        <p class="both">You and your new match both queued up.</p>
+      </div>
+      <span class="bracket" aria-hidden="true">]</span>
+    </div></div>`,
+    caption: "and when it is mutual, you are a duo",
+    depth: DEPTH.mid,
+    par: 0,
   },
   {
     // app/chat/[matchId].tsx:749-795 — the composer, placeholder and all.
@@ -2077,19 +2520,23 @@ const FRAGMENTS = [
       <div class="send">${ARROW_UP_SVG}</div>
     </div></div>`,
     caption: "then you talk, and queue up",
+    depth: DEPTH.front,
+    par: -1,
   },
 ];
 
-/** `frag-lead` marks the object that the desktop hero also carries. The CSS shows
- * exactly one of the two at any viewport; see the `.frag-lead` rules. */
-function fragmentsHtml(list = FRAGMENTS) {
+/** One beat: a plate and the sentence that names it. The plate carries its depth as --z
+ *  (the tilt reads it) and its parallax rate as --par (the drift keyframe reads it), so a
+ *  beat's position in the stack is stated once, here, rather than in three CSS rules. */
+function beatsHtml(list = FRAGMENTS) {
   return list
     .map(
       (f, i) =>
-        `<div class="fragment${i === 0 ? " frag-lead" : ""}">${f.html}` +
-        `<p class="caption">${f.caption}</p></div>`
+        `<div class="beat">` +
+        `<p class="beat-line"><span class="no">${String(i + 1).padStart(2, "0")}</span>${f.caption}</p>` +
+        `<div class="plate-box" style="--z:${f.depth}px;--par:${f.par}">${f.html}</div></div>`
     )
-    .join("\n      ");
+    .join("\n        ");
 }
 
 // ---------------------------------------------------------------------------
@@ -2158,19 +2605,12 @@ function waitlistBody({ source }) {
       <div class="hero-act">
 ${action}
       </div>
-      <div class="hero-aside">
-        ${FRAGMENTS[0].html}
-        <p class="caption">${FRAGMENTS[0].caption}</p>
+      <div class="hero-scene scene">
+        <h2 class="eyebrow">What you are joining</h2>
+        <div class="stack">
+        ${beatsHtml()}
+        </div>
       </div>
-    </div>
-  </div>
-</section>
-
-<section class="stage">
-  <div class="wrap">
-    <h2 class="eyebrow">What you are joining</h2>
-    <div class="fragments">
-      ${fragmentsHtml()}
     </div>
   </div>
 </section>
