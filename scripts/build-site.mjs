@@ -150,10 +150,34 @@ const INK = {
 // in every control it draws, so the brand colour all but leaves the product: the same
 // swap measured across the films took pro-a from 0.330% chartreuse on screen to 0.027%.
 //
-// What saves it here, and what a static page can do that a film could not, is that the
-// CTA is FURNITURE rather than footage. The waitlist slab below is ours to colour, and
-// it stays off-black with raw #CDFF3D at 16.88:1. So the product reads light and the one
-// moment of decision still carries the brand.
+// The CTA used to be the answer to that. It was FURNITURE rather than footage, so it kept
+// the off-black slab with raw #CDFF3D at 16.88:1 and the one moment of decision still
+// carried the brand. That worked while the page's product fragments were ALSO dark: the
+// button belonged to a family of dark objects on light paper. After the light commitment
+// every fragment turned white with a #C9CFBB hairline and the button became the only
+// off-black object left on a warm cream page - it stopped being the loudest member of a
+// family and became the only thing shouting. Cameron's note, verbatim: "so blunt and ugly
+// being black and neon yellow ... too harsh on the eyes, it does not match the landing
+// page at all."
+//
+// So the CTA is now the app's OWN light-theme primary button, which is the same move the
+// rest of this file already makes everywhere else: `volt` #4A6B00 as the fill and `onVolt`
+// #F7F9F0 as the label, at radius.button = 6, with the app's own scale(0.97) press. That
+// is literally what apps/mobile/src/components/Button.tsx renders on paper, and it is
+// already what the message-send button in the third fragment on this page looks like.
+//
+// The measured trade, stated rather than hidden. The label pair goes 16.88:1 -> 5.82:1 and
+// the SILHOUETTE - the fill against the paper, which is what a button is read by before its
+// words - goes 17.18:1 -> 5.39:1. That is the real cost and it is why everything else about
+// the button got LOUDER to pay for it: it gains a cast shadow in the page's own shadow ink
+// so it is a lifted object rather than a hole punched in the paper, it gains air above it,
+// and it deepens to `voltDim` #3B5600 (7.27:1 silhouette) under the pointer. A deep olive
+// is also the only chromatic mass on a neutral warm ground, which black was not.
+//
+// What it costs the brand: raw chartreuse now appears nowhere on the rendered page except
+// inside the skip link's dark slab. That is the rule holding, not the rule breaking - a
+// chartreuse fill on this ground has no silhouette at 1.05:1 - but it is a real loss and
+// it belongs in the record rather than in a footnote.
 //
 // The other consequence is structural: a light fragment on a light ground has almost no
 // tonal step left, so `border` is no longer a detail. It is the only thing separating an
@@ -167,6 +191,7 @@ const APP = {
   text: "#161A0F",
   textMuted: "#5C6450",
   volt: "#4A6B00", // lightColors.volt — the olive the app resolves chartreuse to on paper
+  voltDim: "#3B5600", // lightColors.voltDim — the app's own pressed/dimmed volt
   onVolt: "#F7F9F0",
   amber: "#8F5E00", // lightColors.overlap.many — three or more games in common
 };
@@ -182,12 +207,61 @@ const APP = {
 const TILT = {
   perspective: "2400px",
   origin: "44% 54%",
-  transform: "rotateY(7deg) rotateX(2deg)",
+  // Held as numbers as well as a string, because THE TILT IS NOW ANIMATED and the arrival
+  // below has to be able to add to it. marketing/video/src/pro/motion.ts is blunt about why
+  // it had to become one: it names this exact pair of angles, as a "CONSTANT, NEVER
+  // ANIMATED tilt", as "three failures in one line ... it never changes, which is the entire
+  // difference between a 3D move and a Dribbble mockup".
+  rotY: 7,
+  rotX: 2,
+  get transform() {
+    return `rotateY(${this.rotY}deg) rotateX(${this.rotX}deg)`;
+  },
   // The object the campaign's shadow was authored for. ground.ts:237 draws an
   // 844px-wide card on a 1080px frame; every length in FRAG_SHADOW_LAYERS below is
   // a ratio of THAT width, which is the entire point.
   authoredFor: 844,
 };
+
+// ---------------------------------------------------------------------------
+// THE ARRIVAL, transcribed frame for frame from marketing/video/src/pro/motion.ts.
+//
+// That file measured it off the reference reels rather than inventing it: an object
+// arrives ROTATED AND OVERSIZED UNDER BLUR and unwinds to flat over eight frames, then
+// keeps contracting for another thirty-four. Both halves matter. The eight frames are the
+// arrival; the thirty-four are "what stops an arrival from being a snap followed by a
+// frozen picture", and dropping them is how a page ends up with a 267ms pop.
+//
+// Opacity IGNITES at 25% of the travel rather than starting from zero, so the object is
+// never a ghost fading up: by the time it is visible at all it is most of the way through
+// its rotation. That is the difference between this and a fade-in-up preset.
+//
+// Everything is stored in the film's own frames and converted here, once, so that a future
+// reader can put this file and motion.ts side by side and see the same numbers.
+const ARRIVAL = {
+  fps: 30,
+  frames: 8, // the arrival
+  settle: 34, // the slow post-arrival contraction
+  rotY: 18, // relative to the object's resting TILT, not absolute
+  rotX: -12,
+  rotZ: -3,
+  scale: 1.18,
+  landed: 1.05,
+  blur: 24,
+  ignite: 0.25,
+};
+const ms = (frames) => Math.round((frames / ARRIVAL.fps) * 1000);
+/** The arrival and the settle run as ONE animation so the object never stops moving
+ *  between them; these are the keyframe offsets that splice the two curves together. */
+const ARRIVAL_TOTAL = ms(ARRIVAL.frames + ARRIVAL.settle);
+const AT_LANDED = +((ms(ARRIVAL.frames) / ARRIVAL_TOTAL) * 100).toFixed(2);
+const AT_IGNITE = +((ms(ARRIVAL.frames * ARRIVAL.ignite) / ARRIVAL_TOTAL) * 100).toFixed(2);
+/** The pose an object is in when it is `k` of the way out of its arrival (1 = fully
+ *  displaced, 0 = at rest on the TILT). */
+const arrivalPose = (k, scale) =>
+  `rotateY(${+(TILT.rotY + ARRIVAL.rotY * k).toFixed(2)}deg) ` +
+  `rotateX(${+(TILT.rotX + ARRIVAL.rotX * k).toFixed(2)}deg) ` +
+  `rotateZ(${+(ARRIVAL.rotZ * k).toFixed(2)}deg) scale(${scale})`;
 
 // A shadow is geometry, not a colour, and geometry does not survive being copied
 // onto an object of a different size.
@@ -270,6 +344,53 @@ const CAPTION_GAP_CQW = +(CAPTION_GAP.ratio * 100).toFixed(3);
 const captionGapPx = (objectWidth) =>
   Math.min(CAPTION_GAP.maxPx, Math.max(CAPTION_GAP.minPx, CAPTION_GAP.ratio * objectWidth));
 
+// ---------------------------------------------------------------------------
+// THE CALL TO ACTION'S SHADOW.
+//
+// The button lost 17.18:1 of silhouette when it stopped being off-black (see the design
+// note above). A cast shadow is how it gets presence back without getting harshness back:
+// an object that sits ON the paper is read before an object that is merely a different
+// colour from it, and it is the same read the fragments already get.
+//
+// It is NOT the fragments' shadow. Theirs is a ratio of the object's width because it is
+// copying an optical relationship from a film; this one is in fixed pixels because the
+// button is furniture at a known size (250px on the smallest phone, 460px in the form) and
+// because a cast that scaled with a 460px button would put 24px of grey under the sentence
+// beneath it. Same ink, though - rgba(41,34,18) - because the page has ONE light source and
+// a second shadow colour would give it two.
+//
+// Straight down, with no x offset, because unlike the fragments the button is not tilted:
+// it faces the reader square-on, so its light falls on it square-on.
+//
+// checkContrast() reads this array and composites it before measuring the two sentences
+// that sit under the button, exactly as it already does for the fragments' captions.
+const CTA_SHADOW_LAYERS = [
+  { x: 0, y: 2, blur: 5, spread: 0, alpha: 0.16 }, // contact: it is resting on the paper
+  { x: 0, y: 12, blur: 26, spread: -8, alpha: 0.3 }, // cast: the paper is lit
+];
+/** Hover lifts it 2px, so the cast lengthens and softens the way a real one does. The
+ *  guard measures this one too, because it is the darker of the two states. */
+const CTA_SHADOW_HOVER = [
+  { x: 0, y: 3, blur: 7, spread: 0, alpha: 0.16 },
+  { x: 0, y: 20, blur: 38, spread: -10, alpha: 0.34 },
+];
+/** Pressed, the object touches the paper and the cast collapses to the contact layer. */
+const CTA_SHADOW_PRESS = [{ x: 0, y: 1, blur: 3, spread: 0, alpha: 0.18 }];
+
+/** The gap between the button's bottom edge and the first sentence under it (`.promise`).
+ *  16px is the existing margin; it is named here so the guard measures the real one. */
+const CTA_PROMISE_GAP = 16;
+
+const shadowCss = (layers, ink) =>
+  layers
+    .map(
+      (l) =>
+        `${l.x}px ${l.y}px ${l.blur}px` +
+        (l.spread ? ` ${l.spread}px` : "") +
+        ` rgba(${ink.join(",")},${l.alpha})`
+    )
+    .join(", ");
+
 // THE GRID, as ratios of the campaign's 1080px field so they survive being poured
 // into a viewport of any width.
 //
@@ -286,7 +407,24 @@ const captionGapPx = (objectWidth) =>
 // and measured off the finished frames the baselines really are 1.34 apart. Setting
 // it tighter here would make the page's headline a different picture from the ad's.
 const GRID = {
-  x0: "clamp(20px, 10.93%, 118px)",
+  // THE INSET GROWS FROM 20px TO 118px AND THEN STOPS.
+  //
+  // This was `clamp(20px, 10.93%, 118px)`, which is the campaign's ratio written out
+  // literally, and the 20px floor in it never once applied: 10.93% only falls under 20px
+  // below a 183px viewport. Measured on the built page, a 320px phone was therefore getting
+  // a 35px inset - 70px of a 320px screen, 22% of the display, spent on margin - which is
+  // why FRAG_MIN_WIDTH's own comment ("320px viewport, 2x20px inset") disagreed with the
+  // browser by 30px, why the lede broke at 32 characters there, and why the button's bottom
+  // edge sat 21px off the fold on the smallest phone in the list.
+  //
+  // So the inset is now the line THROUGH the two points the design actually names: 20px at
+  // 320px and 118px at 1080px, held flat above that. 20 + 98 * (vw - 320) / 760 is
+  // 12.9vw - 21.26px, and the clamp still pins both ends.
+  //
+  // It is <= the old value at every width and equal to it from 1080 up (1024px moves by
+  // 0.8px, 1080px and wider not at all), so the campaign's composition is untouched
+  // everywhere it was ever right and only the phone gets its 30px back.
+  x0: "clamp(20px, 12.9vw - 21.26px, 118px)",
   display: "clamp(34px, 8.4vw, 76px)",
   leading: 1.34,
   label: "clamp(11px, 2.41vw, 26px)",
@@ -416,39 +554,71 @@ function over(src, alpha, dstHex) {
  * guard and not a second opinion: un-scale the shadow, or pin the caption gap back
  * to a constant, and these numbers move and the build stops.
  */
-function groundUnderCaption(w) {
-  const gap = captionGapPx(w);
+function groundUnder(layers, gap, ink = FRAG_SHADOW_INK, base = GROUND.darkest) {
   // Each layer's shadow rectangle sits `y + spread` below the object's bottom edge
   // (a negative spread pulls the rectangle back up), and its coverage decays over
-  // the blur from there. The caption's TOP edge is the worst case; every pixel of
-  // the caption below it is further away and lighter.
+  // the blur from there. The text's TOP edge is the worst case; every pixel of
+  // it below that is further away and lighter.
   let clear = 1;
-  for (const l of fragShadowPx(w)) {
+  for (const l of layers) {
     clear *= 1 - shadowCoverage({ alpha: l.alpha, blur: l.blur, d: gap - (l.y + l.spread) });
   }
   const combined = 1 - clear;
-  return {
-    hex: over(FRAG_SHADOW_INK, combined, GROUND.darkest),
-    alpha: combined,
-    gap: +gap.toFixed(1),
-  };
+  return { hex: over(ink, combined, base), alpha: combined, gap: +gap.toFixed(1) };
 }
 
-/** Every object width the layout actually produces, worst first. 280 is a 320px
- *  viewport at the phone inset; 660 is a 1600px viewport's two-column stage. */
-const FRAG_WIDTHS = [280, 303, 415, 520, 582, 660];
+/** The ground under a fragment's caption, at an object of width `w`. */
+function groundUnderCaption(w) {
+  return groundUnder(fragShadowPx(w), captionGapPx(w));
+}
+
+/** The ground under the two sentences below the call to action, in whichever of its
+ *  three states casts the longest shadow. Same model, same ink, different geometry —
+ *  see CTA_SHADOW_LAYERS for why the button's shadow is in px and the fragments' is
+ *  not. `extra` is how far below `.promise` a second line sits. */
+function groundUnderCta(layers, extra = 0) {
+  return groundUnder(layers, CTA_PROMISE_GAP + extra);
+}
+
+/** Every object width the layout actually produces.
+// MEASURED ON THE BUILT PAGE at the ten viewports in the responsive matrix, not guessed:
+// 280 is a 320px phone at the corrected 20px inset, 305 a 390px iPhone, 377 a 1024px tablet
+// in portrait, 399 a 1080px portrait monitor, 449 a 1280-1440px laptop, 520 a 768px tablet
+// in one column, 634 the widened stage at 1500px and up, 640 the hero's own object in that
+// same tier (the aside column, which is the widest object on the page), and 660 the ceiling
+// `.fragment { max-width: 660px }` now pins so no future grid change can produce an object
+// this list has not measured. Above ~716px the caption gap stops tracking the shadow (it
+// hits CAPTION_GAP.maxPx) and the pair starts falling, which is what that ceiling is for. */
+const FRAG_WIDTHS = [280, 305, 377, 399, 449, 520, 634, 640, 660];
 
 const CONTRAST_PAIRS = [
   { what: "body / caption ink on the ground", fg: INK.type, bg: GROUND.darkest, min: 4.5 },
   { what: "muted ink (eyebrow, captions) on the ground", fg: INK.muted, bg: GROUND.darkest, min: 4.5 },
   { what: "accent word and links on the ground", fg: INK.accent, bg: GROUND.darkest, min: 4.5 },
   { what: "typed email in the field", fg: INK.type, bg: INK.field, min: 4.5 },
-  { what: "chartreuse call to action on the dark slab", fg: INK.brand, bg: INK.slab, min: 3.0 },
+  // The last dark element on the page, and therefore the only legal home chartreuse has
+  // left on it. It is the skip link, which is off-canvas until a keyboard finds it.
+  { what: "chartreuse on the skip link's dark slab", fg: INK.brand, bg: INK.slab, min: 4.5 },
   { what: "ground-coloured type on the dark slab", fg: GROUND.base, bg: INK.slab, min: 4.5 },
   { what: "app text on app surface", fg: APP.text, bg: APP.surface, min: 4.5 },
   { what: "app muted text on app surfaceAlt", fg: APP.textMuted, bg: APP.surfaceAlt, min: 4.5 },
   { what: "overlap amber on app surface", fg: APP.amber, bg: APP.surface, min: 4.5 },
-  { what: "onVolt ink on the chartreuse send button", fg: APP.onVolt, bg: APP.volt, min: 4.5 },
+
+  // THE CALL TO ACTION, in all three of its states.
+  //
+  // Four pairs, not one, because a button is read twice: once as a shape and once as a
+  // word. The label pairs are held at 4.5 even though `GRID.cta` is 21px at its smallest
+  // (large-text territory, where 3.0 would do) because the label is the sentence the whole
+  // page exists to get read and there is no reason to spend the headroom.
+  //
+  // The SILHOUETTE pairs are the ones that matter here and they are new. WCAG 1.4.11 asks
+  // 3.0 of a control's boundary against what is behind it, and this is exactly the number
+  // that the off-black slab used to win 17.18:1 without trying. It is the measurement that
+  // says whether a softer button is still a button.
+  { what: "onVolt label on the volt call to action", fg: APP.onVolt, bg: APP.volt, min: 4.5 },
+  { what: "onVolt label on voltDim (hover / press fill)", fg: APP.onVolt, bg: APP.voltDim, min: 4.5 },
+  { what: "volt FILL against the ground (the button's silhouette)", fg: APP.volt, bg: GROUND.darkest, min: 3.0 },
+  { what: "voltDim FILL against the ground (hover silhouette)", fg: APP.voltDim, bg: GROUND.darkest, min: 3.0 },
 ];
 
 function checkContrast() {
@@ -475,6 +645,40 @@ function checkContrast() {
     if (worst === null || ratio < worst) worst = ratio;
   }
   console.log(`  worst caption pair across every object width: ${worst.toFixed(2)}:1`);
+
+  // THE SAME CHECK FOR THE CALL TO ACTION'S NEW SHADOW.
+  //
+  // The button gained a cast shadow to buy back the presence it lost when it stopped being
+  // off-black, and directly under that shadow sit the two sentences a visitor reads to
+  // decide whether to type an address: `.promise` in ink and `.fineprint` in muted ink.
+  // The fragments' captions have already failed this exact check once, at 4.02:1, while a
+  // flat-ground model printed a pass — so the button's shadow gets modelled before it
+  // ships rather than after.
+  //
+  // `.fineprint` is the pair that can actually fail: it is the muted ink, which starts at
+  // 5.39:1 on clean paper with only 0.89 of headroom. It sits a line lower, so it gets the
+  // gap plus one `.promise` line box (15px at 1.5) plus its own 8px margin.
+  console.log("\nInk on the ground UNDER the call to action's cast shadow:");
+  const CTA_STATES = [
+    ["at rest", CTA_SHADOW_LAYERS],
+    ["hovered (the longest cast)", CTA_SHADOW_HOVER],
+    ["pressed", CTA_SHADOW_PRESS],
+  ];
+  const CTA_TEXT = [
+    [".promise (ink)", INK.type, 0],
+    [".fineprint (muted ink)", INK.muted, 15 * 1.5 + 8],
+  ];
+  for (const [state, layers] of CTA_STATES) {
+    for (const [label, fg, extra] of CTA_TEXT) {
+      const g = groundUnderCta(layers, extra);
+      const ratio = contrastRatio(fg, g.hex);
+      const line =
+        `  ${ratio.toFixed(2).padStart(6)}:1  (needs 4.5)  ${fg} on ${g.hex}  ` +
+        `${label}, button ${state}, gap ${g.gap}px, shadow alpha ${g.alpha.toFixed(3)}`;
+      if (ratio < 4.5) failures.push(line);
+      else console.log(line);
+    }
+  }
 
   // Not a pass/fail pair — a printed reminder. If this number ever climbs, someone
   // has changed the ground, and the entire "chartreuse only inside dark elements"
@@ -827,10 +1031,38 @@ const CSS = `
     --app-text: ${APP.text};
     --app-muted: ${APP.textMuted};
     --app-volt: ${APP.volt};
+    --app-volt-dim: ${APP.voltDim};
     --app-on-volt: ${APP.onVolt};
     --app-amber: ${APP.amber};
     /* One ground, no scheme swap. See the design-system note in build-site.mjs. */
     color-scheme: light;
+
+    /* ---- MOTION, from two sources and no third -------------------------------
+       The four durations are the APP's (apps/mobile/src/theme/tokens.ts:138 —
+       motion = { instant: 90, quick: 140, base: 200, deliberate: 260 }), so a control on
+       this page reacts on the same clock as the same control inside the app.
+
+       The two arrival numbers are the CAMPAIGN's, converted from frames at 30fps:
+       marketing/video/src/pro/motion.ts sets ARRIVAL.frames = 8 (267ms) and
+       ARRIVAL.settle = 34 (1133ms). That file is worth reading before touching any of
+       this, because it is where the numbers were measured off the reference reels frame
+       by frame, and because it names the exact failure this page had: a constant,
+       never-animated tilt, which it calls "the entire difference between a 3D move and
+       a Dribbble mockup".
+
+       --ease-out is the strong ease-out the animate skill specifies, and it is also, to
+       within a rounding error, the quintic-out that ARRIVAL is authored on: the flattest
+       standard curve, which is what "arrives already at speed and stops without a bump"
+       looks like. --ease-sine-out is the settle's curve. Nothing here is hand-rolled and
+       nothing here is a browser default; the built-in easings are too weak. */
+    --t-instant: 90ms;
+    --t-quick: 140ms;
+    --t-base: 200ms;
+    --t-deliberate: 260ms;
+    --t-arrival: 267ms;
+    --t-settle: 1133ms;
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-sine-out: cubic-bezier(0.61, 1, 0.88, 1);
   }
 
   * { box-sizing: border-box; }
@@ -927,10 +1159,14 @@ const CSS = `
   .hero-aside { grid-area: aside; }
 
   /* ---- the form ---------------------------------------------------------- */
-  /* Sharp corners. Every piece of the campaign's own furniture is square (the end
-     card's slab, the swipe cue) and every piece of the PRODUCT carries the app's
-     radii. The form is furniture, so it is square; the fragments below are the
-     product, so they are not. */
+  /* THE FORM USED TO BE SQUARE AND IS NOW THE APP'S OWN FORM.
+     The old rule was that the campaign's furniture is square (the end card's slab, the
+     swipe cue) and only the PRODUCT carries the app's radii, so the form was square and
+     the fragments were not. That rule died with the slab: the button below is no longer
+     the end card's furniture, it is apps/mobile/src/components/Button.tsx at
+     radius.button = 6, so the field above it is TextField at radius.input = 6 — also 6,
+     because the app gives its input and its button the same corner. Two controls a
+     visitor uses in one motion should not disagree about what shape a control is. */
   form.signup { max-width: 460px; }
   .field-label {
     display: block; font-family: ${MONO}; font-weight: 600; font-size: 11px;
@@ -939,37 +1175,85 @@ const CSS = `
   input[type="email"] {
     width: 100%; display: block;
     background: var(--field); color: var(--ink);
-    border: 1.5px solid var(--ink); border-radius: 0;
+    border: 1.5px solid var(--ink); border-radius: 6px; /* radius.input */
     padding: 15px 16px; font-family: ${SANS}; font-weight: 500; font-size: 17px; line-height: 1.3;
     appearance: none;
+    /* Colour only, and it survives prefers-reduced-motion: a border that snaps from ink to
+       accent is a state change with no transition on it, which is the one thing a 140ms
+       fade genuinely improves. Nothing moves. */
+    transition: border-color var(--t-quick) ease;
   }
   input[type="email"]::placeholder { color: var(--muted); opacity: 1; }
-  input[type="email"]:focus { outline: 3px solid var(--accent); outline-offset: 2px; }
+  input[type="email"]:hover { border-color: var(--accent); }
+  input[type="email"]:focus { outline: 3px solid var(--accent); outline-offset: 2px; border-color: var(--accent); }
 
   /* 24px, not the browser's 13px default: WCAG 2.5.8 wants a 24x24 target and this
      is the one control between a visitor and the list. The label is the same height
      and is bound to the input, so the whole line is the target. */
   .adult { display: flex; align-items: center; gap: 11px; margin: 16px 0 20px; }
   .adult input[type="checkbox"] {
-    flex: none; width: 24px; height: 24px; margin: 0; accent-color: var(--slab);
+    flex: none; width: 24px; height: 24px; margin: 0; accent-color: var(--app-volt);
   }
   .adult label { font-size: 15px; line-height: 24px; min-height: 24px; color: var(--ink); cursor: pointer; }
 
-  /* THE END CARD'S SLAB, which is the one element of this campaign that has
-     survived ten design rounds, used here as the page's primary control. Off-black
-     fill, raw chartreuse words, square. In a feed the shape of a button is read
-     before the words in it are, and chartreuse has no shape on this ground. */
+  /* THE CALL TO ACTION — the app's own primary button, on paper.
+     apps/mobile/src/components/Button.tsx, variant "primary": colors.volt fills it,
+     colors.onVolt writes on it, radius.button rounds it, and pressing it scales it to
+     0.97. All four are transcribed rather than chosen. The long version of why it stopped
+     being an off-black slab with chartreuse words, and what that cost, is the design-system
+     note at the top of build-site.mjs.
+
+     IT IS STILL MEANT TO BE THE LOUDEST THING ON THE FIRST SCREEN, and it lost 17.18:1 of
+     silhouette to get there, so four things pay that back and each is deliberate:
+       * a cast shadow in the page's own shadow ink, so it is the only lifted piece of
+         FURNITURE on the page and reads as an object sitting on the paper rather than as a
+         colour printed into it (see CTA_SHADOW_LAYERS, and note that the guard composites
+         it before measuring the two sentences underneath);
+       * heavier vertical padding than the old slab, 0.42/0.48em against 0.36/0.42em;
+       * air above it — the checkbox row's bottom margin, not the button, holds it apart;
+       * a deep olive is the only chromatic mass on a neutral warm ground. Off-black had
+         more luminance contrast and no colour at all; this has less of the first and all
+         of the second, which is the trade Cameron asked for in those words.
+
+     Chartreuse is not here and cannot be: 1.05:1 on this ground is not low contrast, it is
+     no silhouette whatsoever. */
   .cta {
     display: block; width: 100%; text-align: center; cursor: pointer;
-    background: var(--slab); color: var(--brand);
-    border: 1.5px solid var(--slab); border-radius: 0;
-    padding: 0.36em 0.6em 0.42em;
+    background: var(--app-volt); color: var(--app-on-volt);
+    border: 1.5px solid var(--app-volt); border-radius: 6px; /* radius.button */
+    padding: 0.42em 0.6em 0.48em;
     font-family: ${SANS}; font-weight: 800; font-size: ${GRID.cta}; line-height: 1.3;
     letter-spacing: -0.02em;
     text-decoration: none;
+    box-shadow: ${shadowCss(CTA_SHADOW_LAYERS, FRAG_SHADOW_INK)};
+    /* Named properties, never 'all'. Colour moves on the app's 'quick', the lift on the
+       app's 'base', and the press below drops to the app's 'instant'. */
+    transition:
+      background-color var(--t-quick) ease,
+      border-color var(--t-quick) ease,
+      box-shadow var(--t-base) var(--ease-out),
+      transform var(--t-base) var(--ease-out);
   }
-  .cta:hover { background: #000; border-color: #000; text-decoration: none; }
-  .cta:active { transform: translateY(1px); }
+  /* Gated, because a touch device fires a false :hover on tap and would leave the button
+     stuck in its hovered state after the finger lifts. */
+  @media (hover: hover) and (pointer: fine) {
+    .cta:hover {
+      background: var(--app-volt-dim); border-color: var(--app-volt-dim);
+      box-shadow: ${shadowCss(CTA_SHADOW_HOVER, FRAG_SHADOW_INK)};
+      transform: translate3d(0, -2px, 0);
+      text-decoration: none;
+    }
+  }
+  /* The press is the app's own: scale(0.97), and the shadow collapses to its contact layer
+     because the object has been pushed down onto the paper. It comes after the hover rule
+     on purpose so a pressed button is never also a lifted one, and it is not gated — a
+     press is the one piece of feedback a touch device must get. */
+  .cta:active {
+    background: var(--app-volt-dim); border-color: var(--app-volt-dim);
+    box-shadow: ${shadowCss(CTA_SHADOW_PRESS, FRAG_SHADOW_INK)};
+    transform: scale(0.97);
+    transition-duration: var(--t-instant);
+  }
 
   .promise { font-size: 15px; line-height: 1.5; margin: 16px 0 0; max-width: 44ch; }
   .fineprint { font-size: 13.5px; line-height: 1.55; color: var(--muted); margin: 8px 0 0; max-width: 46ch; }
@@ -991,6 +1275,12 @@ const CSS = `
   .object {
     transform-origin: ${TILT.origin};
     transform: ${TILT.transform};
+    /* REAL 3D, not a picture of it. preserve-3d puts the card's CONTENTS on their own
+       plane (see .object > * below) instead of flattening them into the card's face, so
+       the 7deg rotation projects the chip and the card edge by different amounts and the
+       object has a measurable thickness. It is the cheapest genuinely three-dimensional
+       thing on this page and it costs one declaration and no motion at all. */
+    transform-style: preserve-3d;
     /* px first for anything without container query units, cqw second. A browser
        that understands cqw takes the second and the shadow tracks the object at
        every width; one that does not drops it as invalid and keeps the first. */
@@ -1013,7 +1303,34 @@ const CSS = `
      shrink-to-fit: the chat composer drew at 152px inside a 303px card, 57% of the
      width it was given, and read as an unloaded placeholder rather than as the
      product. Block layout gives every fragment's content the full content box. */
-  .fragment .object > * { width: 100%; }
+  .fragment .object > * {
+    width: 100%;
+    /* 14px forward of the card face, under a 2400px perspective: about 0.6% of parallax,
+       which is small on purpose. The point is not that you see the offset, it is that the
+       object stops being a flat rectangle with a picture of a tilt printed on it. */
+    transform: translateZ(14px);
+  }
+
+  /* THE TILT ANSWERS THE POINTER.
+     motion.ts's whole complaint about a fixed tilt is that it never changes. Here it does:
+     the object comes 26px forward and turns 40% of the way back toward square-on, which is
+     what happens to a card when you pick it up to look at it. Under the 2400px perspective
+     the translateZ scales the whole object — its cast shadow included — by 1.1%, so the
+     shadow grows with the lift rather than being animated separately.
+
+     IT IS ONLY THE TRANSFORM, and that is a measurement rather than a preference. The first
+     version also grew the cast shadow 1.5x on hover, which is the obvious way to say
+     "lifted"; composited through the same shadow model the contrast guard uses, it took the
+     mono caption directly beneath the object from 4.83:1 to about 4.4:1 — under WCAG AA,
+     on hover, on the line that explains what the object is. A 1.15x version came out near
+     4.6:1, which is inside the model's own error bars. So the shadow does not move, and the
+     reason is written down rather than rediscovered. */
+  @media (hover: hover) and (pointer: fine) {
+    .fragment .object { transition: transform var(--t-deliberate) var(--ease-out); }
+    .fragment:hover .object {
+      transform: rotateY(${+(TILT.rotY * 0.6).toFixed(2)}deg) rotateX(${+(TILT.rotX * 0.6).toFixed(2)}deg) translateZ(26px);
+    }
+  }
   /* The gap under the object is part of the shadow's geometry, not decoration.
      The cast layer reaches (44 - 20) / 844 of the object's width below its bottom
      edge and then fades over a 92/844 blur; at a fixed 22px the caption sat inside
@@ -1108,28 +1425,53 @@ const CSS = `
      campaign's: the wordmark is the widest element in the frame, running to about
      88.5% of the field where every other element stops at the 10.93% inset. So this
      one section gets the end card's own margin (62/1080 = 5.7%) instead. */
-  .lockup .wrap { padding-left: clamp(12px, 5.7%, 62px); padding-right: clamp(12px, 5.7%, 62px); }
+  .lockup .wrap {
+    padding-left: clamp(12px, 5.7%, 62px); padding-right: clamp(12px, 5.7%, 62px);
+    /* Makes this the query container the two lines below measure themselves against. The
+       wordmark is set in nowrap Unbounded, so it is the one element on the page that can
+       physically not fit; sizing it against its OWN container instead of against the
+       viewport is what makes that impossible at any width, including a widened one. */
+    container-type: inline-size;
+  }
   .lockup-inner { display: flex; flex-direction: column; align-items: center; gap: clamp(16px, 3.7vw, 40px); }
   /* The end card draws the mark at 250 on a 1080 field, but its SVG is cropped tight
      to the rings and this one carries the app icon's full 1024 canvas, whose ink
      occupies 83.1% of it. So the box is scaled by 1/0.831 to put the same amount of
      ink on the page: measured, the mark is then 26% of the wordmark's width, which is
      what 06-the-waitlist.png measures (248 / 956). */
+  /* vw first for anything without container query units, cqi second - the same
+     fallback-then-override pattern the fragments' shadow uses. 29.2cqi is 2.028x the
+     wordmark's size below, which is the ratio 27.7vw and 13.6vw had between them, so the
+     mark and the wordmark keep the proportion 06-the-waitlist.png measures. The 96px floor
+     is the old 101px one, adjusted for the container being narrower than the viewport. */
   .lockup .brand-mark { width: clamp(101px, 27.7vw, 300px); height: auto; margin-bottom: -2%; }
+  .lockup .brand-mark { width: clamp(96px, 29.2cqi, 406px); }
   /* 6.38em is the measured advance of "duoqueue" in Unbounded 700 at +2% tracking,
      so 13.6vw lands the wordmark at ~87% of the viewport, which is where the end
      card puts it (measured 956/1080 on 06-the-waitlist.png). */
+  /* MEASURED, then held as a ratio of the container rather than of the window.
+     "duoqueue" in Unbounded 700 at +2% tracking advances 6.385em - measured on the built
+     page at 945px wide on a 148px face, not estimated - so a face at 14.4% of the lockup's
+     measure fills 92% of it and leaves 8% of insurance against a fallback face being
+     wider. That is what stops a nowrap wordmark from ever overflowing, which matters more
+     here than anywhere else on the page: body has overflow-x:hidden, so an overflowing
+     wordmark would not scroll, it would be silently sliced.
+     The vw line is the fallback and it is the old behaviour exactly; the cqi line is what
+     any current browser takes, and it is the one that keeps growing past 1088px of
+     viewport, where the old clamp stopped and the end card started shrinking relative to
+     the screen it was on. */
   .wordmark {
     font-family: ${DISPLAY}; font-weight: 700; font-size: ${GRID.wordmark};
     line-height: 1.16; letter-spacing: 0.02em; color: var(--ink); white-space: nowrap;
   }
+  .wordmark { font-size: min(14.4cqi, 200px); }
   /* The end card sets its call to action at 68 on a 1080 field (6.3%) with 22x42 of
      padding, which is a much larger slab than the hero's in-form button. Same element,
      two jobs: in the form it is a control sized to the field above it, and here it is
      the campaign's closing frame. */
   .lockup .cta {
     display: inline-block; width: auto; margin-top: 2px;
-    font-size: clamp(24px, 6.3vw, 76px); padding: 0.32em 0.62em 0.38em;
+    font-size: clamp(24px, 6.3vw, 76px); padding: 0.38em 0.62em 0.44em;
   }
   .url {
     font-family: ${MONO}; font-weight: 600; font-size: clamp(14px, 3.2vw, 30px);
@@ -1179,6 +1521,187 @@ const CSS = `
   footer.site-footer a { color: var(--muted); }
   footer.site-footer a:hover { color: var(--accent); }
 
+  /* =======================================================================
+     MOTION
+     =======================================================================
+
+     WHAT THIS IS FOR. A visitor lands here from an eighteen-second film in which nothing
+     ever fades: type builds forward out of the page, and objects arrive rotated and
+     oversized under blur and unwind. The page's first frame should be the film's next
+     frame. That is the only argument any of the motion below is making, and where an
+     element could not make it, it does not move.
+
+     THE THINGS THAT DELIBERATELY DO NOT ANIMATE, because "should this animate at all" has
+     a real answer and here it is no, three times:
+       * THE HEADLINE DOES NOT BUILD WORD BY WORD. The film does, and motion.ts measures
+         the cadence at 4 to 5 frames a word. The film builds words because it owns
+         eighteen seconds of linear time the viewer cannot skip; a landing page's headline
+         is the one sentence the visitor came to read, and staggering it delays exactly
+         that. It arrives as one object.
+       * THE GROUND DOES NOT MOVE. No drifting gradient, no parallax field. It is the one
+         thing the campaign holds absolutely constant across every deliverable, and a
+         full-viewport moving background is on the short list of things that reliably
+         provoke motion sickness.
+       * THE PLAIN VERSION DOES NOT REVEAL ON SCROLL. It is three paragraphs about 18+,
+         platonic, and everyone starting together. The whole point of that block is that
+         it is plain.
+
+     THE RULE THAT MAKES ALL OF IT SAFE: every animation below is fill-mode BACKWARDS, and
+     every to-state is identical to the element's resting style. So the resting style is
+     the truth and the animation is a displacement in front of it, which means an element
+     that is never animated - reduced motion, an older browser, a scroll timeline that
+     never runs - renders correct and complete. Nothing on this page is hidden by a base
+     rule waiting for an animation to reveal it. */
+
+  /* Type, and blocks of it. The film spends a word's travel on Z rather than Y: "the word
+     comes FORWARD out of the page, which is what a scale from 0.35 under a blur reads as,
+     where a vertical lift reads as a slide-up preset". Same axis here at a page-sized
+     amplitude - 70px of Z under a 900px perspective is a 7% approach - plus 10px of lift. */
+  @keyframes rise {
+    from { opacity: 0; transform: perspective(900px) translate3d(0, 10px, -70px); }
+    to   { opacity: 1; transform: perspective(900px) translate3d(0, 0, 0); }
+  }
+
+  /* THE ARRIVAL, exactly as motion.ts measures it, spliced to its own settle.
+     Two curves in one animation: quintic-out for the eight frames of arrival, sine-out for
+     the thirty-four frames of contraction after it. The timing functions are written into
+     the keyframes because each one governs the segment that STARTS at that keyframe, which
+     is also why the animation itself is declared linear - the curves are per-segment. */
+  @keyframes arrive {
+    0% {
+      opacity: 0;
+      transform: ${arrivalPose(1, ARRIVAL.scale)};
+      filter: blur(${ARRIVAL.blur}px);
+      animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+    }
+    ${AT_IGNITE}% { opacity: 1; }
+    ${AT_LANDED}% {
+      opacity: 1;
+      transform: ${arrivalPose(0, ARRIVAL.landed)};
+      filter: blur(0);
+      animation-timing-function: cubic-bezier(0.61, 1, 0.88, 1);
+    }
+    100% { opacity: 1; transform: ${arrivalPose(0, 1)}; filter: blur(0); }
+  }
+
+  /* The scroll-driven version of the same arrival, and the one deviation from the film in
+     this whole block: NO BLUR. The film's blur is a smear across a cut, resolved in eight
+     frames by a projector the viewer does not control. A scroll timeline is scrubbed by
+     the reader's own finger, and a blur the reader can hold half-resolved is not a smear,
+     it is a page that has failed to load. The rotation, the overshoot and the Z survive
+     being scrubbed, so those are the parts that are here. */
+  /* IT ENDS AT IDENTITY, AND THAT IS NOT A STYLE CHOICE.
+     This one is applied to .fragment, the GROUP, while the resting tilt lives on .object,
+     the child inside it. So its to-state has to be the group's own resting transform, which
+     is nothing at all. Written the way the hero's arrive is written - landing on the tilt -
+     it composes with the child and the object finishes the scroll at 14deg instead of 7,
+     then snaps back to 7 the moment the animation range ends. The arrival delta is
+     therefore stated bare here and lands on top of the child's tilt on the way in, which is
+     how it reaches the campaign's measured 25deg at the start without stating it twice. */
+  @keyframes enter {
+    from {
+      opacity: 0;
+      transform: rotateY(${ARRIVAL.rotY}deg) rotateX(${ARRIVAL.rotX}deg) rotateZ(${ARRIVAL.rotZ}deg) scale(${ARRIVAL.landed});
+    }
+    to { opacity: 1; transform: none; }
+  }
+
+  /* ---- the hero, on load ------------------------------------------------- */
+  /* 60ms between blocks. The film's own cadence is 4.5 frames, 150ms, which is right for
+     four words of a headline arriving one at a time and far too slow for five stacked
+     blocks: it would put the button 750ms behind the eyebrow. 60ms is inside the 30-80ms
+     a group entrance is allowed, and the whole hero has landed 507ms after first paint.
+     The button is usable for every one of those milliseconds - an element at opacity 0
+     still takes the pointer, and nothing here is display:none or visibility:hidden. */
+  .hero-copy .eyebrow,
+  .hero-copy h1.display,
+  .hero-copy .lede,
+  .hero-copy .sub,
+  .hero-act,
+  .hero-aside .caption {
+    animation: rise var(--t-arrival) var(--ease-out) backwards;
+  }
+  .hero-copy h1.display { animation-delay: 60ms; }
+  .hero-copy .lede      { animation-delay: 120ms; }
+  .hero-copy .sub       { animation-delay: 180ms; }
+  .hero-act             { animation-delay: 240ms; }
+  .hero-aside .caption  { animation-delay: 300ms; }
+  /* The one object in the hero gets the whole law: 267ms of arrival and 1133ms of settle.
+     It leads with the lede rather than with the eyebrow, because that is where the film
+     puts the object relative to the line that names it. */
+  .hero-aside .object {
+    animation: arrive ${ARRIVAL_TOTAL}ms linear 120ms backwards;
+  }
+
+  /* ---- the stage and the close, on scroll -------------------------------- */
+  /* SCROLL-DRIVEN, NATIVELY, WITH NO SCRIPT. animation-timeline: view() ties an
+     animation's progress to the element's own passage through the viewport. There is no
+     IntersectionObserver here because there is no JavaScript on this site at all, and the
+     privacy policy published at /privacy/ says so in those words.
+
+     PROGRESSIVE ENHANCEMENT, ENFORCED TWO WAYS. The @supports gate asks for the timeline
+     AND for animation-range, because a browser that parses the range keywords is one that
+     shipped the whole feature rather than half of it. Without both, no animation property
+     is set at all and the stage renders at rest, which is correct and complete.
+
+     The range starts at entry 0% - the instant any part of the object crosses the bottom
+     edge - and finishes at entry 65%, long before the reader is reading it. That is
+     deliberate: a scroll timeline is scrubbed rather than fired, so an element can only
+     sit in its from-state while it is entirely off screen. There is no scroll position at
+     which this can leave a visible fragment invisible, which is the failure mode that
+     would matter on a page whose product is the thing being revealed.
+
+     The 4% offsets stagger the two objects that share a row on a desktop grid. In scroll
+     space rather than in time, because on this timeline there is no clock. */
+  @supports (animation-timeline: view()) and (animation-range: entry) {
+    .stage .fragment {
+      animation-name: enter;
+      animation-fill-mode: backwards;
+      animation-timing-function: var(--ease-out);
+      animation-timeline: view();
+      animation-range: entry 0% entry 65%;
+    }
+    .stage .fragment:nth-child(2) { animation-range: entry 4% entry 69%; }
+    .stage .fragment:nth-child(3) { animation-range: entry 8% entry 73%; }
+
+    /* The end card. Same law as the hero's type, spent once at the close, which is where
+       the campaign spends its own: the mark, the wordmark, the button and the URL arrive
+       the way the film's last frame does. Each carries its own view() timeline, so they
+       arrive in the order they are stacked without a single hand-typed delay. */
+    .lockup-inner > * {
+      animation-name: rise;
+      animation-fill-mode: backwards;
+      animation-timing-function: var(--ease-out);
+      animation-timeline: view();
+      animation-range: entry 0% entry 60%;
+    }
+  }
+
+  /* ---- reduced motion ---------------------------------------------------- */
+  /* Not a blanket kill. Everything that MOVES stops - every entrance, both scroll
+     timelines, the hover lift, the press - and everything that is COLOUR stays, because a
+     button that deepens under the pointer and a field whose border answers focus are
+     feedback rather than motion, and removing them makes the page harder to use rather
+     than calmer. The page is fully usable with all of it off, because with all of it off
+     the page is simply its resting state, which is the state every to-keyframe equals. */
+  @media (prefers-reduced-motion: reduce) {
+    .hero-copy .eyebrow,
+    .hero-copy h1.display,
+    .hero-copy .lede,
+    .hero-copy .sub,
+    .hero-act,
+    .hero-aside .caption,
+    .hero-aside .object,
+    .stage .fragment,
+    .lockup-inner > * {
+      animation: none;
+    }
+    .cta { transition-property: background-color, border-color; }
+    .cta:hover, .cta:active { transform: none; box-shadow: ${shadowCss(CTA_SHADOW_LAYERS, FRAG_SHADOW_INK)}; }
+    .fragment .object { transition: none; }
+    .fragment:hover .object { transform: ${TILT.transform}; }
+  }
+
   /* ---- wide viewports ---------------------------------------------------- */
   /* The hero becomes two columns and the product moves up beside the form, which
      is the campaign's own composition (left-aligned column of type, object off to
@@ -1213,15 +1736,63 @@ const CSS = `
        twice, and neither loses it. Dropping to two columns is also what lets the
        remaining objects grow from 286px to about 580px: the product gets bigger by
        showing less of it, which is the campaign's whole fragment argument. */
-    .fragments { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 46px; align-items: start; }
+    .fragments { grid-template-columns: minmax(0, 1fr); gap: 46px; align-items: start; }
     .fragment.frag-lead { display: none; }
-    .fragment { max-width: none; }
+    /* A CEILING, NOT 'none'. Above about 716px of object the caption gap stops tracking the
+       cast shadow (it hits CAPTION_GAP.maxPx) and the caption's contrast starts falling
+       away from the 4.83:1 it holds at every size below that. 660 is the widest width in
+       FRAG_WIDTHS, which is to say the widest width the contrast guard has actually
+       measured, so this line is what keeps the grid and the guard talking about the same
+       page. It used to be 'none', which meant a wide enough window could produce an object
+       nothing had ever checked. */
+    .fragment { max-width: 660px; }
     .plain-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 34px; }
   }
   @media (max-width: 899px) {
     /* Below 900 the hero is one column and the aside's object would push the form
        down the screen, so the lead fragment does its job in the stage instead. */
     .hero-aside { display: none; }
+  }
+
+  /* ---- BIG SCREENS: SPEND THE FIELD ON THE PRODUCT, NEVER ON THE MEASURE ----
+     Above 1180px of window the page used to stop changing: .wrap caps there and every
+     section became a 1180px ribbon with the rest of the display left as bare cream. On a
+     1280px laptop that is right. On a 2560px or 3440px monitor it meant the objects that
+     are the entire argument of the stage rendered at 449px - smaller, in absolute pixels,
+     than they render on a 768px tablet, where a single column gives them 520. The product
+     was getting smaller as the screen got bigger, which is the exact opposite of the
+     campaign's fragment doctrine.
+
+     SO THE FRAME WIDENS AND THE MEASURE DOES NOT. Those are two different things and the
+     distinction is the whole rule here. What grows is the FIELD: .wrap goes to 1560, so the
+     two objects reach 634px each - inside the 660px ceiling the contrast guard measures -
+     and the end card's wordmark reaches its 200px cap. What does not grow is any LINE OF
+     TEXT: the lede is capped at 30ch, the sub at 38ch, the plain version's paragraphs at
+     42ch and the legal documents at 68ch, so every measured line is the same length at
+     3440px as it is at 1280px. Measured on the built page, the lede is 413px wide at 1280,
+     at 1920, at 2560 and at 3440.
+
+     .wrap WIDENS EVERYWHERE AT ONCE, header and footer included, and that is not laziness.
+     The campaign's grid is ONE LEFT EDGE for the type and for every object - it is the
+     first thing ground.ts states and it is what stops six differently shaped fragments from
+     reading as six unrelated slides. An earlier version of this block widened only the
+     stage and the lockup, which measured beautifully and put the headline's left edge 190px
+     inside the objects' left edge on a 3440px monitor. Two left edges is worse than a
+     narrow page.
+
+     The hero's two columns are then pinned rather than left as fractions. At 1.05fr/0.95fr
+     of a 1324px content box the copy column would balloon to 661px and leave a 460px form
+     sitting in it with 200px of air to its right; at a fixed 560/640 the form keeps the
+     same relationship to its column that it has at 1280, the object takes the width that is
+     actually spare, and the leftover falls on the RIGHT, which is where ground.ts's MEASURE
+     note says the air belongs. */
+  @media (min-width: 1500px) {
+    .wrap { max-width: 1560px; }
+    .hero-grid {
+      grid-template-columns: minmax(0, 560px) minmax(0, 640px);
+      justify-content: start;
+    }
+    .fragments { gap: 56px; }
   }
 
   /* SHORT SINGLE-COLUMN WINDOWS. Two shapes fail the "button on the first screen"
@@ -1233,15 +1804,94 @@ const CSS = `
      never sees it. The lede is the sentence carrying "18+" and "not dating", so it
      is the least compressed thing here and never goes below 15.5px. */
   @media (max-width: 899px) and (max-height: 760px) {
-    section.hero { padding: 20px 0 40px; }
+    section.hero { padding: 16px 0 40px; }
     h1.display { font-size: clamp(30px, 7.2vw, 52px); margin-bottom: 0.28em; }
     .lede { font-size: clamp(15.5px, 4.3vw, 19px); margin-bottom: 0.5em; }
     .sub { font-size: clamp(13.5px, 3.6vw, 16px); margin-bottom: 1.15em; }
     .eyebrow { font-size: clamp(10.5px, 2.41vw, 15px); margin-bottom: 0.75em; }
     .field-label { margin-bottom: 6px; }
     input[type="email"] { padding: 13px 14px; }
-    .adult { margin: 12px 0 14px; }
+    .adult { margin: 10px 0 13px; }
     .cta { font-size: clamp(21px, 5.1vw, 34px); }
+  }
+
+  /* A PORTRAIT PHONE WITH BROWSER CHROME. The tier below moves the form beside the type,
+     which needs 480px of width to be worth doing; under that the stack is the only legible
+     layout and it has to earn its height instead. This is where it does.
+
+     Measured at 320x454 — an iPhone SE in Safari, the smallest viewport a real visitor
+     arrives on — the stack put the button's bottom edge at y=543, 89px under the fold. The
+     costs are all rhythm, never type: the header is 87px of a 454px window before the page
+     has said anything, the sub carries a 15.5px gap to the form, and the field, the
+     checkbox and the button each sit in spacing scaled for a window twice this tall.
+     Nothing is removed and no face gets smaller — the lede in particular stays at its
+     15.5px floor, because it is the sentence carrying "18+" and "not dating".
+
+     It buys 48px, which is not all 89: closing the rest would mean shrinking the headline
+     or the lede, and a button one flick below the fold is a smaller cost than a campaign
+     that cannot say its own name. What it does buy is every viewport from 320x500 up:
+     -43 -> +5 at 320x500, -23 -> +25 at 360x520, -2 -> +46 at 390x550, -44 -> +4 at
+     479x520, and +25 -> +73 at 320x568. Only 320x454 still needs the flick, at -41. */
+  @media (max-width: 479px) and (max-height: 620px) {
+    header.site-header { padding: 10px 0 2px; }
+    section.hero { padding: 8px 0 28px; }
+    .eyebrow { margin-bottom: 0.5em; }
+    h1.display { margin-bottom: 0.2em; }
+    .lede { margin-bottom: 0.35em; }
+    .sub { margin-bottom: 0.7em; }
+    .field-label { margin-bottom: 4px; }
+    input[type="email"] { padding: 11px 14px; }
+    .adult { margin: 7px 0 9px; }
+  }
+
+  /* SHORT WINDOWS THAT ARE ALSO NARROW: the form moves beside the type here too.
+     This is the same remedy as the >=900px short-and-wide block below, at the other end of
+     the width axis, and it exists because a phone in landscape is a real shape that the
+     single-column stack simply cannot hold. Measured at 844x390, an iPhone on its side: the
+     compressed stack above puts the button's bottom edge at y=652 in a 390px window, 262px
+     below the fold, and no amount of further squeezing closes that - the eyebrow, a
+     two-line headline, a three-line lede and a three-line sub are 340px of type before the
+     field starts, in a window 390px tall.
+
+     Two EQUAL columns rather than the wide block's fixed 460px form column, because at
+     844px of viewport a 460px form leaves the copy 166px, which is narrower than the
+     headline's own first word. At 1fr/1fr the copy gets about 313px and the form gets the
+     same, which is wider than the 280px this layout already works at on a portrait phone.
+
+     Keyed at 560px of height AND 480px of width. The height alone is not enough, and
+     assuming it was is a real bug this block used to have: 560px was chosen so "a 320x568
+     handset held normally never sees it", but 320x568 is the SCREEN. The viewport inside a
+     browser is the screen minus its chrome — an iPhone SE in Safari is 320x454 — so every
+     small phone held normally landed in here and got the landscape layout in a portrait
+     window. Measured at 320x454: two 130px columns, "join the waitlist" wrapped onto two
+     lines (the exact failure the font-size note below exists to prevent), the email
+     placeholder clipped to "you@exampl", and a 14-character lede.
+
+     480px is where the tier starts paying for itself rather than costing. The form column
+     is half the content width, and "you@example.com" plus the input's own 14px padding
+     needs 178px: at 480 the inset is 40.7px and the gap 20px, so the column is 189px and
+     the placeholder fits with 11px to spare; below that it does not. Every landscape phone
+     is comfortably above the floor (568x320 is the smallest shape this tier was written
+     for, 844x390 the one it was measured on), and every portrait phone is below it and
+     keeps the single-column stack, which is legible at 320px where two columns are not. */
+  @media (min-width: 480px) and (max-width: 899px) and (max-height: 560px) {
+    section.hero { padding: 12px 0 28px; }
+    .hero-grid {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      grid-template-areas: "copy act";
+      grid-template-rows: auto;
+      column-gap: clamp(20px, 4vw, 40px);
+      align-items: start;
+    }
+    .hero-copy .sub { margin-bottom: 0; }
+    h1.display { font-size: clamp(26px, 5.6vw, 40px); }
+    .lede { font-size: clamp(14.5px, 2.4vw, 17px); }
+    .sub { font-size: clamp(13px, 2vw, 15px); }
+    /* The label has to stay on ONE line. Its column is now half the window, and at 568x320
+       the inherited clamp put a 29px face into a 221px button, which wrapped the words and
+       made a 103px-tall two-line control out of the page primary action. 3.6vw keeps
+       6.4em of 'join the waitlist' inside the column at every width this tier covers. */
+    .cta { font-size: clamp(17px, 3.6vw, 26px); }
   }
 
   /* ---- short landscape windows ------------------------------------------- */
@@ -1300,7 +1950,7 @@ const CSS = `
     /* The aside is gone, so the lead fragment comes back into the stage: the
        object and its caption exist exactly once at every viewport, never zero
        times and never twice. */
-    .fragments { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px; }
+    .fragments { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px; }
     .fragment.frag-lead { display: block; }
   }
 `;
@@ -1399,17 +2049,26 @@ const ARROW_UP_SVG = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none
 
 const FRAGMENTS = [
   {
-    // SwipeCard.tsx:61-63 — overlapLabel(3) returns exactly this string.
-    html: `<div class="object"><div class="overlap"><span>&gt;&gt; 3 GAMES IN COMMON</span></div></div>`,
-    caption: "you match on what you actually play",
-  },
-  {
-    // Chip.tsx with label + detail; the details are SKILL_LABELS values.
+    // ONE OBJECT, AND IT USED TO BE TWO.
+    //
+    // The overlap badge stood alone in its own frame, and Cameron's note on it was that it
+    // "just looks uncomfortable there, it feels isolated". It was, and the reason is that it
+    // is the only RELATIONAL thing on the page. A list of games means something by itself and
+    // so does a message composer, but three games in common is a count with no subject: in
+    // common with whom, out of what? In SwipeCard it never appears alone — it sits under the
+    // games it is counting, on the card belonging to the person it is counting them against.
+    //
+    // So this is not a rearrangement, it is a restoration: chips above, badge beneath, the
+    // order the app itself stacks them in. The number finally has a referent, which is the
+    // two chips directly above it.
+    //
+    // Chip.tsx with label + detail (details are SKILL_LABELS values), then
+    // SwipeCard.tsx:61-63, where overlapLabel(3) returns exactly this string.
     html: `<div class="object"><div class="chips">
       <span class="chip"><b>Rocket League</b><i>&middot; Ranked Grinder</i></span>
       <span class="chip"><b>Valorant</b><i>&middot; Competitive</i></span>
-    </div></div>`,
-    caption: "and on how they play it",
+    </div><div class="overlap"><span>&gt;&gt; 3 GAMES IN COMMON</span></div></div>`,
+    caption: "you match on what you play, and how you play it",
   },
   {
     // app/chat/[matchId].tsx:749-795 — the composer, placeholder and all.
