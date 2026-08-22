@@ -14,6 +14,7 @@ type NotificationCategory =
   | "new_match"
   | "new_message"
   | "super_ping"
+  | "new_player"
   | "daily_swipes_refreshed"
   | "nudge_unread"
   | "nudge_online";
@@ -22,6 +23,13 @@ const CATEGORIES: { value: NotificationCategory; label: string; hint: string }[]
   { value: "new_match", label: "New match", hint: "When someone you picked wants to duo with you too." },
   { value: "new_message", label: "New message", hint: "When a match sends you something." },
   { value: "super_ping", label: "Super Ping", hint: "When someone sends you a Super Ping." },
+  // Sits with the other person-driven categories rather than down with the scheduled ones,
+  // because that is what it is: somebody joined.
+  {
+    value: "new_player",
+    label: "New players in your games",
+    hint: "When someone who plays your games joins DuoQueue.",
+  },
   {
     value: "daily_swipes_refreshed",
     label: "Swipes refreshed",

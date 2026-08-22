@@ -34,6 +34,11 @@ export function usePreferences() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: preferencesQueryKey(profileId) });
       void queryClient.invalidateQueries({ queryKey: ["deck"] });
+      // The pool count itself never moves when filters change — that is the whole point of
+      // it — but the empty-deck screen reads the two together, and a stale pool alongside a
+      // fresh deck is how a screen ends up saying "your filters are hiding everyone" one beat
+      // after the user cleared them.
+      void queryClient.invalidateQueries({ queryKey: ["deck-pool-size"] });
     },
   });
 

@@ -20,6 +20,7 @@ import {
   useActivateBoost,
   useConsumableCredits,
 } from "@/features/premium/useConsumables";
+import { EmptyDeck } from "@/features/swipe/EmptyDeck";
 import { LikePassButtons } from "@/features/swipe/LikePassButtons";
 import { StandoutsRow } from "@/features/swipe/StandoutsRow";
 import { SwipeDeck, type SwipeDeckHandle } from "@/features/swipe/SwipeDeck";
@@ -192,14 +193,7 @@ export default function DeckScreen() {
             tick="OFFLINE"
           />
         ) : cards.length === 0 ? (
-          <EmptyState
-            icon="game-controller"
-            title="No more profiles right now"
-            subtitle="Check back later, or adjust your filters to see more people."
-            actionLabel="Refresh"
-            onAction={() => void refetch()}
-            tick="QUEUE CLEAR"
-          />
+          <EmptyDeck onRefresh={() => void refetch()} />
         ) : (
           <Animated.View entering={FadeIn.duration(220)} style={{ flex: 1 }}>
             <SwipeDeck ref={deckRef} cards={cards} onSwiped={(card, direction) => void handleSwiped(card, direction)} />

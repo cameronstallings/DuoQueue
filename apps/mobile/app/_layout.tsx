@@ -18,6 +18,7 @@ import { Unbounded_600SemiBold, Unbounded_700Bold } from "@expo-google-fonts/unb
 import { IBMPlexMono_500Medium, IBMPlexMono_600SemiBold } from "@expo-google-fonts/ibm-plex-mono";
 
 import { Logo } from "@/components/Logo";
+import { useNotificationTapRouting } from "@/hooks/useNotificationTapRouting";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { Toast } from "@/components/Toast";
 import { configureNetworkAwareQueries } from "@/lib/network";
@@ -90,6 +91,12 @@ export default function RootLayout() {
     IBMPlexMono_500Medium,
     IBMPlexMono_600SemiBold,
   });
+
+  // Here rather than in a screen, because a tap can be what launches the app: by the time any
+  // screen has mounted, the response that opened it has already been delivered. It is handed
+  // the same font gate this component returns null on, so it cannot navigate a Stack that is
+  // not on screen yet.
+  useNotificationTapRouting(fontsLoaded || fontError != null);
 
   useEffect(() => {
     void initialize();
