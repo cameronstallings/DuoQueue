@@ -109,6 +109,33 @@ export function EmptyDeck({ onRefresh }: { onRefresh: () => void }) {
     );
   }
 
+  // ------------------------------------------------------------------------------------
+  // THE INVITE ENTRY POINT LIVES HERE, AND ONLY HERE.
+  //
+  // Not the profile tab, not settings, and not all three. The argument for an invite
+  // button is the emptiness itself: this is the only screen in the app where the user's
+  // problem ("there is nobody here") and the invite's promise ("bring somebody") are the
+  // same sentence, and the person reading it is the most motivated inviter DuoQueue will
+  // ever have. A share row in Settings is a share row nobody presses, because nobody has
+  // ever opened Settings looking for a way to bring a friend; the profile tab is where you
+  // go to edit yourself, and interrupting a maintenance task with a growth ask is how that
+  // tab starts feeling like a billboard.
+  //
+  // The consequence, stated because it is deliberate and not an oversight: when the pool
+  // stops being empty this entry point disappears. That is correct. The argument above is
+  // an argument about a four-user app, and it expires exactly when the emptiness does. If
+  // a permanent surface is wanted later the profile tab is the place for it, but shipping
+  // one today would be shipping a growth surface with no argument behind it.
+  //
+  // It is also deliberately absent from the "filtered" branch above. Somebody whose own
+  // filters are hiding a deck full of people does not need to recruit anybody; they need
+  // the two buttons that screen already has.
+  //
+  // WHY IT IS THE PRIMARY ACTION IN BOTH BRANCHES. The alternatives are both passive --
+  // wait for a ping, or refresh a pool that the server has just said is empty. Inviting is
+  // the only thing on this screen that changes the situation.
+  const invite = () => router.push("/invite");
+
   if (reason.canPing) {
     return (
       <EmptyState
@@ -117,27 +144,39 @@ export function EmptyDeck({ onRefresh }: { onRefresh: () => void }) {
         title="You are early"
         subtitle={
           "DuoQueue is brand new, so there is nobody left in your deck right now. We will send " +
-          "you a ping the moment a player who shares your games signs up."
+          "you a ping the moment a player who shares your games signs up. Bringing somebody you " +
+          "already play with is faster."
         }
-        actionLabel="Refresh"
-        onAction={onRefresh}
+        actionLabel="Invite your duo"
+        onAction={invite}
+        secondaryActionLabel="Refresh"
+        onSecondaryAction={onRefresh}
       />
     );
   }
 
+  // Three honest answers on this branch, so this is the one screen that uses EmptyState's
+  // text-weight third action. Refresh cannot simply be dropped: `useDeck` latches an
+  // "exhausted" flag once a refill returns nobody new, and only its own refetch clears it,
+  // so without a button here a user sitting on this screen when their invited friend
+  // finishes signing up would have to restart the app to see them. That is precisely the
+  // moment this whole feature exists to serve.
   return (
     <EmptyState
       icon="game-controller"
       tick="YOU ARE EARLY"
       title="You are early"
       subtitle={
-        "DuoQueue is brand new, so there is nobody left in your deck right now. Turn on " +
-        "notifications and we will ping you the moment a player who shares your games signs up."
+        "DuoQueue is brand new, so there is nobody left in your deck right now. Bring somebody " +
+        "you already play with, or turn on notifications and we will ping you the moment a " +
+        "player who shares your games signs up."
       }
-      actionLabel="Turn on the ping"
-      onAction={() => void handleTurnOnPing()}
-      secondaryActionLabel="Refresh"
-      onSecondaryAction={onRefresh}
+      actionLabel="Invite your duo"
+      onAction={invite}
+      secondaryActionLabel="Turn on the ping"
+      onSecondaryAction={() => void handleTurnOnPing()}
+      tertiaryActionLabel="Refresh"
+      onTertiaryAction={onRefresh}
     />
   );
 }

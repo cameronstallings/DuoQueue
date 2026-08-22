@@ -7,15 +7,9 @@ import { NavRow, RowDivider } from "@/components/NavRow";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { SectionLabel } from "@/components/SectionLabel";
 import { usePremiumStatus } from "@/features/matching/usePremiumStatus";
+import { appearanceSummary } from "@/lib/appearance";
 import { LEGAL_URLS } from "@/lib/legal";
-import { type ThemePreference, useThemeStore } from "@/store/theme-store";
 import { useTheme } from "@/theme/useTheme";
-
-const APPEARANCE_SUMMARY: Record<ThemePreference, string> = {
-  dark: "Dark",
-  light: "Light",
-  system: "System",
-};
 
 // A subscription bought through Apple can only be changed or cancelled through Apple —
 // an in-app "cancel" button would be a lie, and Guideline 3.1.2 expects the real one to
@@ -37,8 +31,11 @@ const MANAGE_SUBSCRIPTION_URL = Platform.select({
  * value on the right.
  */
 export default function SettingsScreen() {
-  const { spacing } = useTheme();
-  const themePreference = useThemeStore((s) => s.preference);
+  // The RESOLVED scheme, not the stored preference. "System" is the invisible default now
+  // (see settings/appearance.tsx), so this row shows what the app currently looks like
+  // rather than which of three states is on disk. For a user on "system" with a dark phone
+  // that reads "Dark", which is true, and it is the same word the Appearance screen ticks.
+  const { spacing, scheme } = useTheme();
   const { isPremium } = usePremiumStatus();
 
   return (
@@ -76,8 +73,8 @@ export default function SettingsScreen() {
           <NavRow
             icon="color-palette-outline"
             label="Appearance"
-            hint="Light, dark, or follow your phone"
-            value={APPEARANCE_SUMMARY[themePreference]}
+            hint="Light or dark"
+            value={appearanceSummary(scheme)}
             onPress={() => router.push("/settings/appearance")}
           />
           <RowDivider />

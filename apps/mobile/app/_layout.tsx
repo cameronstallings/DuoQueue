@@ -18,6 +18,7 @@ import { Unbounded_600SemiBold, Unbounded_700Bold } from "@expo-google-fonts/unb
 import { IBMPlexMono_500Medium, IBMPlexMono_600SemiBold } from "@expo-google-fonts/ibm-plex-mono";
 
 import { Logo } from "@/components/Logo";
+import { useInviteRedemption } from "@/features/invite/useInvite";
 import { useNotificationTapRouting } from "@/hooks/useNotificationTapRouting";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { Toast } from "@/components/Toast";
@@ -25,6 +26,7 @@ import { configureNetworkAwareQueries } from "@/lib/network";
 import { queryClient } from "@/lib/query-client";
 import { supabase } from "@/lib/supabase";
 import { useSessionStore } from "@/store/session-store";
+import { loadInviteState } from "@/store/invite-store";
 import { loadThemePreference } from "@/store/theme-store";
 import { useTheme } from "@/theme/useTheme";
 
@@ -98,9 +100,15 @@ export default function RootLayout() {
   // not on screen yet.
   useNotificationTapRouting(fontsLoaded || fontError != null);
 
+  // Here for the same reason as the line above: an invite can be redeemed the moment a
+  // session exists, which is often before any screen that knows about invites has mounted.
+  // Writing the attribution row as early as possible is the point -- see the hook.
+  useInviteRedemption();
+
   useEffect(() => {
     void initialize();
     void loadThemePreference();
+    void loadInviteState();
   }, [initialize]);
 
   useEffect(() => {
@@ -122,11 +130,16 @@ export default function RootLayout() {
               <Stack.Screen name="(auth)" />
               <Stack.Screen name="(onboarding)" />
               <Stack.Screen name="welcome" />
+              <Stack.Screen name="invited" />
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="chat/[matchId]" options={{ headerShown: true, title: "Chat" }} />
               <Stack.Screen name="filters" options={{ presentation: "modal" }} />
               <Stack.Screen name="paywall" options={{ presentation: "modal" }} />
               <Stack.Screen name="admirers" options={{ presentation: "modal" }} />
+              <Stack.Screen name="invite/index" options={{ presentation: "modal" }} />
+              {/* Not a modal: this is where `duoqueue://invite/<code>` lands, and it can be
+                  what launches the app. It stores the code and redirects immediately. */}
+              <Stack.Screen name="invite/[code]" />
               <Stack.Screen name="online-now" options={{ presentation: "modal" }} />
               <Stack.Screen name="block-list" options={{ presentation: "modal" }} />
               <Stack.Screen name="hidden-words" options={{ presentation: "modal" }} />

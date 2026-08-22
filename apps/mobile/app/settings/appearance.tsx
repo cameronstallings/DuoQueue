@@ -1,39 +1,54 @@
 import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
+import { APPEARANCE_OPTIONS, isAppearanceOptionSelected } from "@/lib/appearance";
 import { Card } from "@/components/Card";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { useRequireSession } from "@/hooks/useRequireSession";
 import { hapticSelection } from "@/lib/haptics";
-import { type ThemePreference, useThemeStore } from "@/store/theme-store";
+import { useThemeStore } from "@/store/theme-store";
 import { useTheme } from "@/theme/useTheme";
 
 /**
- * Each option carries a line explaining it, which is the whole reason this moved
- * out of a row of chips: a chip has room for a word, not an answer. Dark is listed
- * first — it's the default now, not a fallback to System.
+ * Two options. Light and Dark, and nothing else.
+ *
+ * "System" is still a real stored preference and `useTheme` still resolves it against the
+ * phone exactly as before — nothing about the resolution changed. What changed is that it
+ * is no longer NAMED. It is the invisible default, and Light and Dark are overrides.
+ *
+ * THE SELECTED ROW IS THE RESOLVED THEME, NOT THE STORED PREFERENCE. Somebody whose stored
+ * preference is "system" on a dark phone sees Dark ticked, which is simply true: the app is
+ * dark. They are not told a third state exists, and they never need to know. Tapping either
+ * row pins it explicitly, which is the only thing that writes "light" or "dark" over
+ * "system" — and it happens whether or not the row already looked selected, because for a
+ * user on "system" the tick means "this is what you are seeing" and the tap means "and keep
+ * it that way".
+ *
+ * NOBODY IS MIGRATED. A stored "system" stays "system" until its owner taps a row here, so
+ * an existing user's phone keeps controlling the app for as long as they never open this
+ * screen. Rewriting the value on mount would be a silent behaviour change, and the whole
+ * point of this design is that it changes no behaviour at all.
+ *
+ * THE HINTS ARE GONE, and their absence is load-bearing. They used to read "Always dark,
+ * whatever your phone is set to", which is a FALSE sentence to show a user on "system" whose
+ * phone happens to be dark — the row they see ticked would be claiming to override something
+ * it is not overriding. With System unnamed, two one-word rows need no explanation anyway.
+ *
+ * The rows and the tick rule live in `lib/appearance.ts`, typed on the RESOLVED scheme so
+ * that handing them the stored preference is a compile error rather than a screen that
+ * ticks nothing. See the header there.
  */
-const OPTIONS: { value: ThemePreference; label: string; hint: string }[] = [
-  { value: "dark", label: "Dark", hint: "Always dark, whatever your phone is set to." },
-  { value: "light", label: "Light", hint: "Always light, whatever your phone is set to." },
-  {
-    value: "system",
-    label: "System",
-    hint: "Follows your phone's light/dark setting, including any schedule you've set.",
-  },
-];
 
 export default function AppearanceSettings() {
   useRequireSession();
-  const { colors, spacing, type, radius, hairline } = useTheme();
-  const preference = useThemeStore((s) => s.preference);
+  const { colors, spacing, type, radius, hairline, scheme } = useTheme();
   const setPreference = useThemeStore((s) => s.setPreference);
 
   return (
     <ScreenContainer title="Appearance" showBack>
       <Card style={{ padding: 0, overflow: "hidden" }}>
-        {OPTIONS.map((option, i) => {
-          const selected = preference === option.value;
+        {APPEARANCE_OPTIONS.map((option, i) => {
+          const selected = isAppearanceOptionSelected(scheme, option.value);
           return (
             <View key={option.value}>
               {i > 0 && <View style={{ height: 1, backgroundColor: colors.border, marginLeft: spacing.md }} />}
@@ -46,7 +61,7 @@ export default function AppearanceSettings() {
                 }}
                 style={({ pressed }) => ({
                   flexDirection: "row",
-                  alignItems: "flex-start",
+                  alignItems: "center",
                   gap: spacing.md,
                   padding: spacing.md,
                   backgroundColor: pressed ? colors.surfaceAlt : "transparent",
@@ -62,15 +77,11 @@ export default function AppearanceSettings() {
                     backgroundColor: selected ? colors.volt : "transparent",
                     alignItems: "center",
                     justifyContent: "center",
-                    marginTop: 2,
                   }}
                 >
                   {selected && <Ionicons name="checkmark" size={14} color={colors.onVolt} />}
                 </View>
-                <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={[type.bodyStrong, { color: colors.text }]}>{option.label}</Text>
-                  <Text style={[type.caption, { color: colors.textMuted }]}>{option.hint}</Text>
-                </View>
+                <Text style={[type.bodyStrong, { color: colors.text, flex: 1 }]}>{option.label}</Text>
               </Pressable>
             </View>
           );

@@ -9,6 +9,7 @@ import { Logo } from "@/components/Logo";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { TextField } from "@/components/TextField";
 import { setPendingConfirmationEmail } from "@/features/auth/pendingConfirmation";
+import { InviteBanner } from "@/features/invite/InviteBanner";
 import { isCaptchaConfigured, TurnstileCaptcha } from "@/features/auth/TurnstileCaptcha";
 import { LEGAL_URLS } from "@/lib/legal";
 import { supabase } from "@/lib/supabase";
@@ -111,6 +112,11 @@ export default function SignUp() {
       <Text style={[type.body, { color: colors.textMuted, marginBottom: spacing.md }]}>
         Next you&apos;ll set up your profile: games, shows, and how you like to play.
       </Text>
+
+      {/* Above the fields, not below them. Somebody who arrived from a friend's link is
+          here BECAUSE of that friend, and the form should say so before it starts asking
+          for a password. Collapsed to one line for everybody else. */}
+      <InviteBanner />
 
       <TextField
         label="Email"

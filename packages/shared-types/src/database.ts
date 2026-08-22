@@ -34,6 +34,10 @@ export interface ProfileRow {
   bio: string | null;
   discord_username: string | null;
   onboarding_completed: boolean;
+  /** Stamped by a trigger on the false -> true transition of `onboarding_completed`
+   *  (0063_new_player_alerts.sql), never written by the client, and never backfilled — so
+   *  every profile that existed before that migration keeps null. */
+  onboarding_completed_at: string | null;
   is_active: boolean;
   hide_last_active: boolean;
   last_active_at: string | null;
@@ -309,4 +313,7 @@ export interface NotificationSettingsRow {
   daily_swipes_refreshed: boolean;
   nudge_unread: boolean;
   nudge_online: boolean;
+  /** "New players in your games" — the hourly new-player sweep
+   *  (0063_new_player_alerts.sql). Defaults true like every other category. */
+  new_player: boolean;
 }

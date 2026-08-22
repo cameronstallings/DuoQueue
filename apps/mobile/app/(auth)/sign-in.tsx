@@ -10,6 +10,7 @@ import { TextField } from "@/components/TextField";
 import { signInWithApple } from "@/features/auth/appleSignIn";
 import { isCaptchaConfigured, TurnstileCaptcha } from "@/features/auth/TurnstileCaptcha";
 import { useGoogleSignIn } from "@/features/auth/useGoogleSignIn";
+import { InviteBanner } from "@/features/invite/InviteBanner";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/theme/useTheme";
 
@@ -83,6 +84,12 @@ export default function SignIn() {
       <Text style={[type.body, { color: colors.textMuted, marginBottom: spacing.md }]}>
         Sign in to find your next gaming duo, or create an account below.
       </Text>
+
+      {/* Read-only here: a tapped invite link stores the code and lands a signed-out
+          visitor on this screen, so this is where they find out whose invite they are
+          holding. No entry field, because a code can only be attached to a NEW account
+          and this screen's job is the returning one. The field lives on sign-up. */}
+      <InviteBanner allowEntry={false} />
 
       <TextField
         label="Email"

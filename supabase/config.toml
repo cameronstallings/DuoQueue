@@ -141,3 +141,16 @@ verify_jwt = false
 # somebody's shell history so that the posture is reviewable in source.
 [functions.waitlist-signup]
 verify_jwt = false
+
+# Reached by a browser following an invite link out of a Discord message or an iMessage, by
+# somebody who has no account, no app and therefore no Supabase JWT. Like waitlist-signup it
+# cannot have a shared secret; unlike waitlist-signup it writes nothing at all.
+#
+# What bounds it: GET/HEAD only, no request body is read, and the single thing a caller can
+# influence is a 10-character string that must match a fixed 32-symbol alphabet before it
+# reaches the database, where it becomes one indexed equality probe. Its only reads are one
+# app_config row and resolve_invite_code, which returns exactly one display name and only for
+# an active, onboarded, non-banned, non-demo, non-revoked inviter (see D4 in
+# 0065_invites.sql for why that endpoint is anon-reachable at all).
+[functions.invite]
+verify_jwt = false
