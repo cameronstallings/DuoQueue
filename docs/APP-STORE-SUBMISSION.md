@@ -72,17 +72,43 @@ This account is pre-confirmed (no CAPTCHA, no email OTP) and fully onboarded. Si
 shows: a populated deck of 13 fresh demo profiles, one existing match (Priya) with an
 8-message conversation left unread (an indicator on that row in the Matches list — the app
 sets no tab-bar badge), and 3 inbound "who wants to duo" requests
-(Marcus, Kofi, Bea). Every demo row is flagged `is_demo = true` and gated server-side across
-8 RPCs and 14 views — real users (verified live, adversarially, across every discovery
+(Sana, Marcus, Kofi). Every demo row is flagged `is_demo = true` and gated server-side across
+9 RPCs and 14 views — real users (verified live, adversarially, across every discovery
 surface) see zero of it, and the reviewer's account is invisible to them too. Photos are
 abstract generated art (`scripts/generate-demo-avatars.mjs`), never a real or AI-generated
 face.
+
+Every number in that paragraph was measured against the hosted database on 2026-08-22, not
+inferred from the seed file, and re-measured after a full `--filming` → plain round trip:
+
+| claim | how it was measured | result |
+|---|---|---|
+| deck of 13 | `get_deck(50)` as this account, under `set local role authenticated` | 13 |
+| 3 requests, by name | `get_admirers()` as this account, newest first | Sana, Marcus, Kofi |
+| 14 demo profiles | `count(*) from profiles where is_demo` minus the review row | 14 |
+| Priya, 8 messages, newest unread | `messages` joined to the one row in `matches` | 8, newest from Priya, `read_at is null` |
+| photos are abstract | md5 of every stored object vs. md5 of every file in `assets/demo` and `assets/demo-filming` | 30/30 in `assets/demo`, 0 in `assets/demo-filming`, 0 unmatched |
+| 9 RPCs / 14 views | functions and views whose definition references `is_demo_viewer` / `is_demo` | 9 and 14 |
+
+The 14 abstract PNGs were also opened and looked at, not just hashed: circuit traces,
+isometric blocks, hex field, waveform, target rings, dot matrix, radar sweep, scanline
+glitch, triangle mesh, pixel cluster, orbit rings, radial spectrum, crosshair, node graph.
+No faces, and nothing photographic — `generate-demo-avatars.mjs` draws every one of them
+from seeded geometry with `sharp`, so there is no source image for a face to come from.
 
 Re-running the seed script is safe any time — it's idempotent and won't duplicate anything:
 
 ```
 node scripts/seed-review-demo.mjs
 ```
+
+**Never submit after a `--filming` run.** That flag swaps the abstract art for real
+photographs so Cameron can record marketing footage, and it leaves them in the live
+database. It has already made the "never a real or AI-generated face" sentence above false
+once, on an app that was rejected under a content guideline. A plain
+`node scripts/seed-review-demo.mjs` puts the approved abstract set back; run it, and confirm
+before submitting that no `profile_media` row for a demo profile resolves to a file in
+`assets/demo-filming/`.
 
 **Once App Review is done and the app is live, remove it:**
 
@@ -355,7 +381,7 @@ Deck → "Filters" → "Unlock DuoQueue+" (gated only on not being premium). Eve
 is conditional on data the demo account doesn't produce: the Requests upsell ("See them all
 with DuoQueue+") renders only when there are *more* requests than the free tier shows, and
 the account has exactly 3, all visible free; the swipe-limit prompt needs 25 swipes against
-a 14-card deck. Use the Settings path in the review notes and for the IAP review screenshot.
+a 13-card deck. Use the Settings path in the review notes and for the IAP review screenshot.
 
 **Capture now, no build needed**: sign in to Expo Go as `review@duoqueue.io` (Part 1.5) and
 screenshot the normal iOS way. Skip the paywall screen in this pass — `react-native-purchases`
@@ -378,6 +404,13 @@ Six shots, in this order (order matters — the first is what search results sho
    *"Chat to lock in a time — no small talk required."*
 6. **Matches list** (`app/(tabs)/matches.tsx`) — sectioned list, Priya's row showing unread.
    *"Every duo in one place, sorted by whose turn it is to reply."*
+
+One thing to know before you frame shots 2 and 5: there are 14 abstract avatars and 15 demo
+rows, so the review account and Priya both carry `avatar-01-circuit-traces.png`. Your own
+profile (shot 2) and Priya's chat header (shot 5) therefore show the same artwork. Nothing
+in the review notes claims otherwise and a reviewer will never see the two side by side, but
+if you want them distinct, the fix is a 15th composition in `generate-demo-avatars.mjs`, not
+a change to any persona.
 
 All six are already 4+-safe (Guideline 2.3.8 applies to screenshots regardless of the app's
 own age rating) — demo photos are abstract generated art, no faces, and all seeded chat/bio

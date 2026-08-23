@@ -106,16 +106,63 @@ const REVIEW_ID = demoId("review-account");
 // deck truthfully reported ">> NO GAMES IN COMMON" — an empty-looking product on camera,
 // and the exact opposite of the claim the app is built on.
 //
-// The nine below are picked so a normal person could plausibly own all of them (one tac
-// shooter, one BR, Rocket League, two co-op survival/horror staples, a cozy farm sim, one
-// big RPG, one party co-op game) and so that they intersect every persona in the pool at
-// least once. The intersections are deliberate, not incidental: see the per-persona
-// comments below, and the shared-count table the seeder prints at the end of a run.
+// The first nine below are picked so a normal person could plausibly own all of them (one
+// tac shooter, one BR, Rocket League, two co-op survival/horror staples, a cozy farm sim,
+// one big RPG, one party co-op game). The intersections are deliberate, not incidental: see
+// the per-persona comments below, and the shared-count table the seeder prints at the end
+// of a run.
+//
+// THE LAST FOUR ARE THE FLOOR, and they exist for one reason: every card in the deck must
+// print at least ">> 1 GAME IN COMMON". At nine games this held, because seven of the
+// fourteen personas had been cut. Restoring all fourteen put four zero-overlap cards back
+// into the deck — Bea (survival crafting), Remy (tac shooters), Ophelia (roguelites) and
+// Devon (factory sims) — so the list was widened again by exactly one title per uncovered
+// persona, each lifted from that persona's own library:
+//
+//   Valheim          -> Bea      (adjacent to Lethal Company / Phasmophobia: co-op survival)
+//   Counter-Strike 2 -> Remy     (adjacent to Valorant: the same genre, the obvious sibling)
+//   Balatro          -> Ophelia  (the only new genre; a casual deckbuilder next to Stardew)
+//   Satisfactory     -> Devon    (co-op factory sandbox; chill, and it is his #1 title)
+//
+// Each of those four titles is held by exactly ONE deck persona, so each adds overlap to its
+// target and to nobody else — verified with `grep -n` over PERSONAS before the change and
+// with the measured table below after it. Counter-Strike 2 is also on Priya, who is the
+// pre-built match and therefore never in the deck.
+//
+// Each is also inside its persona's first three games, which is what the card actually
+// renders (public_profile_games ordered by priority, then enrichCandidates.ts slices to 3).
+// That is why Devon's title is Satisfactory and not No Man's Sky: both are his and only his,
+// but No Man's Sky sits fourth, so the card would have claimed an overlap while showing
+// three chips that did not contain it.
+//
+// The alternative was editing the four personas' libraries instead. Rejected: their
+// libraries are what makes them four distinct people rather than four more variations on
+// the reviewer, and this account is a knob that exists to be tuned while they are not.
 //
 // The shared count also drives get_deck's score (shared_games * 10 + skill_match * 2 +
-// shared_shows * 5 + ...), so this list plus the shows list is what orders the deck. The
-// four personas that have real photographs are given the highest overlap on purpose, so
-// they are the first four cards a recording sees.
+// shared_shows * 5 + shared_languages * 2 + region_match * 3 + play_window_overlap capped
+// at 6), so this list plus the shows list is what orders the deck. Measured against the
+// live function on 2026-08-22, signed in as review@duoqueue.io, after the widening:
+//
+//   1 Sana 48   2 Kofi 39   3 Chase 35   4 Dae 26   5 Tobin 26   6 Wren 26   7 Marcus 24
+//   8 Devon 24  9 Bea 17  10 Remy 16  11 Yuki 14  12 Ophelia 13  13 Nadia 12
+//
+// Two things that table contradicts, and they are worth reading before trusting the shared
+// count alone:
+//
+//   * Devon has ONE shared game and ties Marcus, who has two. A shared show is worth 5 and
+//     a region match 3, so 1 game + The Office + na_east draws level with 2 games and
+//     neither. Shared games dominate; they do not decide. (Predicting this order by hand
+//     got it wrong — Satisfactory is ranked_grinder against the account's casual, so it
+//     scores no skill_match. Run the query, don't reason.)
+//   * The photographed personas are NOT the first four cards. Priya is the pre-built match,
+//     so get_deck excludes her from the deck entirely and she is only ever seen in Matches;
+//     Marcus lands seventh. Under --filming the first two cards are photographs and the
+//     third is abstract. That is why FILMING_STANDOUT_SLUGS pins the Highlights row by hand
+//     instead of trusting this ordering.
+//
+// Re-measure rather than reason if either list changes: the query is get_deck(50) run under
+// `set local role authenticated` with the review account's id as request.jwt.claims.sub.
 const REVIEWER = {
   displayName: "App Reviewer",
   age: 29,
@@ -134,6 +181,11 @@ const REVIEWER = {
     { name: "Overcooked! 2", skill: "casual" },
     { name: "Apex Legends", skill: "casual" },
     { name: "Phasmophobia", skill: "casual" },
+    // The floor: one title each for Bea, Remy, Ophelia and Devon. See the note above.
+    { name: "Valheim", skill: "casual" },
+    { name: "Counter-Strike 2", skill: "casual" },
+    { name: "Balatro", skill: "casual" },
+    { name: "Satisfactory", skill: "casual" },
   ],
   shows: ["The Office", "The Boys"],
   platforms: ["pc", "switch"],
@@ -150,20 +202,22 @@ const REVIEWER = {
 };
 
 // =============================================================================
-// ~14 demo gaming-partner profiles. Real games/shows from the live catalog (verified against
-// the DB before writing this list — see the seed script's companion verification notes),
-// plausible platonic gaming bios and prompt answers. Nothing here reads as a dating profile:
-// no romantic language anywhere, every prompt answer is about how/when/what they play.
+// 14 demo gaming-partner profiles. Real games/shows from the live catalog (every name below
+// re-verified against the live `games`, `shows` and `prompts` tables before the 2026-08-22
+// reseed — zero missing), plausible platonic gaming bios and prompt answers. Nothing here
+// reads as a dating profile: no romantic language anywhere, every prompt answer is about
+// how/when/what they play.
 //
 // TWO PROPERTIES THAT ARE MAINTAINED BY HAND AND MATTER ON CAMERA:
 //
-//   1. `games` intersects REVIEWER.games at least once for every persona, and by 3 or 4 for
-//      the four personas that hold a real photograph. get_deck sorts by
-//      shared_games * 10 + skill_match * 2 + shared_shows * 5 + shared_languages * 2 +
-//      region_match * 3 + play_window_overlap (capped at 6), so those four sort to the top
-//      of the deck. The first three games in each list are also the three the card renders
-//      (enrichCandidates.ts slices to 3), so shared titles are ordered first where it does
-//      not break the persona.
+//   1. `games` intersects REVIEWER.games for ALL fourteen, and that floor is the point: no
+//      card in the deck may print ">> NO GAMES IN COMMON". Sana and Priya by 4, Kofi by 3,
+//      Dae/Marcus/Wren/Tobin/Chase by 2, and Nadia/Yuki/Bea/Remy/Ophelia/Devon by 1 — see
+//      the measured deck order in the note on REVIEWER.games above, which is the thing to
+//      trust rather than this list of counts. The first three games in each list are also
+//      the three the card renders (enrichCandidates.ts slices to 3), so shared titles are
+//      ordered first where it does not break the persona — and every one of the fourteen
+//      has at least one shared title inside that window.
 //
 //   2. `filmingPhotos` names the real photographs used with --filming, explicitly, per role.
 //      It is not derived from `avatar` any more: the files in assets/demo-filming are named
@@ -416,12 +470,215 @@ const PERSONAS = [
     avatar: "avatar-07-radar-sweep.png",
     lastActiveMinutesAgo: 720,
   },
+  {
+    slug: "nadia-farouk",
+    displayName: "Nadia",
+    age: 28,
+    gender: "female",
+    region: "mena",
+    timezone: "Asia/Dubai",
+    bio: "Souls-like completionist with a soft spot for co-op summons. Slow, deliberate, and will absolutely make you watch a boss fight cutscene twice.",
+    discordUsername: "nadia.farouk",
+    games: [
+      { name: "Elden Ring", skill: "competitive" },
+      { name: "Baldur's Gate 3", skill: "ranked_grinder" },
+      { name: "Diablo IV", skill: "intermediate" },
+      { name: "Path of Exile 2", skill: "intermediate" },
+    ],
+    shows: ["Arcane", "Cyberpunk: Edgerunners"],
+    platforms: ["pc", "playstation"],
+    playstyles: ["solo_queue", "chill", "no_mic"],
+    prompts: [
+      { q: "The genre I always come back to is", a: "Souls-likes. I like games that respect my time and punish my mistakes." },
+      { q: "My most underrated pick is", a: "Elden Ring co-op summons, an underrated way to make a brutal boss fun." },
+      { q: "A game I'll defend to the death is", a: "Baldur's Gate 3. Yes, every playthrough takes 100 hours. Worth it." },
+    ],
+    vibe: { intensity: 45, commsStyle: 35, coachingPref: 50, tiltHandling: "needs_space_after_losses" },
+    playWindow: [21, 0],
+    avatar: "avatar-08-scanline-glitch.png",
+    lastActiveMinutesAgo: 540,
+  },
+  {
+    slug: "chase-abernathy",
+    displayName: "Chase",
+    age: 25,
+    gender: "male",
+    region: "na_east",
+    timezone: "America/Chicago",
+    bio: "Horror co-op only after midnight, non-negotiable. Phasmophobia and Lethal Company regular. Bring a working mic and low expectations for our survival odds.",
+    discordUsername: "chase.abernathy",
+    games: [
+      { name: "Phasmophobia", skill: "competitive" },
+      { name: "Lethal Company", skill: "ranked_grinder" },
+      { name: "Left 4 Dead 2", skill: "intermediate" },
+      { name: "DayZ", skill: "casual" },
+    ],
+    shows: ["The Office", "The Boys"],
+    platforms: ["pc"],
+    playstyles: ["late_night", "mic_required", "casual_coop"],
+    prompts: [
+      { q: "My gamertag origin story is", a: "Picked it during a Phasmophobia session at 2am and it just stuck." },
+      { q: "The last game that made me rage quit", a: "Lethal Company, when a teammate opened every door at once. Every time." },
+      { q: "I'll never turn down a round of", a: "Anything horror co-op after midnight. Bring headphones and low expectations." },
+    ],
+    vibe: { intensity: 50, commsStyle: 85, coachingPref: 30, tiltHandling: "gets_frustrated_sometimes" },
+    playWindow: [22, 3],
+    avatar: "avatar-09-triangle-mesh.png",
+    lastActiveMinutesAgo: 1200,
+  },
+  {
+    slug: "yuki-hashimoto",
+    displayName: "Yuki",
+    age: 22,
+    gender: "non_binary",
+    region: "asia",
+    timezone: "Asia/Seoul",
+    bio: "Fighting game grinder who studies frame data for fun. Street Fighter 6 ranked most evenings. Always looking for training partners, not just opponents.",
+    discordUsername: "yuki.hash",
+    games: [
+      { name: "Street Fighter 6", skill: "ranked_grinder", rank: "Master Rank" },
+      { name: "Tekken 8", skill: "competitive" },
+      { name: "Super Smash Bros. Ultimate", skill: "competitive" },
+      { name: "Apex Legends", skill: "casual" },
+    ],
+    shows: ["My Hero Academia", "Jujutsu Kaisen"],
+    platforms: ["pc", "playstation"],
+    playstyles: ["competitive", "solo_queue", "grinder"],
+    prompts: [
+      { q: "My tier list is unhinged because", a: "I will die on the hill that execution matters more than matchup knowledge." },
+      { q: "A skill I'm weirdly proud of", a: "Frame data. Ask me anything about punish windows, I have it memorized." },
+      { q: "I peaked in", a: "Street Fighter 6 ranked, briefly, before someone found my sidestep habit." },
+    ],
+    vibe: { intensity: 88, commsStyle: 40, coachingPref: 80, tiltHandling: "tilts_but_recovers_fast" },
+    playWindow: [15, 19],
+    avatar: "avatar-10-pixel-blocks.png",
+    lastActiveMinutesAgo: 2880,
+  },
+  {
+    slug: "bea-lindqvist",
+    displayName: "Bea",
+    age: 30,
+    gender: "female",
+    region: "eu",
+    timezone: "Europe/London",
+    bio: "Survival crafting is basically my meditation practice. Valheim base currently has a moat. Looking for someone patient enough to help me finish the roof.",
+    discordUsername: "bea.lindqvist",
+    games: [
+      { name: "Valheim", skill: "intermediate" },
+      { name: "Sons of the Forest", skill: "intermediate" },
+      { name: "Raft", skill: "casual" },
+      { name: "Rust", skill: "competitive" },
+    ],
+    shows: ["The Office", "Community"],
+    platforms: ["pc"],
+    playstyles: ["chill", "casual_coop", "weekend_warrior"],
+    prompts: [
+      { q: "My ideal co-op session involves", a: "A half-built base, a thunderstorm rolling in, and someone forgetting to save." },
+      { q: "My backlog of shame includes", a: "Three survival games I abandoned right after building the first wall." },
+      { q: "I geek out on", a: "Base-building efficiency. Ask me how I organized my Valheim storage room." },
+    ],
+    vibe: { intensity: 40, commsStyle: 50, coachingPref: 35, tiltHandling: "stays_calm" },
+    playWindow: [18, 21],
+    avatar: "avatar-11-orbit-rings.png",
+    lastActiveMinutesAgo: 240,
+  },
+  {
+    slug: "remy-castillo",
+    displayName: "Remy",
+    age: 27,
+    gender: "male",
+    region: "sa",
+    timezone: "America/Sao_Paulo",
+    bio: "Tac-shooter squad leader. I'll call the rotation, you just need to hold the angle. Rainbow Six and Warzone most nights after work.",
+    discordUsername: "remy.castillo",
+    games: [
+      { name: "Call of Duty: Warzone", skill: "competitive" },
+      { name: "Rainbow Six Siege", skill: "ranked_grinder", rank: "Diamond" },
+      { name: "Counter-Strike 2", skill: "intermediate" },
+      { name: "Escape from Tarkov", skill: "competitive" },
+    ],
+    shows: ["Invincible", "The Mandalorian"],
+    platforms: ["pc", "playstation"],
+    playstyles: ["team_player", "mic_required", "competitive"],
+    prompts: [
+      { q: "My go-to strategy in any game is", a: "Call the rotation before it's obvious. Info wins more than aim does." },
+      { q: "I get weirdly competitive about", a: "Site executes. I will run the same one ten times until it's clean." },
+      { q: "My ideal squad has", a: "One shot-caller, one entry, and nobody who mutes comms mid-round." },
+    ],
+    vibe: { intensity: 75, commsStyle: 78, coachingPref: 55, tiltHandling: "tilts_but_recovers_fast" },
+    playWindow: [20, 0],
+    avatar: "avatar-12-spectrum-radial.png",
+    lastActiveMinutesAgo: 420,
+  },
+  {
+    slug: "ophelia-marsh",
+    displayName: "Ophelia",
+    age: 35,
+    gender: "female",
+    region: "na_west",
+    timezone: "America/Denver",
+    bio: "Roguelite and deckbuilder obsessive. I will absolutely talk your ear off about run strategy in Slay the Spire or Hades II if you let me.",
+    discordUsername: "ophelia.marsh",
+    games: [
+      { name: "Slay the Spire", skill: "ranked_grinder" },
+      { name: "Hades II", skill: "competitive" },
+      { name: "Balatro", skill: "intermediate" },
+      { name: "Path of Exile 2", skill: "casual" },
+    ],
+    shows: ["Community", "Rick and Morty"],
+    platforms: ["pc", "switch"],
+    playstyles: ["solo_queue", "chill", "no_mic"],
+    prompts: [
+      { q: "My most controversial gaming opinion is", a: "Roguelites are better solo. Co-op just means two people arguing over relics." },
+      { q: "The genre I always come back to is", a: "Deckbuilders. Give me a run-based game and a spreadsheet and I'm gone for hours." },
+      { q: "I main", a: "Whatever character punishes greedy play. Currently it's the Hades II witch." },
+    ],
+    vibe: { intensity: 35, commsStyle: 25, coachingPref: 45, tiltHandling: "stays_calm" },
+    playWindow: [20, 23],
+    avatar: "avatar-13-crosshair-dpad.png",
+    lastActiveMinutesAgo: 900,
+  },
+  {
+    slug: "devon-price",
+    displayName: "Devon",
+    age: 32,
+    gender: "male",
+    region: "na_east",
+    timezone: "America/New_York",
+    bio: "Factory optimization is a personality trait at this point. Satisfactory and Factorio enjoyer. If you like spreadsheets and conveyor belts, we'll get along.",
+    discordUsername: "devon.price",
+    games: [
+      { name: "Satisfactory", skill: "ranked_grinder" },
+      { name: "Factorio", skill: "competitive" },
+      { name: "Cities: Skylines II", skill: "intermediate" },
+      { name: "No Man's Sky", skill: "casual" },
+    ],
+    shows: ["The Office", "Parks and Recreation"],
+    platforms: ["pc"],
+    playstyles: ["solo_queue", "chill", "weekend_warrior"],
+    prompts: [
+      { q: "My setup includes", a: "Way too many browser tabs open to a factory planner, if I'm honest." },
+      { q: "The role I always end up playing is", a: "The one optimizing throughput while everyone else just wants to build." },
+      { q: "A game I could talk about for hours", a: "Factorio. Send help, or better, send blueprints." },
+    ],
+    vibe: { intensity: 30, commsStyle: 20, coachingPref: 40, tiltHandling: "stays_calm" },
+    playWindow: [19, 22],
+    avatar: "avatar-14-node-graph.png",
+    lastActiveMinutesAgo: 60,
+  },
 ];
 
 const MATCH_PARTNER_SLUG = "priya-ferra";
 // The three profiles in "Who wants to duo". All three hold real photographs under
 // --filming, because that row is a grid of faces at avatar size and one abstract tile in it
 // is as obvious as a whole deck of them.
+//
+// This list was Marcus/Kofi/Bea until 234f70c repointed it off Bea when she was deleted.
+// She is back in PERSONAS now, and it still does not go back to her: she has no
+// `filmingPhotos`, so restoring her would put one abstract tile in the middle of a row of
+// three faces every time Cameron records. The deletion was only half the reason for the
+// repoint; the photograph grid is the other half and it outlived her.
+// docs/APP-STORE-SUBMISSION.md was corrected to name Sana, Marcus, Kofi to match.
 const ADMIRER_SLUGS = ["sana-orimoto", "marcus-holt", "kofi-mensah"];
 
 // The Highlights row (StandoutsRow.tsx) is on screen behind the deck in essentially every
@@ -431,6 +688,11 @@ const ADMIRER_SLUGS = ["sana-orimoto", "marcus-holt", "kofi-mensah"];
 // photograph. Under --filming the seeder writes the row itself, in this order, for today and
 // the next few days. Without --filming it only clears the cache and lets the function pick,
 // which is what App Review saw.
+//
+// Restoring the seven cut personas does not change this list. Unlike ADMIRER_SLUGS it never
+// pointed at any of them — it was introduced in 234f70c alongside the photograph set — and
+// its members are exactly the four personas that hold a `filmingPhotos` entry, which is the
+// only property that qualifies a persona for this row. Nothing came back that belongs here.
 const FILMING_STANDOUT_SLUGS = ["sana-orimoto", "marcus-holt", "kofi-mensah", "priya-ferra"];
 const STANDOUT_DAYS_AHEAD = 3;
 
@@ -802,7 +1064,12 @@ async function ensureMatchAndConversation(reviewId, partnerId) {
  *
  * The expected set is derived exactly the way the ids are, so it cannot drift from the file.
  * Deleting the auth user cascades to profiles and everything referencing them, which is the
- * same mechanism --remove relies on. */
+ * same mechanism --remove relies on.
+ *
+ * All seven of those personas have since been restored to PERSONAS, so on a normal run this
+ * now finds nothing and prints nothing. That is the function working, not the function being
+ * unnecessary: it is the only reason the count this script prints describes the database
+ * rather than the file, and it is what will catch the next removal. */
 async function pruneRemovedDemoAccounts() {
   const expected = new Set([REVIEW_ID, ...PERSONAS.map((p) => demoId(`profile:${p.slug}`))]);
   const { data, error } = await db.from("profiles").select("id, display_name").eq("is_demo", true);
@@ -929,7 +1196,12 @@ async function main() {
   console.log(`  match ${matchId} with ${PERSONAS.find((p) => p.slug === MATCH_PARTNER_SLUG).displayName}, ${CONVERSATION.length} messages, last one unread`);
 
   console.log("Seeding inbound interest (Who wants to duo)...");
-  const admirerCreatedAtByMin = { "sana-orimoto": 180, "kofi-mensah": 1440, "wren-oaks": 360 };
+  // One key per ADMIRER_SLUGS entry, and no others: 234f70c left a "wren-oaks" key here for
+  // a persona that is not an admirer (dead entry) and no key for Marcus, who therefore fell
+  // through to the `?? 600` default. The three ages below are the original 180/360/1440
+  // spacing, reassigned so the Requests list reads newest-first in the same order this file
+  // lists them: Sana 3h ago, Marcus 6h ago, Kofi a day ago.
+  const admirerCreatedAtByMin = { "sana-orimoto": 180, "marcus-holt": 360, "kofi-mensah": 1440 };
   for (const slug of ADMIRER_SLUGS) {
     const id = personaIds.get(slug);
     await ensureSwipe(id, REVIEW_ID, "like", minutesAgoIso(admirerCreatedAtByMin[slug] ?? 600));
