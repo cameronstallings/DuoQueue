@@ -44,6 +44,12 @@
  */
 import { BUILD, EASE, EXIT, ramp } from "./motion";
 import type { ProScript } from "./script";
+import { evidenceBeat } from "./shots";
+
+/** Words in a statement. The unit `statementPlan` sizes a build in, and the unit a line's exit
+ * stagger is counted in. Re-exported from ./type.ts, which is where every renderer imports it. */
+export const wordCount = (lines: readonly string[]): number =>
+  lines.reduce((total, line) => total + line.split(" ").length, 0);
 
 /** Frames a whole line takes to clear the frame, stagger included. */
 export const exitFrames = (words: number): number =>
@@ -152,9 +158,13 @@ export const CLOSING_HOLD = 19;
 /**
  * How long the object owns the frame by itself before the statement takes it.
  *
- * Beat three gets nearly twice as long because it has two pieces of evidence to show and the
- * sentence names both of them. The clauses of beat four get eight frames each, which is the price
- * of three landings inside one breath.
+ * THE EVIDENCE BEAT gets nearly twice as long because it has two pieces of evidence to show and
+ * the sentence names both of them. Which beat that is used to be the literal index 2, because the
+ * approved film is the only film there was; it is now `evidenceBeat` in ./shots.ts, because the
+ * sentence that names two chips is beat three in `pain` and beat two in `mechanic` and
+ * `objection`, and `hours` does not have one at all. `pro-001` and `pro-pain` answer 2, so the
+ * approved film is unchanged. The clauses of the last beat get eight frames each, which is the
+ * price of three landings inside one breath.
  */
 export const SOLO = { normal: 30, evidence: 58, clause: 8 } as const;
 
@@ -181,7 +191,7 @@ export const statementsOf = (
           window,
           lines: beat.lines,
           key: beat.key,
-          solo: index === 2 ? SOLO.evidence : SOLO.normal,
+          solo: index === evidenceBeat(script.id) ? SOLO.evidence : SOLO.normal,
         },
       ];
     }

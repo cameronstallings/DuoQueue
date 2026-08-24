@@ -17,6 +17,7 @@ import { CTA } from "@/config/phase";
 import { FPS, VIDEO_H, VIDEO_W } from "@/lib/scale";
 
 import { ProA, ProALight } from "./a/DirectionA";
+import { ANGLES, compositionFor } from "./angles";
 import { ProB, ProBLight } from "./b/DirectionB";
 import { ProC } from "./c/DirectionC";
 import { PRO } from "./script";
@@ -43,6 +44,19 @@ const DIRECTIONS = [
   { id: "Pro-C", component: ProC },
 ] as const;
 
+/**
+ * THE FOUR NEW ANGLES, ALL IN THE ONE APPROVED DIRECTION.
+ *
+ * The direction competition is over. `pro-a-light` won it, so a second angle does not get a second
+ * direction, it gets the winner and different words. Every entry below is `ProALight`, which is
+ * why there is no `-Dark` half and no B: those exist to be COMPARED, and there is nothing left to
+ * compare. Adding one here would only produce a file nobody has a reason to look at.
+ *
+ * Registered so the four are scrubbable in Studio beside the direction they came from. Nothing
+ * renders from this list: `scripts/render-angles.ts` selects each id by name and writes it into
+ * out/_reels/, exactly as render-static.ts does for the sheets, and neither script reads or writes
+ * state/ledger.json.
+ */
 export const ProCompositions = () => (
   <>
     {DIRECTIONS.map(({ id, component }) => (
@@ -53,6 +67,17 @@ export const ProCompositions = () => (
         {...FRAME}
         durationInFrames={proDuration(PRO)}
         defaultProps={{ script: PRO, cta: CTA.waitlist }}
+        calculateMetadata={({ props }) => ({ durationInFrames: proDuration(props.script) })}
+      />
+    ))}
+    {ANGLES.map((script) => (
+      <Composition
+        key={script.id}
+        id={compositionFor(script.id)}
+        component={ProALight}
+        {...FRAME}
+        durationInFrames={proDuration(script)}
+        defaultProps={{ script, cta: CTA.waitlist }}
         calculateMetadata={({ props }) => ({ durationInFrames: proDuration(props.script) })}
       />
     ))}

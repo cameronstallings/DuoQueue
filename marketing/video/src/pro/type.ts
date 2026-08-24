@@ -130,5 +130,11 @@ export const wordsOf = (lines: readonly string[], key: string | undefined): Word
   );
 };
 
-export const wordCount = (lines: readonly string[]): number =>
-  lines.reduce((total, line) => total + line.split(" ").length, 0);
+/**
+ * Re-exported rather than defined here. The function is pure arithmetic on a string, but this
+ * module reaches ../lib/fonts at import time and that opens a delayRender handle, so anything
+ * that only wants to count words - ./cover.ts and `pnpm validate`, which both run in plain node -
+ * cannot import this file. The definition moved to ./film.ts, beside `statementPlan`, which is
+ * the only thing that consumes it.
+ */
+export { wordCount } from "./film";

@@ -14,7 +14,12 @@ import { KINETIC_NATIVE, kineticNativeDuration } from "../src/kinetic-native/scr
 import { voPlanForKineticNative } from "../src/kinetic-native/vo";
 import { postDuration } from "../src/lib/duration";
 import { FPS } from "../src/lib/scale";
-import { PRO } from "../src/pro/script";
+import { ANGLES } from "../src/pro/angles";
+import { captionsForReel, YOUTUBE_TITLE_MAX } from "../src/pro/captions";
+import { FRAGMENTS } from "../src/pro/media";
+import { PRO, type ProScript } from "../src/pro/script";
+import { coverFrame, coverFrameOfBeat } from "../src/pro/cover";
+import { coverBeat, shotsFor, SHOTS } from "../src/pro/shots";
 import {
   beatFrames as proBeatFrames,
   beatStarts as proBeatStarts,
@@ -23,6 +28,7 @@ import {
 } from "../src/pro/timing";
 import { voPlanForPro } from "../src/pro/vo";
 import type { Hook } from "../src/types";
+import { ANGLE_SHEETS, SHEETS, type SheetName } from "../src/static/sheets";
 import { BEATS as TYPE_CLEAN_BEATS } from "../src/type-clean/plan";
 import { V6 } from "../src/v6/script";
 import { beatFrames, beatStarts, BEAT_LEAD_FRAMES as V6_LEAD, v6Duration } from "../src/v6/timing";
@@ -284,7 +290,8 @@ for (const id of Object.keys(AUDIO)) {
     !hooks.some((hook) => hook.id === id) &&
     !id.startsWith("kinetic-native") &&
     id !== V6.id &&
-    id !== PRO.id
+    id !== PRO.id &&
+    !ANGLES.some((script) => script.id === id)
   ) {
     error(
       `audio.${id}`,
@@ -562,9 +569,22 @@ checkV6();
  */
 const NEGATION = /\b(not|no|never|isn['’]?t|don['’]?t|doesn['’]?t|won['’]?t|can['’]?t)\b/i;
 
-const checkPro = (): void => {
-  for (const [index, beat] of PRO.beats.entries()) {
-    const where = `${PRO.id}.beat${String(index + 1)}`;
+/**
+ * THE ONE PLACE THE CATEGORY MAY BE NAMED, and it is a pair rather than a flag so that no other
+ * script can quietly acquire the exemption.
+ *
+ * `src/pro/angles.ts` carries an `objection` script whose whole subject is the assumption a
+ * swipe deck invites, and a film about that assumption has to be able to say the words once.
+ * The rule below is therefore narrowed to EXACTLY this script and EXACTLY its first beat, and
+ * it is a suspension of the DATING rule only: the NEGATION rule still applies to every beat of
+ * it, and the script passes that unmodified, which is the property that stops this angle from
+ * turning back into the fifth script one edit at a time.
+ */
+const CATEGORY_EXEMPT = { id: "pro-objection", beat: 0 } as const;
+
+const checkProScript = (script: ProScript): void => {
+  for (const [index, beat] of script.beats.entries()) {
+    const where = `${script.id}.beat${String(index + 1)}`;
     if (beat.lines.join(" ") !== beat.phrase) {
       error(
         where,
@@ -596,8 +616,14 @@ const checkPro = (): void => {
       if (text.includes(EM_DASH)) {
         error(where, `contains an em dash: ${JSON.stringify(text)}`);
       }
-      if (DATING.test(text)) {
-        error(where, `names the category this film exists not to be filed under: ${JSON.stringify(text)}`);
+      const exempt = script.id === CATEGORY_EXEMPT.id && index === CATEGORY_EXEMPT.beat;
+      if (DATING.test(text) && !exempt) {
+        error(
+          where,
+          script.id === CATEGORY_EXEMPT.id
+            ? `names the category outside beat ${String(CATEGORY_EXEMPT.beat + 1)}, which is the one beat this script is allowed it: ${JSON.stringify(text)}`
+            : `names the category this film exists not to be filed under: ${JSON.stringify(text)}`,
+        );
       }
       if (NEGATION.test(text)) {
         error(
@@ -608,63 +634,265 @@ const checkPro = (): void => {
     }
   }
 
-  const audio = AUDIO[PRO.id];
+  const audio = AUDIO[script.id];
   if (audio === undefined) {
     warn(
-      `${PRO.id}.audio`,
-      "no voiceover built yet, so all three directions render silent and their beats are estimates. Run pnpm video:audio --only pro-001 twice; see the header of src/pro/timing.ts for why twice.",
+      `${script.id}.audio`,
+      `no voiceover built yet, so the film renders silent and its beats are estimates. Run pnpm video:audio --only ${script.id} twice; see the header of src/pro/timing.ts for why twice.`,
     );
     return;
   }
 
-  const written = voPlanForPro(PRO).lines.map((line) => line.written);
+  const written = voPlanForPro(script).lines.map((line) => line.written);
   const recorded = audio.lines.map((line) => line.written);
   if (JSON.stringify(written) !== JSON.stringify(recorded)) {
     error(
-      `${PRO.id}.audio`,
-      `the mix says ${JSON.stringify(recorded)} and the beats now read ${JSON.stringify(written)}. Re-run pnpm video:audio --only pro-001.`,
+      `${script.id}.audio`,
+      `the mix says ${JSON.stringify(recorded)} and the beats now read ${JSON.stringify(written)}. Re-run pnpm video:audio --only ${script.id}.`,
     );
   }
 
-  const filmFrames = proDuration(PRO);
+  const filmFrames = proDuration(script);
   if (audio.frames !== filmFrames) {
     error(
-      `${PRO.id}.audio`,
-      `the mix is ${audio.frames} frames and the film is ${filmFrames}. They are one clock, and the usual cause is that the audio was built once against an estimated length: run pnpm video:audio --only pro-001 again.`,
+      `${script.id}.audio`,
+      `the mix is ${audio.frames} frames and the film is ${filmFrames}. They are one clock, and the usual cause is that the audio was built once against an estimated length: run pnpm video:audio --only ${script.id} again.`,
     );
   }
 
-  const frames = proBeatFrames(PRO);
-  const starts = proBeatStarts(PRO);
+  const frames = proBeatFrames(script);
+  const starts = proBeatStarts(script);
   starts.forEach((from, index) => {
     const line = audio.lines[index];
     if (line === undefined) {
       error(
-        `${PRO.id}.beats`,
-        `beat ${String(index + 1)} has no phrase in the mix. The read has ${String(audio.lines.length)} lines and the cut has ${String(PRO.beats.length)} beats.`,
+        `${script.id}.beats`,
+        `beat ${String(index + 1)} has no phrase in the mix. The read has ${String(audio.lines.length)} lines and the cut has ${String(script.beats.length)} beats.`,
       );
       return;
     }
     const lead = line.startFrame - from;
     if (Math.abs(lead - PRO_LEAD) > 1) {
       error(
-        `${PRO.id}.beats`,
+        `${script.id}.beats`,
         `beat ${String(index + 1)} starts at frame ${String(from)} and its phrase at ${String(line.startFrame)}, a lead of ${String(lead)} frames where every other beat leads by ${String(PRO_LEAD)}.`,
       );
     }
     const ends = from + (frames[index] ?? 0);
     if (line.endFrame > ends) {
       error(
-        `${PRO.id}.beats`,
+        `${script.id}.beats`,
         `beat ${String(index + 1)} ends at frame ${String(ends)} and its phrase runs to ${String(line.endFrame)}, so the last of it is heard over the next beat's picture.`,
       );
     }
   });
 
-  checkLoudness(PRO.id, audio);
+  checkLoudness(script.id, audio);
 };
 
-checkPro();
+// The seventh script, then the four angles that share its system. One function, five calls, so
+// a rule added for one of them is a rule for all five and cannot be forgotten on the others.
+checkProScript(PRO);
+for (const angle of ANGLES) {
+  checkProScript(angle);
+}
+
+/**
+ * =====================================================================================
+ * THE SHOT PLANS
+ * =====================================================================================
+ *
+ * src/pro/shots.ts is the one thing that differs between the five films DirectionA renders, and
+ * everything in it is an INDEX into a script or a NAME of a fragment. Both are the kind of thing
+ * that stays type-correct while pointing at the wrong beat, so both are checked against the
+ * script they belong to rather than against themselves.
+ *
+ * THE LENGTH CHECK IS THE ONE WORTH HAVING. The two-chip pair is scheduled from the top of its own
+ * beat at +4 to +52 and +46 to +104, which are DirectionA's numbers and are the approved film's. A
+ * beat shorter than 104 frames would start the second chip's return after its own beat had ended,
+ * so the chip would still be in the air when the next picture arrived. Nothing in the type system
+ * can see that, and a script edit that shortens a read causes it silently.
+ */
+const PAIR_FRAMES = 104;
+
+for (const script of [PRO, ...ANGLES]) {
+  const where = `${script.id}.shots`;
+  const shots = shotsFor(script.id);
+  if (!(script.id in SHOTS)) {
+    warn(where, "has no shot plan, so it renders with the approved film's. Add a row to SHOTS.");
+  }
+  const beats = script.beats.length;
+  if (shots.deviceFrom < 0 || shots.deviceFrom >= beats) {
+    error(
+      where,
+      `the device arrives on beat ${String(shots.deviceFrom + 1)} of a ${String(beats)} beat film.`,
+    );
+  }
+  if ((shots.pair === null) !== (shots.evidence < 0)) {
+    error(
+      where,
+      "the evidence beat and the chip pair have to arrive together: a beat given the long solo with nothing lifting off it is a hold with no event in it, and a pair with no beat has nowhere to happen.",
+    );
+  }
+  if (shots.evidence >= beats) {
+    error(
+      where,
+      `the evidence pair is on beat ${String(shots.evidence + 1)} of a ${String(beats)} beat film.`,
+    );
+  }
+  if (shots.pair !== null && shots.evidence >= 0 && shots.evidence < beats) {
+    const window = proBeatFrames(script)[shots.evidence] ?? 0;
+    if (window < PAIR_FRAMES) {
+      error(
+        where,
+        `beat ${String(shots.evidence + 1)} is ${String(window)} frames and the two chip flights need ${String(PAIR_FRAMES)}, so the second chip is still in the air when the next picture arrives.`,
+      );
+    }
+  }
+  for (const frag of [...(shots.pair ?? []), ...shots.close]) {
+    if (!(frag in FRAGMENTS)) {
+      error(where, `lifts ${JSON.stringify(frag)}, which is not a row of FRAGMENTS.`);
+    }
+  }
+
+  /**
+   * THE COVER, which is the only still of a reel most people will ever see.
+   *
+   * Three things have to be true of it and none of them were true of the frame 20 it used to be
+   * taken on. It has to have WORDS on it, which ../src/pro/cover.ts guarantees by solving for the
+   * frame the statement is settled and still. It cannot come off the LAST beat, because that beat
+   * is broken into clause statements and the cover would carry a third of a sentence. And it
+   * cannot come off a beat that NAMES THE CATEGORY: `CATEGORY_EXEMPT` lets one beat of one film
+   * say the word because a film corrects itself two seconds later, and a cover is a permanent
+   * picture on a profile grid with nothing arriving after it to do that.
+   */
+  const cover = coverBeat(script.id);
+  if (cover < 0 || cover >= beats - 1) {
+    error(
+      where,
+      `takes its cover off beat ${String(cover + 1)} of ${String(beats)}. The last beat is three clause statements, so a cover from it is a third of a sentence.`,
+    );
+  } else {
+    const text = (script.beats[cover]?.lines ?? []).join(" ");
+    if (DATING.test(text)) {
+      error(
+        where,
+        `takes its cover off ${JSON.stringify(text)}. A film may name the category once because it corrects itself; a cover has no second beat and would stand as the profile grid's permanent answer.`,
+      );
+    }
+    const frame = coverFrame(script);
+    if (frame !== coverFrameOfBeat(script, cover)) {
+      error(where, "the cover frame and its beat disagree.");
+    }
+    const start = proBeatStarts(script)[cover] ?? 0;
+    const window = proBeatFrames(script)[cover] ?? 0;
+    if (frame <= start || frame >= start + window) {
+      error(
+        where,
+        `derives cover frame ${String(frame)}, which is outside beat ${String(cover + 1)} (${String(start)} to ${String(start + window)}).`,
+      );
+    }
+  }
+}
+
+/**
+ * =====================================================================================
+ * THE ANGLE SHEETS
+ * =====================================================================================
+ *
+ * A still has no second beat, so every rule the film gets to bend across four beats a sheet has to
+ * keep on one frame. The category may not be named at all here: src/pro/angles.ts's exemption is
+ * for the one FILM that names a resemblance and then spends three beats correcting it, and a sheet
+ * has no three beats. The negation rule applies for the same reason it applies to the read.
+ */
+for (const name of ["core", ...ANGLE_SHEETS] as SheetName[]) {
+  const sheet = SHEETS[name];
+  const where = `sheet.${name}`;
+  const statement = sheet.statement.join(" ");
+  if (!new RegExp(`\\b${sheet.key}\\b`, "i").test(statement)) {
+    error(
+      where,
+      `the accent word ${JSON.stringify(sheet.key)} is not in ${JSON.stringify(statement)}, so nothing on the sheet can be marked.`,
+    );
+  }
+  for (const text of [statement, ...sheet.statement]) {
+    if (text.includes(EM_DASH)) {
+      error(where, `contains an em dash: ${JSON.stringify(text)}`);
+    }
+    if (DATING.test(text)) {
+      error(
+        where,
+        `names the category, on a frame with no second beat to correct it: ${JSON.stringify(text)}`,
+      );
+    }
+    if (NEGATION.test(text)) {
+      error(where, `contains a negation: ${JSON.stringify(text)}`);
+    }
+  }
+  const orphan = sheet.statement.find((line) => line.trim().split(/\s+/).length < 2);
+  if (sheet.statement.length > 1 && orphan !== undefined) {
+    error(
+      where,
+      `${JSON.stringify(orphan)} is one word alone on a line, which reads as a mistake on a frame with no motion to explain it.`,
+    );
+  }
+  if (sheet.object.length === 0) {
+    error(where, "has no object, so the sheet is a sentence on paper with no product on it.");
+  }
+}
+
+/**
+ * =====================================================================================
+ * THE REEL CAPTIONS
+ * =====================================================================================
+ *
+ * THE ADDRESS IS THE WHOLE CHECK. An organic Reel, TikTok and Short all have the same property:
+ * nothing in the video is tappable, the end card's url is pixels, and the caption is therefore the
+ * only route out of the post that exists. A block pasted without it is a finished film with no way
+ * to the waitlist, and it fails silently in the one way that costs the entire post.
+ *
+ * The category rule is stricter here than in the films, for the reason src/pro/captions.ts gives:
+ * a caption is the part of a post a classifier parses, so naming the category in one is filing the
+ * post under it in the one place a machine is reading rather than a person.
+ */
+for (const phase of ["waitlist"] as Phase[]) {
+  const cta = CTA[phase];
+  for (const script of ANGLES) {
+    const where = `${script.id}.caption`;
+    const captions = captionsForReel(script, cta);
+    const blocks: [string, string][] = [
+      ["instagram", captions.instagram],
+      ["tiktok", captions.tiktok],
+      ["youtube.title", captions.youtube.title],
+      ["youtube.description", captions.youtube.description],
+    ];
+    for (const [placement, text] of blocks) {
+      if (text.includes(EM_DASH)) {
+        error(`${where}.${placement}`, "contains an em dash");
+      }
+      if (DATING.test(text)) {
+        error(
+          `${where}.${placement}`,
+          `names the category, which in a caption is the one place a classifier reads it: ${JSON.stringify(text)}`,
+        );
+      }
+      // The title is a label in a grid and has no room for the address; every block that is a
+      // caption carries it, because a caption is the only link these three placements have.
+      if (placement !== "youtube.title" && !text.includes(cta.url)) {
+        error(
+          `${where}.${placement}`,
+          `does not carry ${cta.url}. There is no tappable link anywhere in an organic post on any of the three platforms, so this block is the only route to the waitlist.`,
+        );
+      }
+    }
+    if (captions.youtube.title.length > YOUTUBE_TITLE_MAX) {
+      error(
+        `${where}.youtube.title`,
+        `is ${String(captions.youtube.title.length)} characters and YouTube cuts a Shorts title at ${String(YOUTUBE_TITLE_MAX)}.`,
+      );
+    }
+  }
+}
 
 /**
  * THE TYPE DIRECTION'S BREAK TABLE.

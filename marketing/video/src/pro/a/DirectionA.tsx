@@ -33,8 +33,13 @@
  *   floating chips. That is the measured "one peer element" with a handover instead of a cut.
  *
  * =====================================================================================
- * THE SHAPE
+ * THE SHAPE, as the approved film spends it
  * =====================================================================================
+ *
+ * The frames below are `pro-001`'s, and `pro-pain` spends them the same way. The two films whose
+ * hook is about a card have no opening plate and arrive on the device at frame zero instead, and
+ * the film about hours lifts the sent message where the others lift the send button. WHICH
+ * fragment and WHICH beat is ../shots.ts; WHEN, and how, is here and is the same for all five.
  *
  *   f  0-133   the game, as a 940px plate on the ground, the only shot that is not the product
  *              its plate recedes, defocuses and washes toward the paper as the statement builds
@@ -76,6 +81,7 @@ import {
 } from "../motion";
 import { Plane, Stage } from "../Plane";
 import type { ProScript } from "../script";
+import { type LiftName, shotsFor } from "../shots";
 import { AppThemed } from "../theme";
 import { beatFrames, beatStarts, bodyFrames, END_FRAMES } from "../timing";
 import { groupSize, useFaces, wordCount } from "../type";
@@ -129,16 +135,58 @@ const GLASS = {
   role: [120, 1490, 670, 90],
   locked: [330, 425, 520, 640],
   send: [55, 1235, 1070, 206],
-} as const;
+  /** "Hey you on tn?" with the SENT label, which is the picture under `hours` beat four's middle
+   * clause. Its rectangle was already in public/footage/README.md beside the other four; it is
+   * here rather than absent because one script finally has a sentence for it. */
+  bubble: [700, 1105, 460, 200],
+} as const satisfies Record<LiftName, readonly [number, number, number, number]>;
+
+/**
+ * How wide each chip is once it has arrived in front of the device, and every number here is the
+ * approved film's, moved out of the four inline literals it used to be four of.
+ *
+ * The law they obey is the direction's whole argument: a chip flies to somewhere between 640 and
+ * 720px, which is as wide as the 640px device or wider, so the app is literally larger off the
+ * glass than on it. `bubble` takes `games`'s 640 because it is the same order of source width,
+ * 460px against 490, and lifting it to the same place makes the two films' chip flights the same
+ * gesture rather than two sizes of one.
+ */
+const LIFT_W: Record<LiftName, number> = {
+  games: 640,
+  role: 700,
+  locked: 470,
+  send: 720,
+  bubble: 640,
+};
 
 interface LiftShot {
   at: number;
   until: number;
-  frag: "games" | "role" | "locked" | "send";
+  frag: LiftName;
   rect: readonly [number, number, number, number];
   /** How wide it is once it has arrived in front of the device. */
   width: number;
 }
+
+/** One chip's flight, built from the plan rather than typed four times. */
+const lift = (frag: LiftName, at: number, until: number): LiftShot => ({
+  at,
+  until,
+  frag,
+  rect: GLASS[frag],
+  width: LIFT_W[frag],
+});
+
+/**
+ * How far into its own arrival the device already is on frame one, when the device is the film's
+ * FIRST object rather than the thing the gameplay plate hands over to.
+ *
+ * `arrive`'s `lead` exists for exactly this and says so: without it a film that opens on the
+ * device opens on two frames of empty paper while the opacity ramp runs. Three frames in, the
+ * object is already turning and smeared on the frame a cold scroll decides on. It is 0 for the
+ * two films that open on the plate, so the approved film never sees it.
+ */
+const OPENING_LEAD = 3;
 
 /** Frames the flight off the glass takes. Longer than the eight frame arrival because the element
  * is travelling a real distance as well as unwinding, and the reference's own long arrival, the
@@ -296,25 +344,36 @@ export const ProA = ({ script, cta }: { script: ProScript; cta: Cta }) => {
   const statements = statementsOf(script, starts, frames);
   const focus = focusAt(frame, statements);
 
-  const b1 = starts[1] ?? 0;
-  const b2 = starts[2] ?? 0;
+  // WHICH FRAGMENTS THIS SCRIPT NEEDS, and the only thing that differs between the five films
+  // this component renders. Everything below it is frames, and the frames are the same law for
+  // all five. See ../shots.ts for the sentence each shot is under.
+  const shots = shotsFor(script.id);
+  /** The frame the device arrives on. Zero for the two films whose hook is about a card. */
+  const arrives = starts[shots.deviceFrom] ?? 0;
+  /** The beat carrying the two-chip pair, or -1 for the film that has no sentence naming two. */
+  const evidence = shots.evidence < 0 ? -1 : starts[shots.evidence] ?? 0;
   const b3 = starts[3] ?? 0;
   const clause = clauseFrames(frames[3] ?? 1, 3);
   /** The frame the device turns away and the game comes back. */
   const leaves = b3 + clause * 2;
 
   const lifts: LiftShot[] = [
-    { at: b2 + 4, until: b2 + 52, frag: "games", rect: GLASS.games, width: 640 },
-    { at: b2 + 46, until: b2 + 104, frag: "role", rect: GLASS.role, width: 700 },
-    { at: b3 + 2, until: b3 + clause + 2, frag: "locked", rect: GLASS.locked, width: 470 },
-    { at: b3 + clause - 4, until: leaves, frag: "send", rect: GLASS.send, width: 720 },
+    ...(shots.pair !== null && evidence >= 0
+      ? [
+          lift(shots.pair[0], evidence + 4, evidence + 52),
+          lift(shots.pair[1], evidence + 46, evidence + 104),
+        ]
+      : []),
+    lift(shots.close[0], b3 + 2, b3 + clause + 2),
+    lift(shots.close[1], b3 + clause - 4, leaves),
   ];
 
-  // THE DEVICE'S OWN CAMERA. It arrives at b1, gestures once at b1+10, and turns away at `leaves`.
-  // Nothing else moves it, which is the difference between a device in a film and a device in a
-  // mockup: the tilt exists for the frames it means something and is gone the rest of the time.
-  const air = arrive(frame - b1);
-  const gesture = gestureAmount(frame, b1 + 10);
+  // THE DEVICE'S OWN CAMERA. It arrives at `arrives`, gestures once ten frames later, and turns
+  // away at `leaves`. Nothing else moves it, which is the difference between a device in a film
+  // and a device in a mockup: the tilt exists for the frames it means something and is gone the
+  // rest of the time.
+  const air = arrive(frame - arrives, shots.openPlate ? 0 : OPENING_LEAD);
+  const gesture = gestureAmount(frame, arrives + 10);
   const away = ramp(frame, leaves, leaves + 14, 0, 1, EASE.cubicIn);
   const deviceRotY = air.rotY + GESTURE.rotY * gesture + 34 * away;
   const devicePose = {
@@ -344,12 +403,17 @@ export const ProA = ({ script, cta }: { script: ProScript; cta: Cta }) => {
 
   // The two plate windows. The opening one recedes into the device's arrival; the closing one
   // arrives oversized and retracts, which matches the sign of the device receding away from it.
-  const plateIn = frame < b1 + 10;
+  // A film whose hook is about a card has no opening plate at all and opens on the device.
+  const plateIn = shots.openPlate && frame < arrives + 10;
   const plateOut = frame >= leaves - 6 && frame < body;
   const plateReturn = ramp(frame, leaves - 6, leaves + 12, 1.18, 1, EASE.quintOut);
-  const plateLeave = ramp(frame, b1 - 8, b1 + 10, 1, 0.84, EASE.cubicIn);
+  const plateLeave = ramp(frame, arrives - 8, arrives + 10, 1, 0.84, EASE.cubicIn);
 
-  const flash = Math.max(flashAt(frame, b1 + 2), flashAt(frame, b2 + 4), flashAt(frame, b3 + 2));
+  const flash = Math.max(
+    flashAt(frame, arrives + 2),
+    evidence >= 0 ? flashAt(frame, evidence + 4) : 0,
+    flashAt(frame, b3 + 2),
+  );
   const pull = ramp(frame, body - 9, body, 0, 1, EASE.cubicIn);
 
   return (
@@ -359,10 +423,10 @@ export const ProA = ({ script, cta }: { script: ProScript; cta: Cta }) => {
       {plateIn ? (
         <Plate
           frame={frame}
-          frames={b1 + 10}
+          frames={arrives + 10}
           startAt={0}
           focus={focus}
-          pull={plateLeave * (1 - 0.4 * ramp(frame, b1 - 2, b1 + 10, 0, 1, EASE.cubicIn))}
+          pull={plateLeave * (1 - 0.4 * ramp(frame, arrives - 2, arrives + 10, 0, 1, EASE.cubicIn))}
         />
       ) : null}
       {plateOut ? (
@@ -375,7 +439,7 @@ export const ProA = ({ script, cta }: { script: ProScript; cta: Cta }) => {
         />
       ) : null}
 
-      {frame >= b1 - 6 && frame < leaves + 16 ? (
+      {frame >= arrives - 6 && frame < leaves + 16 ? (
         <Stage>
           <Contact
             cx={CENTRE_X}
@@ -394,7 +458,10 @@ export const ProA = ({ script, cta }: { script: ProScript; cta: Cta }) => {
             width={DEVICE_W}
             defocus={lifted}
             z={RECEDE.z * (1 - focus)}
-            startAt={b1 - 6}
+            // Clamped at zero for the two films the device opens: a Sequence may not start
+            // before the composition does, and six frames of lead on frame zero is six frames
+            // that were never going to be rendered.
+            startAt={Math.max(0, arrives - 6)}
           />
           {lifts.map((shot) =>
             frame >= shot.at && frame < shot.until ? (

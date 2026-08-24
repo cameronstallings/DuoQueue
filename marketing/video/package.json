@@ -10,6 +10,8 @@
     "audio": "tsx scripts/build-audio.ts",
     "carousel": "tsx scripts/render-carousel.ts",
     "static": "tsx scripts/render-static.ts",
+    "angles": "tsx scripts/render-angles.ts",
+    "measure": "tsx scripts/measure-out.ts",
     "assets:sync": "tsx scripts/sync-assets.ts",
     "validate": "tsx scripts/validate-content.ts",
     "typecheck": "tsc --noEmit",

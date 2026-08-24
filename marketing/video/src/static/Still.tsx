@@ -74,7 +74,8 @@ import {
   type SizeName,
   type StaticLayout,
 } from "./ground";
-import { KEY_WORD, OBJECT, POSE_AMOUNT, STAMP, STATEMENT, type Piece } from "./plan";
+import { POSE_AMOUNT, STAMP, type Piece } from "./plan";
+import { type Sheet, sheetFor, type SheetName } from "./sheets";
 
 /** The crop's own aspect is what turns a stated width into a height, so nothing is ever
  * stretched and no height on this sheet is a number anybody chose. */
@@ -98,10 +99,10 @@ const heightOf = (piece: Piece, width: number): number => {
  * only direction a surprise is allowed to travel on a sheet where the object's height was solved
  * against the frame.
  */
-const Statement = ({ layout }: { layout: StaticLayout }) => {
-  const size = groupSize(STATEMENT, MEASURE);
+const Statement = ({ layout, sheet }: { layout: StaticLayout; sheet: Sheet }) => {
+  const size = groupSize(sheet.statement, MEASURE);
   const leading = Math.round(size * TYPE.leading);
-  const rows = wordsOf(STATEMENT, KEY_WORD);
+  const rows = wordsOf(sheet.statement, sheet.key);
   const height = leading * rows.length;
   return (
     <div
@@ -156,9 +157,9 @@ const Statement = ({ layout }: { layout: StaticLayout }) => {
  * why it is these two pieces, why the chip is on top, and why the pose is the gesture rather than
  * the arrival.
  */
-const Product = ({ layout }: { layout: StaticLayout }) => {
+const Product = ({ layout, sheet }: { layout: StaticLayout; sheet: Sheet }) => {
   const width = layout.object.width;
-  const heights = OBJECT.map((piece) => heightOf(piece, width));
+  const heights = sheet.object.map((piece) => heightOf(piece, width));
   const pose = {
     ...REST,
     rotX: GESTURE.rotX * POSE_AMOUNT,
@@ -168,7 +169,7 @@ const Product = ({ layout }: { layout: StaticLayout }) => {
   let y = layout.object.top;
   return (
     <Stage>
-      {OBJECT.map((piece, i) => {
+      {sheet.object.map((piece, i) => {
         const height = heights[i] ?? 0;
         const cy = y + height / 2;
         y += height + PIECE_GAP;
@@ -338,16 +339,27 @@ export const Still = ({
   size,
   theme,
   cta,
+  sheet = "core",
 }: {
   size: SizeName;
   theme: AppTheme;
   cta: Cta;
+  /**
+   * WHICH COPY DECK IS ON THE SHEET, and the only thing that differs between the four files
+   * already in out/_static/ and the three angle sheets beside them.
+   *
+   * It defaults to "core", so `render-static.ts` - which does not know this prop exists - keeps
+   * rendering the shipped sheet exactly as it did. See ./sheets.ts for what a second sheet is
+   * allowed to change, which is the words and nothing else.
+   */
+  sheet?: SheetName;
 }) => {
   // fitText caches its measurement for the life of the page, so a size taken before the brand
   // faces land would typeset the whole sheet for a typeface it does not contain. A still has
   // exactly one frame in which to get that wrong.
   const loaded = useFaces();
   const layout = LAYOUT[size];
+  const deck = sheetFor(sheet);
 
   if (!loaded) {
     return <AbsoluteFill style={{ backgroundColor: GROUND.base }} />;
@@ -360,8 +372,8 @@ export const Still = ({
       >
         <AbsoluteFill style={{ backgroundImage: GROUND.sweep }} />
         <AbsoluteFill style={{ backgroundImage: layout.pool }} />
-        <Statement layout={layout} />
-        <Product layout={layout} />
+        <Statement layout={layout} sheet={deck} />
+        <Product layout={layout} sheet={deck} />
         <Ask layout={layout} cta={cta} />
         {/* Nothing is drawn in layout.sticker. That band is the deliverable on the story sheet:
             160px of empty paper where the link sticker lands, so the one placement that can reach

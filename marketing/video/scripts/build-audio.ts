@@ -29,6 +29,7 @@ import { KINETIC_NATIVE } from "../src/kinetic-native/script";
 import { voPlanForKineticNative } from "../src/kinetic-native/vo";
 import { postDuration } from "../src/lib/duration";
 import { FPS } from "../src/lib/scale";
+import { ANGLES } from "../src/pro/angles";
 import { PRO } from "../src/pro/script";
 import { voPlanForPro } from "../src/pro/vo";
 import { V6 } from "../src/v6/script";
@@ -106,7 +107,10 @@ const onPath = (tool: string): string | null => {
   return null;
 };
 
-const findTool = (tool: string): string => {
+/** Exported because scripts/measure-out.ts needs the same three answers in the same order, and a
+ * second copy of "PATH, then the WinGet install, then FFMPEG_DIR overriding both" is a second
+ * place for that order to be wrong. */
+export const findTool = (tool: string): string => {
   const override = process.env.FFMPEG_DIR;
   if (override !== undefined && override !== "") {
     const candidate = path.join(override, exeName(tool));
@@ -692,6 +696,10 @@ export const allPlans = (): VoPlan[] => [
   // variable between the three rendered files is the direction. See src/pro/script.ts for why
   // it is four sentences rather than six fragments.
   voPlanForPro(PRO),
+  // The four angles, on the SAME terms again: one `voPlanForPro` per script, so the read rate,
+  // the gap, the voice and the mix chain are the approved ones and the only variable across the
+  // five films is the words. See src/pro/angles.ts for what each of them is arguing.
+  ...ANGLES.map(voPlanForPro),
 ];
 
 /**

@@ -58,6 +58,19 @@ The carousel is not a video and has no day, so it is run from this directory rat
 the root: `pnpm carousel` writes six 1080x1350 PNGs and a captions file into `out/_carousel/`.
 It touches neither the ledger nor a day folder, so it can be re-run any number of times.
 
+Neither are the static sheets or the four angle reels, and both are run from this directory for
+the same reason:
+
+| Command | What it does |
+| --- | --- |
+| `pnpm static` | The four sheets and their captions, into `out/_static/` |
+| `pnpm angles` | The four angle reels, their covers and their captions into `out/_reels/`, and three more sheets into `out/_static/` |
+| `pnpm measure` | Reads the finished files back: mean luma, runtime and loudness, with the approved direction printed beside them |
+
+`pnpm angles` writes nothing an earlier deliverable owns. Its sheets are named
+`feed-<angle>-light.png`, which `pnpm static` cannot produce, and its films go to `out/_reels/`,
+which nothing else writes.
+
 The three campaign ads are not on the day queue either, because they are one script rendered
 three ways rather than a day's posts. They render by composition id from this directory:
 
@@ -301,3 +314,84 @@ three letter function word, was at about 500px and THIS IS was at about 215. Cam
 was that the words were too big and it felt cheap, and both halves of that are answered in
 `src/type-clean/type.ts`, which sets the whole film at ONE hero size and one support size and
 records what each line measured.
+
+
+### The four angles
+
+The direction competition is over: `pro-a-light` won it out of eleven, so the next batch is not a
+new look, it is new WORDS in the one that was chosen. Four reels, one per reason a stranger might
+stop, all of them `ProALight` with the same ground, camera, type law, recede, audio chain and end
+card. The only thing that differs between them is the script and WHICH APP FRAGMENTS that script
+needs, which is `src/pro/shots.ts` and is thirty lines of data.
+
+| reel | angle | frames | seconds | says |
+| --- | --- | --- | --- | --- |
+| `out/_reels/reel-pain.mp4` | the pain | 556 | 18.53 | solo queue hands you four strangers and a coin flip |
+| `out/_reels/reel-hours.mp4` | the hours | 543 | 18.10 | you play at midnight and everyone you know plays at eight |
+| `out/_reels/reel-objection.mp4` | the objection | 580 | 19.33 | it looks like a dating app until you read a card |
+| `out/_reels/reel-mechanic.mp4` | the mechanic | 523 | 17.43 | every card you see was scored before it was dealt |
+
+Measured off the finished containers with `pnpm measure`, with the approved direction in the same
+table so the comparison is against the file Cameron actually chose:
+
+| file | mean luma | LUFS | dBTP | LRA |
+| --- | --- | --- | --- | --- |
+| `pro-a-light.mp4` (reference) | 228.3 | -15.1 | -1.9 | 6.9 |
+| `reel-pain.mp4` | 228.7 | -15.1 | -1.8 | 6.0 |
+| `reel-hours.mp4` | 229.5 | -15.2 | -1.9 | 8.0 |
+| `reel-mechanic.mp4` | 230.5 | -15.0 | -1.8 | 6.6 |
+| `reel-objection.mp4` | 231.7 | -15.1 | -1.9 | 6.1 |
+
+Mean luma is `signalstats` YAVG averaged over every fifth frame. TWO THINGS ARE WORTH SAYING ABOUT
+THAT NUMBER rather than letting a future reader rediscover them.
+
+The first is that the whole LIGHT-APP family sits ABOVE the 194-223 band the campaign quotes, the
+approved file included, and it is not a defect: 194 is Uber and 223 is ClickUp, both measured on
+their own grounds, and this ground is a warm off-white with a light-themed app on it. Measured the
+same way, `pro-a.mp4` is 221.1, `pro-b-light.mp4` 220.4 and `pro-b.mp4` 219.1 - the three that
+carry the app's DARK theme, or its dark object, land inside the band and the one that does not is
+the one that shipped. So the band is the wrong instrument for this cut and the reference row is
+the right one. Every reel in this batch is within 3.4 units of it.
+
+The second is that the number's real job is still done. The failure it exists to catch is a batch
+that came back at 19, which is a film that rendered essentially black, and 228 against 19 is a
+factor of twelve.
+
+The loudness column is measured on the MP4 rather than on the WAV, and it reads about 0.4 LU
+quieter for that reason: the committed mixes in `src/audio/timings.generated.ts` are -14.6 to
+-14.7 LUFS, the containers are -15.0 to -15.2, and the approved reference makes the same trip
+(-14.7 in the table, -15.1 in the file). Every file is under the -1 dBTP ceiling.
+
+#### The three sheets
+
+`pnpm angles` also writes three more 1080x1350 sheets into `out/_static/`, on the design
+`feed-light.png` already uses, with the statement as the only variable:
+
+| file | says | mean luma |
+| --- | --- | --- |
+| `feed-pain-light.png` | pick one of your four | 196.7 |
+| `feed-hours-light.png` | find a duo who is awake when you are | 199.3 |
+| `feed-mechanic-light.png` | your deck is sorted by shared games and shared hours | 196.7 |
+
+The shipped `feed-light.png` measures 199.3 on the same filter, so the three are its siblings
+rather than a new look. All four sheets already in that folder are untouched.
+
+THERE IS NO OBJECTION SHEET, and `src/static/sheets.ts` carries the argument at length. The short
+version: that angle's method is a resemblance named and then corrected, the correction is a second
+beat, and a still has no second beat. The film may say the line because the film finishes the
+sentence.
+
+#### What proves the approved film did not move
+
+`src/pro/film.ts`, `src/pro/a/DirectionA.tsx` and `src/pro/register.tsx` all changed to let one
+component render five films, so the claim that `pro-a-light` is unchanged has to be measured
+rather than asserted. Re-rendering `Pro-A-Light` from the new source and running ffmpeg's `psnr`
+against the shipped file gives 203 of 551 frames bit-identical, the rest at 44.7 dB or better,
+with every difference inside frames 135-490.
+
+That is not proof on its own, so the control: rendering `Pro-A-Light` TWICE from the same source
+and comparing those two gives the same answer - 209 bit-identical, worst 44.69 dB, at the same
+frame, over the same range. The residual is `OffthreadVideo` decode, which is not bit-deterministic
+across runs, and the two comparisons are indistinguishable. Frames 1-134, which are the gameplay
+plate and the first statement and contain no decoded footage, and frames 507-551, which are the
+end card, are bit-identical in both.

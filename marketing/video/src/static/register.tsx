@@ -23,7 +23,15 @@ export const StaticCompositions = () => (
     height={LAYOUT.feed.h}
     fps={FPS}
     durationInFrames={1}
-    defaultProps={{ size: "feed" as const, theme: "dark" as const, cta: CTA.waitlist }}
+    // `sheet` is the copy deck, and "core" is the one already in out/_static/. render-static.ts
+    // passes no sheet and therefore gets this, which is what keeps the four shipped PNGs the
+    // files they are; scripts/render-angles.ts names one per sheet. See ./sheets.ts.
+    defaultProps={{
+      size: "feed" as const,
+      theme: "dark" as const,
+      cta: CTA.waitlist,
+      sheet: "core" as const,
+    }}
     calculateMetadata={({ props }) => ({
       width: LAYOUT[props.size].w,
       height: LAYOUT[props.size].h,
