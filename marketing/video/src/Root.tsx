@@ -1,6 +1,7 @@
 import { Composition } from "remotion";
 
 import { CarouselCompositions } from "@/carousel/register";
+import { CarouselsCompositions } from "@/carousels/register";
 import { BrandSheet } from "@/compositions/BrandSheet";
 import { Normalize, NORMALIZE_DEFAULTS } from "@/compositions/Normalize";
 import { Post } from "@/compositions/Post";
@@ -122,6 +123,15 @@ export const RemotionRoot = () => (
         than restating them, so it cannot drift away from the finished ads. It registers ONE
         composition and the script drives it six times by index. */}
     <CarouselCompositions />
+    {/* TEN more of them, on the same ground and the same camera and the same last card, and a
+        different ARGUMENT SHAPE each. The shipped six are a walkthrough; these are a figure, a
+        mechanic, an objection with callouts, two clocks, an inverted set about the first message,
+        a mutual-consent set, a skill-match set, the loop told backwards, one sentence broken
+        across a swipe, and the case for a founding deck. Four to six cards each and every one of
+        them ends on the SAME file. It renders from src/carousels/ and writes out/_carousels/,
+        which is a different directory and a different composition id from the six above, so
+        `pnpm carousel` and out/_carousel/ cannot be reached from here. */}
+    <CarouselsCompositions />
     {/* The same direction again in the format that has neither time nor a swipe: a static ad, in
         two sizes and both app themes, rendered as four stills by scripts/render-static.ts. It is
         built on src/pro/ the way the carousel is, and the whole of what it adds is a reading

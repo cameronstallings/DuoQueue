@@ -9,6 +9,7 @@
     "render-day": "tsx scripts/render-day.ts",
     "audio": "tsx scripts/build-audio.ts",
     "carousel": "tsx scripts/render-carousel.ts",
+    "carousels": "tsx scripts/render-carousels.ts",
     "static": "tsx scripts/render-static.ts",
     "angles": "tsx scripts/render-angles.ts",
     "measure": "tsx scripts/measure-out.ts",

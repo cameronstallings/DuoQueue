@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { MIX_TARGET } from "../src/audio/mix";
+import { SHIPPED_LUMA } from "../src/carousels/ground";
 import { findTool } from "./build-audio";
 
 /**
@@ -163,6 +164,24 @@ const videosIn = (dir: string): string[] =>
         .map((file) => path.join(dir, file))
     : [];
 
+/**
+ * Every PNG under a directory of directories, which is the shape out/_carousels/ has: ten set
+ * folders and a captions file. Sorted so the table reads in upload order inside each set.
+ */
+const stillsUnder = (dir: string): string[] =>
+  fs.existsSync(dir)
+    ? fs
+        .readdirSync(dir, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .flatMap((entry) =>
+          fs
+            .readdirSync(path.join(dir, entry.name))
+            .filter((file) => file.endsWith(".png"))
+            .sort()
+            .map((file) => path.join(dir, entry.name, file)),
+        )
+    : [];
+
 const stillsIn = (dir: string, match: RegExp): string[] =>
   fs.existsSync(dir)
     ? fs
@@ -191,6 +210,10 @@ const main = (): void => {
       : [
           ...stillsIn(path.join(OUT, "_static"), /^feed-.*-light\.png$/),
           ...stillsIn(path.join(OUT, "_reels"), /^reel-.*-cover\.png$/),
+          // The shipped carousel and the ten, because a card is a still that ships and the two
+          // together are what "the light family" actually means as a number.
+          ...stillsIn(path.join(OUT, "_carousel"), /\.png$/),
+          ...stillsUnder(path.join(OUT, "_carousels")),
         ];
 
   const reference = fs.existsSync(REFERENCE) && !explicit.includes(REFERENCE) ? REFERENCE : null;
@@ -233,11 +256,19 @@ const main = (): void => {
   }
 
   if (stills.length > 0) {
-    console.log(`${pad("still", 26)}luma`);
+    console.log(`${pad("still", 40)}luma`);
     for (const file of stills) {
       const luma = lumaOf(file, 1);
-      console.log(pad(path.basename(file), 26) + luma.mean.toFixed(1));
+      // A carousel card is named by its folder as well as its file, because forty-nine rows of
+      // "03-the-playstyle.png" is a table nobody can read.
+      const parent = path.basename(path.dirname(file));
+      const name = parent.startsWith("_") ? path.basename(file) : `${parent}/${path.basename(file)}`;
+      console.log(pad(name, 40) + luma.mean.toFixed(1));
     }
+    console.log("");
+    console.log(`The shipped carousel measures ${String(SHIPPED_LUMA.min)} to ${String(SHIPPED_LUMA.max)}, mean ${String(SHIPPED_LUMA.mean)}, and is the`);
+    console.log("family a new card has to look like. src/carousels/ground.ts carries the two bands");
+    console.log("and the reason a card of bare paper is measured against a different one.");
     console.log("");
   }
 

@@ -95,7 +95,18 @@ const fitOne = (text: string, within: number): number =>
  * The one size a group of lines shown together is set at: the largest that fits every one of them
  * inside the measure, clamped into the band the references measured.
  */
-export const groupSize = (lines: readonly string[], measure: number = TYPE.measure): number => {
+export const groupSize = (
+  lines: readonly string[],
+  measure: number = TYPE.measure,
+  /**
+   * The ceiling, which is TYPE.max for every caller in the three films and is a parameter only
+   * because two callers in src/carousels/ need a DIFFERENT one and neither of them may change
+   * this one. A display FIGURE is the picture on its card rather than a short headline, so its
+   * ceiling is 412; and a three-line block is constrained by its line count rather than by its
+   * width, so its ceiling is 107. Defaulted, so no existing call site changes by a pixel.
+   */
+  max: number = TYPE.max,
+): number => {
   const smallest = lines.reduce(
     (size, line) => Math.min(size, fitOne(line, measure)),
     Number.POSITIVE_INFINITY,
@@ -104,7 +115,7 @@ export const groupSize = (lines: readonly string[], measure: number = TYPE.measu
   // one at 94.8% of the frame and ran beat three off the right edge: raising a fitted size makes
   // the line wider than the measure it was fitted to, so the clamp defeated the fit. See the TYPE
   // block in ground.ts for the measurements off the rendered frames.
-  return Math.round(Math.min(TYPE.max, smallest));
+  return Math.round(Math.min(max, smallest));
 };
 
 /** One word, and whether the script named it as this beat's accent. Matched whole-word and case

@@ -14,6 +14,7 @@ import { KINETIC_NATIVE, kineticNativeDuration } from "../src/kinetic-native/scr
 import { voPlanForKineticNative } from "../src/kinetic-native/vo";
 import { postDuration } from "../src/lib/duration";
 import { FPS } from "../src/lib/scale";
+import { checkCarouselSets } from "./check-carousels";
 import { ANGLES } from "../src/pro/angles";
 import { captionsForReel, YOUTUBE_TITLE_MAX } from "../src/pro/captions";
 import { FRAGMENTS } from "../src/pro/media";
@@ -962,6 +963,20 @@ const checkTypeClean = (): void => {
 };
 
 checkTypeClean();
+
+/**
+ * THE TEN CAROUSEL SETS.
+ *
+ * Their rules are geometric rather than editorial, so they live in ./check-carousels.ts beside
+ * the arithmetic they check and are called from here, which is what `pnpm verify` runs. Every one
+ * of them exists because the same thing had to be worked out by hand once: a three-line block
+ * fitted to the measure comes back at 138 and walks into the head row, an object drawn a hundred
+ * pixels wider drops its shadow onto the foot row, and the platonic stamp at the static sheet's
+ * own separator widths does not fit on a row it has to share with the swipe cue.
+ */
+for (const finding of checkCarouselSets()) {
+  error(finding.where, finding.message);
+}
 
 /**
  * One line, not one per post.
