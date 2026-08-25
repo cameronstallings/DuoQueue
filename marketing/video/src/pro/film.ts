@@ -65,20 +65,130 @@ export interface StatementPlan {
 }
 
 /**
+ * =====================================================================================
+ * THE HOOK, WHICH IS THE ONE STATEMENT WHOSE DEADLINE IS SET OUTSIDE THE FILM
+ * =====================================================================================
+ *
+ * MEASURED ON THE DELIVERED BATCH, by pulling frames out of the MP4s rather than by reading the
+ * plan. `statementPlan` at `SOLO.normal` and the measured cadence of 5 put the last word of the
+ * first sentence at:
+ *
+ *   reel-pain        f81   2.700s   "solo queue hands you four strangers and a coin flip"
+ *   reel-mechanic    f81   2.700s   "every card you see was scored before it was dealt"
+ *   reel-objection   f86   2.867s   "it looks like a dating app until you read a card"
+ *   reel-hours       f86   2.867s   "you play at midnight and everyone you know plays at eight"
+ *   pro-a-light      f86   2.867s   "your best games were the ones you played with someone else"
+ *
+ * The voice starts at 0.20s in every one of them, so for a full second the viewer hears a sentence
+ * they cannot read, and the differentiator lands somewhere north of two and a half seconds. A
+ * scroll decision on Reels and TikTok is made in roughly the first 1 to 1.5 seconds. So the film
+ * spent the whole decision window on an object and delivered its argument after the decision. On a
+ * cold account with no follower graph carrying the post, that opening IS the distribution.
+ *
+ * THE DEADLINE IS THEREFORE 1.2 SECONDS, f36, AND IT IS FINISHED RATHER THAN STARTED. `settleBy`
+ * below is f34, two frames inside it.
+ *
+ * =====================================================================================
+ * WHY THE PER-WORD BUILD SURVIVES ON THE ONE BEAT THAT COULD NOT AFFORD IT
+ * =====================================================================================
+ *
+ * The build is a flourish, and .claude/skills/animate is explicit that a flourish which costs the
+ * thing it decorates is a defect. A hook exists to be READ. So the third option - beat one presents
+ * its line already composed, no build at all, legible on the frame it appears - is the one to beat,
+ * and it is the right answer whenever the arithmetic says the build finishes after the deadline.
+ *
+ * The arithmetic does not say that. At `solo` 0 and the cadence below, the hook is complete at f34
+ * and the FIRST word is complete at f6, 0.20s, which is the frame the voice starts on. The entire
+ * build happens inside the decision window. It therefore costs the read nothing, and against that
+ * zero cost it buys three things a composed block does not:
+ *
+ *   IT IS THE READING ORDER. Ten words on three lines dropped in whole is a block the eye has to
+ *   find its own way into. Revealed left to right at a tenth of a second a word, the film does the
+ *   scanning: by the time the last word lands the viewer has been walked through the sentence once.
+ *
+ *   IT MOVES DURING THE ONLY SECOND THAT DECIDES ANYTHING. A composed block is a static poster for
+ *   the whole of its hold. Something arriving is what stops a thumb, and the film's first frames
+ *   are already a ramp out of black and a plate receding; type writing itself is the third thing in
+ *   that motion rather than a fourth state after it.
+ *
+ *   IT IS THE FILM'S OWN TYPE LAW. Beats two, three and four build word by word and are not being
+ *   touched. A composed beat one would be the viewer's first impression of a system the film then
+ *   abandons, and the seam into beat two would read as the film slowing down rather than opening.
+ *
+ * If a future hook is long enough that `minCadence` cannot get it inside `settleBy`, the build has
+ * started costing the thing it decorates and the composed presentation is what that hook should
+ * get. Nothing here is a defence of the build in general; it is arithmetic that came out in its
+ * favour on five specific sentences.
+ */
+export const HOOK = {
+  /**
+   * Frames the object owns beat one by itself. ZERO, against `SOLO.normal`'s 30.
+   *
+   * `SOLO` calls this "how long the object owns the frame by itself", and on beats two onward that
+   * is a real want and is unchanged. On beat one it is a luxury the film cannot afford: 30 frames
+   * of object alone is 1.0s of the 1.2s the entire decision gets.
+   *
+   * At zero, `focusAt` starts the recede at `-RECEDE.lead` and finishes it on f6, so the paper is
+   * already clean before the second word has landed. Note what this does NOT do: it does not
+   * composite a statement over an object. The recede still leads the type by the same four frames
+   * it always did; it now leads it from before frame zero.
+   */
+  solo: 0,
+  /**
+   * The frame beat one's last word is fully painted on. 34 frames, 1.133s.
+   *
+   * A word is finished `BUILD.frames` after it starts, so this is a deadline the cadence is solved
+   * backwards from rather than a target the build drifts toward. Every hook in the batch lands on
+   * this exact frame whatever its length, which is worth having on its own: five films that exist
+   * to be compared now open on one clock.
+   */
+  settleBy: 34,
+  /**
+   * The floor under the hook's cadence, below which the last words machine-gun.
+   *
+   * The general floor is 3 and this is 2.6, and the difference is what the two floors are for. 3
+   * stops a twelve word sentence being told faster than the beat that holds it can afford - a
+   * question about ROOM. This one is a question about LEGIBILITY: 2.6 frames is 0.087s a word,
+   * flat, with no decay. The rejected direction's 2 frames with a 0.84 decay on top is what
+   * machine-gunning actually was, and it is the decay rather than the interval that did it - its
+   * last words landed about a frame apart. A constant interval does not accelerate and reads as
+   * one continuous write.
+   *
+   * At the batch's longest hook, eleven words, the solved cadence is 2.8 and the floor is never
+   * reached. It exists so that a longer hook fails visibly against `settleBy` rather than silently
+   * against the eye.
+   */
+  minCadence: 2.6,
+} as const;
+
+/**
  * Where a statement lives inside a window.
  *
- * `startAt` is the earliest the statement may begin, which is how long the direction wants the
- * object to own the frame by itself. Everything after that is derived from the exit backwards.
+ * `statement.solo` is the earliest the statement may begin, which is how long the direction wants
+ * the object to own the frame by itself. Everything after that is derived from the exit backwards,
+ * EXCEPT on the hook, which is derived forwards from `settleBy` because the hook's deadline is a
+ * fact about the platform rather than about the beat.
+ *
+ * It takes the whole `Statement` rather than three loose numbers so the hook rule cannot be applied
+ * at one call site and forgotten at the other two: the cover still is solved out of this function
+ * as well as the two directions that render from it.
  */
-export const statementPlan = (
-  window: number,
-  words: number,
-  startAt: number,
-): StatementPlan => {
-  const exitAt = window - exitFrames(words);
-  const room = exitAt - startAt - BUILD.hold - BUILD.frames;
-  const cadence = Math.min(5, Math.max(3, room / Math.max(1, words - 1)));
-  return { start: startAt, cadence, exitAt };
+export const statementPlan = (statement: Statement, words: number): StatementPlan => {
+  const start = statement.solo;
+  const exitAt = statement.window - exitFrames(words);
+  const gaps = Math.max(1, words - 1);
+  if (statement.settleBy !== undefined) {
+    // Forwards from the deadline. The last word starts on (words - 1) * cadence and is finished
+    // BUILD.frames later, so this lands on `settleBy` exactly whenever the floor is not in the way.
+    const cadence = Math.min(
+      5,
+      Math.max(HOOK.minCadence, (statement.settleBy - start - BUILD.frames) / gaps),
+    );
+    return { start, cadence, exitAt };
+  }
+  const room = exitAt - start - BUILD.hold - BUILD.frames;
+  const cadence = Math.min(5, Math.max(3, room / gaps));
+  return { start, cadence, exitAt };
 };
 
 /**
@@ -165,6 +275,11 @@ export const CLOSING_HOLD = 19;
  * `objection`, and `hours` does not have one at all. `pro-001` and `pro-pain` answer 2, so the
  * approved film is unchanged. The clauses of the last beat get eight frames each, which is the
  * price of three landings inside one breath.
+ *
+ * NONE OF THESE THREE APPLIES TO BEAT ONE ANY MORE. `HOOK.solo` does, and it is zero. Every number
+ * here is an answer to "how long should the object have the frame to itself", and beat one is the
+ * one beat where that is not the question being asked. Beats two onward are unchanged, including
+ * on the two films whose evidence beat is beat two.
  */
 export const SOLO = { normal: 30, evidence: 58, clause: 8 } as const;
 
@@ -174,6 +289,15 @@ export interface Statement {
   lines: readonly string[];
   key: string;
   solo: number;
+  /**
+   * The frame, local to the beat, this statement's last word has to be fully painted by.
+   *
+   * Set on beat one and on nothing else. A statement without it is planned the way every statement
+   * in the three directions has always been planned - backwards from its exit, at the measured
+   * cadence, with the room it happens to have. A statement WITH it is planned forwards from a
+   * deadline that comes from the platform rather than from the beat. See `HOOK`.
+   */
+  settleBy?: number;
 }
 
 export const statementsOf = (
@@ -191,7 +315,13 @@ export const statementsOf = (
           window,
           lines: beat.lines,
           key: beat.key,
-          solo: index === evidenceBeat(script.id) ? SOLO.evidence : SOLO.normal,
+          // BEAT ONE IS THE HOOK AND IS PLANNED AGAINST THE CLOCK A STRANGER SCROLLS ON, which is
+          // the only statement in the film whose timing is not an internal question. It takes
+          // `HOOK.solo` even if a shot plan were ever to put the two-chip pair on beat zero: a
+          // hook that arrives after the decision has been made is not evidence of anything.
+          ...(index === 0
+            ? { solo: HOOK.solo, settleBy: HOOK.settleBy }
+            : { solo: index === evidenceBeat(script.id) ? SOLO.evidence : SOLO.normal }),
         },
       ];
     }

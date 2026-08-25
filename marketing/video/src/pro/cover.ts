@@ -9,9 +9,11 @@
  * scripts. Measured on the delivered batch, that is the worst frame the renderer could have
  * picked, and it fails in three ways at once:
  *
- *   NO WORDS. The first word of a statement lands on frame 34 - `SOLO.normal` is 30 and a word
- *   needs `BUILD.frames` to settle - so frame 20 is always before the type exists. Every cover in
- *   the batch was a wordless picture.
+ *   NO WORDS. When that batch was cut, the first word of a statement landed on frame 34 -
+ *   `SOLO.normal` was 30 and a word needs `BUILD.frames` to settle - so frame 20 was always before
+ *   the type existed. Every cover in the batch was a wordless picture. The hook retime has since
+ *   moved beat one's first word to frame 6, which does not make frame 20 a defensible cover: it
+ *   is four words into a ten word sentence and the other two failures below are untouched by it.
  *
  *   IDENTICAL COVERS. Frame 20 is inside the opening object beat, and the opening object beat is
  *   a property of the shot plan rather than of the words. `pain` and `hours` both open on the
@@ -39,9 +41,12 @@
  *   exitAt    at + exitAt                                          the first word starts leaving
  *
  * The cover is the midpoint of [settled, exitAt], which is the only frame in a beat where the
- * whole sentence is on the frame and nothing is moving. Checked against pixels on `objection`
- * beat one: start 30, cadence 5, words 11, so settled = 86, and frame 86 is the first frame whose
- * last word reads `card`. The derivation and the render agree.
+ * whole sentence is on the frame and nothing is moving.
+ *
+ * Re-checked against pixels after the hook retime, on `pain` beat one: `HOOK.solo` is 0 and the
+ * cadence solves to 3.111 over ten words, so settled = 34 and exitAt = 103, and the cover comes off
+ * frame 69 rather than frame 92. It is a longer still hold than the old plan gave, not a shorter
+ * one: the hook now finishes building 47 frames earlier and leaves on the same frame it always did.
  *
  * WHICH BEAT is a shot-plan decision and lives in ./shots.ts beside the other three, because it
  * is the same kind of question: what is the picture under this sentence.
@@ -62,7 +67,7 @@ export const coverFrameOfBeat = (script: ProScript, beat: number): number => {
     throw new Error(`${script.id}: no statement starts on beat ${String(beat)}.`);
   }
   const words = wordCount(statement.lines);
-  const shape = statementPlan(statement.window, words, statement.solo);
+  const shape = statementPlan(statement, words);
   const settled = shape.start + shape.cadence * (words - 1) + BUILD.frames;
   return statement.at + Math.round((settled + shape.exitAt) / 2);
 };

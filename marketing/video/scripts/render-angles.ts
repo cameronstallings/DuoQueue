@@ -13,12 +13,13 @@ import { ANGLES, compositionFor, fileFor } from "../src/pro/angles";
 import { reelCaptionsMarkdown, type ReelRow } from "../src/pro/captions";
 import { FRAGMENTS, type FragName } from "../src/pro/media";
 import { coverFrame } from "../src/pro/cover";
+import { PRO, type ProScript } from "../src/pro/script";
 import { shotsFor } from "../src/pro/shots";
 import { proDuration } from "../src/pro/timing";
 import { ANGLE_SHEETS, SHEETS } from "../src/static/sheets";
 
 /**
- * `pnpm angles` ends with out/_reels/ holding four MP4s and a captions file, and out/_static/
+ * `pnpm angles` ends with out/_reels/ holding five MP4s and a captions file, and out/_static/
  * holding three more sheets beside the four that are already there.
  *
  * =====================================================================================
@@ -65,6 +66,42 @@ const JPEG_QUALITY = 90;
 const THEME = "light" as const;
 
 /**
+ * THE FIVE FILMS THIS SCRIPT WRITES, AND WHY THE FIFTH IS NOT AN ANGLE.
+ *
+ * `reel-nostalgia.mp4` is `pro-001`, the approved film, rendered out of the SAME `Pro-A-Light`
+ * composition the four angles use and therefore carrying the same beat-one retime. It is here so
+ * that all five films Cameron has are in one folder on one clock, and for exactly one other
+ * reason: `pnpm measure` reads every MP4 in out/_reels, so the film the batch is judged against
+ * gets measured through the same filter as the batch rather than quoted from a previous run.
+ *
+ * IT IS NOT A POST AND IT DOES NOT GET A CAPTION BLOCK. The version of this film that went out is
+ * out/_directions/pro-a-light.mp4, which this script has never written and still does not: nothing
+ * below names that path, so the posted asset stays byte-identical. `captionsForReel` would throw on
+ * `pro-001` anyway, because there is no COPY row for it and writing one would be writing a caption
+ * for a post nobody is making.
+ */
+interface Film {
+  script: ProScript;
+  /** The composition id, which for the four angles is a name of their own and for the approved
+   * film is the direction it was cut in. */
+  id: string;
+  /** The basename on disk, without an extension. */
+  base: string;
+  /** Whether the film gets a row in captions.md. False for exactly one of the five. */
+  captioned: boolean;
+}
+
+const FILMS: Film[] = [
+  ...ANGLES.map((script) => ({
+    script,
+    id: compositionFor(script.id),
+    base: fileFor(script.id),
+    captioned: true,
+  })),
+  { script: PRO, id: "Pro-A-Light", base: "reel-nostalgia", captioned: false },
+];
+
+/**
  * The cover frame is DERIVED PER FILM, in ../src/pro/cover.ts, and is no longer frame 20.
  *
  * Frame 20 was inherited from the day pipeline and it is the wrong frame for a reel that has to
@@ -103,7 +140,7 @@ const ensureAssets = async (): Promise<void> => {
  */
 const wantedFragments = (): FragName[] => {
   const wanted = new Set<FragName>(["screen", "play"]);
-  for (const script of ANGLES) {
+  for (const { script } of FILMS) {
     const shots = shotsFor(script.id);
     for (const frag of [...(shots.pair ?? []), ...shots.close]) {
       wanted.add(frag);
@@ -222,10 +259,10 @@ const main = async (): Promise<void> => {
   console.log(`bundled in ${took(bundleStarted)}`);
 
   const rows: ReelRow[] = [];
+  /** The films that are written but not captioned. See FILMS. */
+  const extra: ReelRow[] = [];
 
-  for (const script of ANGLES) {
-    const id = compositionFor(script.id);
-    const base = fileFor(script.id);
+  for (const { script, id, base, captioned } of FILMS) {
     const inputProps = { script, cta };
     const started = Date.now();
 
@@ -275,12 +312,17 @@ const main = async (): Promise<void> => {
       timeoutInMilliseconds: RENDER_TIMEOUT_MS,
     });
 
-    rows.push({
+    const row = {
       file: `${base}.mp4`,
       script,
       frames: composition.durationInFrames,
       seconds: composition.durationInFrames / composition.fps,
-    });
+    };
+    if (captioned) {
+      rows.push(row);
+    } else {
+      extra.push(row);
+    }
   }
 
   for (const name of coversOnly ? [] : ANGLE_SHEETS) {
@@ -311,8 +353,8 @@ const main = async (): Promise<void> => {
   if (coversOnly) {
     console.log("");
     console.log(`${rel(REELS_DIR)}  covers only, no film and no sheet re-rendered`);
-    for (const script of ANGLES) {
-      console.log(`  ${fileFor(script.id)}-cover.png  f${String(coverFrame(script))}`);
+    for (const { script, base } of FILMS) {
+      console.log(`  ${base}-cover.png  f${String(coverFrame(script))}`);
     }
     return;
   }
@@ -321,7 +363,7 @@ const main = async (): Promise<void> => {
 
   console.log("");
   console.log(rel(REELS_DIR));
-  for (const row of rows) {
+  for (const row of [...rows, ...extra]) {
     console.log(`  ${row.file}  ${String(row.frames)}f  ${row.seconds.toFixed(2)}s`);
   }
   console.log("  captions.md");
@@ -333,7 +375,7 @@ const main = async (): Promise<void> => {
 
   // A last look at the clock, from the composition rather than from the file, so a mismatch
   // between what was asked for and what was rendered is caught here rather than in ffprobe.
-  for (const row of rows) {
+  for (const row of [...rows, ...extra]) {
     const expected = proDuration(row.script);
     if (row.frames !== expected) {
       throw new Error(

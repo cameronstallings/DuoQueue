@@ -302,6 +302,13 @@ export const reelCaptionsMarkdown = (cta: Cta, rows: readonly ReelRow[]): string
     "| TikTok | on the post screen, Select cover, then Upload |",
     "| YouTube Shorts | Edit, Thumbnail, Upload file. Shorts allows a custom one on a verified account |",
     "",
+    "## The fifth file in this folder is not a fifth post",
+    "",
+    "`reel-nostalgia.mp4` is the approved film, `pro-001`, re-rendered here with the same hook",
+    "retime the four angles got, so all five are in one folder and can be compared on one clock. It",
+    "has no caption block below because it is not a new post: the version that went out is",
+    "`out/_directions/pro-a-light.mp4` and that file is untouched and stays untouched.",
+    "",
     ...blocks,
   ].join("\n")}\n`;
 };

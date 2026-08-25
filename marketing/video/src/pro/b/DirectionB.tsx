@@ -176,7 +176,7 @@ export const ProB = ({ script, cta }: { script: ProScript; cta: Cta }) => {
           return null;
         }
         const words = wordCount(statement.lines);
-        const shape = statementPlan(statement.window, words, statement.solo);
+        const shape = statementPlan(statement, words);
         return (
           <Words
             key={statement.at}

@@ -64,7 +64,7 @@ the same reason:
 | Command | What it does |
 | --- | --- |
 | `pnpm static` | The four sheets and their captions, into `out/_static/` |
-| `pnpm angles` | The four angle reels, their covers and their captions into `out/_reels/`, and three more sheets into `out/_static/` |
+| `pnpm angles` | The four angle reels and the approved film, their covers and their captions into `out/_reels/`, and three more sheets into `out/_static/` |
 | `pnpm measure` | Reads the finished files back: mean luma, runtime and loudness, with the approved direction printed beside them |
 
 `pnpm angles` writes nothing an earlier deliverable owns. Its sheets are named
@@ -330,6 +330,11 @@ needs, which is `src/pro/shots.ts` and is thirty lines of data.
 | `out/_reels/reel-hours.mp4` | the hours | 543 | 18.10 | you play at midnight and everyone you know plays at eight |
 | `out/_reels/reel-objection.mp4` | the objection | 580 | 19.33 | it looks like a dating app until you read a card |
 | `out/_reels/reel-mechanic.mp4` | the mechanic | 523 | 17.43 | every card you see was scored before it was dealt |
+| `out/_reels/reel-nostalgia.mp4` | the approved film | 551 | 18.37 | your best games were the ones you played with someone else |
+
+The fifth row is `pro-001` itself, rendered into this folder so all five films sit on one clock
+and `pnpm measure` reads them through one filter. It is not a fifth post and it has no caption
+block: the version that went out is `out/_directions/pro-a-light.mp4` and nothing writes that path.
 
 Measured off the finished containers with `pnpm measure`, with the approved direction in the same
 table so the comparison is against the file Cameron actually chose:
@@ -337,10 +342,16 @@ table so the comparison is against the file Cameron actually chose:
 | file | mean luma | LUFS | dBTP | LRA |
 | --- | --- | --- | --- | --- |
 | `pro-a-light.mp4` (reference) | 228.3 | -15.1 | -1.9 | 6.9 |
-| `reel-pain.mp4` | 228.7 | -15.1 | -1.8 | 6.0 |
-| `reel-hours.mp4` | 229.5 | -15.2 | -1.9 | 8.0 |
-| `reel-mechanic.mp4` | 230.5 | -15.0 | -1.8 | 6.6 |
-| `reel-objection.mp4` | 231.7 | -15.1 | -1.9 | 6.1 |
+| `reel-pain.mp4` | 229.5 | -15.1 | -1.8 | 6.0 |
+| `reel-hours.mp4` | 230.3 | -15.2 | -1.9 | 8.0 |
+| `reel-mechanic.mp4` | 231.1 | -15.0 | -1.8 | 6.6 |
+| `reel-nostalgia.mp4` | 229.1 | -15.1 | -1.9 | 6.9 |
+| `reel-objection.mp4` | 232.3 | -15.1 | -1.9 | 6.1 |
+
+Every luma figure rose by 0.6 to 0.8 when the hook was retimed, and the cause is arithmetic rather
+than a grade: the object now recedes toward the paper about 24 frames earlier in every film, so a
+few more of the sampled frames are paper. Nothing about the ground, the grade or the object
+changed. The loudness columns are identical to the pre-retime batch, because no audio was rebuilt.
 
 Mean luma is `signalstats` YAVG averaged over every fifth frame. TWO THINGS ARE WORTH SAYING ABOUT
 THAT NUMBER rather than letting a future reader rediscover them.
@@ -381,17 +392,61 @@ version: that angle's method is a resemblance named and then corrected, the corr
 beat, and a still has no second beat. The film may say the line because the film finishes the
 sentence.
 
-#### What proves the approved film did not move
+#### The hook retime
 
-`src/pro/film.ts`, `src/pro/a/DirectionA.tsx` and `src/pro/register.tsx` all changed to let one
-component render five films, so the claim that `pro-a-light` is unchanged has to be measured
-rather than asserted. Re-rendering `Pro-A-Light` from the new source and running ffmpeg's `psnr`
-against the shipped file gives 203 of 551 frames bit-identical, the rest at 44.7 dB or better,
-with every difference inside frames 135-490.
+Measured on the first delivered batch, the first sentence of every film finished writing itself at
+f81 to f86, 2.70s to 2.87s, while the voice started at 0.20s. A scroll decision on Reels and TikTok
+is made in roughly the first 1 to 1.5 seconds, so the film spent the whole decision window on an
+object and delivered its argument after the decision. The first reel got 116 views.
 
-That is not proof on its own, so the control: rendering `Pro-A-Light` TWICE from the same source
-and comparing those two gives the same answer - 209 bit-identical, worst 44.69 dB, at the same
-frame, over the same range. The residual is `OffthreadVideo` decode, which is not bit-deterministic
-across runs, and the two comparisons are indistinguishable. Frames 1-134, which are the gameplay
-plate and the first statement and contain no decoded footage, and frames 507-551, which are the
-end card, are bit-identical in both.
+`HOOK` in `src/pro/film.ts` gives beat one, and only beat one, two things the other beats do not
+have: a solo of ZERO instead of `SOLO.normal`'s 30, and a cadence solved forwards from a deadline
+instead of backwards from the exit. The deadline is f34, 1.133s. `statementPlan` now takes the whole
+`Statement` so the rule cannot be applied in one renderer and forgotten in the cover.
+
+The per-word build survives on beat one and the file argues why at length; the short version is that
+the whole build now happens inside the decision window, so it costs the read nothing, and a composed
+block would break the type law of the three beats that follow it. Beats two onward were not touched.
+
+MEASURED ON THE RENDERED FILES rather than derived from the plan. The metric is DEEP INK: the
+count of pixels below luma 60 inside a 1080x400 crop of the type band. It ignores the footage by
+construction, because the receded plate is washed 70 percent toward the paper and blurred 9px so
+nothing in it is near black, while the statement is set in the film's near-black ink. A word still
+building is at scale 0.35 under a 14px blur and its darkest pixel is grey; a word that has landed
+contributes all of its ink. The curve steps once per word and is flat from the frame the last word
+lands on. `objection` is measured on its last word alone instead, because that word is the ACCENT
+and is set in olive, which never crosses the deep-ink threshold:
+
+| file | hook | last word painted |
+| --- | --- | --- |
+| `reel-pain.mp4` | solo queue hands you four strangers and a coin flip | f34, 1.133s |
+| `reel-mechanic.mp4` | every card you see was scored before it was dealt | f34, 1.133s |
+| `reel-objection.mp4` | it looks like a dating app until you read a card | f34, 1.133s |
+| `reel-hours.mp4` | you play at midnight and everyone you know plays at eight | f34, 1.133s |
+| `reel-nostalgia.mp4` | your best games were the ones you played with someone else | f34, 1.133s |
+
+Ten and eleven word hooks land on the same frame because the cadence is solved per hook: 3.111
+frames a word at ten, 2.800 at eleven. The floor is 2.6 and is never reached.
+
+#### What proves beats two onward did not move
+
+The hook retime touches one statement, so the claim that everything after it is untouched has to be
+measured rather than asserted. `psnr` of each retimed film against its own pre-retime render:
+
+| file | bit-identical frames | every difference inside | after beat one |
+| --- | --- | --- | --- |
+| `reel-mechanic.mp4` | 395 of 523 | f2-f129 | 2 frames of 398, worst 53.70 dB |
+| `reel-objection.mp4` | 444 of 580 | f2-f137 | 2 frames of 447, worst 53.58 dB |
+| `reel-hours.mp4` | 304 of 543 | f2-f543 | 48 frames of 407, worst 44.72 dB |
+
+The two films with no gameplay footage in them outside the last beat come back essentially
+bit-identical after beat one. `hours` does not, and 44.72 dB is why: that is the `OffthreadVideo`
+decode floor this project already measured on a control that rendered the SAME source twice and got
+44.69 dB. The residual is decode, not timing.
+
+#### What proves the posted file did not move
+
+`out/_directions/pro-a-light.mp4` has md5 `14142370a9a97458011b733f8eaa6c4e` before and after. No
+script in this directory writes that path: `pnpm angles` renders the approved film to
+`out/_reels/reel-nostalgia.mp4` instead, which is the retimed cut and is deliberately not the same
+film as the posted one.
