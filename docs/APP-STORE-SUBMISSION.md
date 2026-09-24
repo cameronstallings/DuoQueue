@@ -153,7 +153,7 @@ review is over, even though real users can never see it.
    the DOB-collection language. *~30 min to re-read, longer if you loop in counsel.*
 
 2. **Onboarding gender collection: decided (build 12).** The gender step is removed and nothing
-   sends gender. The column stays nullable; older answers are kept and never shown. When build 12
+   sends gender. The column stays nullable; older answers are kept and never shown in the app. When build 12
    ships, update the Gender row in App Privacy (Part 3) and publish privacy policy 1.4.
 
 3. **Push your env vars to EAS — this is not optional and it is easy to miss.**
@@ -540,7 +540,7 @@ carried over from an earlier draft.
 | Other User Content — bio, prompts, game/show/playstyle preferences | Yes | No | App Functionality (profile content, matching) |
 | Other User Content — chat messages (1:1 and party) | Yes | No | App Functionality (core messaging feature) |
 | Date of Birth | Yes | No | App Functionality (18+ age gate, legally required) |
-| Gender (asked by builds up to 11 only; build 12 removes the step, older answers kept and never shown) | Yes | No | Cameron: remove this row from Apple's label when build 12 ships, or keep it for the stored older answers |
+| Gender (asked by builds up to 11 only; build 12 removes the step, older answers kept and never shown in the app) | Yes | No | Cameron: remove this row from Apple's label when build 12 ships, or keep it for the stored older answers |
 | Discord Username | Yes | No | App Functionality (optional, user-shared contact handle for outside-app contact) |
 | Linked Account Identifiers — Steam ID, display name, rank, playtime | Yes | No | App Functionality (optional verified-stats badge) |
 | Push Notification Token | Yes | No | App Functionality (match/message alerts, re-engagement nudges — user-controlled per-type toggles) |
