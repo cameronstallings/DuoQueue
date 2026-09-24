@@ -653,6 +653,13 @@ else is ready to paste as-is.
 paragraph is new for build 11 and must go in: trim HOW TO EXERCISE EACH FEATURE or IN-APP
 PURCHASES to make room rather than dropping it.
 
+**Build 11 paste (done, 23 Sept 2026).** The cut version that went in for build 11 is kept
+outside the repo at `C:\Users\stall\Documents\DuoQueue-review-notes-build-11.txt`: 3,775
+characters counting CRLF line ends, with the League rank paragraph, the demo deck's "Can duo
+with you" order, and the line saying store media shows real people while the review account
+shows abstract art. It drops the 2.1 questionnaire answers, which Apple already accepted when
+it approved build 10.
+
 ```
 WHAT THIS APP IS
 DuoQueue helps people find platonic gaming partners ("duos"): teammates to play games, watch
