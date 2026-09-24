@@ -48,7 +48,13 @@ export function DeckStrip({ quota }: { quota: StripQuota | undefined }) {
         disabled={!hasHighlights}
         onPress={() => setSheetVisible(true)}
         accessibilityRole={hasHighlights ? "button" : undefined}
-        accessibilityLabel={hasHighlights ? `Highlights, ${highlightsCountLabel(cards.length)}` : undefined}
+        // A label replaces the children's text, so it carries the swipes left too.
+        accessibilityLabel={
+          hasHighlights
+            ? `Highlights, ${highlightsCountLabel(cards.length)}${quotaText ? `. ${quotaText}` : ""}`
+            : undefined
+        }
+        accessibilityHint={hasHighlights ? "Opens today's Highlights" : undefined}
         style={({ pressed }) => ({
           height: STRIP_HEIGHT,
           flexDirection: "row",

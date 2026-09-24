@@ -36,7 +36,7 @@ describe("highlightsCountLabel", () => {
   });
 
   it("has no em dash", () => {
-    expect(highlightsCountLabel(4)).not.toContain("—");
-    expect(stripQuotaLabel({ is_premium: true, swipes_limit: null, swipes_used: 0 }, false)).not.toContain("—");
+    expect(highlightsCountLabel(4)).not.toContain("\u2014");
+    expect(stripQuotaLabel({ is_premium: true, swipes_limit: null, swipes_used: 0 }, false)).not.toContain("\u2014");
   });
 });
