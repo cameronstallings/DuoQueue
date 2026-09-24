@@ -1,9 +1,10 @@
 import { Alert, Modal, View } from "react-native";
 import { router } from "expo-router";
 
-import { hapticSuccess } from "@/lib/haptics";
+import { matchParams } from "@/features/match/matchMoment";
 import { useTheme } from "@/theme/useTheme";
 
+import { cardPicture, showsDuoLabel } from "./cardChips";
 import { LikePassButtons } from "./LikePassButtons";
 import { ProfileDetailContent } from "./ProfileDetailContent";
 import type { DeckCard } from "./types";
@@ -27,14 +28,15 @@ export function StandoutCardModal({ card, onClose, onResolved }: StandoutCardMod
       const result = await swipeAction.mutateAsync({ targetId: target.profile_id, direction });
       onResolved(target.profile_id);
       if (result.matched && result.match_id) {
-        hapticSuccess();
         router.push({
           pathname: "/match/[matchId]",
-          params: {
+          params: matchParams({
             matchId: result.match_id,
             name: target.display_name,
-            photo: target.profilePhotoUrl ?? "",
-          },
+            photo: cardPicture(target),
+            canDuo: showsDuoLabel(target),
+            sharedGames: target.shared_games_count,
+          }),
         });
       }
     } catch (err) {

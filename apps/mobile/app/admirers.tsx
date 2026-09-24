@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { PresenceAvatar } from "@/components/PresenceAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { Skeleton } from "@/components/Skeleton";
+import { matchParams } from "@/features/match/matchMoment";
 import { usePremiumStatus } from "@/features/matching/usePremiumStatus";
 import { useAdmirers, useAdmirersCount, type AdmirerListItem } from "@/features/matching/useAdmirers";
 import { useSwipeAction } from "@/features/swipe/useSwipeAction";
@@ -25,7 +26,13 @@ function AdmirerRow({ item }: { item: AdmirerListItem }) {
       if (result.matched && result.match_id) {
         router.push({
           pathname: "/match/[matchId]",
-          params: { matchId: result.match_id, name: item.display_name, photo: item.photoUrl ?? "" },
+          params: matchParams({
+            matchId: result.match_id,
+            name: item.display_name,
+            photo: item.photoUrl ?? null,
+            canDuo: false,
+            sharedGames: null,
+          }),
         });
       }
     } catch (err) {

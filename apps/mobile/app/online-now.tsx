@@ -10,6 +10,7 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { Skeleton } from "@/components/Skeleton";
 import { useLookingNow } from "@/features/online-now/useLookingNow";
 import { type OnlineNowCard, useOnlineNow } from "@/features/online-now/useOnlineNow";
+import { matchParams } from "@/features/match/matchMoment";
 import { cardPicture } from "@/features/swipe/cardChips";
 import { useSwipeAction } from "@/features/swipe/useSwipeAction";
 import { useRequireSession } from "@/hooks/useRequireSession";
@@ -35,7 +36,13 @@ function OnlineNowRow({ item }: { item: OnlineNowCard }) {
       if (result.matched && result.match_id) {
         router.push({
           pathname: "/match/[matchId]",
-          params: { matchId: result.match_id, name: item.display_name, photo: item.profilePhotoUrl ?? "" },
+          params: matchParams({
+            matchId: result.match_id,
+            name: item.display_name,
+            photo: cardPicture(item),
+            canDuo: false,
+            sharedGames: item.shared_games_count,
+          }),
         });
       }
     } catch (err) {

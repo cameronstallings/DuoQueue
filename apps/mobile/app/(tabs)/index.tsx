@@ -20,6 +20,8 @@ import {
   useActivateBoost,
   useConsumableCredits,
 } from "@/features/premium/useConsumables";
+import { matchParams } from "@/features/match/matchMoment";
+import { cardPicture, showsDuoLabel } from "@/features/swipe/cardChips";
 import { DeckStrip } from "@/features/swipe/DeckStrip";
 import { EmptyDeck } from "@/features/swipe/EmptyDeck";
 import { LikePassButtons } from "@/features/swipe/LikePassButtons";
@@ -28,7 +30,7 @@ import type { DeckCard, SwipeDirection } from "@/features/swipe/types";
 import { useDeck } from "@/features/swipe/useDeck";
 import { SwipeLimitReachedError, useSwipeAction } from "@/features/swipe/useSwipeAction";
 import { useSwipeQuota } from "@/features/swipe/useSwipeQuota";
-import { hapticLight, hapticSuccess } from "@/lib/haptics";
+import { hapticLight } from "@/lib/haptics";
 import { useTheme } from "@/theme/useTheme";
 
 export default function DeckScreen() {
@@ -48,14 +50,16 @@ export default function DeckScreen() {
     try {
       const result = await swipeAction.mutateAsync({ targetId: card.profile_id, direction });
       if (result.matched && result.match_id) {
-        hapticSuccess();
+        // The match screen fires the one success haptic at the moment the rings lock.
         router.push({
           pathname: "/match/[matchId]",
-          params: {
+          params: matchParams({
             matchId: result.match_id,
             name: card.display_name,
-            photo: card.profilePhotoUrl ?? "",
-          },
+            photo: cardPicture(card),
+            canDuo: showsDuoLabel(card),
+            sharedGames: card.shared_games_count,
+          }),
         });
       }
     } catch (err) {
