@@ -27,6 +27,8 @@ export const fonts = {
 
 export const type = {
   screenTitle: { fontFamily: fonts.display, fontSize: 22, lineHeight: 28, letterSpacing: 0 },
+  /** The paywall pages' titles (build 17). */
+  heroTitle: { fontFamily: fonts.display, fontSize: 24, lineHeight: 30, letterSpacing: 0 },
   cardName: { fontFamily: fonts.display, fontSize: 18, lineHeight: 24, letterSpacing: 0 },
   title: { fontFamily: fonts.extrabold, fontSize: 17, lineHeight: 23, letterSpacing: -0.2 },
   quote: { fontFamily: fonts.semibold, fontSize: 16, lineHeight: 23, letterSpacing: -0.1 },
