@@ -68,8 +68,8 @@ export function WizardStep({
   // It is also the only way to DELETE the account from here. Settings > Account is behind
   // the tabs layout, which is behind a finished profile, so without the third button an
   // account (an Apple one especially, since it exists before any of this was filled in) could
-  // not be removed until ten steps and two photos had been completed. The delete goes through
-  // its own confirmation before anything happens.
+  // not be removed until every step had been completed. The delete goes through its own
+  // confirmation before anything happens.
   function handleExit() {
     Alert.alert(WIZARD_EXIT_SHEET.title, WIZARD_EXIT_SHEET.message, [
       { text: WIZARD_EXIT_SHEET.keepGoing, style: "cancel" },

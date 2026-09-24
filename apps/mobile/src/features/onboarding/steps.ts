@@ -1,6 +1,5 @@
 export const ONBOARDING_STEPS = [
   "display-name",
-  "gender",
   "region",
   "languages",
   "platforms",

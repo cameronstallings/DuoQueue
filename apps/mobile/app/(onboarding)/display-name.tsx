@@ -3,15 +3,15 @@ import { router } from "expo-router";
 import { displayNameSchema } from "@duoqueue/shared-types";
 
 import { TextField } from "@/components/TextField";
-import { ProfileHeaderPhotoPicker } from "@/features/onboarding/ProfileHeaderPhotoPicker";
+import { PicturePicker } from "@/features/onboarding/PicturePicker";
 import { nextStepPath } from "@/features/onboarding/steps";
 import { WizardStep } from "@/features/onboarding/WizardStep";
+import { assertPhotoWithinSizeLimit } from "@/features/profile/usePhotoUpload";
 import { useOnboardingStore } from "@/store/onboarding-store";
 import { useSessionStore } from "@/store/session-store";
 
 export default function DisplayNameStep() {
-  const { displayName, profilePhotoUri, headerPhotoUri, setDisplayName, setProfilePhotoUri, setHeaderPhotoUri } =
-    useOnboardingStore();
+  const { displayName, profilePhotoUri, setDisplayName, setProfilePhotoUri } = useOnboardingStore();
   const seedDisplayName = useOnboardingStore((s) => s.seedDisplayName);
   const profileDisplayName = useSessionStore((s) => s.profile?.display_name ?? null);
   const [error, setError] = useState<string | null>(null);
@@ -25,14 +25,23 @@ export default function DisplayNameStep() {
     seedDisplayName(profileDisplayName);
   }, [profileDisplayName, seedDisplayName]);
 
+  // Checked here, on the step where the picture was chosen, so a too-large picture is never
+  // first reported on the last step.
+  async function handlePicked(uri: string) {
+    try {
+      await assertPhotoWithinSizeLimit(uri);
+      setProfilePhotoUri(uri);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "That picture can't be used. Try another one.");
+    }
+  }
+
+  // Only the name is required. The picture is optional, so "Skip for now" is this same handler.
   function handleContinue() {
     const result = displayNameSchema.safeParse(displayName);
     if (!result.success) {
       setError(result.error.issues[0]?.message ?? "Enter a display name.");
-      return;
-    }
-    if (!profilePhotoUri || !headerPhotoUri) {
-      setError("Add a profile picture and a cover photo.");
       return;
     }
     setError(null);
@@ -42,18 +51,18 @@ export default function DisplayNameStep() {
   return (
     <WizardStep
       step="display-name"
-      title="Let's set up your profile"
-      subtitle="Add a profile picture, a cover photo, and pick a display name."
+      title="Let's set up your card"
+      subtitle="Pick the name other players will see. A picture is optional."
       onContinue={handleContinue}
       error={error}
     >
-      <ProfileHeaderPhotoPicker
-        profilePhotoUri={profilePhotoUri}
-        headerPhotoUri={headerPhotoUri}
-        onChangeProfilePhoto={setProfilePhotoUri}
-        onChangeHeaderPhoto={setHeaderPhotoUri}
-      />
       <TextField label="Display name" value={displayName} onChangeText={setDisplayName} maxLength={30} />
+      <PicturePicker
+        uri={profilePhotoUri}
+        onPick={(uri) => void handlePicked(uri)}
+        onRemove={() => setProfilePhotoUri(null)}
+        onSkip={handleContinue}
+      />
     </WizardStep>
   );
 }

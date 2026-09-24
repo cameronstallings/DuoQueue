@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import type {
-  Gender,
   LanguageCode,
   LolDivision,
   LolTierChoice,
@@ -14,7 +13,7 @@ import { PROMPT_COUNT } from "@duoqueue/shared-types";
 import { getLeagueGameId } from "@/features/league/leagueGame";
 import { type LeagueRankValue, toProfileGameRow, withTypedRankText } from "@/features/league/rankPickerState";
 import { displayNameSeed } from "@/features/onboarding/displayNameSeed";
-import { uploadProfilePhoto } from "@/features/profile/usePhotoUpload";
+import { uploadPicture } from "@/features/profile/usePhotoUpload";
 import { supabase } from "@/lib/supabase";
 import { toUserMessage } from "@/lib/userMessage";
 
@@ -41,13 +40,17 @@ export interface SelectedPrompt {
   answer: string;
 }
 
+export interface SubmitResult {
+  /** The optional picture failed to upload. Onboarding still finished; the last step says so. */
+  pictureUploadFailed: boolean;
+}
+
 interface OnboardingState {
   displayName: string;
   /** Whether `seedDisplayName` has already had its one chance this pass. See displayNameSeed.ts. */
   displayNameSeeded: boolean;
+  /** The one optional picture, picked on step 1 and uploaded by `submit`. */
   profilePhotoUri: string | null;
-  headerPhotoUri: string | null;
-  gender: Gender | null;
   region: Region | null;
   languages: LanguageCode[];
   platforms: Platform[];
@@ -66,8 +69,6 @@ interface OnboardingState {
    */
   seedDisplayName: (suggestion: string | null | undefined) => void;
   setProfilePhotoUri: (uri: string | null) => void;
-  setHeaderPhotoUri: (uri: string | null) => void;
-  setGender: (value: Gender) => void;
   setRegion: (value: Region) => void;
   toggleLanguage: (value: LanguageCode) => void;
   togglePlatform: (value: Platform) => void;
@@ -84,7 +85,7 @@ interface OnboardingState {
   setPromptAnswerAt: (index: number, answer: string) => void;
   clearPromptAt: (index: number) => void;
   setDiscordUsername: (value: string) => void;
-  submit: () => Promise<void>;
+  submit: () => Promise<SubmitResult>;
   reset: () => void;
 }
 
@@ -99,8 +100,6 @@ function initialState() {
     displayName: "",
     displayNameSeeded: false,
     profilePhotoUri: null,
-    headerPhotoUri: null,
-    gender: null,
     region: null,
     languages: [],
     platforms: [],
@@ -123,8 +122,6 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
     if (patch) set(patch);
   },
   setProfilePhotoUri: (uri) => set({ profilePhotoUri: uri }),
-  setHeaderPhotoUri: (uri) => set({ headerPhotoUri: uri }),
-  setGender: (value) => set({ gender: value }),
   setRegion: (value) => set({ region: value }),
   toggleLanguage: (value) => set((s) => ({ languages: toggleInArray(s.languages, value) })),
   togglePlatform: (value) => set((s) => ({ platforms: toggleInArray(s.platforms, value) })),
@@ -191,8 +188,18 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
       // text, which the server's trigger parses). See features/league/leagueGame.ts.
       const leagueGameId = await getLeagueGameId();
 
-      if (state.profilePhotoUri) await uploadProfilePhoto(profileId, state.profilePhotoUri, "profile");
-      if (state.headerPhotoUri) await uploadProfilePhoto(profileId, state.headerPhotoUri, "header");
+      // The picture is optional, so a failed upload (too large, a dropped connection) must not
+      // strand someone on the last step with an error about a choice they made on the first.
+      // Finish the profile and let the Discord step tell them to add it from Edit.
+      let pictureUploadFailed = false;
+      if (state.profilePhotoUri) {
+        try {
+          await uploadPicture(profileId, state.profilePhotoUri);
+        } catch (err) {
+          console.warn("Picture upload failed during onboarding:", err);
+          pictureUploadFailed = true;
+        }
+      }
 
       const tablesToReplace: { table: string; rows: Record<string, unknown>[] }[] = [
         {
@@ -236,7 +243,6 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
         .from("profiles")
         .update({
           display_name: state.displayName,
-          gender: state.gender,
           region: state.region,
           discord_username: state.discordUsername || null,
           onboarding_completed: true,
@@ -245,6 +251,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
       if (profileError) throw profileError;
 
       set({ submitting: false });
+      return { pictureUploadFailed };
     } catch (err) {
       const message = toUserMessage(err, "Something went wrong finishing your profile.");
       set({ submitting: false, submitError: message });

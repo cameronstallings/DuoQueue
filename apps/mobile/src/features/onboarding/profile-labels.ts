@@ -1,16 +1,9 @@
 import type { ComponentProps } from "react";
 import type { MaterialCommunityIcons } from "@expo/vector-icons";
-import type { Gender, MatchFeedbackTag, Platform, PlaystyleTag, Region, SkillLevel, TiltHandling } from "@duoqueue/shared-types";
+import type { MatchFeedbackTag, Platform, PlaystyleTag, Region, SkillLevel, TiltHandling } from "@duoqueue/shared-types";
 
 /** Static display-label maps for enum values shown across filters, swipe cards, and the
  * Profile tab — kept in one place instead of duplicated per screen. */
-
-export const GENDER_LABELS: Record<Gender, string> = {
-  male: "Male",
-  female: "Female",
-  non_binary: "Non-binary",
-  prefer_not_to_say: "Prefer not to say",
-};
 
 export const REGION_LABELS: Record<Region, string> = {
   na_east: "NA East",

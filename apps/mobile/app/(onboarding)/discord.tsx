@@ -7,6 +7,7 @@ import { TextField } from "@/components/TextField";
 import { WizardStep } from "@/features/onboarding/WizardStep";
 import { useInviteStore } from "@/store/invite-store";
 import { useOnboardingStore } from "@/store/onboarding-store";
+import { useToastStore } from "@/store/toast-store";
 import { useTheme } from "@/theme/useTheme";
 
 export default function DiscordStep() {
@@ -24,11 +25,14 @@ export default function DiscordStep() {
     }
     setError(null);
     try {
-      await submit();
+      const { pictureUploadFailed } = await submit();
       // A second onboarding pass in the same app session (delete account -> sign up
       // again, or QA testing back-to-back) should start blank, not pre-filled with
       // this account's photos/games/prompts.
       reset();
+      if (pictureUploadFailed) {
+        useToastStore.getState().showToast("Your picture didn't upload. You can add it from Profile > Edit.", "error");
+      }
       // Refreshing the session profile happens on the welcome/arrival screen instead of
       // here — (onboarding)/_layout.tsx redirects away the instant onboarding_completed
       // flips true, which would skip this celebratory screen entirely if we refreshed now.
