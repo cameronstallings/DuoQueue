@@ -247,7 +247,9 @@ describe("the bracket lock, against the approved preview (launch-pop/bracket-rep
     expect(centresR(1)).toBeCloseTo(1.5, 12);
   });
 
-  it("pops the mark to 1.08, 60ms after the lock, kicked from rest at 1", () => {
+  // The maths only: launchPop.test.ts runs the pop through Reanimated's own setter, which drops a
+  // bare spring from rest at 1 to 1.
+  it("pops the mark to 1.08, 60ms after the lock, set moving from rest at 1", () => {
     expect(LAUNCH_POP_SPRING).toEqual({ stiffness: 400, damping: 20, mass: 1, velocity: 2.9288 });
     const { max, maxAtMs } = springRange(LAUNCH_POP_SPRING, 1, 1, 0, 400);
     expect(max).toBeCloseTo(1.08, 4);
@@ -301,15 +303,33 @@ describe("launchSchedule", () => {
     });
   });
 
-  it("under Reduce Motion: no springs, the brackets fade in at home with the dissolve, the haptic still fires", () => {
+  it("under Reduce Motion: no springs, the brackets fade in at home over the dissolve's second half, the haptic still fires", () => {
     expect(LAUNCH_DISSOLVE_MS).toBe(200);
     expect(launchSchedule("dissolve")).toEqual({
       lockMs: LAUNCH_BEAT_MS + LAUNCH_DISSOLVE_MS,
       lockBackstopMs: 2350,
       springs: false,
-      brackets: { atMs: LAUNCH_BEAT_MS, fadeMs: LAUNCH_DISSOLVE_MS, travel: false },
+      brackets: { atMs: 250, fadeMs: 100, travel: false },
       haptic: true,
     });
+  });
+
+  it("under Reduce Motion, starts the brackets once the rings apart are half gone, and finishes both at the lock", () => {
+    const { lockMs, brackets } = launchSchedule("dissolve");
+    if (!brackets) throw new Error("the dissolve draws the brackets");
+    // LaunchIntro fades both with withTiming's default ease, Easing.inOut(Easing.quad).
+    const inOutQuad = (u: number) => (u < 0.5 ? 2 * u * u : 1 - (-2 * u + 2) ** 2 / 2);
+    const apartOpacity = (ms: number) => 1 - inOutQuad(Math.min(1, Math.max(0, (ms - LAUNCH_BEAT_MS) / LAUNCH_DISSOLVE_MS)));
+    expect(apartOpacity(brackets.atMs)).toBeCloseTo(0.5, 12);
+    expect(brackets.atMs + brackets.fadeMs).toBe(lockMs);
+    // Where both are on screen at once, the fainter of the two never passes a quarter (it was a
+    // half when the brackets faded in over the whole dissolve).
+    let overlap = 0;
+    for (let ms = brackets.atMs; ms <= lockMs; ms += 0.5) {
+      const bracketOpacity = inOutQuad((ms - brackets.atMs) / brackets.fadeMs);
+      overlap = Math.max(overlap, Math.min(apartOpacity(ms), bracketOpacity));
+    }
+    expect(overlap).toBeLessThan(0.25);
   });
 
   it("is locked from the start on Android, with no brackets and no haptic: there is no lock to see", () => {

@@ -82,8 +82,10 @@ export const LAUNCH_WINDUP_MS = 110;
  * lock at speed, overshoots 10% (to 1.101: the centres 1.32R apart, inside the weave's 1.3R) and
  * settles. Full config on purpose: Reanimated 4 merges a partial one over mass 4 / stiffness 900. */
 export const LAUNCH_RUSH_SPRING = { stiffness: 225, damping: 18, mass: 1 } as const;
-/** The pop: the mark's scale, at rest at 1, kicked the instant the rings first reach the lock with
- * the velocity that peaks it at 1.08 (60ms later). Damping ratio 0.5. */
+/** The pop: the mark's scale, at rest at 1, set moving the instant the rings first reach the lock
+ * with the velocity that peaks it at 1.08 (60ms later). Damping ratio 0.5. Its target is where it
+ * starts, so it only runs through launchPop.ts's launchPopKick: Reanimated drops it as a bare
+ * withSpring. */
 export const LAUNCH_POP_SPRING = { stiffness: 400, damping: 20, mass: 1, velocity: 2.9288 } as const;
 /** When the rush first reaches the lock, after it starts: ~184.5ms. The weave switches on, the mark
  * pops and the haptic fires here, detected on the UI thread; withSpring's own completion callback
@@ -100,7 +102,10 @@ export const LAUNCH_LOCK_MS = LAUNCH_BEAT_MS + LAUNCH_WINDUP_MS + LAUNCH_RUSH_RE
 export const LAUNCH_BRACKETS_AT_MS = 312;
 
 /** Reduce Motion: no wind-up, spring, overshoot or pop. The rings apart dissolve into the locked
- * mark while the brackets fade in at home, over this long. */
+ * mark over this long, and the brackets fade in at home over its second half, so both finish at
+ * the lock. Not over the whole of it: the rings apart reach past the brackets' home, and brackets
+ * fading in from the start were drawn over the O and the Q while those were still well over half
+ * there. From halfway the rings apart are at half opacity and going. */
 export const LAUNCH_DISSOLVE_MS = 200;
 /** The locked mark always stays up at least this long after the lock, so the fade never starts
  * mid-pop: the rings, the pop and the brackets have all settled to within half an @3x pixel 496ms
@@ -171,11 +176,12 @@ export function launchSchedule(opening: LaunchOpening): LaunchSchedule {
   }
   if (opening === "dissolve") {
     const lockMs = LAUNCH_BEAT_MS + LAUNCH_DISSOLVE_MS;
+    const half = LAUNCH_DISSOLVE_MS / 2;
     return {
       lockMs,
       lockBackstopMs: lockMs + LOCK_LATE_MS,
       springs: false,
-      brackets: { atMs: LAUNCH_BEAT_MS, fadeMs: LAUNCH_DISSOLVE_MS, travel: false },
+      brackets: { atMs: LAUNCH_BEAT_MS + half, fadeMs: half, travel: false },
       haptic: true,
     };
   }

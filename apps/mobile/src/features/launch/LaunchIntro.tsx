@@ -24,6 +24,7 @@ import { RingsLock } from "@/features/match/RingsLock";
 import { hapticSuccess } from "@/lib/haptics";
 
 import { type BracketGlyph, bracketLayout } from "./launchBrackets";
+import { launchPopKick } from "./launchPop";
 import {
   BREATH_LOW,
   BREATH_MS,
@@ -32,7 +33,6 @@ import {
   LAUNCH_DISSOLVE_MS,
   LAUNCH_FADE_MS,
   LAUNCH_PALETTE,
-  LAUNCH_POP_SPRING,
   LAUNCH_RUSH_SPRING,
   LAUNCH_WINDUP,
   LAUNCH_WINDUP_MS,
@@ -146,9 +146,11 @@ export function LaunchIntro({ ready, onLocked, onDone }: LaunchIntroProps) {
       if (!reached || lockReached.value) return;
       lockReached.value = true;
       if (springs) {
-        // As in DUO LOCKED, the weave switches on at the lock; the pop is kicked from rest at 1.
+        // As in DUO LOCKED, the weave switches on at the lock. The scale is at rest at exactly 1
+        // here, and Reanimated drops a bare spring whose target is where it already is, so the
+        // pop goes through launchPopKick (launchPop.ts), which it does not drop.
         woven.value = 1;
-        pop.value = withSpring(1, LAUNCH_POP_SPRING);
+        pop.value = launchPopKick();
       }
       if (haptic) runOnJS(hapticSuccess)();
       runOnJS(markLocked)();

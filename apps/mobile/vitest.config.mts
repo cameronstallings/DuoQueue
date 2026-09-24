@@ -22,6 +22,11 @@ import { defineConfig } from "vitest/config";
  * by `pnpm typecheck` or `pnpm lint` (nothing in this repo type-checks Deno functions — they
  * use globals and `npm:` imports the mobile tsconfig has never seen). So this config buys
  * those two files test coverage, not type coverage.
+ *
+ * `server.deps.inline` is for `src/features/launch/launchPop.test.ts`, which runs Reanimated's own
+ * value setter, withDelay and withSpring in node. Vite has to process Reanimated's modules for that
+ * test's stubs of `react-native` and `react-native-worklets` to reach them; no other test imports
+ * Reanimated, so nothing else changes.
  */
 export default defineConfig({
   test: {
@@ -30,5 +35,6 @@ export default defineConfig({
       "../../supabase/functions/**/*.test.ts",
       "../../packages/shared-types/src/**/*.test.ts",
     ],
+    server: { deps: { inline: ["react-native-reanimated"] } },
   },
 });
