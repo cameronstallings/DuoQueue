@@ -428,10 +428,12 @@ Six shots, in this order (order matters — the first is what search results sho
 6. **Matches list** (`app/(tabs)/matches.tsx`) — sectioned list, Priya's row showing unread.
    *"Every duo in one place, sorted by whose turn it is to reply."*
 
-**Build 12 re-shoot.** Re-record and re-render 01-deck (dark and light), 02-profile and
-03-duo-locked in `marketing/store/`, and re-cut the App Preview from new recordings. The
-deleted-persona (Chase, Bea) and Valorant guards in `marketing/video/scripts/validate-content.ts`
-still apply.
+**Build 12 re-shoot.** Re-record and re-render these five in `marketing/store/out/` (and their
+copies in each set's size folders): `set-dark/01-deck`, `set-light/01-deck`,
+`set-dark/02-profile`, `set-dark/03-duo-locked` and `set-light/02-duo-locked`. The light set
+has no profile shot, and its DUO LOCKED shot is 02, not 03. Then re-cut the App Preview from
+new recordings. The deleted-persona (Chase, Bea) and Valorant guards in
+`marketing/video/scripts/validate-content.ts` still apply.
 
 One thing to know before you frame shots 2 and 5: there are 14 abstract avatars and 15 demo
 rows, so the review account and Priya both carry `avatar-01-circuit-traces.png`. Your own
@@ -540,7 +542,7 @@ carried over from an earlier draft.
 | Other User Content — bio, prompts, game/show/playstyle preferences | Yes | No | App Functionality (profile content, matching) |
 | Other User Content — chat messages (1:1 and party) | Yes | No | App Functionality (core messaging feature) |
 | Date of Birth | Yes | No | App Functionality (18+ age gate, legally required) |
-| Gender (asked by builds up to 11 only; build 12 removes the step, older answers kept and never shown in the app) | Yes | No | Cameron: remove this row from Apple's label when build 12 ships, or keep it for the stored older answers |
+| Gender (asked by builds up to 11 only; build 12 removes the step, older answers kept and never shown in the app) | Yes | No | Cameron: remove this row from Apple's label when build 12 ships, or keep it for the stored older answers. If build 11 was ever released (build 12 then ships as 1.0.1), keep this row until build 11 is gone: it still asks for gender at setup |
 | Discord Username | Yes | No | App Functionality (optional, user-shared contact handle for outside-app contact) |
 | Linked Account Identifiers — Steam ID, display name, rank, playtime | Yes | No | App Functionality (optional verified-stats badge) |
 | Push Notification Token | Yes | No | App Functionality (match/message alerts, re-engagement nudges — user-controlled per-type toggles) |
