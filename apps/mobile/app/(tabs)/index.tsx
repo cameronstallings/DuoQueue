@@ -20,6 +20,7 @@ import {
   useActivateBoost,
   useConsumableCredits,
 } from "@/features/premium/useConsumables";
+import { paywallHref } from "@/features/premium/paywall/paywallCopy";
 import { matchParams } from "@/features/match/matchMoment";
 import { cardPicture, showsDuoLabel } from "@/features/swipe/cardChips";
 import { DeckStrip } from "@/features/swipe/DeckStrip";
@@ -74,10 +75,12 @@ export default function DeckScreen() {
         // added a tap, put "Not now" in the reflexive-dismiss position, and named a price and a
         // benefit the paywall was about to state properly anyway.
         //
-        // Nothing is lost by skipping it, because the paywall is a modal with "Continue with
-        // Free" on it: dismissing is one gesture, and the deck is still underneath with the card
+        // Nothing is lost by skipping it, because the paywall is a modal with the close X on every
+        // page: dismissing is one gesture, and the deck is still underneath with the card
         // restored above.
-        router.push("/paywall");
+        //
+        // It opens on page one, which for this entry is about the limit ("Out of swipes for today").
+        router.push(paywallHref("limit"));
       } else {
         Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
       }
@@ -94,7 +97,7 @@ export default function DeckScreen() {
       if (err instanceof SuperPingRequiresPremiumError) {
         Alert.alert("DuoQueue+ feature", err.message, [
           { text: "Not now" },
-          { text: "Upgrade", onPress: () => router.push("/paywall") },
+          { text: "Upgrade", onPress: () => router.push(paywallHref("superping")) },
         ]);
       } else if (err instanceof SuperPingLimitReachedError) {
         Alert.alert("Super Ping used", err.message);
@@ -113,7 +116,7 @@ export default function DeckScreen() {
       if (err instanceof NoBoostCreditsError) {
         Alert.alert("Out of Power-Ups", "Get a Power-Up to jump to the top of the deck for 30 minutes.", [
           { text: "Not now" },
-          { text: "Get Power-Ups", onPress: () => router.push("/paywall") },
+          { text: "Get Power-Ups", onPress: () => router.push(paywallHref("powerup")) },
         ]);
       } else {
         Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");

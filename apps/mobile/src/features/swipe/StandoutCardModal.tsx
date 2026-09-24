@@ -2,6 +2,7 @@ import { Alert, Modal, View } from "react-native";
 import { router } from "expo-router";
 
 import { matchParams } from "@/features/match/matchMoment";
+import { paywallHref } from "@/features/premium/paywall/paywallCopy";
 import { useTheme } from "@/theme/useTheme";
 
 import { cardPicture, showsDuoLabel } from "./cardChips";
@@ -41,7 +42,11 @@ export function StandoutCardModal({ card, onClose, onResolved }: StandoutCardMod
       }
     } catch (err) {
       if (err instanceof SwipeLimitReachedError) {
-        Alert.alert("Daily limit reached", "You've used all your free swipes for today.");
+        // The same as the Deck's 26th swipe: close the card and open the paywall on its page about
+        // the limit. react-native-screens waits out a closing Modal before it presents a modal
+        // route (src/lib/sheetHandoff.ts), so no hand-off is needed.
+        onClose();
+        router.push(paywallHref("limit"));
       } else {
         Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
       }

@@ -26,24 +26,18 @@ import {
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ChipSelect } from "@/components/ChipSelect";
-import { ScreenContainer } from "@/components/ScreenContainer";
+import { ScreenContainer, goBack } from "@/components/ScreenContainer";
 import { SectionLabel } from "@/components/SectionLabel";
 import { Skeleton } from "@/components/Skeleton";
 import { TextField } from "@/components/TextField";
 import { CatalogPicker } from "@/features/onboarding/CatalogPicker";
 import { usePremiumStatus } from "@/features/matching/usePremiumStatus";
 import { usePreferences } from "@/features/matching/usePreferences";
+import { paywallHref } from "@/features/premium/paywall/paywallCopy";
 import { useRequireSession } from "@/hooks/useRequireSession";
 import { supabase } from "@/lib/supabase";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
-
-// A screen opened as the app's cold-start/deep-link entry has no history to pop —
-// router.back() would be a silent no-op, stranding the user with a dead button.
-function goBack() {
-  if (router.canGoBack()) router.back();
-  else router.replace("/(tabs)");
-}
 
 function toggleSingle<T>(current: T | null, value: T, setter: (value: T | null) => void) {
   setter(current === value ? null : value);
@@ -213,7 +207,7 @@ export default function FiltersScreen() {
               Filter by a specific game or show, platform, skill level, playstyle, and recent activity with
               DuoQueue+.
             </Text>
-            <Button variant="premium" label="Unlock DuoQueue+" onPress={() => router.push("/paywall")} />
+            <Button variant="premium" label="Unlock DuoQueue+" onPress={() => router.push(paywallHref("filters"))} />
           </Card>
         ) : (
           <Card style={{ gap: spacing.md }}>

@@ -7,6 +7,7 @@ import { NavRow, RowDivider } from "@/components/NavRow";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { SectionLabel } from "@/components/SectionLabel";
 import { usePremiumStatus } from "@/features/matching/usePremiumStatus";
+import { paywallHref } from "@/features/premium/paywall/paywallCopy";
 import { appearanceSummary } from "@/lib/appearance";
 import { LEGAL_URLS } from "@/lib/legal";
 import { useTheme } from "@/theme/useTheme";
@@ -52,7 +53,7 @@ export default function SettingsScreen() {
                 : "Unlimited swipes, filters, and a daily Super Ping"
             }
             value={isPremium ? "Active" : undefined}
-            onPress={() => router.push("/paywall")}
+            onPress={() => router.push(paywallHref("settings"))}
           />
           <RowDivider />
           {/* Shown whether or not this device thinks you're subscribed: someone who

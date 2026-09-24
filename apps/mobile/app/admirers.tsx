@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/Skeleton";
 import { matchParams } from "@/features/match/matchMoment";
 import { usePremiumStatus } from "@/features/matching/usePremiumStatus";
 import { useAdmirers, useAdmirersCount, type AdmirerListItem } from "@/features/matching/useAdmirers";
+import { paywallHref } from "@/features/premium/paywall/paywallCopy";
 import { useSwipeAction } from "@/features/swipe/useSwipeAction";
 import { useRequireSession } from "@/hooks/useRequireSession";
 import { useTheme } from "@/theme/useTheme";
@@ -162,7 +163,7 @@ export default function AdmirersScreen() {
           <Text style={[type.caption, { color: colors.textMuted }]}>
             DuoQueue+ shows you everyone at once. No waiting for tomorrow&apos;s set.
           </Text>
-          <Button variant="premium" label="See them all with DuoQueue+" onPress={() => router.push("/paywall")} />
+          <Button variant="premium" label="See them all with DuoQueue+" onPress={() => router.push(paywallHref("requests"))} />
         </View>
       )}
     </ScreenContainer>

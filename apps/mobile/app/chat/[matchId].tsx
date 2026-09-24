@@ -39,6 +39,7 @@ import type { ChatTimelineItem } from "@/features/chat/types";
 import { useActiveMatchSession, useCancelSession, useProposeSession, useRespondSession } from "@/features/chat/useMatchSessions";
 import { MATCH_FEEDBACK_LABELS } from "@/features/onboarding/profile-labels";
 import { useCreateParty } from "@/features/party/useParty";
+import { paywallHref } from "@/features/premium/paywall/paywallCopy";
 import { useSubmitMatchFeedback } from "@/features/reputation/useReputation";
 import { containsHiddenWord, useHiddenWords } from "@/features/settings/useHiddenWords";
 import { useRequireSession } from "@/hooks/useRequireSession";
@@ -475,7 +476,7 @@ export default function ChatScreen() {
         setDraft(content);
         Alert.alert("Conversation locked", err.message, [
           { text: "Not now" },
-          { text: "Upgrade", onPress: () => router.push("/paywall") },
+          { text: "Upgrade", onPress: () => router.push(paywallHref("chat")) },
         ]);
       } else {
         Alert.alert("Message not sent", err instanceof Error ? err.message : "Please try again.");
@@ -508,7 +509,7 @@ export default function ChatScreen() {
       if (err instanceof ConversationLockedError) {
         Alert.alert("Conversation locked", err.message, [
           { text: "Not now" },
-          { text: "Upgrade", onPress: () => router.push("/paywall") },
+          { text: "Upgrade", onPress: () => router.push(paywallHref("chat")) },
         ]);
       } else {
         Alert.alert("Couldn't send ping", err instanceof Error ? err.message : "Please try again.");
@@ -733,7 +734,7 @@ export default function ChatScreen() {
                 This conversation is locked. Upgrade for unlimited active conversations, or unmatch an
                 older conversation to free up a slot.
               </Text>
-              <Button variant="premium" label="Get DuoQueue+" onPress={() => router.push("/paywall")} />
+              <Button variant="premium" label="Get DuoQueue+" onPress={() => router.push(paywallHref("chat"))} />
             </View>
           </View>
         ) : (
