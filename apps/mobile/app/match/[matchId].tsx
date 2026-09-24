@@ -23,7 +23,14 @@ import { Button } from "@/components/Button";
 import { Name } from "@/components/Name";
 import { PresenceAvatar } from "@/components/PresenceAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
-import { type MatchExit, matchExitSteps, matchReason, type MatchRouteParams } from "@/features/match/matchMoment";
+import {
+  type MatchExit,
+  matchExitSteps,
+  matchReason,
+  type MatchRouteParams,
+  RING_BEZIER,
+  RINGS_MS,
+} from "@/features/match/matchMoment";
 import { RingsLock } from "@/features/match/RingsLock";
 import { ownPictureState } from "@/features/profile/pictureStatus";
 import { useOwnProfilePhotos } from "@/features/profile/useOwnProfilePhotos";
@@ -47,14 +54,12 @@ const BRACKET_TRAVEL = 40;
 const PLAYER_SIZE = 40;
 /** The screen is a modal sheet that is still sliding up for about this long. */
 const START_MS = 250;
-const RINGS_MS = 520;
 const LOCK_MS = START_MS + RINGS_MS;
 /** The brackets set off late enough that their spring first reaches its target at the lock. */
 const BRACKETS_AT_MS = START_MS + 380;
 const FLASH_MS = 200;
-/** Ease-in-out with no overshoot: the weave only reads right from 1.3R to 1.52R apart, so the
- * rings must never rebound past their place. The brackets carry the overshoot. Matches the site. */
-const RING_EASING = Easing.bezier(0.65, 0, 0.35, 1);
+/** RING_BEZIER (matchMoment.ts), shared with the launch intro. */
+const RING_EASING = Easing.bezier(...RING_BEZIER);
 const STAMP_EASING = Easing.bezier(0.23, 1, 0.32, 1);
 /** Full config on purpose: Reanimated 4 merges a partial config over mass 4 / stiffness 900,
  * which turned the old { damping: 14 } into a five-second wobble with a late flash. This one is

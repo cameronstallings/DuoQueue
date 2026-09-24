@@ -139,6 +139,8 @@ async function main() {
 
   // 5. splash-icon.png — the mark, transparent bg, full bold sizing (no adaptive
   //    safe-zone constraint here — it sits centered on the splash backgroundColor).
+  //    Android's splash only: iOS opens on the rings apart, drawn from logo-geometry.ts
+  //    by scripts/generate-launch-splash.ts (rerun it too when the mark is tuned).
   const splashSvg = svgDoc(ringsMark(FULL_SCALE));
   const splashBuffer = await sharp(Buffer.from(splashSvg)).resize(CANVAS, CANVAS).png().toBuffer();
   writeFileSync(path.join(ASSETS, "splash-icon.png"), splashBuffer);

@@ -13,6 +13,9 @@ interface RingsLockProps {
   progress: SharedValue<number>;
   /** 0 = the O lies over the Q at both crossings (the approach); 1 = the true weave. */
   woven: SharedValue<number>;
+  /** Draw in these two inks instead of the theme's. The launch intro passes the dark splash
+   * palette, because the native splash it takes over from is always dark. */
+  palette?: { ink: string; duo: string };
 }
 
 /**
@@ -22,12 +25,12 @@ interface RingsLockProps {
  * <Logo variant="mark"/> draws, in the same order and colours. The weave is held back until the
  * rings touch: drawn during the slide, it only partly covers the crossing and leaves a hard cut.
  */
-export function RingsLock({ width, progress, woven }: RingsLockProps) {
+export function RingsLock({ width, progress, woven, palette }: RingsLockProps) {
   const { colors } = useTheme();
   const height = width * LOGO_MARK_ASPECT;
   const travel = ringTravel(width);
-  const ink = colors.text;
-  const duo = mix(colors.text, colors.background, 0.58);
+  const ink = palette?.ink ?? colors.text;
+  const duo = palette?.duo ?? mix(colors.text, colors.background, 0.58);
   const viewBox = `${VB_X} ${VB_Y} ${VB_W} ${VB_H}`;
 
   const qStyle = useAnimatedStyle(() => ({ transform: [{ translateX: (1 - progress.value) * travel }] }));

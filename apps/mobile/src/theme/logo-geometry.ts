@@ -10,6 +10,9 @@
  *     iOS icon set; it is a standalone node script with no TypeScript step.
  *   - site/index.html carries them as precomputed literals (cx 660.992, r 215.04,
  *     stroke-width 98.9184, nub cx 842.425508224487), baked in by scripts/build-site.mjs.
+ *
+ * The iOS launch splash (assets/splash-rings-apart.png) is drawn FROM this module by
+ * scripts/generate-launch-splash.ts, but it is a PNG: rerun that script when the mark is tuned.
  */
 
 /**

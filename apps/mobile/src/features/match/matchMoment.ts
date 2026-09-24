@@ -16,6 +16,13 @@ export function ringTravel(markWidth: number): number {
   return RING_TRAVEL_UNITS * (markWidth / VB_W);
 }
 
+/** How long the rings take to slide together, in DUO LOCKED and in the launch intro. */
+export const RINGS_MS = 520;
+/** The rings' curve, as Easing.bezier's four arguments: ease-in-out with no overshoot, because
+ * the weave only reads right from 1.3R to 1.52R apart, so the rings must never rebound past their
+ * place (DUO LOCKED's brackets carry the overshoot). Matches the site. */
+export const RING_BEZIER = [0.65, 0, 0.35, 1] as const;
+
 // Type aliases, not interfaces: expo-router's params want index-signature-compatible objects.
 export type MatchRouteParams = { matchId: string; name?: string; photo?: string; duo?: string; common?: string };
 export type MatchPushParams = { matchId: string; name: string; photo: string; duo?: "1"; common?: string };

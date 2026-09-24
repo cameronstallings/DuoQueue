@@ -55,13 +55,21 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/splash-icon.png",
-          "imageWidth": 180,
+          "image": "./assets/splash-rings-apart.png",
+          "imageWidth": 256,
           "resizeMode": "contain",
           "backgroundColor": "#0A0B09",
           "dark": {
-            "image": "./assets/splash-icon.png",
+            "image": "./assets/splash-rings-apart.png",
             "backgroundColor": "#0A0B09"
+          },
+          "android": {
+            "image": "./assets/splash-icon.png",
+            "imageWidth": 180,
+            "dark": {
+              "image": "./assets/splash-icon.png",
+              "backgroundColor": "#0A0B09"
+            }
           }
         }
       ],

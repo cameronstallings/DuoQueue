@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AppState, View } from "react-native";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { StatusBar } from "expo-status-bar";
@@ -6,7 +6,6 @@ import * as SplashScreen from "expo-splash-screen";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Stack } from "expo-router";
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
 import { useFonts } from "expo-font";
 import {
   Manrope_500Medium,
@@ -17,8 +16,9 @@ import {
 import { Unbounded_600SemiBold, Unbounded_700Bold } from "@expo-google-fonts/unbounded";
 import { IBMPlexMono_500Medium, IBMPlexMono_600SemiBold } from "@expo-google-fonts/ibm-plex-mono";
 
-import { Logo } from "@/components/Logo";
 import { useInviteRedemption } from "@/features/invite/useInvite";
+import { LaunchIntro } from "@/features/launch/LaunchIntro";
+import { endColdStart, isColdStart } from "@/features/launch/launchTiming";
 import { useNotificationTapRouting } from "@/hooks/useNotificationTapRouting";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { Toast } from "@/components/Toast";
@@ -43,46 +43,25 @@ AppState.addEventListener("change", (state) => {
 
 configureNetworkAwareQueries();
 
-// Keep the native splash up until the JS root has mounted and taken over
-// rendering (the LoadingScreen below shares the splash's background color,
-// so the handoff reads as one continuous screen rather than a flash).
+// Keep the native splash up until the JS root has mounted and taken over rendering: on a cold
+// start LaunchIntro hides it once it has laid out on the very same picture (the rings apart).
 void SplashScreen.preventAutoHideAsync();
-
-function LoadingScreen() {
-  const { colors } = useTheme();
-  const opacity = useSharedValue(1);
-
-  useEffect(() => {
-    opacity.value = withRepeat(withTiming(0.35, { duration: 700, easing: Easing.ease }), -1, true);
-  }, [opacity]);
-
-  const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
-
-  return (
-    <View
-      style={{
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: colors.background,
-      }}
-    >
-      <Animated.View style={animatedStyle}>
-        <Logo width={100} />
-      </Animated.View>
-    </View>
-  );
-}
 
 export default function RootLayout() {
   const status = useSessionStore((s) => s.status);
   const initialize = useSessionStore((s) => s.initialize);
   const { colors, scheme } = useTheme();
+  const [intro, setIntro] = useState(isColdStart);
+  const endIntro = useCallback(() => {
+    endColdStart();
+    setIntro(false);
+  }, []);
 
-  // The type system carries most of the visual identity, so the splash stays up
-  // until the faces are in memory — swapping them in mid-render would reflow every
-  // screen. `fontError` deliberately does not block: if a face fails to load the OS
-  // font renders instead, and every size, line-height and letter-spacing still applies.
+  // The type system carries most of the visual identity, so the app is not mounted (the
+  // splash, then the launch intro, stays over it) until the faces are in memory — swapping
+  // them in mid-render would reflow every screen. `fontError` deliberately does not block: if
+  // a face fails to load the OS font renders instead, and every size, line-height and
+  // letter-spacing still applies.
   const [fontsLoaded, fontError] = useFonts({
     Unbounded_600SemiBold,
     Unbounded_700Bold,
@@ -96,7 +75,7 @@ export default function RootLayout() {
 
   // Here rather than in a screen, because a tap can be what launches the app: by the time any
   // screen has mounted, the response that opened it has already been delivered. It is handed
-  // the same font gate this component returns null on, so it cannot navigate a Stack that is
+  // the same font gate that holds back the app below, so it cannot navigate a Stack that is
   // not on screen yet.
   useNotificationTapRouting(fontsLoaded || fontError != null);
 
@@ -111,59 +90,67 @@ export default function RootLayout() {
     void loadInviteState();
   }, [initialize]);
 
-  useEffect(() => {
-    if (fontsLoaded || fontError) void SplashScreen.hideAsync();
-  }, [fontsLoaded, fontError]);
+  const fontsReady = fontsLoaded || fontError != null;
 
-  if (!fontsLoaded && !fontError) return null;
+  // On a cold start LaunchIntro hides the splash. Otherwise (and as a backstop once the intro is
+  // gone) the splash goes as soon as the faces are in.
+  useEffect(() => {
+    if (fontsReady && !intro) void SplashScreen.hideAsync();
+  }, [fontsReady, intro]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
-      <QueryClientProvider client={queryClient}>
-        <SafeAreaProvider>
-          <StatusBar style={scheme === "dark" ? "light" : "dark"} />
-          <OfflineBanner />
-          {status === "loading" ? (
-            <LoadingScreen />
-          ) : (
-            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
-              <Stack.Screen name="(auth)" />
-              <Stack.Screen name="(onboarding)" />
-              <Stack.Screen name="welcome" />
-              <Stack.Screen name="invited" />
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="chat/[matchId]" options={{ headerShown: true, title: "Chat" }} />
-              <Stack.Screen name="filters" options={{ presentation: "modal" }} />
-              <Stack.Screen name="paywall" options={{ presentation: "modal" }} />
-              <Stack.Screen name="admirers" options={{ presentation: "modal" }} />
-              <Stack.Screen name="invite/index" options={{ presentation: "modal" }} />
-              {/* Not a modal: this is where `duoqueue://invite/<code>` lands, and it can be
-                  what launches the app. It stores the code and redirects immediately. */}
-              <Stack.Screen name="invite/[code]" />
-              <Stack.Screen name="online-now" options={{ presentation: "modal" }} />
-              <Stack.Screen name="block-list" options={{ presentation: "modal" }} />
-              <Stack.Screen name="hidden-words" options={{ presentation: "modal" }} />
-              <Stack.Screen name="settings/appearance" />
-              <Stack.Screen name="settings/notifications" />
-              <Stack.Screen name="settings/privacy" />
-              <Stack.Screen name="settings/connections" />
-              <Stack.Screen name="settings/account" />
-              <Stack.Screen name="safety/index" options={{ presentation: "modal" }} />
-              <Stack.Screen name="safety/[topic]" />
-              <Stack.Screen name="edit-prompts" options={{ presentation: "modal" }} />
-              <Stack.Screen name="edit-details" options={{ presentation: "modal" }} />
-              <Stack.Screen name="match/[matchId]" options={{ presentation: "modal" }} />
-              <Stack.Screen name="profile/[profileId]" options={{ presentation: "modal" }} />
-              <Stack.Screen name="party/[partyId]/index" options={{ headerShown: false }} />
-              <Stack.Screen
-                name="party/[partyId]/chat"
-                options={{ headerShown: true, title: "Party chat", headerBackTitle: "Back" }}
-              />
-            </Stack>
-          )}
-          <Toast />
-        </SafeAreaProvider>
-      </QueryClientProvider>
+      {/* Light over the intro's dark field whatever the theme; the theme's once it has gone. */}
+      <StatusBar style={intro || scheme === "dark" ? "light" : "dark"} />
+      {fontsReady && (
+        <QueryClientProvider client={queryClient}>
+          <SafeAreaProvider>
+            <OfflineBanner />
+            {status === "loading" ? (
+              // Only before the stored session is read, which is always under the intro.
+              <View style={{ flex: 1, backgroundColor: colors.background }} />
+            ) : (
+              <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
+                <Stack.Screen name="(auth)" />
+                <Stack.Screen name="(onboarding)" />
+                <Stack.Screen name="welcome" />
+                <Stack.Screen name="invited" />
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="chat/[matchId]" options={{ headerShown: true, title: "Chat" }} />
+                <Stack.Screen name="filters" options={{ presentation: "modal" }} />
+                <Stack.Screen name="paywall" options={{ presentation: "modal" }} />
+                <Stack.Screen name="admirers" options={{ presentation: "modal" }} />
+                <Stack.Screen name="invite/index" options={{ presentation: "modal" }} />
+                {/* Not a modal: this is where `duoqueue://invite/<code>` lands, and it can be
+                    what launches the app. It stores the code and redirects immediately. */}
+                <Stack.Screen name="invite/[code]" />
+                <Stack.Screen name="online-now" options={{ presentation: "modal" }} />
+                <Stack.Screen name="block-list" options={{ presentation: "modal" }} />
+                <Stack.Screen name="hidden-words" options={{ presentation: "modal" }} />
+                <Stack.Screen name="settings/appearance" />
+                <Stack.Screen name="settings/notifications" />
+                <Stack.Screen name="settings/privacy" />
+                <Stack.Screen name="settings/connections" />
+                <Stack.Screen name="settings/account" />
+                <Stack.Screen name="safety/index" options={{ presentation: "modal" }} />
+                <Stack.Screen name="safety/[topic]" />
+                <Stack.Screen name="edit-prompts" options={{ presentation: "modal" }} />
+                <Stack.Screen name="edit-details" options={{ presentation: "modal" }} />
+                <Stack.Screen name="match/[matchId]" options={{ presentation: "modal" }} />
+                <Stack.Screen name="profile/[profileId]" options={{ presentation: "modal" }} />
+                <Stack.Screen name="party/[partyId]/index" options={{ headerShown: false }} />
+                <Stack.Screen
+                  name="party/[partyId]/chat"
+                  options={{ headerShown: true, title: "Party chat", headerBackTitle: "Back" }}
+                />
+              </Stack>
+            )}
+            <Toast />
+          </SafeAreaProvider>
+        </QueryClientProvider>
+      )}
+      {/* Cold start only: over everything, on the native splash's picture, until the app is ready. */}
+      {intro && <LaunchIntro ready={fontsReady && status !== "loading"} onDone={endIntro} />}
     </GestureHandlerRootView>
   );
 }
