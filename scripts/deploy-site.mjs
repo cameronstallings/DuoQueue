@@ -120,6 +120,18 @@ const LIVE_CHECKS = [
   ...FILM_FILES.map((f) => ({ url: `${ORIGIN}/${f.rel}`, sentinel: null, contentType: f.contentType, sizeOf: f.rel })),
 ];
 
+// check() treats a falsy sentinel AND a falsy absent as "headers only". An empty string is
+// falsy, so `absent: ""` or `sentinel: ""` would silently skip the body check and pass.
+// Only `sentinel: null` means a binary; anything else given must be a non-empty string.
+for (const c of LIVE_CHECKS) {
+  for (const key of ["sentinel", "absent"]) {
+    if (!(key in c) || (key === "sentinel" && c[key] === null)) continue;
+    if (typeof c[key] !== "string" || c[key] === "") {
+      die(`live check ${c.url} has ${key} ${JSON.stringify(c[key])}; use a non-empty string (or sentinel: null for a binary).`);
+    }
+  }
+}
+
 function die(message) {
   console.error(`\nDEPLOY ABORTED: ${message}`);
   process.exit(1);
