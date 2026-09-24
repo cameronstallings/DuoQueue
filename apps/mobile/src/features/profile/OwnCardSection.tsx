@@ -65,7 +65,12 @@ export function OwnCardSection({ profile }: OwnCardSectionProps) {
       return (
         <View style={panel}>
           <Text style={[type.body, { color: colors.text }]}>{PAUSED_CARD_LINE}</Text>
-          <Pressable onPress={() => router.push("/settings/privacy")} hitSlop={8} accessibilityRole="button">
+          <Pressable
+            onPress={() => router.push("/settings/privacy")}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Privacy settings"
+          >
             <Text style={[type.label, { color: colors.voltDim }]}>Privacy settings ›</Text>
           </Pressable>
         </View>
@@ -110,6 +115,7 @@ export function OwnCardSection({ profile }: OwnCardSectionProps) {
         <Pressable
           onPress={() => router.push(nudge.route)}
           accessibilityRole="button"
+          accessibilityLabel={nudgeText(nudge)}
           style={({ pressed }) => ({
             minHeight: 44,
             flexDirection: "row",

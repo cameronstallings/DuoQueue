@@ -29,6 +29,6 @@ describe("leagueRuleLine", () => {
 
 describe("copy", () => {
   it("has no em dash", () => {
-    for (const text of [OWN_CARD_CAPTION, PAUSED_CARD_LINE]) expect(text).not.toContain("—");
+    for (const text of [OWN_CARD_CAPTION, PAUSED_CARD_LINE]) expect(text).not.toContain("\u2014");
   });
 });
