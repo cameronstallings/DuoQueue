@@ -200,7 +200,12 @@ export function CardPlate({
                         <Text style={[type.label, { color: colors.cardLitInk }]}>{cell.value}</Text>
                       </View>
                     ) : (
-                      <Text style={[type.bodyStrong, { color: colors.text, marginTop: 2 }]} numberOfLines={1}>
+                      <Text
+                        style={[type.bodyStrong, { color: colors.text, marginTop: 2 }]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.8}
+                      >
                         {cell.value}
                       </Text>
                     )}
