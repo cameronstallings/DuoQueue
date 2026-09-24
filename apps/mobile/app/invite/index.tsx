@@ -111,7 +111,7 @@ export default function InviteScreen() {
                   The alphabet excludes O, I and L outright for the same reason. */}
               <Text
                 selectable
-                style={[type.tick, { color: colors.text, fontSize: 22, letterSpacing: 3, flex: 1 }]}
+                style={[type.tick, { color: colors.text, fontSize: 22, lineHeight: 30, letterSpacing: 3, flex: 1 }]}
               >
                 {code}
               </Text>
