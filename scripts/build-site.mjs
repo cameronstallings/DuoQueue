@@ -2809,7 +2809,7 @@ function momentsHtml() {
   <div class="wrap">
    <div class="moments-inner">
     <h2 class="eyebrow" id="moments-head">What you are joining</h2>
-    <input class="pause-box" type="checkbox" id="moments-pause">
+    <input class="pause-box" type="checkbox" id="moments-pause" aria-label="Pause animations">
     <label class="pause" for="moments-pause">${PAUSE_GLYPH}${PLAY_GLYPH}<span class="pw"><span class="w-pause">Pause</span><span class="w-play">Play</span></span></label>
     <ol class="moment-list">
       <li class="moment m1">
