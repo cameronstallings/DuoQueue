@@ -42,6 +42,7 @@ import { useCreateParty } from "@/features/party/useParty";
 import { useSubmitMatchFeedback } from "@/features/reputation/useReputation";
 import { containsHiddenWord, useHiddenWords } from "@/features/settings/useHiddenWords";
 import { useRequireSession } from "@/hooks/useRequireSession";
+import { useSheetHandoff } from "@/hooks/useSheetHandoff";
 import { hapticLight } from "@/lib/haptics";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
@@ -408,6 +409,11 @@ export default function ChatScreen() {
   const [reportVisible, setReportVisible] = useState(false);
   const [feedbackVisible, setFeedbackVisible] = useState(false);
   const [scheduleVisible, setScheduleVisible] = useState(false);
+  // Schedule, Rate and Report open another sheet, which iOS drops if it is presented while
+  // this menu is still sliding out, so they open from the menu's onDismiss. Block and Unmatch
+  // need no hand-off (an Alert has its own window), nor does Invite a third (a stack push).
+  const menuHandoff = useSheetHandoff();
+  const openFromMenu = (open: () => void) => menuHandoff.handOff(() => setMenuVisible(false), open);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const listRef = useRef<FlatList<ChatTimelineItem>>(null);
   // Gates the entrance animation below: only rows that showed up after the screen
@@ -797,7 +803,7 @@ export default function ChatScreen() {
         )}
       </KeyboardAvoidingView>
 
-      <Sheet visible={menuVisible} onClose={() => setMenuVisible(false)}>
+      <Sheet visible={menuVisible} onClose={() => setMenuVisible(false)} onDismiss={menuHandoff.onDismissed}>
         <View style={{ gap: spacing.xs }}>
           <SectionLabel>Play together</SectionLabel>
           <ActionRow
@@ -815,10 +821,7 @@ export default function ChatScreen() {
           <ActionRow
             icon="calendar"
             label="Schedule a session"
-            onPress={() => {
-              setMenuVisible(false);
-              setScheduleVisible(true);
-            }}
+            onPress={() => openFromMenu(() => setScheduleVisible(true))}
           />
           <ActionRow
             icon="logo-discord"
@@ -833,10 +836,7 @@ export default function ChatScreen() {
           <ActionRow
             icon="star"
             label="Rate this session"
-            onPress={() => {
-              setMenuVisible(false);
-              setFeedbackVisible(true);
-            }}
+            onPress={() => openFromMenu(() => setFeedbackVisible(true))}
           />
         </View>
 
@@ -846,10 +846,7 @@ export default function ChatScreen() {
             icon="flag"
             label="Report"
             danger
-            onPress={() => {
-              setMenuVisible(false);
-              setReportVisible(true);
-            }}
+            onPress={() => openFromMenu(() => setReportVisible(true))}
           />
           <ActionRow icon="ban" label="Block" danger onPress={handleBlock} />
           <ActionRow icon="close-circle" label="Unmatch" danger onPress={handleUnmatch} />

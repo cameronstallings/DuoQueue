@@ -27,6 +27,7 @@ import { type PartyMemberProfile, usePartyMembers } from "@/features/party/usePa
 import { usePartyMessages, useSendPartyMessage } from "@/features/party/usePartyMessages";
 import { containsHiddenWord, useHiddenWords } from "@/features/settings/useHiddenWords";
 import { useRequireSession } from "@/hooks/useRequireSession";
+import { useSheetHandoff } from "@/hooks/useSheetHandoff";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
@@ -155,6 +156,10 @@ export default function PartyChatScreen() {
   const [membersSheetVisible, setMembersSheetVisible] = useState(false);
   const [actionsFor, setActionsFor] = useState<PartyMemberProfile | null>(null);
   const [reportTarget, setReportTarget] = useState<PartyMemberProfile | null>(null);
+  // Both steps open a sheet from a sheet, which iOS drops while the first is still sliding
+  // out, so each waits for its sheet's onDismiss. Block needs none: an Alert has its own window.
+  const membersHandoff = useSheetHandoff();
+  const actionsHandoff = useSheetHandoff();
 
   const otherMembers = (members ?? []).filter((m) => m.profile_id !== myId);
   const nameById = new Map((members ?? []).map((m) => [m.profile_id, m.display_name]));
@@ -323,7 +328,12 @@ export default function PartyChatScreen() {
         </View>
       </KeyboardAvoidingView>
 
-      <Sheet visible={membersSheetVisible} onClose={() => setMembersSheetVisible(false)} title="Party members">
+      <Sheet
+        visible={membersSheetVisible}
+        onClose={() => setMembersSheetVisible(false)}
+        onDismiss={membersHandoff.onDismissed}
+        title="Party members"
+      >
         <View style={{ gap: spacing.xs }}>
           {otherMembers.length === 0 ? (
             <Text style={[type.body, { color: colors.textMuted }]}>No one else here yet.</Text>
@@ -333,17 +343,24 @@ export default function PartyChatScreen() {
                 key={member.profile_id}
                 icon="person-circle-outline"
                 label={member.display_name}
-                onPress={() => {
-                  setMembersSheetVisible(false);
-                  setActionsFor(member);
-                }}
+                onPress={() =>
+                  membersHandoff.handOff(
+                    () => setMembersSheetVisible(false),
+                    () => setActionsFor(member),
+                  )
+                }
               />
             ))
           )}
         </View>
       </Sheet>
 
-      <Sheet visible={!!actionsFor} onClose={() => setActionsFor(null)} title={actionsFor?.display_name}>
+      <Sheet
+        visible={!!actionsFor}
+        onClose={() => setActionsFor(null)}
+        onDismiss={actionsHandoff.onDismissed}
+        title={actionsFor?.display_name}
+      >
         <View style={{ gap: spacing.xs }}>
           <SectionLabel>Safety</SectionLabel>
           <ActionRow
@@ -352,8 +369,11 @@ export default function PartyChatScreen() {
             danger
             onPress={() => {
               if (!actionsFor) return;
-              setReportTarget(actionsFor);
-              setActionsFor(null);
+              const member = actionsFor;
+              actionsHandoff.handOff(
+                () => setActionsFor(null),
+                () => setReportTarget(member),
+              );
             }}
           />
           <ActionRow icon="ban" label="Block" danger onPress={() => actionsFor && handleBlockMember(actionsFor)} />
