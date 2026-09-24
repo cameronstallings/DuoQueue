@@ -20,12 +20,10 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { Button } from "@/components/Button";
-import { GrainOverlay } from "@/components/GrainOverlay";
-import { GraticuleBackground } from "@/components/GraticuleBackground";
 import { Name } from "@/components/Name";
 import { PresenceAvatar } from "@/components/PresenceAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
-import { matchReason, type MatchRouteParams } from "@/features/match/matchMoment";
+import { type MatchExit, matchExitSteps, matchReason, type MatchRouteParams } from "@/features/match/matchMoment";
 import { RingsLock } from "@/features/match/RingsLock";
 import { ownPictureState } from "@/features/profile/pictureStatus";
 import { useOwnProfilePhotos } from "@/features/profile/useOwnProfilePhotos";
@@ -189,11 +187,24 @@ export default function MatchCelebrationScreen() {
     ? FadeIn.duration(300).reduceMotion(ReduceMotion.Never)
     : FadeInDown.duration(400).delay(LOCK_MS + 500);
 
-  return (
-    <ScreenContainer atmosphere="none">
-      <GraticuleBackground variant="match" />
-      <GrainOverlay />
+  function leave(exit: MatchExit) {
+    const chat = { pathname: "/chat/[matchId]", params: { matchId: params.matchId } } as const;
+    for (const step of matchExitSteps(exit, router.canGoBack())) {
+      if (step === "back") router.back();
+      else if (step === "replace-with-tabs") router.replace("/(tabs)");
+      else if (step === "replace-with-chat") router.replace(chat);
+      else router.push(chat);
+    }
+  }
 
+  return (
+    <ScreenContainer
+      atmosphere="match"
+      // The lock flash, edge to edge: among the children it would fill only the padded content.
+      overlay={
+        <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: colors.volt }, flashStyle]} />
+      }
+    >
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.lg }}>
         <Animated.View entering={lockEntering} style={{ alignItems: "center", gap: spacing.md }}>
           <View style={{ width: LOCK_BOX_W, height: MARK_H, alignItems: "center", justifyContent: "center" }}>
@@ -243,16 +254,10 @@ export default function MatchCelebrationScreen() {
         </Animated.Text>
 
         <Animated.View entering={buttonsEntering} style={{ width: "100%", gap: spacing.sm }}>
-          <Button
-            label="Send a message"
-            onPress={() => router.replace({ pathname: "/chat/[matchId]", params: { matchId: params.matchId } })}
-          />
-          <Button label="Keep swiping" variant="ghost" onPress={() => router.back()} />
+          <Button label="Send a message" onPress={() => leave("message")} />
+          <Button label="Keep swiping" variant="ghost" onPress={() => leave("keep-swiping")} />
         </Animated.View>
       </View>
-
-      {/* The lock flash. */}
-      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: colors.volt }, flashStyle]} />
     </ScreenContainer>
   );
 }

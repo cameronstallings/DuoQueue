@@ -57,3 +57,21 @@ export function matchReason(params: Pick<MatchRouteParams, "duo" | "common">): M
   if (n <= 0) return null;
   return { kind: "common", text: n === 1 ? "1 game in common" : `${n} games in common` };
 }
+
+export type MatchExit = "keep-swiping" | "message";
+export type MatchExitStep = "back" | "replace-with-tabs" | "replace-with-chat" | "push-chat";
+
+/**
+ * Where the two buttons go. The match screen is normally a sheet over the Deck, Requests or
+ * Online now, so "Keep swiping" is a plain back and "Send a message" swaps the sheet for the chat.
+ *
+ * After an invite it is not over anything. invited.tsx replaces itself with this screen, and a new
+ * player's stack holds nothing else (the onboarding wizard and the invite screen were replaced on
+ * the way), so the match screen is the whole stack: back had nowhere to go, and the chat that
+ * replaced it had no way out to the tabs. With nothing underneath, both go through the tabs.
+ * expo-router queues the two steps and runs them in order.
+ */
+export function matchExitSteps(exit: MatchExit, canGoBack: boolean): MatchExitStep[] {
+  if (exit === "keep-swiping") return canGoBack ? ["back"] : ["replace-with-tabs"];
+  return canGoBack ? ["replace-with-chat"] : ["replace-with-tabs", "push-chat"];
+}

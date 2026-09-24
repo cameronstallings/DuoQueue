@@ -1,4 +1,4 @@
-import type { PropsWithChildren, ReactElement } from "react";
+import type { PropsWithChildren, ReactElement, ReactNode } from "react";
 import { KeyboardAvoidingView, Pressable, StyleSheet, Text, View } from "react-native";
 import type { RefreshControlProps } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -34,8 +34,17 @@ interface ScreenContainerProps extends PropsWithChildren {
    * it the only way back is the OS swipe gesture, which does not exist on Android.
    */
   showBack?: boolean;
-  /** Which atmosphere wash sits behind the content. "none" opts out of it entirely. */
-  atmosphere?: "default" | "none";
+  /**
+   * Which atmosphere wash sits behind the content: "match" draws the stronger graticule of the
+   * moment screens, "none" opts out of it entirely. It is drawn here, edge to edge, because
+   * anything absolutely positioned among the children fills only the padded scroll content.
+   */
+  atmosphere?: "default" | "match" | "none";
+  /**
+   * Drawn over the whole screen, above the content and the status-bar backdrop, for the same
+   * reason (the match screen's lock flash). Give it pointerEvents="none".
+   */
+  overlay?: ReactNode;
 }
 
 export function ScreenContainer({
@@ -45,6 +54,7 @@ export function ScreenContainer({
   showClose,
   showBack,
   atmosphere = "default",
+  overlay,
 }: ScreenContainerProps) {
   const { colors, spacing, type, radius } = useTheme();
   const insets = useSafeAreaInsets();
@@ -72,7 +82,7 @@ export function ScreenContainer({
     >
       {atmosphere !== "none" && (
         <>
-          <GraticuleBackground />
+          <GraticuleBackground variant={atmosphere === "match" ? "match" : "default"} />
           <GrainOverlay />
         </>
       )}
@@ -186,6 +196,8 @@ export function ScreenContainer({
           }}
         />
       )}
+
+      {overlay}
     </KeyboardAvoidingView>
   );
 }
