@@ -20,14 +20,13 @@ import { GrainOverlay } from "@/components/GrainOverlay";
 import { GraticuleBackground } from "@/components/GraticuleBackground";
 import { Skeleton } from "@/components/Skeleton";
 import { PLAYSTYLE_LABELS, TILT_HANDLING_LABELS } from "@/features/onboarding/profile-labels";
-import { FeaturedPrompt } from "@/features/profile/FeaturedPrompt";
 import { GamesPanel } from "@/features/profile/GamesPanel";
 import { howIPlayTiles } from "@/features/profile/howIPlay";
 import { HowIPlayGrid } from "@/features/profile/HowIPlayGrid";
-import { MoreFromMe } from "@/features/profile/MoreFromMe";
 import { OwnCardSection } from "@/features/profile/OwnCardSection";
 import { ownPictureState } from "@/features/profile/pictureStatus";
 import { OWN_CARD_HEIGHT } from "@/features/profile/profileTab";
+import { PromptQuotes } from "@/features/profile/PromptQuotes";
 import { ShowsSection } from "@/features/profile/sections";
 import { useEditableProfileDetails } from "@/features/profile/useEditableProfileDetails";
 import { useOwnProfilePhotos } from "@/features/profile/useOwnProfilePhotos";
@@ -60,7 +59,7 @@ function ProfileSkeleton() {
 
 /**
  * The Profile tab: a fixed header, then your card (HOW OTHERS SEE YOU), then blocks that each
- * change rhythm: a 2x2 tile grid, an open quote, 44pt rows, a sideways carousel, loose chips.
+ * change rhythm: a 2x2 tile grid, your prompts as open quotes, 44pt rows, loose chips.
  * Photos and the completeness meter live in Edit.
  */
 export default function ProfileScreen() {
@@ -124,8 +123,6 @@ export default function ProfileScreen() {
         tiltLabels: TILT_HANDLING_LABELS,
       })
     : [];
-  const featured = prompts?.[0] ?? null;
-  const more = prompts?.slice(1) ?? [];
   const shows = (editable?.shows ?? []).map((show) => show.name);
 
   return (
@@ -157,21 +154,15 @@ export default function ProfileScreen() {
               </Animated.View>
             )}
 
-            {featured && (
+            {prompts && prompts.length > 0 && (
               <Animated.View entering={revealEntering()}>
-                <FeaturedPrompt question={featured.question} answer={featured.answer} />
+                <PromptQuotes prompts={prompts} />
               </Animated.View>
             )}
 
             {editable && editable.games.length > 0 && (
               <Animated.View entering={revealEntering()}>
                 <GamesPanel games={editable.games} verifiedByName={verifiedByName ?? {}} />
-              </Animated.View>
-            )}
-
-            {more.length > 0 && (
-              <Animated.View entering={revealEntering()}>
-                <MoreFromMe prompts={more} />
               </Animated.View>
             )}
 
