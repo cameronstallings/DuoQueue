@@ -28,11 +28,18 @@
   section in Section 2 and the GitHub row in Section 3 now mention the launch film and its
   poster, which scripts/build-site.mjs serves from site/assets/ on duoqueue.io itself and
   plays with a plain <video> element, no script.
+
+  TRAILER PAGE AND GENDER (version 1.3, effective date September 23, 2026; design:
+  docs/superpowers/specs/2026-09-23-duoqueue-io-watch-page-design.md): the "No cookies" bullet of the
+  website section in Section 2 now says the film and its poster are on the trailer page
+  (duoqueue.io/watch/, and its /tt/, /ig/ and /yt/ copies), because the home page no longer
+  embeds them. The Gender bullet in Section 2 no longer says gender is shown on your profile
+  to other users: it is collected at onboarding in the current app and shown to no one.
 -->
 # DuoQueue Privacy Policy
 
 **Effective date:** September 23, 2026
-**Version:** 1.2
+**Version:** 1.3
 
 This policy explains what DuoQueue collects, why, who we share it with, and what control you have over it. It's written in plain language on purpose. If anything here is unclear, contact us using the details below.
 
@@ -67,7 +74,7 @@ We only collect what the app actually uses. Here's every category, itemized.
 ### Profile information
 - **Display name:** shown on your profile and in chat.
 - **Date of birth:** collected once at signup. We use it for two things: confirming you're 18 or older (DuoQueue is not available to anyone younger; see [Section 9](#9-age-restriction)) and calculating the age shown on your profile. Your exact birth date is never shown to other users, only your calculated age.
-- **Gender:** collected at onboarding and shown on your profile to other users. It is never used to filter or rank who you're shown.
+- **Gender:** collected at onboarding in the current version of the app. It is not shown to other users, and it is never used to filter or rank who you're shown.
 - **Region:** collected at onboarding and shown on your profile to other users; also used to filter candidates when someone sets a region preference, and to slightly favor same-region matches in ranking.
 - **Spoken language(s):** collected at onboarding; used as a premium filter so users can require a shared language, and to favor candidates who share a language with you in ranking.
 - **Photos:** a profile photo, an optional header photo, and up to six gallery photos. Every uploaded photo is automatically re-processed to strip embedded location and camera metadata (EXIF/GPS data) before it's stored. Every photo also goes through our moderation pipeline before it becomes visible to anyone else. When our automated moderation provider (Sightengine) is configured, most photos are screened automatically and only borderline or undetermined cases go to a human moderator; if the automated provider isn't configured, every photo instead goes straight to human review. See [Section 3](#3-who-we-share-data-with).
@@ -116,7 +123,7 @@ This is the one category on this list that is about our website rather than the 
 - **Your email address, if you give it to us on duoqueue.io.** DuoQueue has not launched yet, and while it hasn't, our website runs a waitlist. If you enter your email address there, we store that address, the date, and which of our links you arrived from (so we know which channel worked), and we use it for two things and nothing else: an immediate email confirming you are on the list, and one message on the day the app goes live. That second message is marketing, and we are calling it that rather than describing it as transactional. We do not add waitlist addresses to any other mailing list, we do not sell or rent them, and we do not use them to advertise to you anywhere else. You can ask us to remove your address at any time by replying to either email or contacting us at the address in [Section 1](#1-who-we-are).
 - **A short-lived hash of your IP address, only to stop bots.** We do not store your IP address alongside your signup. When the form is submitted we compute a salted, one-way hash of the connecting IP address and keep only that, for 48 hours, purely to rate-limit automated abuse of the form. It is deleted automatically after that and it is never linked to your email address.
 - **The 18-or-older box on that form is a self-declaration.** You tell us your age; we do not check it, and we do not describe it as verification or age assurance. It is there because DuoQueue is an adults-only product and we do not want an underage person on a mailing list for it.
-- **No cookies, no analytics, and no advertising scripts on duoqueue.io.** Our pages set no cookies, carry no analytics or advertising tag, and load nothing from a third-party server: every page is self-contained HTML, and the only files it requests are its own fonts and icon and, on the home page, a short video about the app and its poster image, all served from duoqueue.io itself. The video plays in your browser's own built-in player. There is no JavaScript on the site at all.
+- **No cookies, no analytics, and no advertising scripts on duoqueue.io.** Our pages set no cookies, carry no analytics or advertising tag, and load nothing from a third-party server: every page is self-contained HTML, and the only files it requests are its own fonts and icon and, on the trailer page (duoqueue.io/watch/), a short video about the app and its poster image, all served from duoqueue.io itself. The video plays in your browser's own built-in player. There is no JavaScript on the site at all.
 - **Two things do happen off our pages, and we would rather say so than let "no third parties" stand unqualified.** First, duoqueue.io is published as a static site on **GitHub Pages**, so GitHub operates the server that answers your request and sees your IP address and user agent the way any web host would. Second, submitting the waitlist form posts it to our backend at `supabase.co`, which sits behind **Cloudflare**; Cloudflare's bot protection sets a short-lived cookie called `__cf_bm` on that `supabase.co` domain, not on duoqueue.io. It lasts 30 minutes, it is not readable by our pages, and it is not used for advertising or cross-site tracking. Both providers are listed in [Section 3](#3-who-we-share-data-with).
 
 ### What we do NOT collect

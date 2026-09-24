@@ -31,7 +31,8 @@
 //      nothing fails here
 //   9  fetch the live site and assert a per-page sentinel string, retrying for 90s while
 //      Pages rebuilds. /privacy/ and /terms/ are checked on EVERY deploy, not because
-//      this change touches them but because this branch serves them
+//      this change touches them but because this branch serves them. A check can also
+//      name a string that must be ABSENT, for something a page must have stopped serving
 // ---------------------------------------------------------------------------
 
 import { spawnSync } from "node:child_process";
@@ -49,10 +50,11 @@ const ORIGIN = "https://duoqueue.io";
 const DRY_RUN = process.argv.includes("--dry-run");
 
 // The launch film and its poster (FILM in build-site.mjs). Committed under site/assets/ rather
-// than generated, and build-site.mjs quietly leaves the film section out when either is
-// missing, so the build alone would publish a landing page without them and still exit 0.
-// Listing them here makes that a failed deploy instead, and the live checks below make a
-// deploy that serves the wrong bytes, or serves them as the wrong type, a failed deploy too.
+// than generated, and build-site.mjs quietly leaves the four watch pages, the trailer link
+// and the Watch nav link out when either is missing, so the build alone would publish a
+// site without the film and still exit 0. Listing them here, and the watch pages in
+// REQUIRED, makes that a failed deploy instead, and the live checks below make a deploy
+// that serves the wrong bytes, or serves them as the wrong type, a failed deploy too.
 const FILM_FILES = [
   { rel: "assets/duoqueue-launch.mp4", contentType: "video/mp4" },
   { rel: "assets/duoqueue-launch-poster.jpg", contentType: "image/jpeg" },
@@ -69,6 +71,10 @@ const REQUIRED = [
   "tt/index.html",
   "ig/index.html",
   "yt/index.html",
+  "watch/index.html",
+  "tt/watch/index.html",
+  "ig/watch/index.html",
+  "yt/watch/index.html",
   "privacy/index.html",
   "terms/index.html",
   "CNAME",
@@ -93,9 +99,16 @@ const REQUIRED_MAY_BE_EMPTY = [".nojekyll"];
 // prove: `contentType` must match (a video served as text/html is a 404 page in disguise),
 // and `sizeOf` names the built file whose byte count the served Content-Length must equal,
 // which is what tells a new encode from the previous one still being served.
+//
+// `absent` is the other half of a sentinel: a string the page must NOT contain. The film
+// moved off the home page onto /watch/, and a home page still embedding it is the previous
+// build (or a regression in build-site.mjs), so it is retried like a missing sentinel and
+// fails the deploy if it never goes away.
 const LIVE_CHECKS = [
   { url: `${ORIGIN}/`, sentinel: 'id="waitlist-form"' },
-  { url: `${ORIGIN}/`, sentinel: 'src="/assets/duoqueue-launch.mp4"' },
+  { url: `${ORIGIN}/`, sentinel: 'href="/watch/"' },
+  { url: `${ORIGIN}/`, absent: "duoqueue-launch.mp4" },
+  { url: `${ORIGIN}/watch/`, sentinel: 'src="/assets/duoqueue-launch.mp4"' },
   { url: `${ORIGIN}/waitlist/`, sentinel: 'id="waitlist-form"' },
   { url: `${ORIGIN}/tt/`, sentinel: 'name="source" value="tt"' },
   { url: `${ORIGIN}/waitlist/thanks/`, sentinel: "on the list" },
@@ -270,7 +283,7 @@ console.log(`   origin/${BRANCH} = ${remoteSha.slice(0, 12)} (matches)`);
 // ---------------------------------------------------------------------------
 console.log("9. verifying the live site (up to 90s while Pages rebuilds)");
 
-async function check({ url, sentinel, contentType, sizeOf }) {
+async function check({ url, sentinel, absent, contentType, sizeOf }) {
   const deadline = Date.now() + 90_000;
   // Read once, before the loop: the size of the file this deploy just built and pushed.
   const wantBytes = sizeOf ? statSync(path.join(SITE_DIR, sizeOf)).size : null;
@@ -280,7 +293,7 @@ async function check({ url, sentinel, contentType, sizeOf }) {
       const res = await fetch(url, { cache: "no-store", redirect: "follow" });
       if (res.ok) {
         const type = res.headers.get("content-type") ?? "";
-        if (!sentinel) {
+        if (!sentinel && !absent) {
           const length = res.headers.get("content-length");
           const encoded = res.headers.get("content-encoding");
           // Headers are all this needs; do not download a whole film to throw it away.
@@ -295,8 +308,14 @@ async function check({ url, sentinel, contentType, sizeOf }) {
           }
         } else {
           const body = await res.text();
-          if (body.includes(sentinel)) return { ok: true, note: `${res.status}, sentinel found` };
-          last = `${res.status} but sentinel ${JSON.stringify(sentinel)} not found`;
+          if (sentinel && !body.includes(sentinel)) {
+            last = `${res.status} but sentinel ${JSON.stringify(sentinel)} not found`;
+          } else if (absent && body.includes(absent)) {
+            last = `${res.status} but ${JSON.stringify(absent)} is still there (still the previous build?)`;
+          } else {
+            const found = [sentinel && "sentinel found", absent && `${JSON.stringify(absent)} absent`];
+            return { ok: true, note: `${res.status}, ${found.filter(Boolean).join(", ")}` };
+          }
         }
       } else {
         last = `HTTP ${res.status}`;
