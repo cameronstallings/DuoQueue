@@ -8,11 +8,10 @@ import * as ImagePicker from "expo-image-picker";
  * iOS shows its permission sheet exactly once. After a denial,
  * `requestMediaLibraryPermissionsAsync()` resolves `granted: false` immediately without
  * presenting anything, so a bare `if (!granted) return` turns every subsequent tap into a
- * button that visibly does nothing. That was a hard lock, not a papercut: onboarding
- * requires a profile photo and a cover photo before it will continue
- * (`app/(onboarding)/display-name.tsx`), so a denied user was told to add photos and given
- * no way to add them, with no path forward and no explanation. Found while screen
- * recording a fresh signup for App Review.
+ * button that visibly does nothing. Until build 12 that was a hard lock: onboarding required
+ * two photos before it would continue, so a denied user was told to add photos and given no
+ * way to add them. The picture is optional now, but a button that silently does nothing is
+ * still a bug. Found while screen recording a fresh signup for App Review.
  *
  * Returns true only when the picker may be opened.
  */

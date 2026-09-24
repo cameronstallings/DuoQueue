@@ -1,14 +1,9 @@
 import * as base64js from "base64-js";
 import * as FileSystem from "expo-file-system/legacy";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { MAX_GALLERY_PHOTOS, type PhotoRole } from "@duoqueue/shared-types";
 
 import { supabase } from "@/lib/supabase";
 import { useToastStore } from "@/store/toast-store";
-
-import type { OwnGalleryPhoto } from "./useOwnGalleryPhotos";
-
-const OWN_GALLERY_QUERY_KEY = "own-gallery-photos";
 
 /** Matches the profile-photos bucket's file_size_limit (0002_storage.sql) and
  * MAX_IMAGE_BYTES in supabase/functions/moderate-photo/sanitize.ts. Checked client-side
@@ -17,14 +12,16 @@ const OWN_GALLERY_QUERY_KEY = "own-gallery-photos";
  * later inside moderate-photo's re-encode step. */
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
-class PhotoTooLargeError extends Error {
+export class PhotoTooLargeError extends Error {
   constructor() {
     super("That photo is too large. Please choose one under 5MB.");
     this.name = "PhotoTooLargeError";
   }
 }
 
-async function assertPhotoWithinSizeLimit(uri: string): Promise<void> {
+/** Exported so onboarding can check a picture the moment it is picked, on the step where it
+ * was picked, rather than only when the last step uploads it. */
+export async function assertPhotoWithinSizeLimit(uri: string): Promise<void> {
   const info = await FileSystem.getInfoAsync(uri);
   // `exists` narrows FileInfo so `.size` is present; a picker-returned uri that somehow
   // doesn't exist on disk is a different failure the upload call below will surface on
@@ -34,21 +31,25 @@ async function assertPhotoWithinSizeLimit(uri: string): Promise<void> {
   }
 }
 
-/** Removes the item at `from` and reinserts it at `to`, leaving everything else in the
- * same relative order — the client-side mirror of what reorder_gallery_photo does to
- * "position" server-side. */
-function moveItem<T>(list: T[], from: number, to: number): T[] {
-  const next = list.slice();
-  const [item] = next.splice(from, 1);
-  if (item === undefined) return list;
-  next.splice(to, 0, item);
-  return next;
-}
+/**
+ * Build 11 is a manual-release backup that is never released, and it draws the swipe card
+ * only from the `header` row. If build 11 is ever released, set this to true so every
+ * picture is also written as `header` until build 11 is gone. That is two uploads and two
+ * moderate-photo calls per picture; each row keeps its own storage path because moderation
+ * runs per row. See the build 12 spec's compatibility rule.
+ */
+export const ALSO_WRITE_HEADER = false;
 
 /** Uploads a local image URI to Storage and upserts the profile_media row for the given
- * role (profile/header) — shared by onboarding and the Profile tab's tap-to-replace
- * tiles, since both need the exact same upload-then-record-then-moderate sequence. */
-export async function uploadProfilePhoto(profileId: string, uri: string, role: PhotoRole): Promise<void> {
+ * role, then asks moderate-photo to review it. `onReviewed` runs once moderate-photo has
+ * answered (approved, rejected or held for a person), so the owner's review tag can refresh
+ * then instead of on the next poll. */
+export async function uploadProfilePhoto(
+  profileId: string,
+  uri: string,
+  role: "profile" | "header",
+  onReviewed?: () => void,
+): Promise<void> {
   await assertPhotoWithinSizeLimit(uri);
   const extension = uri.split(".").pop()?.toLowerCase() ?? "jpg";
   const storagePath = `${profileId}/${role}-${Date.now()}.${extension}`;
@@ -88,178 +89,46 @@ export async function uploadProfilePhoto(profileId: string, uri: string, role: P
   }
 
   // Best-effort, non-blocking: a failed moderation check just leaves the photo
-  // "pending" (invisible to other users) rather than failing the upload.
-  supabase.functions.invoke("moderate-photo", { body: { mediaId } }).catch((err: unknown) => {
-    console.warn("moderate-photo invocation failed:", err);
-  });
+  // "pending" (invisible to other users) rather than failing the upload. moderate-photo
+  // writes its verdict before it responds, so onReviewed sees the new status.
+  supabase.functions
+    .invoke("moderate-photo", { body: { mediaId } })
+    .then(() => onReviewed?.())
+    .catch((err: unknown) => {
+      console.warn("moderate-photo invocation failed:", err);
+    });
+}
+
+/** The one picture a player has. Onboarding, Edit and the Profile tab all upload through here,
+ * so the build 11 rule above is one switch. */
+export async function uploadPicture(profileId: string, uri: string, onReviewed?: () => void): Promise<void> {
+  await uploadProfilePhoto(profileId, uri, "profile", onReviewed);
+  if (!ALSO_WRITE_HEADER) return;
+  // The picture is saved by now; a failed build 11 copy must not report it as failed.
+  try {
+    await uploadProfilePhoto(profileId, uri, "header");
+  } catch (err: unknown) {
+    console.warn("header copy of the picture failed:", err);
+  }
 }
 
 export function useUpdatePhoto(profileId: string | undefined) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ uri, role }: { uri: string; role: PhotoRole }) => {
+    mutationFn: async ({ uri }: { uri: string }) => {
       if (!profileId) throw new Error("No profile loaded.");
-      await uploadProfilePhoto(profileId, uri, role);
+      await uploadPicture(profileId, uri, () => {
+        // moderate-photo has answered: clear or change the review tag now.
+        void queryClient.invalidateQueries({ queryKey: ["own-profile-photos", profileId] });
+      });
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["own-profile-photos", profileId] });
-      useToastStore.getState().showToast("Photo updated");
+      useToastStore.getState().showToast("Picture updated");
     },
     onError: (err) => {
-      useToastStore.getState().showToast(err instanceof Error ? err.message : "Couldn't update that photo", "error");
-    },
-  });
-}
-
-/** The first free slot in 0..MAX_GALLERY_PHOTOS-1 not already held by one of the
- * caller's gallery rows — removals can leave gaps (e.g. [0, 2, 4]), so this fills
- * those before ever extending past the highest position in use. Returns null when the
- * gallery is already full. */
-function nextFreeGalleryPosition(usedPositions: number[]): number | null {
-  for (let position = 0; position < MAX_GALLERY_PHOTOS; position++) {
-    if (!usedPositions.includes(position)) return position;
-  }
-  return null;
-}
-
-/** Uploads a local image URI as a new gallery photo at the given position. Unlike
- * uploadProfilePhoto, this always INSERTs — profile_media allows many 'gallery' rows
- * per profile (unlike the single-row profile/header roles), so there's no existing row
- * to update-in-place. Goes through the same upload-then-record-then-moderate sequence. */
-export async function uploadGalleryPhoto(profileId: string, uri: string, position: number): Promise<void> {
-  await assertPhotoWithinSizeLimit(uri);
-  const extension = uri.split(".").pop()?.toLowerCase() ?? "jpg";
-  const storagePath = `${profileId}/gallery-${Date.now()}.${extension}`;
-  const base64 = await FileSystem.readAsStringAsync(uri, { encoding: "base64" });
-  const contentType = extension === "png" ? "image/png" : extension === "webp" ? "image/webp" : "image/jpeg";
-
-  const { error: uploadError } = await supabase.storage
-    .from("profile-photos")
-    .upload(storagePath, base64js.toByteArray(base64), { contentType, upsert: true });
-  if (uploadError) throw uploadError;
-
-  const { data: insertedRow, error: insertError } = await supabase
-    .from("profile_media")
-    .insert({ profile_id: profileId, storage_path: storagePath, photo_role: "gallery", position })
-    .select("id")
-    .single();
-  if (insertError) throw insertError;
-
-  // Best-effort, non-blocking: a failed moderation check just leaves the photo
-  // "pending" (invisible to other users, shown as "In review" to the owner) rather
-  // than failing the upload.
-  supabase.functions.invoke("moderate-photo", { body: { mediaId: insertedRow.id } }).catch((err: unknown) => {
-    console.warn("moderate-photo invocation failed:", err);
-  });
-}
-
-export function useAddGalleryPhoto(profileId: string | undefined) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ uri, usedPositions }: { uri: string; usedPositions: number[] }) => {
-      if (!profileId) throw new Error("No profile loaded.");
-      const position = nextFreeGalleryPosition(usedPositions);
-      if (position === null) throw new Error("Your gallery is full.");
-      await uploadGalleryPhoto(profileId, uri, position);
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: [OWN_GALLERY_QUERY_KEY, profileId] });
-      useToastStore.getState().showToast("Photo added");
-    },
-    onError: (err) => {
-      useToastStore.getState().showToast(err instanceof Error ? err.message : "Couldn't add that photo", "error");
-    },
-  });
-}
-
-/** Reorders via the make_gallery_photo_first RPC rather than a client-side UPDATE:
- * moving a photo to the front means shifting every row ahead of it back by one, and
- * that multi-row position swap needs a deferred uniqueness check to avoid a false
- * conflict — only reachable from inside a single transaction, which a
- * SECURITY DEFINER function gets for free and a sequence of PostgREST calls does not.
- * See supabase/migrations/0036_photo_gallery.sql. */
-export function useMakeGalleryPhotoFirst(profileId: string | undefined) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (mediaId: string) => {
-      const { error } = await supabase.rpc("make_gallery_photo_first", { p_media_id: mediaId });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: [OWN_GALLERY_QUERY_KEY, profileId] });
-    },
-  });
-}
-
-/** Backs both the drag-to-reorder grid and the Sheet's "Move left/right" a11y actions —
- * same RPC either way, just a different source for `newPosition`. Optimistic first
- * (setQueryData reorders the cache immediately, matching what the drag gesture already
- * shows on screen or what a screen-reader user just asked for) rather than waiting on
- * the round trip, with a snapshot restored in onError so a failed reorder doesn't leave
- * the grid showing an order the server never committed. */
-export function useReorderGalleryPhoto(profileId: string | undefined) {
-  const queryClient = useQueryClient();
-  const queryKey = [OWN_GALLERY_QUERY_KEY, profileId];
-
-  return useMutation<
-    void,
-    Error,
-    { mediaId: string; newPosition: number },
-    { previous: OwnGalleryPhoto[] | undefined }
-  >({
-    mutationFn: async ({ mediaId, newPosition }) => {
-      const { error } = await supabase.rpc("reorder_gallery_photo", {
-        p_media_id: mediaId,
-        p_new_position: newPosition,
-      });
-      if (error) throw error;
-    },
-    onMutate: async ({ mediaId, newPosition }) => {
-      await queryClient.cancelQueries({ queryKey });
-      const previous = queryClient.getQueryData<OwnGalleryPhoto[]>(queryKey);
-
-      if (previous) {
-        const fromIndex = previous.findIndex((p) => p.id === mediaId);
-        if (fromIndex !== -1 && fromIndex !== newPosition) {
-          const reordered = moveItem(previous, fromIndex, newPosition).map((photo, index) => ({
-            ...photo,
-            position: index,
-          }));
-          queryClient.setQueryData<OwnGalleryPhoto[]>(queryKey, reordered);
-        }
-      }
-
-      return { previous };
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey });
-    },
-    onError: (err, _vars, context) => {
-      if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
-      useToastStore.getState().showToast(err instanceof Error ? err.message : "Couldn't reorder photos", "error");
-    },
-  });
-}
-
-export function useRemoveGalleryPhoto(profileId: string | undefined) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ mediaId, storagePath }: { mediaId: string; storagePath: string }) => {
-      const { error: deleteError } = await supabase.from("profile_media").delete().eq("id", mediaId);
-      if (deleteError) throw deleteError;
-
-      // Best-effort: the row is already gone either way, so a storage cleanup failure
-      // shouldn't block the removal or surface as an error the user can't act on.
-      const { error: storageError } = await supabase.storage.from("profile-photos").remove([storagePath]);
-      if (storageError) console.warn("failed to remove gallery photo from storage:", storageError);
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: [OWN_GALLERY_QUERY_KEY, profileId] });
-      useToastStore.getState().showToast("Photo removed");
+      useToastStore.getState().showToast(err instanceof Error ? err.message : "Couldn't update that picture", "error");
     },
   });
 }

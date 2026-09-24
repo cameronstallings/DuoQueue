@@ -10,6 +10,8 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { Skeleton } from "@/components/Skeleton";
 import { useLookingNow } from "@/features/online-now/useLookingNow";
 import { type OnlineNowCard, useOnlineNow } from "@/features/online-now/useOnlineNow";
+import { matchParams } from "@/features/match/matchMoment";
+import { cardPicture } from "@/features/swipe/cardChips";
 import { useSwipeAction } from "@/features/swipe/useSwipeAction";
 import { useRequireSession } from "@/hooks/useRequireSession";
 import { useTheme } from "@/theme/useTheme";
@@ -34,7 +36,13 @@ function OnlineNowRow({ item }: { item: OnlineNowCard }) {
       if (result.matched && result.match_id) {
         router.push({
           pathname: "/match/[matchId]",
-          params: { matchId: result.match_id, name: item.display_name, photo: item.profilePhotoUrl ?? "" },
+          params: matchParams({
+            matchId: result.match_id,
+            name: item.display_name,
+            photo: cardPicture(item),
+            canDuo: false,
+            sharedGames: item.shared_games_count,
+          }),
         });
       }
     } catch (err) {
@@ -44,7 +52,7 @@ function OnlineNowRow({ item }: { item: OnlineNowCard }) {
 
   return (
     <Card style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md }}>
-      <PresenceAvatar uri={item.profilePhotoUrl} size={56} isActive />
+      <PresenceAvatar uri={cardPicture(item)} name={item.display_name} size={56} isActive />
       <View style={{ flex: 1 }}>
         <Text style={[type.bodyStrong, { color: colors.text }]}>
           {item.display_name}, {item.age}

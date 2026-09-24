@@ -76,7 +76,8 @@ export function useSaveProfileDetails(profileId: string | undefined) {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["editable-profile-details", profileId] });
-      void queryClient.invalidateQueries({ queryKey: ["own-profile-details", profileId] });
+      // Your card on the Profile tab is built from get_profile_card.
+      void queryClient.invalidateQueries({ queryKey: ["profile-card", profileId] });
     },
   });
 }

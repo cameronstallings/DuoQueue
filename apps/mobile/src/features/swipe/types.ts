@@ -21,12 +21,11 @@ export interface DeckCardVibe {
 }
 
 export interface DeckCard extends DeckCandidate {
+  /** The approved square picture. Every small avatar reads this. */
   profilePhotoUrl: string | null;
+  /** An approved old cover (build 11 and earlier). Only a fallback: cards and pagers read
+   * cardPicture(card), which is profilePhotoUrl ?? headerPhotoUrl. Build 12 shows no gallery. */
   headerPhotoUrl: string | null;
-  /** Approved gallery photos, ordered by position. The deck card and profile detail
-   * pagers page over [headerPhotoUrl, ...galleryUrls] (header first, falling back to
-   * plain single-photo display when this is empty). */
-  galleryUrls: string[];
   topGames: DeckCardGame[];
   topShows: string[];
   languages: string[];

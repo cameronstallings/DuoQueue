@@ -40,7 +40,13 @@ import {
   type EditableVibe,
   useEditableProfileDetails,
 } from "@/features/profile/useEditableProfileDetails";
+import { completenessItems } from "@/features/profile/completeness";
+import { ownPictureState } from "@/features/profile/pictureStatus";
+import { ProfileCompleteness } from "@/features/profile/ProfileCompleteness";
+import { useOwnProfilePhotos } from "@/features/profile/useOwnProfilePhotos";
+import { useOwnPrompts } from "@/features/profile/useOwnPrompts";
 import { useSaveProfileDetails } from "@/features/profile/useSaveProfileDetails";
+import { YourPictureSlot } from "@/features/profile/YourPictureSlot";
 import { useRequireSession } from "@/hooks/useRequireSession";
 import { toUserMessage } from "@/lib/userMessage";
 import { useSessionStore } from "@/store/session-store";
@@ -59,6 +65,8 @@ export default function EditDetailsScreen() {
   // League gets the Solo/Duo rank picker instead of the free-text field. Null while loading or if
   // the read fails, and then League keeps the text field like every other game.
   const leagueGameId = useLeagueGameId();
+  const { data: photos } = useOwnProfilePhotos(profile?.id);
+  const { data: prompts } = useOwnPrompts(profile?.id);
 
   const [games, setGames] = useState<EditableGame[] | null>(null);
   const [shows, setShows] = useState<EditableShow[] | null>(null);
@@ -175,6 +183,9 @@ export default function EditDetailsScreen() {
       <KeyboardAwareScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>
         <ModalHeader title="Edit Details" />
 
+        {/* Its own query, so it shows before the details below have loaded. */}
+        {profile ? <YourPictureSlot profileId={profile.id} name={profile.display_name} /> : null}
+
         {!loaded || !profile ? (
           <>
             <View style={{ gap: spacing.sm }}>
@@ -217,6 +228,19 @@ export default function EditDetailsScreen() {
           </>
         ) : (
           <>
+            {/* Counts what is on screen now (unsaved edits included), plus the picture and the
+                saved prompts. */}
+            <ProfileCompleteness
+              items={completenessItems({
+                hasPicture: photos ? ownPictureState(photos).hasPicture : false,
+                games: games.length,
+                shows: shows.length,
+                platforms: platforms.length,
+                playstyles: playstyles.length,
+                prompts: prompts?.length ?? 0,
+              })}
+            />
+
             <View style={{ gap: spacing.sm }}>
               <SectionLabel>Games</SectionLabel>
               <CatalogPicker

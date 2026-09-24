@@ -130,7 +130,12 @@ export default function PartyDeckScreen() {
           />
         ) : (
           <Animated.View entering={FadeIn.duration(220)} style={{ flex: 1 }}>
-            <SwipeDeck ref={deckRef} cards={cards} onSwiped={(card, direction) => void handleSwiped(card, direction)} />
+            <SwipeDeck
+              ref={deckRef}
+              cards={cards}
+              context="party"
+              onSwiped={(card, direction) => void handleSwiped(card, direction)}
+            />
           </Animated.View>
         )}
       </View>

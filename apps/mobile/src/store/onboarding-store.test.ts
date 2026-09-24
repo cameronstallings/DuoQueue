@@ -16,11 +16,13 @@ const mocks = vi.hoisted(() => {
   const state = {
     profileUpdates: [] as Record<string, unknown>[],
     uploads: [] as string[],
+    failUpload: false,
   };
 
   function reset(): void {
     state.profileUpdates = [];
     state.uploads = [];
+    state.failUpload = false;
   }
 
   /** Just enough PostgREST builder for the chains `submit` uses. Every chain resolves cleanly. */
@@ -54,7 +56,8 @@ const mocks = vi.hoisted(() => {
 vi.mock("@/lib/supabase", () => ({ supabase: mocks.supabase }));
 
 vi.mock("@/features/profile/usePhotoUpload", () => ({
-  uploadProfilePhoto: (_profileId: string, uri: string) => {
+  uploadPicture: (_profileId: string, uri: string) => {
+    if (mocks.state.failUpload) return Promise.reject(new Error("That photo is too large. Please choose one under 5MB."));
     mocks.state.uploads.push(uri);
     return Promise.resolve();
   },
@@ -152,5 +155,57 @@ describe("submit", () => {
     await store.getState().submit();
 
     expect(state.profileUpdates.at(-1)?.display_name).toBe("Countess");
+  });
+
+  it("sends no gender with the finished profile", async () => {
+    const store = await loadStore();
+    store.getState().setDisplayName("Ada");
+
+    await store.getState().submit();
+
+    expect(state.profileUpdates.at(-1)).not.toHaveProperty("gender");
+  });
+
+  it("finishes without a picture and uploads nothing", async () => {
+    const store = await loadStore();
+    store.getState().setDisplayName("Ada");
+
+    const result = await store.getState().submit();
+
+    expect(state.uploads).toEqual([]);
+    expect(result).toEqual({ pictureUploadFailed: false });
+    expect(state.profileUpdates.at(-1)?.onboarding_completed).toBe(true);
+  });
+
+  it("uploads the one picture once", async () => {
+    const store = await loadStore();
+    store.getState().setDisplayName("Ada");
+    store.getState().setProfilePhotoUri("file:///picture.jpg");
+
+    await store.getState().submit();
+
+    expect(state.uploads).toEqual(["file:///picture.jpg"]);
+  });
+
+  it("still finishes onboarding when the picture fails to upload, and says so", async () => {
+    const store = await loadStore();
+    store.getState().setDisplayName("Ada");
+    store.getState().setProfilePhotoUri("file:///huge.jpg");
+    state.failUpload = true;
+
+    const result = await store.getState().submit();
+
+    expect(result).toEqual({ pictureUploadFailed: true });
+    expect(state.profileUpdates.at(-1)?.onboarding_completed).toBe(true);
+  });
+});
+
+describe("state", () => {
+  it("holds no cover photo and no gender", async () => {
+    const store = await loadStore();
+
+    expect(store.getState()).not.toHaveProperty("headerPhotoUri");
+    expect(store.getState()).not.toHaveProperty("gender");
+    expect(store.getState()).not.toHaveProperty("setGender");
   });
 });

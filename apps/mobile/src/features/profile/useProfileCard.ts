@@ -69,12 +69,14 @@ async function fetchProfileCard(profileId: string): Promise<DeckCard> {
   return card;
 }
 
-export function useProfileCard(profileId: string) {
+/** `enabled: false` skips the read. Your own card passes `profile.is_active`: get_profile_card
+ * only returns active profiles, so a paused profile would otherwise retry into an error. */
+export function useProfileCard(profileId: string, options: { enabled?: boolean } = {}) {
   const query = useQuery({
     queryKey: ["profile-card", profileId],
     queryFn: () => fetchProfileCard(profileId),
-    enabled: !!profileId,
+    enabled: !!profileId && (options.enabled ?? true),
   });
 
-  return { data: query.data, isPending: query.isPending, isError: query.isError };
+  return { data: query.data, isPending: query.isPending, isError: query.isError, refetch: query.refetch };
 }

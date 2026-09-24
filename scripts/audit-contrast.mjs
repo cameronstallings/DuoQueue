@@ -154,6 +154,9 @@ function contrastRatio(c1, c2) {
 
 const NORMAL = 4.5;
 const LARGE = 3.0;
+// Build 12: text on the swipe card must clear the spec's own floor, not only WCAG's:
+// dark 8.30 and Paper 6.10 (docs/superpowers/specs/2026-09-23-build-12-card-and-photo-design.md).
+const CARD_FLOOR = { dark: 8.3, light: 6.1 };
 
 function get(colors, dottedPath) {
   return dottedPath.split(".").reduce((o, k) => o?.[k], colors);
@@ -191,6 +194,19 @@ const BASE_PAIRS = [
   // directly on top (MessageBubble / party chat) — text/bubbleOwn per Task 12 dispatch.
   { fg: "text", bg: "bubbleOwn" },
   { fg: "textMuted", bg: "surfaceSolid", label: "tabInactive(textMuted)/surfaceSolid" },
+  // Build 12 card surfaces (tokens.ts "Card-scoped surfaces"). Card text must clear CARD_FLOOR;
+  // the lit edge bar and the activity dot are graphics (WCAG 1.4.11, 3:1).
+  { fg: "text", bg: "cardHero", floor: CARD_FLOOR },
+  { fg: "textMuted", bg: "cardHero", floor: CARD_FLOOR },
+  { fg: "text", bg: "cardRecessed", floor: CARD_FLOOR },
+  { fg: "cardRecessedMuted", bg: "cardRecessed", floor: CARD_FLOOR },
+  { fg: "cardLitInk", bg: "cardLitFill", floor: CARD_FLOOR, label: "canDuoTag(cardLitInk)/cardLitFill" },
+  { fg: "volt", bg: "cardHero", threshold: LARGE, label: "litEdgeBar(volt)/cardHero" },
+  { fg: "success", bg: "cardHero", threshold: LARGE, label: "activeDot(success)/cardHero" },
+  // Panels off the card: the Deck strip, Profile tiles and games panel, the DUO LOCKED strip.
+  { fg: "text", bg: "cardPanel" },
+  { fg: "textMuted", bg: "cardPanel" },
+  { fg: "voltDim", bg: "cardPanel" },
 ];
 
 for (const group of ["overlap", "playstyle"]) {
@@ -203,8 +219,8 @@ for (const group of ["overlap", "playstyle"]) {
 // 4. Evaluate every pair against both palettes.
 // ---------------------------------------------------------------------------
 
-function evaluatePair(colors, pair) {
-  const threshold = pair.threshold ?? NORMAL;
+function evaluatePair(colors, pair, schemeName) {
+  const threshold = pair.floor?.[schemeName] ?? pair.threshold ?? NORMAL;
   const bgLiteral = get(colors, pair.bg);
   if (bgLiteral === undefined) throw new Error(`audit-contrast: unknown bg token "${pair.bg}"`);
   let effectiveBg = parseColor(bgLiteral);
@@ -233,7 +249,7 @@ const SCHEMES = [
 const results = [];
 for (const scheme of SCHEMES) {
   for (const pair of BASE_PAIRS) {
-    const { ratio, threshold, pass } = evaluatePair(scheme.colors, pair);
+    const { ratio, threshold, pass } = evaluatePair(scheme.colors, pair, scheme.name);
     results.push({ scheme: scheme.name, label: pairLabel(pair), ratio, threshold, pass });
   }
 }

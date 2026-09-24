@@ -1,19 +1,20 @@
 import { Alert, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { Redirect, router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import Animated, { FadeIn, FadeInUp, ZoomIn } from "react-native-reanimated";
 
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { Chip } from "@/components/Chip";
 import { Name } from "@/components/Name";
+import { PlayerMark } from "@/components/PlayerMark";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { Skeleton } from "@/components/Skeleton";
 import { useAcceptInvite } from "@/features/invite/useInvite";
+import { matchParams } from "@/features/match/matchMoment";
 import { useProfileCard } from "@/features/profile/useProfileCard";
+import { cardPicture } from "@/features/swipe/cardChips";
 import { useRequireSession } from "@/hooks/useRequireSession";
-import { hapticSuccess } from "@/lib/haptics";
 import { inviteErrorMessage } from "@/lib/invite";
 import { useInviteStore } from "@/store/invite-store";
 import { useSessionStore } from "@/store/session-store";
@@ -51,6 +52,7 @@ export default function InvitedScreen() {
   // `useProfileCard` is called unconditionally below, so this cannot move above the hooks.
   const inviterId = arrival?.inviterId ?? "";
   const { data: card, isPending, isError } = useProfileCard(inviterId);
+  const inviterPicture = card ? cardPicture(card) : null;
 
   if (!arrival) return <Redirect href="/(tabs)" />;
 
@@ -72,17 +74,19 @@ export default function InvitedScreen() {
       clearArrival();
       await refreshProfile();
       if (result.matched && result.match_id) {
-        hapticSuccess();
-        // Straight into the existing match celebration. The invite flow deliberately owns
-        // no payoff screen of its own: this is a match like any other, and it should look
-        // like one.
+        // Straight into the existing match celebration, which fires the one success haptic at
+        // the lock. The invite flow deliberately owns no payoff screen of its own: this is a
+        // match like any other, and it should look like one. (useProfileCard's
+        // shared_games_count is a stand-in 0, not a fact, so no reason strip here.)
         router.replace({
           pathname: "/match/[matchId]",
-          params: {
+          params: matchParams({
             matchId: result.match_id,
             name: arrival.inviterName,
-            photo: card?.profilePhotoUrl ?? "",
-          },
+            photo: inviterPicture,
+            canDuo: false,
+            sharedGames: null,
+          }),
         });
       } else {
         showToast("Duo request sent");
@@ -121,26 +125,15 @@ export default function InvitedScreen() {
           <Card luminous style={{ alignItems: "center", gap: spacing.sm }}>
             {isPending ? (
               <Skeleton width={AVATAR_SIZE} height={AVATAR_SIZE} borderRadius={radius.round} />
-            ) : card?.profilePhotoUrl ? (
+            ) : inviterPicture ? (
               <Image
-                source={{ uri: card.profilePhotoUrl }}
+                source={{ uri: inviterPicture }}
                 style={{ width: AVATAR_SIZE, height: AVATAR_SIZE, borderRadius: radius.round }}
                 contentFit="cover"
                 transition={200}
               />
             ) : (
-              <View
-                style={{
-                  width: AVATAR_SIZE,
-                  height: AVATAR_SIZE,
-                  borderRadius: radius.round,
-                  backgroundColor: colors.voltSoft,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Ionicons name="person" size={40} color={colors.voltDim} />
-              </View>
+              <PlayerMark name={name} size={AVATAR_SIZE} />
             )}
 
             <Name variant="title" style={{ color: colors.text, textAlign: "center" }}>

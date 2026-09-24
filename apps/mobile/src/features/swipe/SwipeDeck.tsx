@@ -1,7 +1,7 @@
 import { forwardRef, useImperativeHandle, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
-import { SwipeCard, type SwipeCardTrigger } from "./SwipeCard";
+import { SwipeCard, type SwipeCardContext, type SwipeCardTrigger } from "./SwipeCard";
 import type { DeckCard, SwipeDirection } from "./types";
 
 const STACK_DEPTH = 3;
@@ -14,10 +14,12 @@ export interface SwipeDeckHandle {
 interface SwipeDeckProps {
   cards: DeckCard[];
   onSwiped: (card: DeckCard, direction: SwipeDirection) => void;
+  /** "party" for the party deck, whose pair counts are not about you. Defaults to "deck". */
+  context?: SwipeCardContext;
 }
 
 export const SwipeDeck = forwardRef<SwipeDeckHandle, SwipeDeckProps>(function SwipeDeck(
-  { cards, onSwiped },
+  { cards, onSwiped, context = "deck" },
   ref,
 ) {
   const [trigger, setTrigger] = useState<SwipeCardTrigger | null>(null);
@@ -47,13 +49,17 @@ export const SwipeDeck = forwardRef<SwipeDeckHandle, SwipeDeckProps>(function Sw
               { zIndex: visibleCards.length - indexFromTop, transform: [{ scale }, { translateY }] },
             ]}
             pointerEvents={indexFromTop === 0 ? "auto" : "none"}
+            // The two cards peeking under the top one are scenery: VoiceOver and TalkBack skip
+            // them, or they read two more names and two dimmed "See full profile" buttons.
+            accessibilityElementsHidden={indexFromTop !== 0}
+            importantForAccessibility={indexFromTop === 0 ? "auto" : "no-hide-descendants"}
           >
             <SwipeCard
               card={card}
               isTop={indexFromTop === 0}
               onSwiped={handleTopSwiped}
               externalTrigger={indexFromTop === 0 ? trigger : null}
-              index={indexFromTop}
+              context={context}
             />
           </View>
         );

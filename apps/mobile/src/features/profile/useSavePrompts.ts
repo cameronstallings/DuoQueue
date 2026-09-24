@@ -30,6 +30,8 @@ export function useSavePrompts(profileId: string | undefined) {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["own-prompts", profileId] });
+      // Your card on the Profile tab pages through these prompts.
+      void queryClient.invalidateQueries({ queryKey: ["profile-card", profileId] });
     },
   });
 }

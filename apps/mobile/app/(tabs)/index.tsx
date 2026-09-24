@@ -20,15 +20,17 @@ import {
   useActivateBoost,
   useConsumableCredits,
 } from "@/features/premium/useConsumables";
+import { matchParams } from "@/features/match/matchMoment";
+import { cardPicture, showsDuoLabel } from "@/features/swipe/cardChips";
+import { DeckStrip } from "@/features/swipe/DeckStrip";
 import { EmptyDeck } from "@/features/swipe/EmptyDeck";
 import { LikePassButtons } from "@/features/swipe/LikePassButtons";
-import { StandoutsRow } from "@/features/swipe/StandoutsRow";
 import { SwipeDeck, type SwipeDeckHandle } from "@/features/swipe/SwipeDeck";
 import type { DeckCard, SwipeDirection } from "@/features/swipe/types";
 import { useDeck } from "@/features/swipe/useDeck";
 import { SwipeLimitReachedError, useSwipeAction } from "@/features/swipe/useSwipeAction";
 import { useSwipeQuota } from "@/features/swipe/useSwipeQuota";
-import { hapticLight, hapticSuccess } from "@/lib/haptics";
+import { hapticLight } from "@/lib/haptics";
 import { useTheme } from "@/theme/useTheme";
 
 export default function DeckScreen() {
@@ -48,14 +50,16 @@ export default function DeckScreen() {
     try {
       const result = await swipeAction.mutateAsync({ targetId: card.profile_id, direction });
       if (result.matched && result.match_id) {
-        hapticSuccess();
+        // The match screen fires the one success haptic at the moment the rings lock.
         router.push({
           pathname: "/match/[matchId]",
-          params: {
+          params: matchParams({
             matchId: result.match_id,
             name: card.display_name,
-            photo: card.profilePhotoUrl ?? "",
-          },
+            photo: cardPicture(card),
+            canDuo: showsDuoLabel(card),
+            sharedGames: card.shared_games_count,
+          }),
         });
       }
     } catch (err) {
@@ -117,12 +121,6 @@ export default function DeckScreen() {
     }
   }
 
-  const quotaLabel = quota?.is_premium
-    ? "Unlimited swipes"
-    : quota
-      ? `${Math.max((quota.swipes_limit ?? 25) - quota.swipes_used, 0)} swipes left today`
-      : "";
-
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <GraticuleBackground />
@@ -168,19 +166,13 @@ export default function DeckScreen() {
           </Pressable>
         </View>
       </View>
-      {quotaLabel ? (
-        <Text
-          style={[type.caption, { color: colors.textMuted, paddingHorizontal: spacing.lg, paddingTop: spacing.xs }]}
-        >
-          {quotaLabel}
-        </Text>
-      ) : null}
-
       <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm }}>
-        <StandoutsRow />
+        <DeckStrip quota={quota} />
       </View>
 
-      <View style={{ flex: 1, margin: spacing.lg }}>
+      {/* 12pt under the strip; 8pt above the buttons leaves room for the two cards peeking
+          under the top one. */}
+      <View style={{ flex: 1, marginHorizontal: spacing.lg, marginTop: spacing.tight, marginBottom: spacing.sm }}>
         {isLoading ? (
           <Skeleton style={{ flex: 1, borderRadius: radius.card }} />
         ) : error ? (

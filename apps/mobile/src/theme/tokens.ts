@@ -30,18 +30,22 @@ export const type = {
   cardName: { fontFamily: fonts.display, fontSize: 18, lineHeight: 24, letterSpacing: 0 },
   title: { fontFamily: fonts.extrabold, fontSize: 17, lineHeight: 23, letterSpacing: -0.2 },
   quote: { fontFamily: fonts.semibold, fontSize: 16, lineHeight: 23, letterSpacing: -0.1 },
+  /** A prompt answer on a card page (build 12). */
+  promptHero: { fontFamily: fonts.semibold, fontSize: 22, lineHeight: 30, letterSpacing: -0.2 },
   body: { fontFamily: fonts.medium, fontSize: 15, lineHeight: 22, letterSpacing: 0 },
   bodyStrong: { fontFamily: fonts.bold, fontSize: 15, lineHeight: 21, letterSpacing: -0.1 },
   caption: { fontFamily: fonts.semibold, fontSize: 13, lineHeight: 18, letterSpacing: 0 },
   /** The ONLY uppercase styles. label = section headers; tick = timestamps, statuses,
-   * counters, index marks; chipText = chip labels. All Plex Mono. */
+   * counters, index marks, card cell labels; chipText = chip labels; cardMeta = the
+   * card's details line (age · region · languages). All Plex Mono. */
   label: { fontFamily: fonts.monoSemibold, fontSize: 10, lineHeight: 14, letterSpacing: 1.2, textTransform: "uppercase" },
   tick: { fontFamily: fonts.mono, fontSize: 9, lineHeight: 12, letterSpacing: 0.8, textTransform: "uppercase" },
   chipText: { fontFamily: fonts.mono, fontSize: 10, lineHeight: 14, letterSpacing: 0.6, textTransform: "uppercase" },
+  cardMeta: { fontFamily: fonts.mono, fontSize: 11, lineHeight: 16, letterSpacing: 0.6, textTransform: "uppercase" },
 } as const satisfies Record<string, TextStyle>;
 
 export const radius = {
-  chip: 3, sm: 4, window: 8, input: 6, button: 6, md: 8, card: 8, lg: 8,
+  chip: 3, sm: 4, window: 8, input: 6, button: 6, md: 8, card: 8, lg: 8, picture: 6,
   sheet: 16, round: 999,
 } as const;
 
@@ -88,6 +92,20 @@ export const darkColors = {
   p1Line: "#CDFF3D",
   p2Line: "#F2F6EA",
 
+  // Card-scoped surfaces (build 12). Only the swipe card, your own card, the Deck strip, the
+  // Profile tab panels and the DUO LOCKED reason strip use these; surface/border are unchanged.
+  cardHero: "#1E2218",
+  cardRecessed: "#0F110C",
+  cardEdge: "#30362A",
+  cardPanel: "#171A11",
+  /** The large decorative initial on a recessed page. Decoration only, never text. */
+  cardMark: "#262B1E",
+  /** Muted ink for text on cardRecessed (a prompt page's question). */
+  cardRecessedMuted: "#B4BDA6",
+  /** The lit cell's CAN DUO tag: raw chartreuse fill with near-black ink, in both schemes. */
+  cardLitFill: "#CDFF3D",
+  cardLitInk: "#0A0B09",
+
   overlap: OVERLAP_DARK,
   playstyle: PLAYSTYLE_DARK,
 } as const;
@@ -124,6 +142,17 @@ export const lightColors = {
 
   p1Line: "#4A6B00",
   p2Line: "#161A0F",
+
+  // Card-scoped surfaces (build 12); see darkColors. Paper: inks fill, chartreuse marks, so the
+  // CAN DUO tag is raw chartreuse at chip scale with near-black ink.
+  cardHero: "#FFFFFF",
+  cardRecessed: "#E7EBDB",
+  cardEdge: "#C9CFBB",
+  cardPanel: "#FFFFFF",
+  cardMark: "#D5DAC6",
+  cardRecessedMuted: "#4F5744",
+  cardLitFill: "#CDFF3D",
+  cardLitInk: "#161A0F",
 
   overlap: OVERLAP_LIGHT,
   playstyle: PLAYSTYLE_LIGHT,

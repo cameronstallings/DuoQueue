@@ -11,15 +11,19 @@ interface SheetProps extends PropsWithChildren {
   /** Forms that carry user input should pass `dismissable={false}` so a mis-tap
    *  on the scrim can't destroy it — hardware back still closes it either way. */
   dismissable?: boolean;
+  /** iOS only (React Native's Modal fires it nowhere else): runs once the slide-out has
+   *  finished. iOS drops a second modal presented while this one is still dismissing, so a
+   *  sheet that hands off to another modal opens it from here. */
+  onDismiss?: () => void;
 }
 
 /** The one shared bottom-sheet chrome — scrim, grab handle, optional title. */
-export function Sheet({ visible, onClose, title, children, dismissable = true }: SheetProps) {
+export function Sheet({ visible, onClose, title, children, dismissable = true, onDismiss }: SheetProps) {
   const { colors, radius, spacing, type, scrimRgb } = useTheme();
   const insets = useSafeAreaInsets();
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} onDismiss={onDismiss}>
       <Pressable
         style={{ flex: 1, justifyContent: "flex-end", backgroundColor: `rgba(${scrimRgb},0.6)` }}
         onPress={dismissable ? onClose : undefined}
