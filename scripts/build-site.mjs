@@ -50,14 +50,18 @@
 // site/. Do not loosen or remove this check to "get it building" — fix the
 // source markdown instead.
 //
-// Three more guards have since joined it, all the same shape (refuse to write
+// Four more guards have since joined it, all the same shape (refuse to write
 // anything rather than publish something wrong):
 //   * the LAUNCH GUARD, so a "launched" site whose only call to action is a
 //     dead App Store link cannot be built (see PHASE below);
 //   * the FONT GUARD, so a missing .woff2 is a loud failure instead of a
 //     silent fallback to system sans on every page;
 //   * the CONTRAST GUARD, so a colour edit that drops a text pair below WCAG
-//     AA fails the build with the measured ratio (see CONTRAST_PAIRS).
+//     AA fails the build with the measured ratio (see CONTRAST_PAIRS);
+//   * the PAGE SOURCE GUARD, so no page is written with a <script> tag, an
+//     inline on...= handler, a javascript: URL (the privacy policy says there
+//     is no JavaScript on the site at all) or an em dash anywhere in its source
+//     (see checkPageSource).
 // ---------------------------------------------------------------------------
 
 import { readFileSync, writeFileSync, mkdirSync, statSync, copyFileSync, existsSync } from "node:fs";
@@ -109,8 +113,11 @@ const CUSTOM_DOMAIN = "duoqueue.io";
 // (1.17:1 on pure white), which is not "low contrast", it is invisible — a filled
 // chartreuse shape on warm off-white has no silhouette at all, and a button is
 // read by its silhouette before its words. On the app's own off-black it is
-// 16.88:1. So chartreuse NEVER goes on the light ground. It lives inside dark
-// elements: a dark slab, a dark button, a dark card. For accent type on the light
+// 16.88:1. So chartreuse is NEVER a fill or a type colour on the light ground. It
+// lives inside dark elements: the skip link's slab, and the watch pages, which are
+// dark all over. Its one appearance on the paper is as a mark UNDER ink, the
+// highlighter stroke behind the hero's "duo": the word is read by its ink (15.11:1
+// on the stroke), and nothing is read by the stroke. For accent type on the light
 // ground the accent is the app's own answer to the same question, lightColors.volt
 // #4A6B00, which is what the app itself uses when it is on paper.
 //
@@ -144,14 +151,14 @@ const INK = {
   type: "#161A0F", // lightColors.text
   muted: "#5C6450", // lightColors.textMuted
   accent: "#4A6B00", // lightColors.volt — chartreuse's own resolution on paper
-  brand: "#CDFF3D", // darkColors.voltRaw — legal ONLY inside a dark element
+  brand: "#CDFF3D", // darkColors.voltRaw: a fill or type ONLY inside a dark element; on paper, only the stroke under the hero's ink
   slab: "#0A0B09", // darkColors.background
   field: "#FFFFFF", // lightColors.surface
   rule: "#C9CFBB", // lightColors.border
 };
 
-// The app's LIGHT palette, for the product fragments. These are objects made of the
-// real thing, so they are drawn in the real tokens — apps/mobile/src/theme/tokens.ts,
+// The app's LIGHT palette, for the three moment cards and the call to action. What each card
+// shows is the real app, so it is drawn in the real tokens: apps/mobile/src/theme/tokens.ts,
 // `lightColors`, verbatim.
 //
 // It was the DARK palette until Cameron committed the campaign to light: "i think we
@@ -174,7 +181,7 @@ const INK = {
 // rest of this file already makes everywhere else: `volt` #4A6B00 as the fill and `onVolt`
 // #F7F9F0 as the label, at radius.button = 6, with the app's own scale(0.97) press. That
 // is literally what apps/mobile/src/components/Button.tsx renders on paper, and it is
-// already what the message-send button in the third fragment on this page looks like.
+// already what the send button on the third moment card looks like.
 //
 // The measured trade, stated rather than hidden. The label pair goes 16.88:1 -> 5.82:1 and
 // the SILHOUETTE - the fill against the paper, which is what a button is read by before its
@@ -184,15 +191,16 @@ const INK = {
 // and it deepens to `voltDim` #3B5600 (7.27:1 silhouette) under the pointer. A deep olive
 // is also the only chromatic mass on a neutral warm ground, which black was not.
 //
-// What it costs the brand: raw chartreuse now appears nowhere on the rendered page except
-// inside the skip link's dark slab. That is the rule holding, not the rule breaking - a
-// chartreuse fill on this ground has no silhouette at 1.05:1 - but it is a real loss and
-// it belongs in the record rather than in a footnote.
+// What it costs the brand: on the paper, raw chartreuse is now only the highlighter stroke
+// under the hero's "duo" (a mark under ink, never a fill or a word) and the skip link's dark
+// slab. That is the rule holding, not the rule breaking - a chartreuse fill on this ground
+// has no silhouette at 1.05:1 - but it is a real loss and it belongs in the record rather
+// than in a footnote. The watch pages are where it is at full strength: they are dark.
 //
-// The other consequence is structural: a light fragment on a light ground has almost no
-// tonal step left, so `border` is no longer a detail. It is the only thing separating an
-// object from the paper, and the cast shadow underneath it is the other. Neither is
-// decoration on this palette.
+// The other consequence is structural: a white card on a light ground has almost no
+// tonal step left, so its edge is no longer a detail. The hairline is the only thing
+// separating an object from the paper, and the cast shadow underneath it is the other.
+// Neither is decoration on this palette.
 const APP = {
   background: "#F2F4EB",
   surface: "#FFFFFF",
@@ -267,63 +275,17 @@ function filmPresent() {
   });
 }
 
-// A shadow is geometry, not a colour, and geometry does not survive being copied
-// onto an object of a different size.
+// THE PAGE'S ONE SHADOW INK, from marketing/video/src/frag/ground.ts. Warm, because the ground
+// is warm; a neutral grey shadow on this paper reads as dirt. Every shadow on the site is drawn
+// in it (the call to action's, the moment cards', the trailer link's lift), because the page
+// has ONE light source and a second shadow colour would give it two.
 //
-// The campaign's cast layer is a 92px blur at a 44px offset on an 844px card:
-// 10.9% and 5.2% of the object. Pasted unscaled onto a fragment that renders 303px
-// wide on a phone, the same numbers are 30.4% and 14.5% — a shadow three times too
-// big for its object, which stops reading as "this card is lifted off the paper"
-// and starts reading as a grey rectangle lying next to it. Measured on the built
-// page before this scaled: 25.1% of the fragments band was clean ground against the
-// ads' 48.5%, and the mono caption under each fragment sat inside the cast at
-// 4.10:1 — under WCAG AA on the phone, which is the priority device.
-//
-// So every length is stored as a ratio of the object's width and the two alphas do
-// not move: the shadow keeps the campaign's exact optical relationship to its
-// object at any size, which is the thing that was actually being copied. Alpha is
-// deliberately left alone — dimming the shadow would have hidden the contrast
-// failure without fixing the composition, and the ads' ground is not a paler
-// version of this one, it is a cleaner one.
-//
-// THIS ARRAY WAS THE ONE DEFINITION for both the CSS and the contrast guard
-// (fragShadowPx -> groundUnderCaption). The fragments it was drawn on were replaced by
-// the moment cards on 23 Sept 2026, so only the guard still reads it, until its caption
-// sweep is retired with them. `marketing/video/src/frag/ground.ts:257` is where these six
-// numbers and two alphas come from; nothing here is authored.
-const FRAG_SHADOW_LAYERS = [
-  { x: 16, y: 10, blur: 26, spread: 0, alpha: 0.1 }, // contact: a millimetre off the paper
-  { x: 38, y: 44, blur: 92, spread: -20, alpha: 0.28 }, // cast: the surface is lit
-];
-/** The shadow's ink, from ground.ts. Warm, because the ground is warm; a neutral
- *  grey shadow on this paper reads as dirt. */
-const FRAG_SHADOW_INK = [41, 34, 18];
-/** The object the campaign's shadow was authored for: ground.ts:237 draws an 844px-wide
- *  card on a 1080px frame, and every length in FRAG_SHADOW_LAYERS is a ratio of it. */
-const FRAG_AUTHORED_FOR = 844;
-
-/** The layers resolved to real pixels for an object of `objectWidth`. This is what
- *  the browser actually paints, and it is what the contrast guard measures. */
-function fragShadowPx(objectWidth) {
-  const k = objectWidth / FRAG_AUTHORED_FOR;
-  return FRAG_SHADOW_LAYERS.map((l) => ({
-    x: l.x * k,
-    y: l.y * k,
-    blur: l.blur * k,
-    spread: l.spread * k,
-    alpha: l.alpha,
-  }));
-}
-
-// The gap between an object and its caption. 22px was measured on the 303px phone
-// object; held as a ratio it keeps the caption a constant distance out of the cast
-// shadow at every object size — which is the other half of the AA fix, because a
-// fixed 22px puts the caption back inside the cast on any object wider than ~310px.
-// The clamp bounds are the CSS clamp's bounds; captionGapPx() reproduces the clamp
-// so the guard measures the gap the browser will actually use.
-const CAPTION_GAP = { ratio: 22 / 303, minPx: 22, maxPx: 52 };
-const captionGapPx = (objectWidth) =>
-  Math.min(CAPTION_GAP.maxPx, Math.max(CAPTION_GAP.minPx, CAPTION_GAP.ratio * objectWidth));
+// It used to come with the campaign's own two shadow layers, held as ratios of an object's
+// width, for the tilted product fragments, and with a contrast sweep of every fragment width
+// for the caption sitting in their cast. The fragments were replaced by the moment cards on
+// 23 Sept 2026, whose type all sits on their own white surface, so the layers and the sweep
+// were retired with them; this ink is what is left.
+const SHADOW_INK = [41, 34, 18];
 
 // ---------------------------------------------------------------------------
 // THE CALL TO ACTION'S SHADOW.
@@ -331,20 +293,16 @@ const captionGapPx = (objectWidth) =>
 // The button lost 17.18:1 of silhouette when it stopped being off-black (see the design
 // note above). A cast shadow is how it gets presence back without getting harshness back:
 // an object that sits ON the paper is read before an object that is merely a different
-// colour from it, and it is the same read the fragments already get.
+// colour from it.
 //
-// It is NOT the fragments' shadow. Theirs is a ratio of the object's width because it is
-// copying an optical relationship from a film; this one is in fixed pixels because the
-// button is furniture at a known size (250px on the smallest phone, 460px in the form) and
-// because a cast that scaled with a 460px button would put 24px of grey under the sentence
-// beneath it. Same ink, though - rgba(41,34,18) - because the page has ONE light source and
-// a second shadow colour would give it two.
-//
-// Straight down, with no x offset, because unlike the fragments the button is not tilted:
-// it faces the reader square-on, so its light falls on it square-on.
+// It is in fixed pixels because the button is furniture at a known size (250px on the
+// smallest phone, 460px in the form) and because a cast that scaled with a 460px button
+// would put 24px of grey under the sentence beneath it. In SHADOW_INK, rgba(41,34,18), like
+// every shadow on the page. Straight down, with no x offset: the button faces the reader
+// square-on, so its light falls on it square-on.
 //
 // checkContrast() reads this array and composites it before measuring the two sentences
-// that sit under the button, exactly as it already does for the fragments' captions.
+// that sit under the button (groundUnderCta).
 const CTA_SHADOW_LAYERS = [
   { x: 0, y: 2, blur: 5, spread: 0, alpha: 0.16 }, // contact: it is resting on the paper
   { x: 0, y: 12, blur: 26, spread: -8, alpha: 0.3 }, // cast: the paper is lit
@@ -389,6 +347,14 @@ const CARD = {
   stageEdge: "#E6E9DD", // the edge of the app screen inside each card
   bubbleOwnEdge: "#D3DFB0", // the sent bubble's edge on the third card
 };
+
+// THE TWO SEE-THROUGH SURFACES ON THE PAPER, each alpha named once so the CSS and the contrast
+// guard read the same number. The trailer link is white at 60% over the ground. The queue bar
+// is the ground at 90% over whatever scrolls under it, and the darkest thing that can is the
+// ink; its backdrop blur only ever averages ink with something lighter, so flat ink is the
+// worst case the guard measures.
+const TRAILER_FILL_ALPHA = 0.6;
+const QBAR_ALPHA = 0.9;
 
 // THE GRID, as ratios of the campaign's 1080px field so they survive being poured
 // into a viewport of any width.
@@ -544,12 +510,15 @@ function blend(ink, bg, inkWeight) {
 // from #F3EFE5 to as dark as #D4D0C6 and the pair fell from 5.58:1 to 4.02:1,
 // under AA on the priority device, while this function was printing a pass.
 //
-// So the guard now composites the shadow before it measures. A CSS box-shadow's
-// blur radius r is defined as a Gaussian of sigma = r/2 applied to the shadow
-// rectangle, so the layer's coverage at a distance d beyond that rectangle's edge
-// is the normal tail Phi(-d / sigma). Everything below is in units of the object's
-// own width, because that is how fragShadow() and CAPTION_GAP_CQW now define it —
-// which means the model has one answer, not one answer per breakpoint.
+// So the guard composites a shadow before it measures the type under it. A CSS
+// box-shadow's blur radius r is defined as a Gaussian of sigma = r/2 applied to the
+// shadow rectangle, so the layer's coverage at a distance d beyond that rectangle's edge
+// is the normal tail Phi(-d / sigma).
+//
+// The fragments and their captions are gone (23 Sept 2026: the moment cards' type all
+// sits on their own white surface, out of any cast), so what the model measures now is
+// the one shadow that still has type under it: the call to action's, over `.promise` and
+// `.fineprint`.
 // ---------------------------------------------------------------------------
 
 /** Abramowitz & Stegun 7.1.26. Max absolute error 1.5e-7 — far finer than the
@@ -587,15 +556,14 @@ function over(src, alpha, dstHex) {
 }
 
 /**
- * The ground colour under a fragment's caption, at an object of width `w`.
- * Returns the darkest value the caption's top edge can sit on.
+ * The ground colour `gap` px below an object that casts `layers` in `ink`, over `base`.
+ * Returns the darkest value the top edge of type at that distance can sit on.
  *
- * It reads fragShadowPx() and captionGapPx() — the same two functions the CSS is
- * generated from — rather than re-stating the geometry. That is what makes this a
- * guard and not a second opinion: un-scale the shadow, or pin the caption gap back
- * to a constant, and these numbers move and the build stops.
+ * It reads the same layer arrays the CSS is generated from, rather than re-stating the
+ * geometry. That is what makes this a guard and not a second opinion: lengthen the cast,
+ * or close the gap under the button, and these numbers move and the build stops.
  */
-function groundUnder(layers, gap, ink = FRAG_SHADOW_INK, base = GROUND.darkest) {
+function groundUnder(layers, gap, ink = SHADOW_INK, base = GROUND.darkest) {
   // Each layer's shadow rectangle sits `y + spread` below the object's bottom edge
   // (a negative spread pulls the rectangle back up), and its coverage decays over
   // the blur from there. The text's TOP edge is the worst case; every pixel of
@@ -608,89 +576,101 @@ function groundUnder(layers, gap, ink = FRAG_SHADOW_INK, base = GROUND.darkest) 
   return { hex: over(ink, combined, base), alpha: combined, gap: +gap.toFixed(1) };
 }
 
-/** The ground under a fragment's caption, at an object of width `w`. */
-function groundUnderCaption(w) {
-  return groundUnder(fragShadowPx(w), captionGapPx(w));
-}
-
 /** The ground under the two sentences below the call to action, in whichever of its
- *  three states casts the longest shadow. Same model, same ink, different geometry —
- *  see CTA_SHADOW_LAYERS for why the button's shadow is in px and the fragments' is
- *  not. `extra` is how far below `.promise` a second line sits. */
+ *  three states casts the longest shadow. `extra` is how far below `.promise` a second
+ *  line sits. */
 function groundUnderCta(layers, extra = 0) {
   return groundUnder(layers, CTA_PROMISE_GAP + extra);
 }
 
-/** EVERY OBJECT WIDTH THE LAYOUT CAN PRODUCE — a swept range, not a list of samples.
- *
- * This used to be twelve hand-picked numbers, each annotated with the viewport that
- * produced it. That shape of guard rots silently: the numbers are only true until the
- * next time the grid moves, and nothing fails when they stop being true. It had already
- * rotted. Sweeping the built page continuously — every measure from 300 to 1700 CSS px,
- * two at a time, reading `.object`'s painted box — produces widths from 252.7 to 637.0,
- * and of the twelve widths the old list named, the recomposed scene actually draws ONE.
- * Thirty-three real widths were going through a guard that had never seen them, and the
- * floor was set 12px ABOVE the narrowest object the layout can actually draw.
- *
- * So the range is swept instead. The two ends, both measured rather than reasoned:
- *
- *   252.7  the narrowest, at a 300px measure — a 320px phone whose browser reserves a
- *          20px scrollbar. Below the old 265 floor, i.e. previously unchecked.
- *   637.0  the widest, at about 806px of measure. This is the PROJECTED box: DEPTH.front
- *          puts the front plate 46px toward the camera in a 2400px perspective and scales
- *          it — and its cast shadow — by 1.0195, and `getBoundingClientRect` already has
- *          that in it. So the projection needs no separate entry the way it used to.
- *
- * The bounds below carry margin past both measurements and the guard checks every
- * integer between them. They stop well short of ~716px, where `captionGapPx` hits
- * CAPTION_GAP.maxPx, the caption gap stops tracking the shadow that is darkening the
- * ground beneath it, and the pair starts falling — which is what the 640px ceiling in
- * the @container rule exists to prevent. If the layout ever draws an object wider than
- * FRAG_WIDTH_CEIL, widen this range and let the guard tell you whether it still passes,
- * rather than trusting that it does. */
-const FRAG_WIDTH_FLOOR = 250;
-const FRAG_WIDTH_CEIL = 660;
-const FRAG_WIDTHS = Array.from(
-  { length: FRAG_WIDTH_CEIL - FRAG_WIDTH_FLOOR + 1 },
-  (_, i) => FRAG_WIDTH_FLOOR + i
-);
+// The two see-through surfaces, resolved to the colour a reader sees at their worst, from the
+// same alphas the CSS is written with (TRAILER_FILL_ALPHA, QBAR_ALPHA). The trailer link is
+// white over the sweep's darkest stop; the queue bar is the ground over flat ink.
+const TRAILER_FILL = over(hexToRgb(INK.field), TRAILER_FILL_ALPHA, GROUND.darkest);
+const QBAR_WORST = over(hexToRgb(GROUND.base), QBAR_ALPHA, INK.type);
 
+// EVERY TEXT AND CONTROL PAIR ON THE SITE, each named with the surface it really sits on.
+// A pair is retired when its element is: the film's silhouette on the paper went when the
+// film moved to its own page, the dark slab's ground-coloured type went with the slab, and
+// the fragments' caption sweep went with the fragments (all by 23 Sept 2026).
 const CONTRAST_PAIRS = [
-  { what: "body / caption ink on the ground", fg: INK.type, bg: GROUND.darkest, min: 4.5 },
-  { what: "muted ink (eyebrow, captions) on the ground", fg: INK.muted, bg: GROUND.darkest, min: 4.5 },
-  { what: "accent word and links on the ground", fg: INK.accent, bg: GROUND.darkest, min: 4.5 },
+  // THE PAPER: every page but the watch pages is printed on it.
+  { what: "body ink on the ground", fg: INK.type, bg: GROUND.darkest, min: 4.5 },
+  { what: "muted ink on the ground (eyebrows, the sub, the nav, the plain version, the fine print, the footer)", fg: INK.muted, bg: GROUND.darkest, min: 4.5 },
+  { what: "accent on the ground (links, the nav's WATCH, the outlined join link, focus rings)", fg: INK.accent, bg: GROUND.darkest, min: 4.5 },
   { what: "typed email in the field", fg: INK.type, bg: INK.field, min: 4.5 },
-  // The last dark element on the page, and therefore the only legal home chartreuse has
-  // left on it. It is the skip link, which is off-canvas until a keyboard finds it.
+  // The paper pages' one dark element, the skip link, off-canvas until a keyboard finds it.
   { what: "chartreuse on the skip link's dark slab", fg: INK.brand, bg: INK.slab, min: 4.5 },
-  { what: "ground-coloured type on the dark slab", fg: GROUND.base, bg: INK.slab, min: 4.5 },
-  { what: "app text on app surface", fg: APP.text, bg: APP.surface, min: 4.5 },
-  { what: "app muted text on app surfaceAlt", fg: APP.textMuted, bg: APP.surfaceAlt, min: 4.5 },
-  { what: "overlap amber on app surface", fg: APP.amber, bg: APP.surface, min: 4.5 },
-  // The DUO LOCKED label and its two bracket glyphs, which are the app's own volt on the
-  // app's own surface. The middle plate is the only place on the page where volt is TYPE
-  // rather than a button fill, so it gets the 4.5 that type is held to and not the 3.0 a
-  // control's silhouette gets.
-  { what: "volt label and brackets on app surface (the DUO LOCKED plate)", fg: APP.volt, bg: APP.surface, min: 4.5 },
-  // The film is the page's one large dark object. Its type is burned into the video, so
-  // the only pair this page owns is its edge: the frame against the paper.
-  { what: "the film's dark ground against the paper (its silhouette)", fg: FILM.ground, bg: GROUND.darkest, min: 3.0 },
+
+  // THE HERO. "duo" is ink on the chartreuse highlighter stroke: the word is read by its ink
+  // and the stroke only marks it (see the CSS). The trailer link is a light pill with the
+  // app's olive play disc. The disc's glyph, like the send arrow on card 03 and the queue
+  // bar's arrow, is a graphic, so it is held to the 3.0 a graphic needs.
+  { what: "hero: ink on the chartreuse highlighter (\"duo\")", fg: INK.type, bg: INK.brand, min: 4.5 },
+  { what: "hero: trailer link label, ink on its fill (white at 60% over the ground)", fg: INK.type, bg: TRAILER_FILL, min: 4.5 },
+  { what: "hero: trailer link running time, muted ink on its fill", fg: INK.muted, bg: TRAILER_FILL, min: 4.5 },
+  { what: "onVolt glyphs on a volt disc (the trailer's play, card 03's send, the bar's arrow)", fg: APP.onVolt, bg: APP.volt, min: 3.0 },
 
   // THE CALL TO ACTION, in all three of its states.
   //
   // Four pairs, not one, because a button is read twice: once as a shape and once as a
   // word. The label pairs are held at 4.5 even though `GRID.cta` is 21px at its smallest
   // (large-text territory, where 3.0 would do) because the label is the sentence the whole
-  // page exists to get read and there is no reason to spend the headroom.
+  // page exists to get read and there is no reason to spend the headroom. The queue bar's
+  // button and the outlined link's hover are the same two fills under the same label.
   //
-  // The SILHOUETTE pairs are the ones that matter here and they are new. WCAG 1.4.11 asks
-  // 3.0 of a control's boundary against what is behind it, and this is exactly the number
-  // that the off-black slab used to win 17.18:1 without trying. It is the measurement that
-  // says whether a softer button is still a button.
+  // The SILHOUETTE pairs are the ones that matter here. WCAG 1.4.11 asks 3.0 of a control's
+  // boundary against what is behind it, and this is exactly the number that the off-black
+  // slab used to win 17.18:1 without trying. It is the measurement that says whether a
+  // softer button is still a button.
   { what: "onVolt label on the volt call to action", fg: APP.onVolt, bg: APP.volt, min: 4.5 },
   { what: "onVolt label on voltDim (hover / press fill)", fg: APP.onVolt, bg: APP.voltDim, min: 4.5 },
   { what: "volt FILL against the ground (the button's silhouette)", fg: APP.volt, bg: GROUND.darkest, min: 3.0 },
   { what: "voltDim FILL against the ground (hover silhouette)", fg: APP.voltDim, bg: GROUND.darkest, min: 3.0 },
+
+  // THE MOMENT CARDS. Each card is white, and each moment sits on the app screen inside it
+  // (the app's own background) or on a white chip, badge or bubble within that screen.
+  { what: "cards: the sentence under each card, ink on the card's white", fg: INK.type, bg: APP.surface, min: 4.5 },
+  { what: "cards: the index (01 / 02 / 03), accent on the card's white", fg: INK.accent, bg: APP.surface, min: 4.5 },
+  { what: "card 01: a game's name, app text on the chip's white", fg: APP.text, bg: APP.surface, min: 4.5 },
+  { what: "card 01: its skill level, app muted on the chip's white", fg: APP.textMuted, bg: APP.surface, min: 4.5 },
+  // The badge counts up through all four of the app's overlap inks as the rows land, so each
+  // of the four is type at some point, and each is held to 4.5.
+  { what: "card 01: NO GAMES IN COMMON, overlap none on the badge's white", fg: APP.overlapNone, bg: APP.surface, min: 4.5 },
+  { what: "card 01: 1 GAME IN COMMON, overlap one on the badge's white", fg: APP.overlapOne, bg: APP.surface, min: 4.5 },
+  { what: "card 01: 2 GAMES IN COMMON, overlap two on the badge's white", fg: APP.overlapTwo, bg: APP.surface, min: 4.5 },
+  { what: "card 01: 3 GAMES IN COMMON, overlap many (amber) on the badge's white", fg: APP.amber, bg: APP.surface, min: 4.5 },
+  // DUO LOCKED and its two bracket glyphs are the one place on the paper where volt is TYPE
+  // rather than a fill, so they get the 4.5 type is held to. They sit on the app screen, the
+  // app's background, not on its white surface.
+  { what: "card 02: DUO LOCKED and its brackets, volt on the app screen", fg: APP.volt, bg: APP.background, min: 4.5 },
+  { what: "card 02: the line under it, app text on the app screen", fg: APP.text, bg: APP.background, min: 4.5 },
+  { what: "card 03: the incoming bubble, app text on white", fg: APP.text, bg: APP.surface, min: 4.5 },
+  { what: "card 03: the sent bubble, app text on bubbleOwn", fg: APP.text, bg: APP.bubbleOwn, min: 4.5 },
+  { what: "card 03: the composer's placeholder, app muted on surfaceAlt", fg: APP.textMuted, bg: APP.surfaceAlt, min: 4.5 },
+  { what: "card 03: the message being typed, app text on surfaceAlt", fg: APP.text, bg: APP.surfaceAlt, min: 4.5 },
+
+  // THE QUEUE BAR, at its worst case: the ground at 90% over the darkest thing that can
+  // scroll under it, the ink. Its label and its hover are the call to action's pairs above.
+  { what: "queue bar: the wordmark, ink on the bar (90% ground over ink)", fg: INK.type, bg: QBAR_WORST, min: 4.5 },
+  { what: "queue bar: the button's volt fill against the bar (its silhouette)", fg: APP.volt, bg: QBAR_WORST, min: 3.0 },
+
+  // THE SUPPORT CARD, white like the moment cards.
+  { what: "support card: links, accent on white", fg: INK.accent, bg: APP.surface, min: 4.5 },
+  { what: "support card: body, ink on white", fg: INK.type, bg: APP.surface, min: 4.5 },
+
+  // THE WATCH PAGES, the one dark page on the site (VOLT, the app's own dark theme), where
+  // chartreuse is legal as type and as a fill. The join button gets the same four pairs the
+  // paper's button gets, and the skip link there is the button's two colours. The mark's second
+  // ring is a graphic that carries the logo, so it is held to 3.0.
+  { what: "watch: text on the dark ground", fg: VOLT.text, bg: VOLT.background, min: 4.5 },
+  { what: "watch: muted text (the eyebrow, the lede, the nav, the promise, the footer)", fg: VOLT.textMuted, bg: VOLT.background, min: 4.5 },
+  { what: "watch: chartreuse (the key words, the nav's WATCH, links, focus rings)", fg: VOLT.volt, bg: VOLT.background, min: 4.5 },
+  { what: "watch: join button label (and the skip link), onVolt on volt", fg: VOLT.onVolt, bg: VOLT.volt, min: 4.5 },
+  { what: "watch: join button label on voltDim (hover / press fill)", fg: VOLT.onVolt, bg: VOLT.voltDim, min: 4.5 },
+  { what: "watch: volt FILL against the dark ground (the button's silhouette)", fg: VOLT.volt, bg: VOLT.background, min: 3.0 },
+  { what: "watch: voltDim FILL against the dark ground (hover silhouette)", fg: VOLT.voltDim, bg: VOLT.background, min: 3.0 },
+  { what: "watch: the mark's second ring on the dark ground (a graphic)", fg: VOLT.markDuo, bg: VOLT.background, min: 3.0 },
 ];
 
 function checkContrast() {
@@ -701,48 +681,14 @@ function checkContrast() {
     if (ratio < pair.min) failures.push(line);
     else console.log(line);
   }
-  // The caption pairs, measured against the shadow-darkened ground rather than
-  // against clean paper. This is the check that the flat-ground version of this
-  // guard was missing; it is what the 4.02:1 failure would have tripped.
-  console.log("\nCaption ink on the ground UNDER a fragment's cast shadow:");
-  const describe = (w) => {
-    const g = groundUnderCaption(w);
-    const ratio = contrastRatio(INK.muted, g.hex);
-    return {
-      ratio,
-      line:
-        `  ${ratio.toFixed(2).padStart(6)}:1  (needs 4.5)  ${INK.muted} on ${g.hex}  ` +
-        `object ${String(w).padStart(3)}px, caption gap ${g.gap}px, shadow alpha ${g.alpha.toFixed(3)}`,
-    };
-  };
-  // Every integer width in the range is checked; only the two ends and the worst are
-  // printed, because 411 near-identical lines would bury everything else in this report.
-  let worst = null;
-  let worstW = null;
-  for (const w of FRAG_WIDTHS) {
-    const { ratio, line } = describe(w);
-    if (ratio < 4.5) failures.push(line);
-    if (worst === null || ratio < worst) {
-      worst = ratio;
-      worstW = w;
-    }
-  }
-  console.log(`${describe(FRAG_WIDTH_FLOOR).line}   <- floor`);
-  console.log(`${describe(worstW).line}   <- worst`);
-  console.log(`${describe(FRAG_WIDTH_CEIL).line}   <- ceiling`);
-  console.log(
-    `  worst caption pair across all ${FRAG_WIDTHS.length} object widths ` +
-      `from ${FRAG_WIDTH_FLOOR} to ${FRAG_WIDTH_CEIL}px: ${worst.toFixed(2)}:1 (at ${worstW}px)`
-  );
 
-  // THE SAME CHECK FOR THE CALL TO ACTION'S NEW SHADOW.
+  // THE CALL TO ACTION'S SHADOW, measured over the type under it.
   //
   // The button gained a cast shadow to buy back the presence it lost when it stopped being
   // off-black, and directly under that shadow sit the two sentences a visitor reads to
   // decide whether to type an address: `.promise` in ink and `.fineprint` in muted ink.
-  // The fragments' captions have already failed this exact check once, at 4.02:1, while a
-  // flat-ground model printed a pass — so the button's shadow gets modelled before it
-  // ships rather than after.
+  // The old fragments' captions failed this exact check once, at 4.02:1, while a flat-ground
+  // model printed a pass, so the button's shadow is modelled rather than assumed.
   //
   // `.fineprint` is the pair that can actually fail: it is the muted ink, which starts at
   // 5.39:1 on clean paper with only 0.89 of headroom. It sits a line lower, so it gets the
@@ -769,18 +715,23 @@ function checkContrast() {
     }
   }
 
-  // Not a pass/fail pair — a printed reminder. If this number ever climbs, someone
-  // has changed the ground, and the entire "chartreuse only inside dark elements"
-  // rule that this design rests on has to be re-argued rather than quietly dropped.
+  // Not a pass/fail pair, a printed reminder. If this number ever climbs, someone has
+  // changed the ground, and the rule this design rests on (chartreuse is never a fill or a
+  // type colour on the paper; its one appearance there is the stroke under the hero's ink
+  // "duo", which nothing is read by) has to be re-argued rather than quietly dropped.
   console.log(
     `  ${contrastRatio(INK.brand, GROUND.base).toFixed(2).padStart(6)}:1  (informational)   ` +
-      `${INK.brand} on ${GROUND.base}  chartreuse on the ground: why it is never used there`
+      `${INK.brand} on ${GROUND.base}  chartreuse on the ground: why it is never a fill or type there`
   );
   if (failures.length) {
     console.error("\nREFUSING TO BUILD: contrast below WCAG AA.\n");
     failures.forEach((f) => console.error(f));
     process.exit(1);
   }
+  console.log(
+    `\n  every contrast pair passed: ${CONTRAST_PAIRS.length} pairs, and ` +
+      `${CTA_STATES.length * CTA_TEXT.length} under the call to action's shadow`
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -1146,7 +1097,7 @@ const CSS = `
     --tier-many: ${APP.amber};
     --bubble-own: ${APP.bubbleOwn};
     --hairline: ${CARD.hairline};
-    --card-shadow: ${shadowCss(CARD_SHADOW_LAYERS, FRAG_SHADOW_INK)};
+    --card-shadow: ${shadowCss(CARD_SHADOW_LAYERS, SHADOW_INK)};
     /* One ground, no scheme swap. See the design-system note in build-site.mjs. */
     color-scheme: light;
 
@@ -1359,10 +1310,10 @@ const CSS = `
 
      IT IS STILL MEANT TO BE THE LOUDEST THING ON THE FIRST SCREEN, and it lost 17.18:1 of
      silhouette to get there, so four things pay that back and each is deliberate:
-       * a cast shadow in the page's own shadow ink, so it is the only lifted piece of
-         FURNITURE on the page and reads as an object sitting on the paper rather than as a
-         colour printed into it (see CTA_SHADOW_LAYERS, and note that the guard composites
-         it before measuring the two sentences underneath);
+       * a cast shadow in the page's one shadow ink, so it reads as an object sitting on
+         the paper rather than as a colour printed into it, and the only coloured one: the
+         cards below cast in the same ink but are white (see CTA_SHADOW_LAYERS, and note
+         that the guard composites it before measuring the two sentences underneath);
        * heavier vertical padding than the old slab, 0.42/0.48em against 0.36/0.42em;
        * air above it — the checkbox row's bottom margin, not the button, holds it apart;
        * a deep olive is the only chromatic mass on a neutral warm ground. Off-black had
@@ -1379,7 +1330,7 @@ const CSS = `
     font-family: ${SANS}; font-weight: 800; font-size: ${GRID.cta}; line-height: 1.3;
     letter-spacing: -0.02em;
     text-decoration: none;
-    box-shadow: ${shadowCss(CTA_SHADOW_LAYERS, FRAG_SHADOW_INK)};
+    box-shadow: ${shadowCss(CTA_SHADOW_LAYERS, SHADOW_INK)};
     /* Named properties, never 'all'. Colour moves on the app's 'quick', the lift on the
        app's 'base', and the press below drops to the app's 'instant'. */
     transition:
@@ -1393,7 +1344,7 @@ const CSS = `
   @media (hover: hover) and (pointer: fine) {
     .cta:hover {
       background: var(--app-volt-dim); border-color: var(--app-volt-dim);
-      box-shadow: ${shadowCss(CTA_SHADOW_HOVER, FRAG_SHADOW_INK)};
+      box-shadow: ${shadowCss(CTA_SHADOW_HOVER, SHADOW_INK)};
       transform: translate3d(0, -2px, 0);
       text-decoration: none;
     }
@@ -1404,7 +1355,7 @@ const CSS = `
      press is the one piece of feedback a touch device must get. */
   .cta:active {
     background: var(--app-volt-dim); border-color: var(--app-volt-dim);
-    box-shadow: ${shadowCss(CTA_SHADOW_PRESS, FRAG_SHADOW_INK)};
+    box-shadow: ${shadowCss(CTA_SHADOW_PRESS, SHADOW_INK)};
     transform: scale(0.97);
     transition-duration: var(--t-instant);
   }
@@ -1423,12 +1374,14 @@ const CSS = `
      2.9 MB for it, although most visitors arrive from a video already. It has its own dark
      page now (/watch/, and one per channel), and this is the door to it: a light pill with
      the app's olive play disc, the words, and the running time, so the cost of the tap is
-     on the label. Every colour in it is a pair the page already passes: ink on a lightened
-     ground, onVolt on volt, muted ink in the time chip. 48px tall, a comfortable target. */
+     on the label. The guard measures each colour where it really sits: the ink label and
+     the muted running time on the link's own fill (TRAILER_FILL, white at
+     TRAILER_FILL_ALPHA over the ground), and the play glyph, onVolt, on its volt disc.
+     48px tall, a comfortable target. */
   .trailer {
     display: inline-flex; align-items: center; gap: 12px;
     min-height: 48px; padding: 7px 18px 7px 7px;
-    background: rgba(255,255,255,0.6); border: 1px solid var(--rule); border-radius: 999px;
+    background: rgba(${hexToRgb(INK.field).join(",")},${TRAILER_FILL_ALPHA}); border: 1px solid var(--rule); border-radius: 999px;
     color: var(--ink); text-decoration: none;
     font-weight: 700; font-size: 15px; line-height: 1.2;
     transition:
@@ -1449,7 +1402,7 @@ const CSS = `
   .trailer:hover { text-decoration: none; border-color: var(--accent); }
   /* Gated like the button's lift, because a touch device fires a false :hover on tap. */
   @media (hover: hover) and (pointer: fine) {
-    .trailer:hover { transform: translate3d(0, -1px, 0); box-shadow: 0 10px 22px -12px rgba(${FRAG_SHADOW_INK.join(",")},0.35); }
+    .trailer:hover { transform: translate3d(0, -1px, 0); box-shadow: 0 10px 22px -12px rgba(${SHADOW_INK.join(",")},0.35); }
   }
   .trailer:active { transform: scale(0.97); transition-duration: var(--t-instant); }
 
@@ -1727,7 +1680,7 @@ const CSS = `
     background: var(--app-volt); color: var(--app-on-volt); border-radius: 6px; /* radius.button */
     text-decoration: none;
     font-family: ${SANS}; font-weight: 800; font-size: 15px; line-height: 1.2; letter-spacing: -0.01em;
-    box-shadow: ${shadowCss(CTA_SHADOW_LAYERS.slice(0, 1), FRAG_SHADOW_INK)};
+    box-shadow: ${shadowCss(CTA_SHADOW_LAYERS.slice(0, 1), SHADOW_INK)};
     transition:
       background-color var(--t-quick) ease,
       transform var(--t-base) var(--ease-out);
@@ -2033,7 +1986,7 @@ const CSS = `
     html:has(.qbar):has(#waitlist-form) { scroll-padding-top: 72px; }
     .qbar {
       display: block; position: fixed; z-index: 30; top: 0; left: 0; right: 0;
-      background: rgba(${hexToRgb(GROUND.base).join(",")},0.9);
+      background: rgba(${hexToRgb(GROUND.base).join(",")},${QBAR_ALPHA});
       -webkit-backdrop-filter: saturate(1.4) blur(14px); backdrop-filter: saturate(1.4) blur(14px);
       border-bottom: 1px solid var(--rule);
       animation-name: qbar-in; animation-fill-mode: both; animation-timing-function: linear;
@@ -2081,7 +2034,7 @@ const CSS = `
       transition: none !important;
     }
     .cta { transition-property: background-color, border-color; }
-    .cta:hover, .cta:active { transform: none; box-shadow: ${shadowCss(CTA_SHADOW_LAYERS, FRAG_SHADOW_INK)}; }
+    .cta:hover, .cta:active { transform: none; box-shadow: ${shadowCss(CTA_SHADOW_LAYERS, SHADOW_INK)}; }
     /* The trailer link, the outlined join link and the queue bar's button keep their colour
        answers and lose their lift and their press, the same line this block draws for the
        button. */
@@ -2310,7 +2263,7 @@ const LOCKUP_CSS = `
      ink on the page: measured, the mark is then 26% of the wordmark's width, which is
      what 06-the-waitlist.png measures (248 / 956). */
   /* vw first for anything without container query units, cqi second - the same
-     fallback-then-override pattern the fragments' shadow uses. 29.2cqi is 2.028x the
+     fallback-then-override pattern the watch page's film frame uses for vh and svh. 29.2cqi is 2.028x the
      wordmark's size below, which is the ratio 27.7vw and 13.6vw had between them, so the
      mark and the wordmark keep the proportion 06-the-waitlist.png measures. The 96px floor
      is the old 101px one, adjusted for the container being narrower than the viewport. */
@@ -2527,6 +2480,17 @@ const NAV_PLAY_SVG = `<svg viewBox="0 0 8 9" aria-hidden="true"><path d="M0 0l8 
 /** The browser chrome's colour per theme: the paper, or the watch pages' dark ground. */
 const THEME_COLOR = { paper: GROUND.base, volt: VOLT.background };
 
+/** The CSS as a visitor downloads it: every comment taken out. The notes in the CSS are for
+ *  whoever edits this file, and inlined into every page they were some 40 KB of it (the home
+ *  page went from 84 KB to 44 KB) and the only way an em dash reached page source. A CSS comment cannot nest, and no
+ *  string in this file's CSS contains a comment marker, so the first closing marker after an
+ *  opening one is always its own, which is how a browser reads it too. Every comment here has
+ *  whitespace on both sides, so taking one out cannot join two tokens into one. The blank lines
+ *  a removed comment leaves behind go as well. */
+function stripCssComments(css) {
+  return css.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\n[ \t]*(?=\n)/g, "");
+}
+
 /** The queue bar: the logo and "join the waitlist", which slides down from the top of the
  *  screen once the form has fully left it (the queue bar's CSS says how, with no script). */
 function qbarHtml() {
@@ -2593,7 +2557,7 @@ ${noindex ? `<meta name="robots" content="noindex">` : ""}
 <meta property="og:image:height" content="630">
 ${canonical ? `<meta property="og:url" content="${canonical}">` : ""}
 <meta name="twitter:card" content="summary_large_image">
-<style>${CSS}${film ? VIEW_TRANSITION_CSS : ""}${extraCss}</style>
+<style>${stripCssComments(CSS + (film ? VIEW_TRANSITION_CSS : "") + extraCss)}</style>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -3088,7 +3052,8 @@ function substituteOrgTokens(markdown, srcFile) {
   return out;
 }
 
-function buildLegalPage({ srcFile, destDir, description, canonical }) {
+/** A legal page's HTML, from its markdown. main() writes it, after the page source guard. */
+function buildLegalPage({ srcFile, description, canonical }) {
   const srcPath = path.join(LEGAL_DIR, srcFile);
   const markdown = substituteOrgTokens(readFileSync(srcPath, "utf8"), srcFile);
   const { html, title } = mdToHtml(markdown);
@@ -3100,10 +3065,7 @@ function buildLegalPage({ srcFile, destDir, description, canonical }) {
     bodyHtml: `<div class="wrap"><article>\n${html}\n</article></div>`,
     footerNote: `Last updated: ${lastUpdated.label}${lastUpdated.isPlaceholder ? ". Placeholder, see script header." : ""}`,
   });
-  const outDir = path.join(SITE_DIR, destDir);
-  mkdirSync(outDir, { recursive: true });
-  writeFileSync(path.join(outDir, "index.html"), pageHtml, "utf8");
-  return path.join(outDir, "index.html");
+  return pageHtml;
 }
 
 // ---------------------------------------------------------------------------
@@ -3156,6 +3118,39 @@ function checkFonts() {
   }
 }
 
+// THE PAGE SOURCE GUARD. Two promises are kept in page source rather than in any one
+// function, so they are checked on the finished pages, all of them, before any is written.
+// The privacy policy says "There is no JavaScript on the site at all": no <script> tag, no
+// inline on...= handler, no javascript: URL. And no page carries an em dash, in visible text
+// or in source, the standing rule for all public copy (the CSS comments were the last place
+// one lived, and stripCssComments() took them out).
+const PAGE_SOURCE_BANS = [
+  { what: "a <script> tag", re: /<script\b/i },
+  { what: "an inline event handler (on...=)", re: /\son[a-z]+\s*=/i },
+  { what: "a javascript: URL", re: /javascript:/i },
+  { what: "an em dash", re: /—|&mdash;|&#0*8212;|&#x0*2014;/i },
+];
+
+function checkPageSource(pages) {
+  const hits = [];
+  for (const [relPath, html] of pages) {
+    if (!relPath.endsWith(".html")) continue;
+    for (const ban of PAGE_SOURCE_BANS) {
+      const i = html.search(ban.re);
+      if (i !== -1) {
+        const near = html.slice(Math.max(0, i - 40), i + 40).replace(/\s+/g, " ");
+        hits.push(`  site/${relPath}: ${ban.what}, near "${near}"`);
+      }
+    }
+  }
+  if (hits.length) {
+    console.error("REFUSING TO BUILD: a page's source breaks a promise the site makes.\n");
+    hits.forEach((h) => console.error(h));
+    console.error("\nNothing was written. Fix the generator or docs/legal/ and re-run.");
+    process.exit(1);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
@@ -3188,18 +3183,17 @@ function main() {
   }
 
   checkFonts();
-  console.log("Contrast, measured against the sweep's darkest stop:");
+  console.log("Contrast, every pair on the site (the paper measured at the sweep's darkest stop):");
   checkContrast();
   console.log("");
 
-  mkdirSync(SITE_DIR, { recursive: true });
+  // Every generated file is staged first and written only once the page source guard has
+  // read all of them, so a page that breaks it stops the build before site/ changes at all.
+  const staged = [];
   const written = [];
 
   function write(relPath, contents) {
-    const full = path.join(SITE_DIR, relPath);
-    mkdirSync(path.dirname(full), { recursive: true });
-    writeFileSync(full, contents, "utf8");
-    written.push(relPath);
+    staged.push([relPath, contents]);
   }
 
   // The landing page and its four aliases. `/` carries the support block because
@@ -3223,21 +3217,22 @@ function main() {
   write("waitlist/thanks/index.html", buildThanksPage());
   write("waitlist/try-again/index.html", buildTryAgainPage());
 
-  const privacyOut = buildLegalPage({
-    srcFile: "privacy-policy.md",
-    destDir: "privacy",
-    description: "DuoQueue's Privacy Policy: what we collect, why, and who we share it with.",
-    canonical: `${SITE_ORIGIN}/privacy/`,
-  });
-  written.push(path.relative(SITE_DIR, privacyOut).split(path.sep).join("/"));
-
-  const termsOut = buildLegalPage({
-    srcFile: "terms-of-service.md",
-    destDir: "terms",
-    description: "DuoQueue's Terms of Service.",
-    canonical: `${SITE_ORIGIN}/terms/`,
-  });
-  written.push(path.relative(SITE_DIR, termsOut).split(path.sep).join("/"));
+  write(
+    "privacy/index.html",
+    buildLegalPage({
+      srcFile: "privacy-policy.md",
+      description: "DuoQueue's Privacy Policy: what we collect, why, and who we share it with.",
+      canonical: `${SITE_ORIGIN}/privacy/`,
+    })
+  );
+  write(
+    "terms/index.html",
+    buildLegalPage({
+      srcFile: "terms-of-service.md",
+      description: "DuoQueue's Terms of Service.",
+      canonical: `${SITE_ORIGIN}/terms/`,
+    })
+  );
 
   // CNAME and .nojekyll are emitted here rather than living only on the gh-pages
   // branch. That gap is why this branch's history reads "Delete CNAME" then
@@ -3250,6 +3245,16 @@ function main() {
   // otherwise refuse to serve anything under a directory beginning with an
   // underscore and adds a build step nothing here needs.
   write(".nojekyll", "");
+
+  checkPageSource(staged);
+  mkdirSync(SITE_DIR, { recursive: true });
+  for (const [relPath, contents] of staged) {
+    const full = path.join(SITE_DIR, relPath);
+    mkdirSync(path.dirname(full), { recursive: true });
+    writeFileSync(full, contents, "utf8");
+    written.push(relPath);
+  }
+  console.log(`Page source: ${staged.filter(([p]) => p.endsWith(".html")).length} pages, no script, no handler, no javascript: URL, no em dash.\n`);
 
   copyFileSync(path.join(APP_ASSETS, "favicon.png"), path.join(SITE_DIR, "favicon.png"));
   written.push("favicon.png");
