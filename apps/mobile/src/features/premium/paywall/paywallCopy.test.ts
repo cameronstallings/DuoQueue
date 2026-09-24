@@ -4,6 +4,7 @@ import { PLATFORM_LABELS, PLAYSTYLE_LABELS, SKILL_LABELS } from "../../onboardin
 import {
   CONTINUE_FREE,
   DECK_COPY,
+  FILTER_ANY,
   FREE_ACTIVE_CONVERSATIONS,
   FREE_REQUESTS_PER_DAY,
   LEGAL_LINKS,
@@ -226,6 +227,12 @@ describe("the copy rules", () => {
     DECK_COPY.swipesToday,
     DECK_COPY.filters,
     DECK_COPY.preview,
+    DECK_COPY.free,
+    DECK_COPY.withPlus,
+    DECK_COPY.unlimited,
+    DECK_COPY.left(18),
+    hiddenCountLabel(9),
+    FILTER_ANY,
   );
   const everything = [
     ...pageOneAndTwo,
@@ -236,8 +243,13 @@ describe("the copy rules", () => {
     PLANS_UNAVAILABLE,
     SUBSCRIBER_BODY,
     CONTINUE_FREE,
-    restoreAlert(false).message,
-    purchaseAlert(false).message,
+    ...[true, false].flatMap((active) => [
+      ...Object.values(restoreAlert(active)),
+      ...Object.values(purchaseAlert(active)),
+    ]),
+    powerUpTitle(2),
+    powerUpButtonLabel("$3.99"),
+    powerUpButtonLabel(null),
   ];
 
   it("names no price on pages 1 and 2", () => {
@@ -245,8 +257,9 @@ describe("the copy rules", () => {
   });
 
   it("has no em or en dash and no dating cue", () => {
+    const dashes = new RegExp(`[${String.fromCharCode(0x2013, 0x2014)}]`);
     for (const text of everything) {
-      expect(text).not.toMatch(/[–—]/);
+      expect(text).not.toMatch(dashes);
       expect(text).not.toMatch(/swipe right/i);
       expect(text).not.toMatch(/interested in you/i);
     }
