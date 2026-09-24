@@ -19,6 +19,7 @@ import {
   launchMarkWidth,
   launchOpening,
   launchSchedule,
+  LOCK_LATE_MS,
   LOCKED_HOLD_MS,
   msUntil,
   ringsApartBounds,
@@ -146,44 +147,53 @@ describe("launchOpening", () => {
 });
 
 describe("launchSchedule", () => {
-  it("locks after a beat and DUO LOCKED's slide", () => {
+  it("locks after a rest and DUO LOCKED's slide", () => {
     expect(RINGS_MS).toBe(520);
     expect(launchSchedule("slide")).toEqual({
       lockMs: LAUNCH_BEAT_MS + RINGS_MS,
-      earliestFadeMs: LAUNCH_BEAT_MS + RINGS_MS + LOCKED_HOLD_MS,
-      breatheMs: LAUNCH_BEAT_MS + RINGS_MS + BREATHE_AFTER_MS,
+      lockBackstopMs: LAUNCH_BEAT_MS + RINGS_MS + LOCK_LATE_MS,
     });
-    expect(launchSchedule("slide")).toEqual({ lockMs: 670, earliestFadeMs: 920, breatheMs: 2170 });
+    expect(launchSchedule("slide")).toEqual({ lockMs: 670, lockBackstopMs: 2670 });
   });
 
-  it("locks after a beat and the dissolve under Reduce Motion", () => {
-    expect(launchSchedule("dissolve")).toEqual({
-      lockMs: LAUNCH_BEAT_MS + LAUNCH_DISSOLVE_MS,
-      earliestFadeMs: 600,
-      breatheMs: 1850,
-    });
+  it("locks after a rest and the dissolve under Reduce Motion", () => {
+    expect(launchSchedule("dissolve")).toEqual({ lockMs: LAUNCH_BEAT_MS + LAUNCH_DISSOLVE_MS, lockBackstopMs: 2350 });
   });
 
-  it("is locked from the start on Android, and still holds it before fading", () => {
-    expect(launchSchedule("none")).toEqual({ lockMs: 0, earliestFadeMs: 250, breatheMs: 1500 });
+  it("is locked from the start on Android", () => {
+    expect(launchSchedule("none")).toEqual({ lockMs: 0, lockBackstopMs: 2000 });
+  });
+});
+
+describe("after the lock", () => {
+  it("holds the locked mark before the fade, and breathes only well after it", () => {
+    expect(LOCKED_HOLD_MS).toBe(250);
+    expect(BREATHE_AFTER_MS).toBe(1500);
+    expect(BREATHE_AFTER_MS).toBeGreaterThan(LOCKED_HOLD_MS);
+  });
+
+  it("waits for a late lock report well past the whole opening before giving up on it", () => {
+    for (const opening of ["slide", "dissolve", "none"] as const) {
+      const { lockMs, lockBackstopMs } = launchSchedule(opening);
+      expect(lockBackstopMs - lockMs).toBeGreaterThanOrEqual(2 * (LAUNCH_BEAT_MS + RINGS_MS));
+    }
   });
 });
 
 describe("msUntil", () => {
-  const laidOutAt = 10_000;
-  const { earliestFadeMs } = launchSchedule("slide");
+  const lockedAt = 10_000;
 
   it("holds a fast app until the lock has been seen", () => {
-    expect(msUntil(earliestFadeMs, laidOutAt, laidOutAt + 100)).toBe(820);
+    expect(msUntil(LOCKED_HOLD_MS, lockedAt, lockedAt + 100)).toBe(150);
   });
 
   it("fades a slow app the moment it is ready", () => {
-    expect(msUntil(earliestFadeMs, laidOutAt, laidOutAt + 3_000)).toBe(0);
+    expect(msUntil(LOCKED_HOLD_MS, lockedAt, lockedAt + 3_000)).toBe(0);
   });
 
   it("is exact at the boundary and never negative", () => {
-    expect(msUntil(earliestFadeMs, laidOutAt, laidOutAt + earliestFadeMs)).toBe(0);
-    expect(msUntil(0, laidOutAt, laidOutAt + 1)).toBe(0);
+    expect(msUntil(LOCKED_HOLD_MS, lockedAt, lockedAt + LOCKED_HOLD_MS)).toBe(0);
+    expect(msUntil(0, lockedAt, lockedAt + 1)).toBe(0);
   });
 });
 

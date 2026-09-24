@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform, StyleSheet, View } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
 import Animated, {
@@ -20,6 +20,7 @@ import { RingsLock } from "@/features/match/RingsLock";
 import {
   BREATH_LOW,
   BREATH_MS,
+  BREATHE_AFTER_MS,
   LAUNCH_BEAT_MS,
   LAUNCH_DISSOLVE_MS,
   LAUNCH_FADE_MS,
@@ -27,6 +28,7 @@ import {
   launchMarkWidth,
   launchOpening,
   launchSchedule,
+  LOCKED_HOLD_MS,
   msUntil,
 } from "./launchTiming";
 
@@ -43,10 +45,14 @@ interface LaunchIntroProps {
 /**
  * The cold start: the native splash shows the O and the Q apart (scripts/generate-launch-splash.ts),
  * and this overlay, drawn over the whole app on the same dark field, takes over on exactly that
- * picture. The native splash is hidden only once the overlay has laid out, so nothing flashes
- * between them. A beat, then the rings slide together and lock as they do in DUO LOCKED (no
- * brackets, stamp or haptic here); the mark holds until the app is ready, breathing if that takes
- * long, then the overlay fades away over the app, which has been rendering behind it all along.
+ * picture. The native splash is hidden a frame after the overlay has laid out, once it has surely
+ * drawn, so nothing flashes between them, and the opening starts with the hide. A short rest, then
+ * the rings slide together and lock as they do in DUO LOCKED (no brackets, stamp or haptic here);
+ * the mark holds until the app is ready, breathing if that takes long, then the overlay fades away
+ * over the app, which has been rendering behind it all along.
+ *
+ * While it is opaque it takes every touch, so the app behind it (a sign-in button, the swipe deck)
+ * cannot be tapped unseen; touches go through from the moment it starts to fade.
  */
 export function LaunchIntro({ ready, onDone }: LaunchIntroProps) {
   const reduced = useReducedMotion();
@@ -62,35 +68,59 @@ export function LaunchIntro({ ready, onDone }: LaunchIntroProps) {
   const locked = useSharedValue(1);
   const breath = useSharedValue(1);
   const fade = useSharedValue(1);
-  const [laidOutAt, setLaidOutAt] = useState<number | null>(null);
-  const started = useRef(false);
+  /** When the opening started (the native splash hid), by Date.now(). */
+  const [openedAt, setOpenedAt] = useState<number | null>(null);
+  /** When the UI thread reported the lock (or the backstop gave up waiting), by Date.now(). */
+  const [lockedAt, setLockedAt] = useState<number | null>(null);
+  const [fading, setFading] = useState(false);
+  const laidOut = useRef(false);
+
+  // The first report wins: the opening's own completion, or the backstop below.
+  const markLocked = useCallback(() => setLockedAt((at) => at ?? Date.now()), []);
 
   function onLayout() {
-    if (started.current) return;
-    started.current = true;
-    // The overlay is on screen now, on the same picture: the native splash can go.
-    void SplashScreen.hideAsync();
-    setLaidOutAt(Date.now());
-    if (opening === "slide") {
-      rings.value = withDelay(
-        LAUNCH_BEAT_MS,
-        withTiming(1, { duration: RINGS_MS, easing: RING_EASING }, (finished) => {
-          // The weave switches on at the lock, as in DUO LOCKED.
-          if (finished) woven.value = 1;
-        }),
-      );
-    } else if (opening === "dissolve") {
-      dissolve.value = withDelay(
-        LAUNCH_BEAT_MS,
-        withTiming(1, { duration: LAUNCH_DISSOLVE_MS, reduceMotion: ReduceMotion.Never }),
-        ReduceMotion.Never,
-      );
-    }
+    if (laidOut.current) return;
+    laidOut.current = true;
+    // One frame on, so the overlay has certainly drawn: the native splash can go, and the opening
+    // starts with it. A busy JS thread only holds the rings apart longer, under the same picture.
+    requestAnimationFrame(() => {
+      void SplashScreen.hideAsync();
+      setOpenedAt(Date.now());
+      if (opening === "slide") {
+        rings.value = withDelay(
+          LAUNCH_BEAT_MS,
+          withTiming(1, { duration: RINGS_MS, easing: RING_EASING }, (finished) => {
+            // The weave switches on at the lock, as in DUO LOCKED.
+            if (finished) woven.value = 1;
+            // Reported however the slide ends, so nothing can keep the overlay up.
+            runOnJS(markLocked)();
+          }),
+        );
+      } else if (opening === "dissolve") {
+        dissolve.value = withDelay(
+          LAUNCH_BEAT_MS,
+          withTiming(1, { duration: LAUNCH_DISSOLVE_MS, reduceMotion: ReduceMotion.Never }, () => {
+            runOnJS(markLocked)();
+          }),
+          ReduceMotion.Never,
+        );
+      } else {
+        markLocked();
+      }
+    });
   }
+
+  // No report long after the lock was due: count it as locked, so a lost callback cannot keep the
+  // overlay over a ready app.
+  useEffect(() => {
+    if (openedAt === null || lockedAt !== null) return;
+    const timer = setTimeout(markLocked, msUntil(launchSchedule(opening).lockBackstopMs, openedAt, Date.now()));
+    return () => clearTimeout(timer);
+  }, [openedAt, lockedAt, opening, markLocked]);
 
   // Still loading well after the lock: breathe, like the old loading screen, so it never looks stuck.
   useEffect(() => {
-    if (laidOutAt === null || ready) return;
+    if (lockedAt === null || ready) return;
     const timer = setTimeout(
       () => {
         breath.value = withRepeat(
@@ -101,17 +131,19 @@ export function LaunchIntro({ ready, onDone }: LaunchIntroProps) {
           ReduceMotion.Never,
         );
       },
-      msUntil(launchSchedule(opening).breatheMs, laidOutAt, Date.now()),
+      msUntil(BREATHE_AFTER_MS, lockedAt, Date.now()),
     );
     return () => clearTimeout(timer);
-  }, [laidOutAt, ready, opening, breath]);
+  }, [lockedAt, ready, breath]);
 
   // Ready: fade out once the lock has been seen, and unmount.
   useEffect(() => {
-    if (laidOutAt === null || !ready) return;
+    if (lockedAt === null || !ready) return;
     const timer = setTimeout(
       () => {
         cancelAnimation(breath);
+        // Touches go through to the app from the first frame of the fade.
+        setFading(true);
         fade.value = withTiming(
           0,
           { duration: LAUNCH_FADE_MS, easing: Easing.out(Easing.quad), reduceMotion: ReduceMotion.Never },
@@ -120,10 +152,10 @@ export function LaunchIntro({ ready, onDone }: LaunchIntroProps) {
           },
         );
       },
-      msUntil(launchSchedule(opening).earliestFadeMs, laidOutAt, Date.now()),
+      msUntil(LOCKED_HOLD_MS, lockedAt, Date.now()),
     );
     return () => clearTimeout(timer);
-  }, [laidOutAt, ready, opening, breath, fade, onDone]);
+  }, [lockedAt, ready, breath, fade, onDone]);
 
   const overlayStyle = useAnimatedStyle(() => ({ opacity: fade.value }));
   const breathStyle = useAnimatedStyle(() => ({ opacity: breath.value }));
@@ -132,7 +164,7 @@ export function LaunchIntro({ ready, onDone }: LaunchIntroProps) {
 
   return (
     <Animated.View
-      pointerEvents="none"
+      pointerEvents={fading ? "none" : "auto"}
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       onLayout={onLayout}

@@ -65,10 +65,15 @@ export const ANDROID_MARK_W = ANDROID_SPLASH_IMAGE_WIDTH * (VB_W / CANVAS);
 export const LAUNCH_BEAT_MS = 150;
 /** Reduce Motion: the rings do not slide; the apart frame dissolves into the locked mark. */
 export const LAUNCH_DISSOLVE_MS = 200;
-/** The locked mark always stays up at least this long, so the lock is seen once. */
+/** The locked mark always stays up at least this long after the lock, so the lock is seen once. */
 export const LOCKED_HOLD_MS = 250;
 /** Still loading this long after the lock: the mark starts to breathe so it never looks frozen. */
 export const BREATHE_AFTER_MS = 1500;
+/** The lock is timed from the moment the UI thread reports it (the opening's completion callback),
+ * not from the JS clock, so a UI thread held up on a busy cold start cannot fade the mark before it
+ * has locked. If no report has come this long after the lock was due, it counts as locked anyway:
+ * a lost callback must never keep the overlay over a ready app. */
+export const LOCK_LATE_MS = 2000;
 /** The old LoadingScreen's pulse: opacity to 0.35 over 700ms and back, eased. */
 export const BREATH_LOW = 0.35;
 export const BREATH_MS = 700;
@@ -94,24 +99,27 @@ export function launchMarkWidth(opening: LaunchOpening): number {
   return opening === "none" ? ANDROID_MARK_W : LAUNCH_MARK_W;
 }
 
+/**
+ * The opening, in ms after it starts (when the native splash is hidden). Everything after the lock
+ * (the hold before the fade, the breath) counts from the lock the UI thread reports instead:
+ * LOCKED_HOLD_MS and BREATHE_AFTER_MS.
+ */
 export interface LaunchSchedule {
-  /** When the mark is locked, in ms after the overlay laid out (and the native splash hid). */
+  /** When the mark should be locked: the opening's own delay and duration. */
   lockMs: number;
-  /** The earliest the fade may start. */
-  earliestFadeMs: number;
-  /** When the mark starts to breathe if the app is still not ready. */
-  breatheMs: number;
+  /** When the intro stops waiting for the UI thread's report and counts the mark as locked. */
+  lockBackstopMs: number;
 }
 
 export function launchSchedule(opening: LaunchOpening): LaunchSchedule {
   const lockMs =
     opening === "slide" ? LAUNCH_BEAT_MS + RINGS_MS : opening === "dissolve" ? LAUNCH_BEAT_MS + LAUNCH_DISSOLVE_MS : 0;
-  return { lockMs, earliestFadeMs: lockMs + LOCKED_HOLD_MS, breatheMs: lockMs + BREATHE_AFTER_MS };
+  return { lockMs, lockBackstopMs: lockMs + LOCK_LATE_MS };
 }
 
-/** How long to wait, from `now`, before a scheduled moment `atMs` after layout. Never negative. */
-export function msUntil(atMs: number, laidOutAt: number, now: number): number {
-  return Math.max(0, laidOutAt + atMs - now);
+/** How long to wait, from `now`, before the moment `atMs` after `since`. Never negative. */
+export function msUntil(atMs: number, since: number, now: number): number {
+  return Math.max(0, since + atMs - now);
 }
 
 /**
