@@ -77,7 +77,8 @@ const APP_ASSETS = path.join(ROOT, "apps", "mobile", "assets");
 //
 // PHASE controls three things and nothing else: the hero's call to action, what
 // the waitlist page's body is (a form, or "we are live, here is the link"), and
-// what the closing lockup's slab points at.
+// where the outlined link after the plain version points (back up to the form, or
+// to the App Store).
 // ---------------------------------------------------------------------------
 const PHASE = "waitlist"; // "waitlist" | "launched"
 const APP_STORE_URL = null; // "https://apps.apple.com/us/app/duoqueue/id<AppleID>"
@@ -201,6 +202,12 @@ const APP = {
   voltDim: "#3B5600", // lightColors.voltDim — the app's own pressed/dimmed volt
   onVolt: "#F7F9F0",
   amber: "#8F5E00", // lightColors.overlap.many — three or more games in common
+  // The rest of lightColors.overlap (OVERLAP_LIGHT in tokens.ts). The first moment card's
+  // badge counts up through all four inks as its game rows land, so all four are here.
+  overlapNone: "#66705C",
+  overlapOne: "#4E7018",
+  overlapTwo: "#5A7A00",
+  bubbleOwn: "#E4EDC8", // lightColors.bubbleOwn, the sent message on the third card
 };
 
 // THE FILM: the launch video, on the landing page and its four aliases.
@@ -224,6 +231,9 @@ const FILM = {
   // ground to within a unit, so the frame shows no seam while the poster loads.
   ground: "#0A0B09",
   autoplay: true,
+  // The running time as a player shows it (the render is 21.6s), printed on the trailer link
+  // so a visitor knows what the tap costs before they make it.
+  length: "0:21",
 };
 
 /** Both files present and non-empty. The section is left out otherwise, loudly. */
@@ -236,73 +246,6 @@ function filmPresent() {
     }
   });
 }
-
-// marketing/video/src/frag/ground.ts:241-257. One perspective container and one
-// rotation for every fragment on the page, so several differently shaped objects
-// read as several views from one camera position rather than several separately
-// art-directed rectangles. Positive rotateY pushes the right edge away and brings
-// the left edge forward, which throws the shadow down and to the right, away from
-// the reading direction. The shadow is two layers because one never works: a tight
-// contact shadow that says the object is a millimetre off the surface, and a long
-// soft cast that says the surface is lit.
-const TILT = {
-  perspective: "2400px",
-  origin: "44% 54%",
-  // Held as numbers as well as a string, because THE TILT IS NOW ANIMATED and the arrival
-  // below has to be able to add to it. marketing/video/src/pro/motion.ts is blunt about why
-  // it had to become one: it names this exact pair of angles, as a "CONSTANT, NEVER
-  // ANIMATED tilt", as "three failures in one line ... it never changes, which is the entire
-  // difference between a 3D move and a Dribbble mockup".
-  rotY: 7,
-  rotX: 2,
-  get transform() {
-    return `rotateY(${this.rotY}deg) rotateX(${this.rotX}deg)`;
-  },
-  // The object the campaign's shadow was authored for. ground.ts:237 draws an
-  // 844px-wide card on a 1080px frame; every length in FRAG_SHADOW_LAYERS below is
-  // a ratio of THAT width, which is the entire point.
-  authoredFor: 844,
-};
-
-// ---------------------------------------------------------------------------
-// THE ARRIVAL, transcribed frame for frame from marketing/video/src/pro/motion.ts.
-//
-// That file measured it off the reference reels rather than inventing it: an object
-// arrives ROTATED AND OVERSIZED UNDER BLUR and unwinds to flat over eight frames, then
-// keeps contracting for another thirty-four. Both halves matter. The eight frames are the
-// arrival; the thirty-four are "what stops an arrival from being a snap followed by a
-// frozen picture", and dropping them is how a page ends up with a 267ms pop.
-//
-// Opacity IGNITES at 25% of the travel rather than starting from zero, so the object is
-// never a ghost fading up: by the time it is visible at all it is most of the way through
-// its rotation. That is the difference between this and a fade-in-up preset.
-//
-// Everything is stored in the film's own frames and converted here, once, so that a future
-// reader can put this file and motion.ts side by side and see the same numbers.
-const ARRIVAL = {
-  fps: 30,
-  frames: 8, // the arrival
-  settle: 34, // the slow post-arrival contraction
-  rotY: 18, // relative to the object's resting TILT, not absolute
-  rotX: -12,
-  rotZ: -3,
-  scale: 1.18,
-  landed: 1.05,
-  blur: 24,
-  ignite: 0.25,
-};
-const ms = (frames) => Math.round((frames / ARRIVAL.fps) * 1000);
-/** The arrival and the settle run as ONE animation so the object never stops moving
- *  between them; these are the keyframe offsets that splice the two curves together. */
-const ARRIVAL_TOTAL = ms(ARRIVAL.frames + ARRIVAL.settle);
-const AT_LANDED = +((ms(ARRIVAL.frames) / ARRIVAL_TOTAL) * 100).toFixed(2);
-const AT_IGNITE = +((ms(ARRIVAL.frames * ARRIVAL.ignite) / ARRIVAL_TOTAL) * 100).toFixed(2);
-/** The pose an object is in when it is `k` of the way out of its arrival (1 = fully
- *  displaced, 0 = at rest on the TILT). */
-const arrivalPose = (k, scale) =>
-  `rotateY(${+(TILT.rotY + ARRIVAL.rotY * k).toFixed(2)}deg) ` +
-  `rotateX(${+(TILT.rotX + ARRIVAL.rotX * k).toFixed(2)}deg) ` +
-  `rotateZ(${+(ARRIVAL.rotZ * k).toFixed(2)}deg) scale(${scale})`;
 
 // A shadow is geometry, not a colour, and geometry does not survive being copied
 // onto an object of a different size.
@@ -323,11 +266,11 @@ const arrivalPose = (k, scale) =>
 // failure without fixing the composition, and the ads' ground is not a paler
 // version of this one, it is a cleaner one.
 //
-// THIS ARRAY IS THE ONE DEFINITION. Both the CSS (fragShadowCss) and the contrast
-// guard (fragShadowPx -> groundUnderCaption) read it, so a future edit that
-// un-scales the shadow moves the guard's numbers too and fails the build instead of
-// quietly shipping the regression again. `marketing/video/src/frag/ground.ts:257`
-// is where these six numbers and two alphas come from; nothing here is authored.
+// THIS ARRAY WAS THE ONE DEFINITION for both the CSS and the contrast guard
+// (fragShadowPx -> groundUnderCaption). The fragments it was drawn on were replaced by
+// the moment cards on 23 Sept 2026, so only the guard still reads it, until its caption
+// sweep is retired with them. `marketing/video/src/frag/ground.ts:257` is where these six
+// numbers and two alphas come from; nothing here is authored.
 const FRAG_SHADOW_LAYERS = [
   { x: 16, y: 10, blur: 26, spread: 0, alpha: 0.1 }, // contact: a millimetre off the paper
   { x: 38, y: 44, blur: 92, spread: -20, alpha: 0.28 }, // cast: the surface is lit
@@ -335,11 +278,14 @@ const FRAG_SHADOW_LAYERS = [
 /** The shadow's ink, from ground.ts. Warm, because the ground is warm; a neutral
  *  grey shadow on this paper reads as dirt. */
 const FRAG_SHADOW_INK = [41, 34, 18];
+/** The object the campaign's shadow was authored for: ground.ts:237 draws an 844px-wide
+ *  card on a 1080px frame, and every length in FRAG_SHADOW_LAYERS is a ratio of it. */
+const FRAG_AUTHORED_FOR = 844;
 
 /** The layers resolved to real pixels for an object of `objectWidth`. This is what
  *  the browser actually paints, and it is what the contrast guard measures. */
 function fragShadowPx(objectWidth) {
-  const k = objectWidth / TILT.authoredFor;
+  const k = objectWidth / FRAG_AUTHORED_FOR;
   return FRAG_SHADOW_LAYERS.map((l) => ({
     x: l.x * k,
     y: l.y * k,
@@ -349,31 +295,6 @@ function fragShadowPx(objectWidth) {
   }));
 }
 
-/** `unit` is either "px" against an explicit width (the fallback) or "cqw", which
- *  is 1% of the fragment container's inline size — i.e. of the object's own width,
- *  measured by the browser, so no breakpoint carries a hand-typed number and the
- *  scale cannot drift when the grid changes. */
-function fragShadowCss({ width = null, unit = "cqw" } = {}) {
-  const ink = `rgba(${FRAG_SHADOW_INK.join(",")}`;
-  const v =
-    unit === "cqw"
-      ? (n) => `${+((n / TILT.authoredFor) * 100).toFixed(4)}cqw`
-      : (n) => `${+((n / TILT.authoredFor) * width).toFixed(2)}px`;
-  return FRAG_SHADOW_LAYERS.map(
-    (l) =>
-      `${v(l.x)} ${v(l.y)} ${v(l.blur)}` +
-      (l.spread ? ` ${v(l.spread)}` : "") +
-      ` ${ink},${l.alpha})`
-  ).join(", ");
-}
-
-// The narrowest object the layout ever produces (320px viewport, 2x20px inset).
-// The px fallback is computed at this width on purpose: a browser too old for
-// container query units gets a shadow sized for the SMALLEST object rather than
-// the largest, so the failure mode is a shadow that is slightly too tight, never
-// one that swallows the caption underneath it.
-const FRAG_MIN_WIDTH = 280;
-
 // The gap between an object and its caption. 22px was measured on the 303px phone
 // object; held as a ratio it keeps the caption a constant distance out of the cast
 // shadow at every object size — which is the other half of the AA fix, because a
@@ -381,7 +302,6 @@ const FRAG_MIN_WIDTH = 280;
 // The clamp bounds are the CSS clamp's bounds; captionGapPx() reproduces the clamp
 // so the guard measures the gap the browser will actually use.
 const CAPTION_GAP = { ratio: 22 / 303, minPx: 22, maxPx: 52 };
-const CAPTION_GAP_CQW = +(CAPTION_GAP.ratio * 100).toFixed(3);
 const captionGapPx = (objectWidth) =>
   Math.min(CAPTION_GAP.maxPx, Math.max(CAPTION_GAP.minPx, CAPTION_GAP.ratio * objectWidth));
 
@@ -432,6 +352,24 @@ const shadowCss = (layers, ink) =>
     )
     .join(", ");
 
+// THE MOMENT CARDS' SHADOW, which the support card shares. Soft and short: a card is
+// furniture resting on the paper rather than an object arriving at the reader, so it gets a
+// hairline contact layer and a cast pulled in by its negative spread, in the page's one
+// shadow ink. No type sits in a card's cast: each card's own text is inside its white
+// surface, a card below another is white too, and the nearest type under the last card is
+// the next section's, a SECTION_GAP (56px at least) away.
+const CARD_SHADOW_LAYERS = [
+  { x: 0, y: 1, blur: 2, spread: 0, alpha: 0.06 },
+  { x: 0, y: 14, blur: 32, spread: -14, alpha: 0.22 },
+];
+// The cards' edges. None of them carries text contrast: each is the border of a surface
+// that is lighter than the paper it sits on or the screen it sits in.
+const CARD = {
+  hairline: "#E2E0D6", // a card's own edge, and the support card's
+  stageEdge: "#E6E9DD", // the edge of the app screen inside each card
+  bubbleOwnEdge: "#D3DFB0", // the sent bubble's edge on the third card
+};
+
 // THE GRID, as ratios of the campaign's 1080px field so they survive being poured
 // into a viewport of any width.
 //
@@ -454,7 +392,7 @@ const GRID = {
   // literally, and the 20px floor in it never once applied: 10.93% only falls under 20px
   // below a 183px viewport. Measured on the built page, a 320px phone was therefore getting
   // a 35px inset - 70px of a 320px screen, 22% of the display, spent on margin - which is
-  // why FRAG_MIN_WIDTH's own comment ("320px viewport, 2x20px inset") disagreed with the
+  // why the old fragment floor's comment ("320px viewport, 2x20px inset") disagreed with the
   // browser by 30px, why the lede broke at 32 characters there, and why the button's bottom
   // edge sat 21px off the fold on the smallest phone in the list.
   //
@@ -468,7 +406,10 @@ const GRID = {
   x0: "clamp(20px, 12.9vw - 21.26px, 118px)",
   display: "clamp(34px, 8.4vw, 76px)",
   leading: 1.34,
-  label: "clamp(11px, 2.41vw, 26px)",
+  // The mono section labels. The campaign's 26/1080 is 2.41vw, and uncapped past 14px it
+  // grew a label to 26px on a desktop, larger than the card sentences it introduces, so it
+  // stops at 14px (23 Sept 2026). The floor is unchanged, so a phone sees no difference.
+  label: "clamp(11px, 1.05vw, 14px)",
   cta: "clamp(21px, 5.4vw, 44px)",
   wordmark: "clamp(42px, 13.6vw, 148px)",
 };
@@ -485,15 +426,9 @@ const GRID = {
 // So the vertical rhythm is now the SAME four measurements the campaign already uses
 // horizontally, on the same 1080px field, and there are only four:
 //
-//   G1   26/1080 =  2.41%   the mono step. It is GRID.label exactly — the size of the
-//                           furniture type IS the tightest gap on the page, which is not a
-//                           coincidence, it is the same measurement used twice. This is the
-//                           gap that holds one plate to the next inside the scene, and it is
-//                           deliberately SMALLER than a plate's cast shadow reaches (see
-//                           FRAG_SHADOW_LAYERS: the cast clears 8.3% of the object's width
-//                           below its bottom edge), so a plate's shadow lands on the plate
-//                           BELOW it rather than on bare paper. That is the whole depth
-//                           argument of the composition and it is a spacing value.
+//   G1   26/1080 =  2.41%   the mono step, the campaign's label size used as a gap. The
+//                           tightest gap on the page: above the header's mark, and above
+//                           the footer's first line.
 //   G2   40/1080 =  3.70%   the end card's own internal gap (FragEnd.tsx), already used by
 //                           .lockup-inner. Block to block inside one composition.
 //   G3   62/1080 =  5.74%   the end card's margin. Between the parts of a section.
@@ -503,10 +438,6 @@ const GRID = {
 //
 // Each is written the way GRID.x0 is: a vw ratio between a floor and the literal number the
 // campaign uses, so a 320px phone gets a proportionate gap rather than the desktop one.
-// Nothing on the recomposed page uses a vertical gap that is not one of these four, with a
-// single stated exception — the gap between a plate and its caption, which is not rhythm at
-// all but shadow geometry (CAPTION_GAP), and is a ratio of the OBJECT rather than of the
-// field for the reason its own note gives.
 const RHYTHM = {
   g1: "clamp(10px, 2.41vw, 26px)",
   g2: "clamp(16px, 3.70vw, 40px)",
@@ -514,21 +445,13 @@ const RHYTHM = {
   g4: "clamp(36px, 10.93vw, 118px)",
 };
 
-// THE SCENE'S THREE DEPTHS, in the stage's own perspective.
-//
-// marketing/video/src/pro/Plane.tsx takes a `z` per plane for exactly this — "extra Z, in
-// the stage's perspective, for layers that live at different depths ... what makes a camera
-// move produce parallax rather than a zoom" — and the film's own recede is -520 at a 1400px
-// perspective (film.ts RECEDE.z), which is 37% of the camera distance. This page's camera is
-// 2400px and its objects are furniture rather than a subject being pushed out of frame, so
-// the separation is small on purpose: +-46px is 1.9% of the perspective, which projects to
-// about +-2% of apparent size. That is under the threshold at which anyone would call it a
-// size difference and over the threshold at which the three plates stop looking coplanar.
-//
-// It is also what makes the scroll parallax below honest rather than decorative: the plates
-// really are at three depths, so moving them at three rates is showing the reader something
-// true about the composition instead of animating for the sake of it.
-const DEPTH = { back: -46, mid: 0, front: 46 };
+// THE LANDING PAGE'S SECTION STEP, and the one gap that is not on the ladder above. It is
+// the space above the three moment cards, above the plain version, and under it: the value
+// from the prototype Cameron approved on 23 Sept 2026. Against G4 it gives a phone more air
+// between sections whose cards carry their own shadow (56px against 36-43px) and a desktop a
+// little less (104px against 118px). Each section pays for its own top edge, so no boundary
+// is paid for twice.
+const SECTION_GAP = "clamp(56px, 9vw, 104px)";
 
 // The five faces, subsetted and committed by scripts/site-fonts/subset.py. Family
 // names are the app's token values verbatim (apps/mobile/src/theme/tokens.ts), so
@@ -865,20 +788,35 @@ function ringGeometry(scale) {
   return { R, W, cxA, cxB, cy: MARK_CENTER, tail };
 }
 
-/** Chain-weave rings mark as an inline SVG string. Sized in CSS by the caller. */
-function ringsMarkSvg({ scale = 1, size = 32, className = "brand-mark", label = "DuoQueue" } = {}) {
+/** The mark's four shapes as SVG element strings, in paint order: the duo ring, its tail,
+ *  the ink ring over both, and the short arc of the duo ring that passes back over the ink
+ *  (the weave). ringsMarkSvg() paints them as one picture; the second moment card's
+ *  lockinSvg() groups the same four so the rings can slide together. One geometry, two
+ *  arrangements, and neither can drift from the other. */
+function ringShapes(scale = 1) {
   const { R, W, cxA, cxB, cy, tail } = ringGeometry(scale);
   const s = ((138.59 - 27.5) * Math.PI) / 180;
   const e = ((138.59 + 27.5) * Math.PI) / 180;
   const seg = `M ${cxB + R * Math.cos(s)} ${cy + R * Math.sin(s)} A ${R} ${R} 0 0 1 ${cxB + R * Math.cos(e)} ${cy + R * Math.sin(e)}`;
   const ink = "var(--mark-ink)";
   const duo = "var(--mark-duo)";
+  return {
+    duoRing: `<circle cx="${cxB}" cy="${cy}" r="${R}" fill="none" stroke="${duo}" stroke-width="${W}" />`,
+    tail: `<circle cx="${tail.cx}" cy="${tail.cy}" r="${tail.r}" fill="${duo}" />`,
+    inkRing: `<circle cx="${cxA}" cy="${cy}" r="${R}" fill="none" stroke="${ink}" stroke-width="${W}" />`,
+    weave: `<path d="${seg}" fill="none" stroke="${duo}" stroke-width="${W}" />`,
+  };
+}
+
+/** Chain-weave rings mark as an inline SVG string. Sized in CSS by the caller. */
+function ringsMarkSvg({ scale = 1, size = 32, className = "brand-mark", label = "DuoQueue" } = {}) {
+  const { duoRing, tail, inkRing, weave } = ringShapes(scale);
   const a11y = label ? ` role="img" aria-label="${escapeHtml(label)}"` : ` aria-hidden="true"`;
   return `<svg class="${className}" width="${size}" height="${size}" viewBox="0 0 ${MARK_CANVAS} ${MARK_CANVAS}" xmlns="http://www.w3.org/2000/svg"${a11y}>
-    <circle cx="${cxB}" cy="${cy}" r="${R}" fill="none" stroke="${duo}" stroke-width="${W}" />
-    <circle cx="${tail.cx}" cy="${tail.cy}" r="${tail.r}" fill="${duo}" />
-    <circle cx="${cxA}" cy="${cy}" r="${R}" fill="none" stroke="${ink}" stroke-width="${W}" />
-    <path d="${seg}" fill="none" stroke="${duo}" stroke-width="${W}" />
+    ${duoRing}
+    ${tail}
+    ${inkRing}
+    ${weave}
   </svg>`;
 }
 
@@ -1180,6 +1118,15 @@ const CSS = `
     --app-volt-dim: ${APP.voltDim};
     --app-on-volt: ${APP.onVolt};
     --app-amber: ${APP.amber};
+    /* The moment cards: the badge's four overlap inks, the sent bubble, the cards' edge and
+       their shadow (APP, CARD and CARD_SHADOW_LAYERS in build-site.mjs). */
+    --tier-none: ${APP.overlapNone};
+    --tier-one: ${APP.overlapOne};
+    --tier-two: ${APP.overlapTwo};
+    --tier-many: ${APP.amber};
+    --bubble-own: ${APP.bubbleOwn};
+    --hairline: ${CARD.hairline};
+    --card-shadow: ${shadowCss(CARD_SHADOW_LAYERS, FRAG_SHADOW_INK)};
     /* One ground, no scheme swap. See the design-system note in build-site.mjs. */
     color-scheme: light;
 
@@ -1230,6 +1177,9 @@ const CSS = `
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
   }
+  /* No one-word last lines in a paragraph, where the browser can manage it. Line breaking
+     only: no size, no colour, no measure changes. */
+  p { text-wrap: pretty; }
 
   a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
   a:hover { text-decoration-thickness: 2px; }
@@ -1283,52 +1233,51 @@ const CSS = `
     color: var(--ink); margin: 0 0 0.42em; text-wrap: balance;
   }
   .display .key { color: var(--accent); }
+  /* THE HERO'S ACCENT WORD IS MARKED, NOT INKED. The app's rule for chartreuse on paper is
+     "inks fill, chartreuse marks": the word stays in ink, and chartreuse is laid UNDER it as
+     a highlighter stroke. Ink on the stroke is 15.11:1. It is the one place raw chartreuse
+     touches the cream, and it is legal there for the reason the design note gives against
+     it everywhere else: a chartreuse FILL has no silhouette on this ground (1.05:1), so it
+     can never be the thing a reader reads by. Here nothing is read by the stroke; the word
+     is read by its ink, and the stroke only says which word matters.
+     Scoped to the hero, so the two outcome pages keep their olive accent. If the stroke
+     reads as a smudge on a real phone, delete these two rules and "duo" goes back to the
+     olive above. The stroke is drawn from its left end (transform-origin) so the motion
+     block can swipe it in; at rest it is simply there. */
+  .hero .display .key { position: relative; z-index: 0; color: var(--ink); white-space: nowrap; }
+  .hero .display .key::after {
+    content: ""; position: absolute; z-index: -1;
+    left: -0.06em; right: -0.08em; bottom: 0.24em; height: 0.36em;
+    background: var(--brand); border-radius: 0.06em;
+    transform-origin: 0 50%;
+  }
 
   .lede { font-size: clamp(17px, 2.1vw, 22px); line-height: 1.5; margin: 0 0 0.7em; max-width: 30ch; }
   .sub { color: var(--muted); font-size: clamp(15px, 1.7vw, 18px); margin: 0 0 1.9em; max-width: 38ch; }
 
   /* ---- hero -------------------------------------------------------------- */
   main { display: block; }
-  /* THE HERO GRID IS THREE NAMED AREAS, AND THE THIRD IS NOW THE WHOLE SCENE.
-     The type, the form and the product are separate grid children so the composition can
-     be re-cut per viewport SHAPE rather than only per width. On a phone they stack in
-     reading order. Same markup, same order in the DOM, three cuts.
+  /* THE HERO GRID IS THREE NAMED AREAS: the type, the form, and the trailer link.
+     They are separate grid children so the composition can be re-cut per viewport SHAPE
+     rather than only per width. On a phone they stack in reading order, so the link to the
+     film sits under the fine print and never between a visitor and the form; from 900px the
+     form moves beside the type and the link tucks under the copy column. Same markup, same
+     order in the DOM, every cut.
 
-     THE SCENE MOVED IN HERE, AND THAT IS WHAT CLOSED THE HOLE. Measured on the deployed
-     page at 1400x1000: the left column ran type-then-form from y=96 to y=1023, the right
-     column held one object that ended at y=698, and the next heading was at y=1126. Four
-     hundred and twenty-eight pixels of the right-hand column were empty, which is the
-     "450px of nothing" in the note, and no spacing value fixes it — it is a column that
-     runs out, and the only fix is either to fill it or not to have it.
-
-     Both, as it turns out. The product is no longer a column beside the hero; it is the
-     hero's own bottom row, full width, with the form promoted into the top row beside the
-     type. That composition already existed in this file for short landscape windows,
-     where it was written because "stacking is simply the wrong shape for a landscape
-     window" — it is now the desktop composition at every height, because putting the form
-     at the TOP of its own column rather than at the bottom of 400px of copy is strictly
-     better on every desktop shape, not only on short ones. Measured, the fineprint's
-     bottom edge went from y=1023 to y=449 at 1400x1000: the whole form was below the fold
-     on a 1000px window before this and now the scene starts there instead.
-
-     It also merges what used to be two sections into one, which is the other half of the
-     note. The page was all the words, then all the pictures, then all the words again;
-     the words and the pictures are now the same section. */
+     The product used to be this grid's third area (one card sliced into three plates). It
+     is its own section now, the three moment cards under the hero, so the hero ends where
+     its form and its link end and the next section pays for the gap. That is why the
+     hero's bottom padding is zero at every size: two sections cannot both pay for one
+     boundary. */
   section.hero { padding: ${RHYTHM.g2} 0 0; }
   .hero-grid {
-    display: grid; grid-template-columns: 1fr; gap: 0;
-    grid-template-areas: "copy" "act" "scene";
+    display: grid; grid-template-columns: minmax(0, 1fr); gap: 0;
+    grid-template-areas: "copy" "act" "watch";
     align-items: start;
   }
   .hero-copy { grid-area: copy; }
   .hero-act { grid-area: act; }
-  /* G3, not G4, and the distinction is the whole point of having a ladder. The scene and
-     the type-and-form row are two parts of ONE section now, and G3 is the between-the-parts
-     step; G4 is reserved for section to section, which is the boundary under the scene. Set
-     as a margin on the scene rather than as the grid's row-gap because the grid's other row
-     is two columns that end at different heights, and a row-gap would measure from the
-     taller of them. */
-  .hero-scene { grid-area: scene; margin-top: ${RHYTHM.g3}; }
+  .hero-watch { grid-area: watch; margin-top: 26px; }
 
   /* ---- the form ---------------------------------------------------------- */
   /* THE FORM USED TO BE SQUARE AND IS NOW THE APP'S OWN FORM.
@@ -1435,406 +1384,557 @@ const CSS = `
      on the input itself keep it away from keyboards and screen readers. */
   .hp { position: absolute; left: -9999px; top: auto; width: 1px; height: 1px; overflow: hidden; }
 
-  /* ---- THE SCENE --------------------------------------------------------- */
-  /* WHAT THIS REPLACED, AND WHY IT IS A RECOMPOSITION RATHER THAN A SPACING PASS.
-     The page used to have a section called the STAGE whose pattern was: object in a
-     frame, mono caption underneath, repeat. Cameron's note on the deployed version was
-     that it looked "isolated and random, all the blocks", and the diagnosis he wrote is
-     the correct one: that pattern produces isolated cells BY CONSTRUCTION. Nothing in an
-     arrangement of independent cells relates one cell to the next, so no amount of
-     spacing tuning makes them cohere. Two objects sat in it at desktop, one of them
-     hoisted into the hero, at different widths and different alignments with no shared
-     edge, and a heading promising a tour was followed by a single message composer.
-
-     WHAT IS HERE INSTEAD IS ONE OBJECT. Not three pictures on a wall — one card, sliced
-     into three plates and pulled apart in Z. The composition is transcribed from the two
-     places the campaign already solved this, and both were re-read before it was built:
-
-       out/_static/feed-light.png — the badge and the card share a centre axis, are within
-       a percent of each other in width, sit a fraction of their own height apart, and the
-       upper one's cast shadow lands ON the lower one. That is the whole trick and it does
-       NOT involve occluding anything: the shadow is what says which of the two is in
-       front. The reference does not overlap its objects and neither does this.
-
-       out/_directions/pro-a-light.mp4 f300 and f9 — two planes, two velocities, one
-       camera (src/pro/film.ts states it in those words). The far plane is not a peer, it
-       is receded: pushed back in Z, defocused and washed toward the paper, so it becomes
-       ground for the near one. src/pro/Plane.tsx's z prop and film.ts's RECEDE are the
-       two mechanisms, and both are ported here — z as DEPTH, recede as the hover veil.
-
-     SO THE SCENE IS: three plates, ONE shared left edge (the page's own x0 — ground.ts's
-     first rule and the thing that stops several differently shaped objects reading as
-     several unrelated slides), ONE shared width, three depths, and a gap between them of
-     RHYTHM.g1, which is smaller than the cast shadow reaches. Each plate's shadow
-     therefore falls on the plate below it. They read as one stack of glass on a table
-     rather than as three cards in three frames, and the depth is provable rather than
-     asserted: it is in the shadows at rest and in the parallax on scroll.
-
-     AND THE COPY IS INSIDE IT, not in a zone above or below it. Once the scene is wide
-     enough to hold two columns (a container query, so it keys on the scene's own measure
-     rather than on the window's), each plate's sentence sits BESIDE it, vertically
-     centred on that plate's band. Type and object share a horizontal line instead of
-     stacking into a cell, which is the other half of the note: the page was "all the
-     words, then all the pictures, then all the words again". */
-  .scene {
-    /* Named, so the beats below can query the SCENE's measure. The scene is the hero's
-       full-width bottom row on a desktop and a phone-width column on a handset, and what
-       decides whether a sentence fits beside a plate is that measure, never the window's:
-       the same 760px of scene is the same composition at any viewport that produces it. */
-    container-type: inline-size;
-    container-name: scene;
+  /* ---- the trailer link -------------------------------------------------- */
+  /* THE FILM'S ONLY PRESENCE ON A LANDING PAGE. The launch film used to sit on this page as
+     a dark 21-second block that broke the light page's flow, and every visit downloaded
+     2.9 MB for it, although most visitors arrive from a video already. It has its own dark
+     page now (/watch/, and one per channel), and this is the door to it: a light pill with
+     the app's olive play disc, the words, and the running time, so the cost of the tap is
+     on the label. Every colour in it is a pair the page already passes: ink on a lightened
+     ground, onVolt on volt, muted ink in the time chip. 48px tall, a comfortable target. */
+  .trailer {
+    display: inline-flex; align-items: center; gap: 12px;
+    min-height: 48px; padding: 7px 18px 7px 7px;
+    background: rgba(255,255,255,0.6); border: 1px solid var(--rule); border-radius: 999px;
+    color: var(--ink); text-decoration: none;
+    font-weight: 700; font-size: 15px; line-height: 1.2;
+    transition:
+      border-color var(--t-quick) ease,
+      transform var(--t-base) var(--ease-out),
+      box-shadow var(--t-base) var(--ease-out);
   }
-  /* G2 under the head against G3 above it: the eyebrow belongs to the stack, so the gap
-     that binds it there has to be smaller than the gap that separates it from the form. */
-  .scene > .eyebrow { margin: 0 0 ${RHYTHM.g2}; }
-  /* ONE RULE, TWO CONSEQUENCES: THE GAP UNDER A PLATE IS ALWAYS SHADOW GEOMETRY.
-     A plate's cast layer clears about 8.3% of its width below its bottom edge before it
-     fades. What sits in that band decides the gap, and there are only two possibilities:
-
-       TYPE sits there in the stacked cut, so the gap is CAPTION_GAP — the same ratio, for
-       the same reason, as the gap that used to sit under every fragment on the old page.
-       It keeps the next sentence out of the cast, which is a measured WCAG AA requirement
-       and not a rhythm value (see the shadow model in checkContrast()).
-
-       ANOTHER PLATE sits there in the two-column cut, because the sentences have moved out
-       of the column. Nothing needs protecting from the shadow any more, so the gap drops
-       to RHYTHM.g1 and the shadow lands on the plate below — which is the depth cue
-       feed-light.png uses, and the reason the stack reads as one object.
-
-     Written as a cqi of the SCENE rather than of the plate because .stack is not the
-     plate's query container; in the stacked cut the two are within a few percent of each
-     other, and where they differ the scene is the wider, so the gap errs long. */
-  .stack {
-    display: flex; flex-direction: column;
-    gap: 22px;
-    gap: clamp(${CAPTION_GAP.minPx}px, ${CAPTION_GAP_CQW}cqi, ${CAPTION_GAP.maxPx}px);
+  .trailer-play {
+    flex: none; width: 34px; height: 34px; border-radius: 999px; background: var(--app-volt);
+    display: grid; place-items: center;
   }
-
-  /* THE BEAT: one plate and the sentence that names it.
-     THE SENTENCE COMES FIRST, in the DOM and, in the stacked cut, on the page. Under the
-     plate it was 22px from the plate above it and 10px from the plate below it on a phone
-     — bound by proximity to the wrong object, which is the one thing a caption cannot be.
-     Above the plate, the small gap is the one INSIDE a beat and the large gap is the one
-     BETWEEN beats, so proximity and meaning agree; and the gap that has to clear the cast
-     shadow becomes the between-beats gap, which is the one that wanted to be large anyway.
-     The two constraints stopped fighting when the caption moved. */
-  .beat { display: grid; grid-template-columns: minmax(0, 1fr); row-gap: ${RHYTHM.g1}; }
-
-  /* THE PLATE'S FRAME, and it carries the camera — which is a correction, not a move.
-     perspective reaches an element's DIRECT CHILDREN only. It used to sit on the
-     fragments grid with the tilted .object two levels down, so it never applied: measured
-     on the built page with a translateZ(600px) probe, a grandchild of the perspective
-     element came back 216.74px before and 216.74px after, i.e. no foreshortening at all,
-     while the hero's object — whose .hero-aside carries the perspective and whose .object
-     is its direct child — went 200px to 266.67px, exactly 2400/(2400-600). So the stage's
-     "REAL 3D" was an affine shear, and .object > * { translateZ(14px) } was a no-op.
-     The perspective is on the plate's own frame now, which is the same construction
-     .hero-aside already used and the one that measurably works.
-
-     ONE CAMERA ANGLE, THREE CAMERA POSITIONS, and the trade is stated rather than hidden.
-     A single shared 3D rendering context would need transform-style: preserve-3d on every
-     element between the perspective and the plate, and layout containment forces
-     transform-style to flat — which container-type: inline-size implies, and which the
-     container-query shadow below cannot do without. So each plate is projected by its own
-     camera at the same distance and the same origin. What that costs is inter-plate
-     parallax at rest; what it keeps is that all three are seen at the same angle from the
-     same height, which is the part that makes them read as one view. The parallax the
-     composition does claim is the scroll one, and that is real.
-
-     perspective-origin sits on the LEFT EDGE rather than at the centre, and that is what
-     protects the shared edge: a plate pushed +46px toward the camera grows about 2%, and
-     centred that would push its left edge 6px past x0 while its neighbours stayed put —
-     three left edges instead of one, which is the exact failure ground.ts's MEASURE note
-     warns about. Anchored at 0%, the depth expresses itself entirely on the right edge and
-     in height, so the stack fans open toward the air rather than into the type. */
-  .plate-box {
-    container-type: inline-size;
-    perspective: ${TILT.perspective};
-    perspective-origin: 0% 50%;
-    /* --pm is set once on .stack so every plate is the same width. One shared edge on the
-       left (the page's x0) and one shared edge on the right is what makes three plates
-       read as three slices of one card rather than as three objects. */
-    width: 100%;
-    max-width: var(--pm, 640px);
+  .trailer-play svg { width: 13px; height: 14px; margin-left: 2px; fill: var(--app-on-volt); display: block; }
+  .trailer-time {
+    font-family: ${MONO}; font-weight: 600; font-size: 12px;
+    letter-spacing: 0.08em; color: var(--muted);
+    padding-left: 12px; border-left: 1px solid var(--rule);
   }
-  .object {
-    transform-origin: ${TILT.origin};
-    /* THE DEPTH IS IN THE TRANSFORM, not in three hand-tuned sizes. --z is DEPTH.back /
-       .mid / .front, set per beat; at a 2400px perspective it projects to about -2% / 0 /
-       +2% of apparent size, which is why the plates do not need three different widths to
-       stop looking coplanar. Defaults to 0 so an object outside the scene is unaffected. */
-    transform: translateZ(var(--z, 0px)) ${TILT.transform};
-    /* REAL 3D, not a picture of it. preserve-3d puts the card's CONTENTS on their own
-       plane (see .object > * below) instead of flattening them into the card's face, so
-       the 7deg rotation projects the chip and the card edge by different amounts and the
-       object has a measurable thickness. It is the cheapest genuinely three-dimensional
-       thing on this page and it costs one declaration and no motion at all. */
-    transform-style: preserve-3d;
-    /* px first for anything without container query units, cqw second. A browser
-       that understands cqw takes the second and the shadow tracks the object at
-       every width; one that does not drops it as invalid and keeps the first. */
-    box-shadow: ${fragShadowCss({ width: FRAG_MIN_WIDTH, unit: "px" })};
-    box-shadow: ${fragShadowCss()};
-    background: var(--app-surface);
-    border: 1px solid var(--app-border);
-    border-radius: 10px;
-    /* MEASURED OFF 02-the-match.png, not chosen. In the ad the dark slab frames
-       the amber chip by 28px left / 20px right / 13px top / 17px bottom on an
-       835px slab — about 2.9% of the object's width horizontally and 1.8%
-       vertically, an asymmetric frame that is tighter top-to-bottom than it is
-       side-to-side. A uniform 18px was 6.28%, roughly double, and it is why the
-       chip filled 54.8% of its slab's height on the page against 82.9% in the ad:
-       the cards read as mostly empty black instead of as product. */
-    padding: 6px 10px;
-    padding: 1.8cqw 2.9cqw;
-  }
-  /* The object was display:flex, which made its single child a flex ITEM and so
-     shrink-to-fit: the chat composer drew at 152px inside a 303px card, 57% of the
-     width it was given, and read as an unloaded placeholder rather than as the
-     product. Block layout gives every fragment's content the full content box. */
-  .object > * {
-    width: 100%;
-    /* 14px forward of the card face, under a 2400px perspective: about 0.6% of parallax,
-       which is small on purpose. The point is not that you see the offset, it is that the
-       object stops being a flat rectangle with a picture of a tilt printed on it. This is
-       the declaration that was inert until the perspective moved onto .plate-box. */
-    transform: translateZ(14px);
-  }
-
-  /* THE TILT ANSWERS THE POINTER.
-     motion.ts's whole complaint about a fixed tilt is that it never changes. Here it does:
-     the object comes 26px forward and turns 40% of the way back toward square-on, which is
-     what happens to a card when you pick it up to look at it. Under the 2400px perspective
-     the translateZ scales the whole object — its cast shadow included — by 1.1%, so the
-     shadow grows with the lift rather than being animated separately.
-
-     IT IS ONLY THE TRANSFORM, and that is a measurement rather than a preference. The first
-     version also grew the cast shadow 1.5x on hover, which is the obvious way to say
-     "lifted"; composited through the same shadow model the contrast guard uses, it took the
-     mono caption directly beneath the object from 4.83:1 to about 4.4:1 — under WCAG AA,
-     on hover, on the line that explains what the object is. A 1.15x version came out near
-     4.6:1, which is inside the model's own error bars. So the shadow does not move, and the
-     reason is written down rather than rediscovered. */
+  .trailer:hover { text-decoration: none; border-color: var(--accent); }
+  /* Gated like the button's lift, because a touch device fires a false :hover on tap. */
   @media (hover: hover) and (pointer: fine) {
-    .plate-box .object { transition: transform var(--t-deliberate) var(--ease-out); }
-    .beat:hover .object {
-      transform: translateZ(calc(var(--z, 0px) + 26px)) rotateY(${+(TILT.rotY * 0.6).toFixed(2)}deg) rotateX(${+(TILT.rotX * 0.6).toFixed(2)}deg);
-    }
-
-    /* THE OTHER TWO PLATES RECEDE, which is the campaign's own law rather than a flourish.
-       marketing/video/src/pro/film.ts states it as the rule that decides what is on the
-       frame at any instant: there is ONE peer element, and when something else becomes the
-       subject the rest "pushes back in Z, drops to 30% and takes a soft blur" (RECEDE).
-       Picking up one plate makes it the subject, so the other two stop being peers.
-
-       IT IS OPACITY ONLY, AT 0.86, AND NOT THE FILM'S NUMBERS. The film recedes to 0 with
-       a 7px blur because its receded plane has a whole statement built in front of it and
-       must stop competing. Here the two receded plates are still the reader's context, and
-       a blur on a card whose type is 11px of mono reads as a rendering fault rather than
-       as depth. 0.86 on a white plate over warm paper is a wash toward the ground of about
-       one shadow layer's worth — enough to rank the three, not enough to hide one.
-
-       It is also the only :has() on the page. Without it the rule would have to live on
-       .stack:hover, which fires in the gaps between plates where nothing is the subject. */
-    .stack:has(.beat:hover) .beat:not(:hover) .object { opacity: 0.86; }
-    .plate-box .object { transition: transform var(--t-deliberate) var(--ease-out), opacity var(--t-deliberate) ease; }
+    .trailer:hover { transform: translate3d(0, -1px, 0); box-shadow: 0 10px 22px -12px rgba(${FRAG_SHADOW_INK.join(",")},0.35); }
   }
-  /* THE SENTENCE THAT NAMES A PLATE. The campaign's mono furniture, unchanged.
-     Sized against the SCENE rather than the plate, because in the two-column cut it does
-     not live in the plate's container at all and a caption that changed size between the
-     two cuts would be two different pieces of furniture. 48ch stops it running the full
-     measure of a wide one-column scene, where an 829px line of tracked uppercase mono is
-     one long ribbon rather than a label. */
-  .beat-line {
-    font-family: ${MONO}; font-weight: 600; letter-spacing: 0.14em;
-    font-size: 11.5px;
-    font-size: clamp(11.5px, 1.9cqi, 15px);
-    text-transform: uppercase; color: var(--muted);
-    margin: 0; max-width: 48ch;
+  .trailer:active { transform: scale(0.97); transition-duration: var(--t-instant); }
+
+  /* ---- what you are joining: three moment cards -------------------------- */
+  /* THREE CARDS OF ONE SIZE, AND THAT IS THE WHOLE FIX. What was here was three cut-out
+     fragments of different widths under heavy tilted shadows: the "chopped" look, because
+     nothing in an arrangement of differently sized objects relates one to the next. These
+     three agree about everything a frame can agree about: the same width, the same corner,
+     the same soft shadow, and an inner screen of the same height whatever it holds. So they
+     read as three frames of one sequence (match, lock, talk: the hero sub's own sentence)
+     rather than as three pictures. grid-auto-rows: 1fr holds the heights equal in the
+     stacked cut too, where each card would otherwise be as tall as its own sentence.
+
+     The shadow is small on purpose (CARD_SHADOW_LAYERS). A card is furniture resting on
+     the paper, not an object arriving at the reader. */
+  section.moments { padding: ${SECTION_GAP} 0 0; }
+  .moments .eyebrow { margin-bottom: clamp(16px, 2.2vw, 26px); }
+  .moment-list {
+    list-style: none; margin: 0; padding: 0;
+    display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-rows: 1fr; gap: 16px;
+    max-width: 480px;
   }
-  /* THE INDEX, and it is doing two jobs rather than decorating.
-     The scene's head and its three captions are the same mono furniture at the same size
-     in the same ink, and on a phone the head sits 24px above the first caption: measured on
-     the built page, they read as one block of two lines rather than as a title and a label.
-     The index separates them at a glance, and it says the true thing about the scene, which
-     is that it is a SEQUENCE — match, lock, talk, in that order, which is the app's own loop
-     and the sentence the hero's sub already writes. apps/mobile/src/theme/tokens.ts calls
-     this style out by name: type.tick is the app's own face for "timestamps, statuses,
-     counters, index marks". Ink rather than accent, because the page's accent is spent on
-     one word in the headline and a number is not the second most important thing on it. */
-  .beat-line .no { color: var(--ink); margin-right: 0.85em; }
-
-  /* THE SECOND CUT: THE SENTENCE MOVES BESIDE THE PLATE.
-     Keyed on the SCENE's own measure rather than the window's, because what decides this
-     is whether there is room for a second column next to a plate — and the scene is a
-     full-width row on a desktop, a phone-width column on a handset, and the same 760px is
-     the same answer in both. Below the threshold the beat stays stacked; the fallback for
-     a browser without container queries is therefore the correct phone layout, not a
-     broken desktop one.
-
-     THIS IS THE INTERLEAVE. Above 760px each sentence sits on its plate's own horizontal
-     band, so a line of type and an object share a line instead of alternating in blocks.
-     It is what stops the page being all the words, then all the pictures, then all the
-     words again, and it is the composition pro-a-light.mp4 uses at f440, where the Send
-     fragment and the words "send a message," occupy the same band of the frame.
-
-     ONE CEILING OF 640, IN BOTH CUTS, AND IT IS THE GUARD'S NUMBER MINUS THE DEPTH. The
-     front plate is 2% larger than its box under the perspective, so 640 * 1.0195 = 652
-     keeps the widest thing this layout can draw inside 660 — the widest width the contrast
-     guard has ever measured, and the width above which the caption gap stops tracking the
-     cast shadow. It used to be 660 flat, which was the ceiling before the plates had depth.
-
-     THE PLATE MEASURE IS THE SCENE MINUS A FIXED CAPTION COLUMN, not a percentage of it,
-     and that is what stops the product SHRINKING when the layout gains a column. A
-     percentage split means the plate is smaller in two columns than it was in one at the
-     same width — measured, 64cqi took a 787px scene's 640px plate down to 504px the moment
-     the second column appeared, which is precisely the "the product gets smaller as the
-     screen gets bigger" fault the wide-screen block below exists to prevent. Reserving
-     330px (62 of gap plus a 268px sentence column) instead means the plate is 640 at every
-     scene wide enough to hold two columns, and the second column takes the growth.
-
-     The 900px threshold is then not a taste: it is where 100cqi - 330 first exceeds 570,
-     which is the narrowest plate worth trading a column for. Below it the beat stacks, and
-     that is also the fallback a browser without container queries gets — the correct phone
-     layout, never a broken desktop one. */
-  @container scene (min-width: 900px) {
-    .stack {
-      --pm: min(640px, calc(100cqi - 330px));
-      gap: ${RHYTHM.g1};
-    }
-    /* Placed rather than ordered, so the DOM keeps the sentence before the object it names
-       and the page keeps the object on the grid's own left edge. */
-    .beat {
-      grid-template-columns: minmax(0, var(--pm)) minmax(0, 1fr);
-      column-gap: ${RHYTHM.g3};
-      align-items: center;
-    }
-    .beat > .plate-box { grid-area: 1 / 1; }
-    .beat > .beat-line { grid-area: 1 / 2; }
-    .beat-line { max-width: 34ch; }
+  .moment-card {
+    height: 100%; display: flex; flex-direction: column;
+    background: var(--app-surface); border: 1px solid var(--hairline); border-radius: 14px;
+    box-shadow: var(--card-shadow);
+  }
+  /* The screen inside each card: the app's own background, ONE fixed height, and the moment
+     centred in it. It is the query container the chips size themselves against. */
+  .stage {
+    container-type: inline-size;
+    margin: 7px 7px 0; height: 214px; padding: 14px;
+    border-radius: 9px; background: var(--app-bg); border: 1px solid ${CARD.stageEdge};
+    display: flex; flex-direction: column; justify-content: center;
+    overflow: hidden; overflow: clip;
+  }
+  .moment-line {
+    margin: 0; padding: 14px 18px 18px;
+    font-weight: 700; font-size: 16.5px; line-height: 1.38; letter-spacing: -0.01em; color: var(--ink);
+    text-wrap: balance;
+  }
+  /* The index is the app's type.tick, its face for "timestamps, statuses, counters, index
+     marks", in the accent: it says the three cards are a sequence. */
+  .moment-line .no {
+    display: block; margin-bottom: 6px;
+    font-family: ${MONO}; font-weight: 600; font-size: 11px; letter-spacing: 0.16em; color: var(--accent);
   }
 
-  /* THE PRODUCT IS SET IN cqw, NOT px.
-     Every size in this block is a percentage of the object's own width, so a
-     fragment fills its frame identically at 280px on a small phone and at 580px in
-     a desktop column. It replaced a set of fixed px sizes that made the badge 11px
-     — smaller than this page's own 15.5px body copy, and the smallest type on the
-     page, for the element that is the second-largest thing on the ad frame the
-     visitor just watched. The ratios are measured from the ads: the badge spans
-     73.1% of the frame there and about 45.8% here before this change.
-     Each rule keeps a px fallback first for browsers without container units. */
-
-  /* The overlap read, drawn from SwipeCard.tsx's overlapLabel() at the "many"
-     tier, whose ink is darkColors.overlap.many. Mono, uppercase, outlined,
-     3px corners: the app's chip geometry. */
-  .overlap {
-    display: inline-flex; border: 1px solid var(--app-amber); border-radius: 3px;
-    background: var(--app-surface); padding: 0.52em 0.86em;
-  }
-  .overlap span {
-    font-family: ${MONO}; font-weight: 600;
-    font-size: clamp(13px, 4.2vw, 26px);
-    font-size: clamp(13px, 5.4cqw, 34px);
-    letter-spacing: 0.08em; color: var(--app-amber); white-space: nowrap;
-  }
-
-  /* The game chips, from Chip.tsx: a sharp 3px mono tag, label in chipText and
-     the skill level after a middle dot in caption. */
-  .chips { display: flex; flex-wrap: wrap; gap: 0.6em; }
+  /* 01: THE GAMES, AND THE OVERLAP READ THE APP DRAWS FROM THEM.
+     Chip.tsx's sharp 3px mono tag, full width so three rows stack like a profile's games,
+     with the skill level after a middle dot. The detail is plain app muted on white; it
+     used to carry a 0.8 opacity that took it to 3.91:1, under AA, and it no longer does.
+     The badge is SwipeCard.tsx's overlapLabel() in overlapBucket()'s four inks. All four
+     counts are in the markup, stacked in one grid cell: the finished count is the resting
+     style, and the three before it are invisible and aria-hidden until the motion block
+     counts up through them. Mono and nowrap, so the cell is as wide as the longest label
+     and the badge never changes width while it counts. */
+  .chips { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
   .chip {
-    display: inline-flex; align-items: baseline; gap: 0.42em;
-    border: 1px solid var(--app-border); border-radius: 3px; padding: 0.5em 0.72em;
-    font-size: clamp(11.5px, 3.4vw, 21px);
-    font-size: clamp(11.5px, 4.3cqw, 26px);
+    display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+    background: var(--app-surface); border: 1px solid var(--app-border); border-radius: 3px;
+    padding: 0.62em 0.75em; line-height: 1.2;
+    font-size: 12px;
+    font-size: clamp(10px, 4.5cqi, 13px);
   }
   .chip b {
-    font-family: ${MONO}; font-weight: 600; font-size: 1em; letter-spacing: 0.06em;
-    text-transform: uppercase; color: var(--app-muted);
+    font-family: ${MONO}; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--app-text); white-space: nowrap;
   }
-  .chip i { font-style: normal; font-size: 1.08em; color: var(--app-muted); opacity: 0.8; }
+  .chip i { font-style: normal; font-size: 1.04em; color: var(--app-muted); white-space: nowrap; }
+  .overlap {
+    display: grid; margin-top: 10px; padding: 0.62em 0.75em;
+    border: 1px solid var(--tier-many); border-radius: 3px; background: var(--app-surface);
+    font-family: ${MONO}; font-weight: 600; line-height: 1.2; letter-spacing: 0.08em; white-space: nowrap;
+    font-size: 12.5px;
+    font-size: clamp(10.5px, 4.8cqi, 14px);
+    transform-origin: 0 50%;
+  }
+  .overlap > span { grid-area: 1 / 1; }
+  .overlap .t0 { color: var(--tier-none); opacity: 0; }
+  .overlap .t1 { color: var(--tier-one); opacity: 0; }
+  .overlap .t2 { color: var(--tier-two); opacity: 0; }
+  .overlap .t3 { color: var(--tier-many); }
 
-  /* The chat composer, from app/chat/[matchId].tsx: surfaceAlt field with a 6px
-     radius and a 40px round chartreuse send button. This is the one place raw
-     chartreuse is filled at size anywhere on this site, and it is legal because it
-     is inside a dark object. */
-  .composer {
-    display: flex; align-items: center; gap: 0.62em;
-    font-size: clamp(15px, 4.4vw, 27px);
-    font-size: clamp(15px, 5.6cqw, 34px);
+  /* 02: THE MATCH SCREEN, app/match/[matchId].tsx, the one moment the app exists to produce.
+     The app's two volt bracket glyphs close around the logo's own two rings, which are drawn
+     from ringGeometry() in three layers so they can slide in from either side and interlock
+     (see lockinSvg()). DUO LOCKED is the screen's label at the app's 0.1875em tracking, and
+     the line under it is the screen's own fallback wording, because no card on this site
+     carries a real person. */
+  .lockin { display: flex; align-items: center; justify-content: center; gap: 4px; }
+  .lockin .br { font-family: ${MONO}; font-weight: 600; font-size: 58px; line-height: 0.74; color: var(--app-volt); }
+  .lockin svg { display: block; width: 98px; height: auto; overflow: visible; }
+  .lock {
+    margin: 14px 0 2px; text-align: center;
+    font-family: ${MONO}; font-weight: 600; font-size: 14px; line-height: 1.375;
+    letter-spacing: 0.1875em; text-indent: 0.1875em; text-transform: uppercase; color: var(--app-volt);
   }
+  .both { margin: 0; text-align: center; font-size: 14px; line-height: 1.45; color: var(--app-text); }
+
+  /* 03: THEN YOU TALK, app/chat/[matchId].tsx. An incoming bubble, the sent one in the app's
+     own bubbleOwn, and the composer: a surfaceAlt field with the app's placeholder and the
+     round volt send button. The typed message sits in the field at rest, invisible, for the
+     motion block to type in; the finished chat is the resting style. */
+  .stage.talk { justify-content: flex-end; }
+  .chat { display: flex; flex-direction: column; gap: 6px; margin-top: auto; }
+  .bubble { margin: 0; max-width: 80%; padding: 7px 12px; font-size: 14.5px; line-height: 1.35; border-radius: 13px; color: var(--app-text); }
+  .bubble.in { align-self: flex-start; background: var(--app-surface); border: 1px solid var(--app-border); border-bottom-left-radius: 4px; }
+  .bubble.out { align-self: flex-end; background: var(--bubble-own); border: 1px solid ${CARD.bubbleOwnEdge}; border-bottom-right-radius: 4px; }
+  .composer { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
   .composer .box {
-    flex: 1; background: var(--app-alt); border: 1px solid var(--app-border); border-radius: 6px;
-    padding: 0.72em 0.92em; color: var(--app-muted); font-size: 1em; line-height: 1.45;
+    position: relative; flex: 1; min-width: 0;
+    background: var(--app-alt); border: 1px solid var(--app-border); border-radius: 6px;
+    padding: 9px 12px; font-size: 14.5px; line-height: 1.35; color: var(--app-muted);
   }
+  .composer .typed { position: absolute; left: 12px; top: 9px; color: var(--app-text); opacity: 0; white-space: nowrap; }
   .composer .send {
-    flex: none; width: 2.62em; height: 2.62em; border-radius: 999px; background: var(--app-volt);
-    display: flex; align-items: center; justify-content: center;
+    flex: none; width: 38px; height: 38px; border-radius: 999px; background: var(--app-volt);
+    display: grid; place-items: center;
   }
-  .composer .send svg { width: 1.3em; height: 1.3em; }
-  .composer .send svg { display: block; }
+  .composer .send svg { display: block; width: 18px; height: 18px; }
 
-  /* THE MIDDLE BEAT, from app/match/[matchId].tsx — the celebration screen.
-     It is the one moment the whole app exists to produce and the page did not have it:
-     the two plates that were here read "you match on what you play" and "then you talk",
-     which is a sentence with its verb missing. Its strings and its type are the screen's
-     own: the label is type.label overridden to 16/22 at letterSpacing 3 (0.1875em) in
-     colors.volt, and the line under it is type.body — 15/22, medium — with the screen's
-     own fallback name, because a fragment on this site never carries a real person.
-
-     THE BRACKETS ARE A CROP DECISION AND THEY ARE THE ONLY ONE HERE. In the app the two
-     volt glyphs spring together around a 160px avatar at BRACKET_SIZE 64 — 0.4 of it —
-     and hug it by 10px. This fragment has no photograph, for the reason the FRAGMENTS
-     note gives, so they close around the words instead at the same 0.4 ratio to the
-     lockup they hug. Nothing else about them changes: same glyphs, same volt, same
-     proportion. They are what makes this beat recognisable as the match screen rather
-     than as a green line of text, and they are the app's own mark for the moment. */
-  .duo {
-    display: flex; align-items: center; justify-content: center;
-    gap: 0.62em;
-    font-size: clamp(15px, 4.4vw, 27px);
-    font-size: clamp(15px, 5.6cqw, 34px);
-    padding: 0.3em 0;
+  /* From 720 to 1079 each card lies on its side, screen left and sentence right, so three
+     cards do not become three narrow columns on a tablet. From 1080 they stand in a row of
+     three and share the field between them. */
+  @media (min-width: 720px) and (max-width: 1079px) {
+    .moment-list { max-width: 760px; }
+    .moment-card { flex-direction: row; align-items: center; }
+    .stage { flex: none; width: 320px; margin: 7px; }
+    .moment-line { padding: 20px 28px 20px 22px; font-size: 20px; }
   }
-  .duo .bracket {
-    flex: none; font-family: ${MONO}; font-weight: 600;
-    font-size: 2.35em; line-height: 0.74; color: var(--app-volt);
-  }
-  .duo .said { text-align: center; }
-  .duo .lock {
-    font-family: ${MONO}; font-weight: 600; font-size: 0.94em;
-    letter-spacing: 0.1875em; text-indent: 0.1875em;
-    text-transform: uppercase; color: var(--app-volt);
-    margin: 0 0 0.3em; line-height: 1.375; white-space: nowrap;
-  }
-  .duo .both {
-    font-size: 0.88em; line-height: 1.467; color: var(--app-text); margin: 0;
+  @media (min-width: 1080px) {
+    .moment-list { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: none; gap: clamp(16px, 1.8vw, 26px); }
+    .moment-line { font-size: 17px; }
   }
 
   /* ---- the plain version ------------------------------------------------- */
-  /* G4 above and below, which is the page's one section-to-section gap. It used to be
-     12px above and 66px below — a value that said the plain version belonged to the stage
-     above it, which it does not. */
-  section.plain { padding: ${RHYTHM.g4} 0; }
-  .plain-list { display: grid; grid-template-columns: 1fr; gap: ${RHYTHM.g2}; margin: 0; padding: 0; list-style: none; }
-  .plain-list li { border-top: 1px solid var(--rule); padding-top: ${RHYTHM.g1}; }
+  /* Each item hangs from a hairline rule with a short olive tick at its left end. Both are
+     pseudo-elements anchored at their left end (transform-origin), so the motion block can
+     draw them across without the markup knowing; at rest they are simply there. The tick
+     is a graphic in the accent, which is the accent-on-ground pair the guard already
+     measures, against the 3.0 a graphic needs. */
+  section.plain { padding: ${SECTION_GAP} 0; }
+  /* A plain section that follows another starts at the first one's bottom padding: two
+     sections cannot each pay for the same boundary. On the root page that is the support
+     block after the plain version. */
+  section.plain + section.plain { padding-top: 0; }
+  .plain-list { display: grid; grid-template-columns: 1fr; gap: clamp(20px, 3.2vw, 36px); margin: 0; padding: 0; list-style: none; }
+  .plain-list li { position: relative; padding-top: clamp(14px, 2vw, 22px); }
+  .plain-list li::before {
+    content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1px;
+    background: var(--rule); transform-origin: 0 50%;
+  }
+  .plain-list li::after {
+    content: ""; position: absolute; left: 0; top: -1px; width: 28px; height: 3px;
+    background: var(--accent); transform-origin: 0 50%;
+  }
   .plain-list h3 {
     font-family: ${SANS}; font-weight: 800; font-size: 20px; letter-spacing: -0.02em;
-    margin: 0 0 6px; color: var(--ink);
+    margin: 0 0 6px; color: var(--ink); text-wrap: balance;
   }
   .plain-list p { margin: 0; color: var(--muted); font-size: 15.5px; line-height: 1.55; max-width: 42ch; }
 
+  /* JOIN AGAIN, after the plain version. The big closing end card's only working part was a
+     second button that jumped back to the form; this is that button without the end card
+     around it, and deliberately quieter than the hero's: outlined rather than filled, so
+     the page keeps exactly one loud call to action. Volt type on the paper is the
+     accent-on-ground pair; hover fills it with the button's own volt and onVolt, and the
+     press is the app's scale(0.97). 44px tall for the touch target. */
+  .again { margin: clamp(28px, 4vw, 44px) 0 0; }
+  .cta-ghost {
+    display: inline-flex; align-items: center; gap: 0.45em;
+    min-height: 44px; padding: 0 16px;
+    border: 1.5px solid var(--app-volt); border-radius: 6px;
+    background: transparent; color: var(--app-volt); text-decoration: none;
+    font-family: ${SANS}; font-weight: 800; font-size: 16px; line-height: 1.2; letter-spacing: -0.01em;
+    transition:
+      background-color var(--t-quick) ease,
+      border-color var(--t-quick) ease,
+      color var(--t-quick) ease,
+      transform var(--t-base) var(--ease-out);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .cta-ghost:hover { background: var(--app-volt); color: var(--app-on-volt); text-decoration: none; }
+  }
+  .cta-ghost:active {
+    background: var(--app-volt-dim); border-color: var(--app-volt-dim); color: var(--app-on-volt);
+    transform: scale(0.97); transition-duration: var(--t-instant);
+  }
+
+  /* ---- outcome pages ----------------------------------------------------- */
+  section.outcome { padding: 8vh 0 12vh; }
+  .outcome .display { max-width: 16ch; }
+  .outcome p { max-width: 44ch; }
+
+  /* ---- legal + support --------------------------------------------------- */
+  /* The legal documents contain long unbreakable tokens (email addresses, file paths
+     in code spans). At 320px they pushed the page 8px wider than the viewport, which
+     is a horizontal scrollbar on the two pages App Review opens. */
+  article { max-width: 68ch; padding: 26px 0 40px; overflow-wrap: anywhere; }
+  article h1 { font-family: ${SANS}; font-weight: 800; font-size: clamp(28px, 5vw, 40px); line-height: 1.18; letter-spacing: -0.02em; margin: 0 0 0.4em; }
+  article h2 { font-family: ${SANS}; font-weight: 800; font-size: 1.28em; line-height: 1.3; letter-spacing: -0.015em; margin: 1.9em 0 0.6em; padding-top: 0.7em; border-top: 1px solid var(--rule); }
+  article h2:first-child { border-top: none; padding-top: 0; margin-top: 0; }
+  /* The source documents put a --- before most section headings, which used to draw
+     the markdown's rule and the heading's own rule as two lines 20px apart. */
+  article hr + h2 { border-top: none; padding-top: 0; margin-top: 0.7em; }
+  article h3 { font-family: ${MONO}; font-weight: 600; font-size: 0.78em; margin: 1.5em 0 0.5em; color: var(--muted); text-transform: uppercase; letter-spacing: 0.14em; }
+  article p { margin: 0 0 1em; }
+  article ul, article ol { margin: 0 0 1em; padding-left: 1.4em; }
+  article li { margin: 0.35em 0; }
+  article li > ul, article li > ol { margin-top: 0.35em; }
+  article hr { border: none; border-top: 1px solid var(--rule); margin: 2em 0; }
+  article strong { font-weight: 700; color: var(--ink); }
+  article code {
+    background: rgba(22,26,15,0.05); border: 1px solid var(--rule);
+    padding: 0.15em 0.4em; font-size: 0.86em; font-family: ${MONO}; font-weight: 600;
+  }
+
+  .table-scroll { overflow-x: auto; margin: 0 0 1.4em; border: 1px solid var(--rule); }
+  table { border-collapse: collapse; width: 100%; min-width: 480px; font-size: 0.9em; }
+  th, td { text-align: left; padding: 0.6em 0.75em; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  thead th { background: rgba(22,26,15,0.04); color: var(--muted); font-weight: 700; white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: none; }
+
+  /* THE SUPPORT CARD, in the moment cards' language rather than a style of its own: the same
+     white surface, hairline, 14px corner and soft shadow. Full width; from 900px the heading
+     sits in a narrow left column with the text beside it (see the wide-viewport block). The
+     text is what App Review reads at the Support URL, and it is unchanged. */
+  section.card {
+    background: var(--app-surface); border: 1px solid var(--hairline); border-radius: 14px;
+    box-shadow: var(--card-shadow);
+    padding: clamp(20px, 3vw, 36px); margin: 0;
+  }
+  section.card h2 {
+    font-family: ${SANS}; font-weight: 800; font-size: 22px; letter-spacing: -0.02em; line-height: 1.3;
+    margin: 0 0 10px;
+  }
+  section.card p { margin: 0 0 0.9em; font-size: 16px; line-height: 1.6; max-width: 62ch; }
+  section.card p:last-child { margin-bottom: 0; }
+
+  /* ---- footer ------------------------------------------------------------ */
+  footer.site-footer { border-top: 1px solid var(--rule); padding: ${RHYTHM.g1} 0 ${RHYTHM.g3}; color: var(--muted); font-size: 13.5px; }
+  footer.site-footer nav { margin-top: 8px; display: flex; gap: 10px; flex-wrap: wrap; }
+  footer.site-footer a { color: var(--muted); }
+  footer.site-footer a:hover { color: var(--accent); }
+
+  /* =======================================================================
+     MOTION
+     =======================================================================
+
+     WHAT THIS IS FOR. A visitor lands here from an eighteen-second film in which nothing
+     ever fades: type builds forward out of the page, and objects arrive rotated and
+     oversized under blur and unwind. The page's first frame should be the film's next
+     frame. That is the only argument any of the motion below is making, and where an
+     element could not make it, it does not move.
+
+     THE THINGS THAT DELIBERATELY DO NOT ANIMATE, because "should this animate at all" has
+     a real answer and here it is no, three times:
+       * THE HEADLINE DOES NOT BUILD WORD BY WORD. The film does, and motion.ts measures
+         the cadence at 4 to 5 frames a word. The film builds words because it owns
+         eighteen seconds of linear time the viewer cannot skip; a landing page's headline
+         is the one sentence the visitor came to read, and staggering it delays exactly
+         that. It arrives as one object.
+       * THE GROUND DOES NOT MOVE. No drifting gradient, no parallax field. It is the one
+         thing the campaign holds absolutely constant across every deliverable, and a
+         full-viewport moving background is on the short list of things that reliably
+         provoke motion sickness.
+       * THE PLAIN VERSION DOES NOT REVEAL ON SCROLL. It is three paragraphs about 18+,
+         platonic, and everyone starting together. The whole point of that block is that
+         it is plain.
+
+     THE RULE THAT MAKES ALL OF IT SAFE: every animation below is fill-mode BACKWARDS, and
+     every to-state is identical to the element's resting style. So the resting style is
+     the truth and the animation is a displacement in front of it, which means an element
+     that is never animated - reduced motion, an older browser, a scroll timeline that
+     never runs - renders correct and complete. Nothing on this page is hidden by a base
+     rule waiting for an animation to reveal it. */
+
+  /* Type, and blocks of it. The film spends a word's travel on Z rather than Y: "the word
+     comes FORWARD out of the page, which is what a scale from 0.35 under a blur reads as,
+     where a vertical lift reads as a slide-up preset". Same axis here at a page-sized
+     amplitude - 70px of Z under a 900px perspective is a 7% approach - plus 10px of lift. */
+  @keyframes rise {
+    from { opacity: 0; transform: perspective(900px) translate3d(0, 10px, -70px); }
+    to   { opacity: 1; transform: perspective(900px) translate3d(0, 0, 0); }
+  }
+
+  /* ---- the hero, on load ------------------------------------------------- */
+  /* 60ms between blocks. The film's own cadence is 4.5 frames, 150ms, which is right for
+     four words of a headline arriving one at a time and far too slow for five stacked
+     blocks: it would put the button 750ms behind the eyebrow. 60ms is inside the 30-80ms
+     a group entrance is allowed, and the whole hero has landed 507ms after first paint.
+     The button is usable for every one of those milliseconds - an element at opacity 0
+     still takes the pointer, and nothing here is display:none or visibility:hidden. */
+  .hero-copy .eyebrow,
+  .hero-copy h1.display,
+  .hero-copy .lede,
+  .hero-copy .sub,
+  .hero-act {
+    animation: rise var(--t-arrival) var(--ease-out) backwards;
+  }
+  .hero-copy h1.display { animation-delay: 60ms; }
+  .hero-copy .lede      { animation-delay: 120ms; }
+  .hero-copy .sub       { animation-delay: 180ms; }
+  .hero-act             { animation-delay: 240ms; }
+
+  /* ---- reduced motion ---------------------------------------------------- */
+  /* Not a blanket kill. Everything that MOVES stops - every entrance, the hover lifts, the
+     presses - and everything that is COLOUR stays, because a button
+     that deepens under the pointer and a field whose border answers focus are feedback
+     rather than motion, and removing them makes the page harder to use rather than calmer.
+     The page is fully usable with all of it off, because with all of it off the page is
+     simply its resting state, which is the state every to-keyframe equals. */
+  @media (prefers-reduced-motion: reduce) {
+    .hero-copy .eyebrow,
+    .hero-copy h1.display,
+    .hero-copy .lede,
+    .hero-copy .sub,
+    .hero-act {
+      animation: none;
+    }
+    .cta { transition-property: background-color, border-color; }
+    .cta:hover, .cta:active { transform: none; box-shadow: ${shadowCss(CTA_SHADOW_LAYERS, FRAG_SHADOW_INK)}; }
+    /* The trailer link and the outlined join link keep their colour answers and lose their
+       lift and their press, the same line this block draws for the button. */
+    .trailer, .trailer:hover, .trailer:active,
+    .cta-ghost, .cta-ghost:active { transform: none; }
+  }
+
+  /* ---- wide viewports ---------------------------------------------------- */
+  /* THE FORM MOVES BESIDE THE TYPE AND THE TRAILER LINK TUCKS UNDER THE COPY.
+     Two dense columns that end near the same line. The 460px cap on the form column is the
+     form's own max-width, so the column is the control rather than a fraction that happens
+     to contain it; the copy column takes whatever is left. The form spans both rows, so the
+     link sits under the copy without pushing the form down. */
+  @media (min-width: 900px) {
+    .hero-grid {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 460px);
+      grid-template-areas: "copy act" "watch act";
+      grid-template-rows: auto 1fr;
+      column-gap: clamp(40px, 5vw, 84px); row-gap: 0;
+      align-items: start;
+    }
+    /* The sub is the last line of the copy column and the form is the top of the other,
+       so its bottom margin is measuring against nothing. */
+    .hero-copy .sub { margin-bottom: 0; }
+    .hero-watch { margin-top: 30px; }
+    .plain-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(24px, 4vw, 52px); }
+    /* The support card: heading in a narrow left column, its three paragraphs beside it. */
+    section.card {
+      display: grid; grid-template-columns: minmax(0, 240px) minmax(0, 1fr);
+      column-gap: clamp(24px, 4vw, 56px);
+    }
+    section.card h2 { grid-row: 1 / span 3; }
+  }
+
+  /* ---- BIG SCREENS: THE FRAME WIDENS, THE MEASURE DOES NOT ---------------
+     Above 1180px of window .wrap used to cap and every section became a 1180px ribbon with
+     the rest of the display left as bare cream. So the FIELD widens, to 1560, and no LINE OF
+     TEXT does: the lede is capped at 30ch, the sub at 38ch, the plain version's paragraphs
+     at 42ch and the legal documents at 68ch, so every measured line is the same length at
+     3440px as it is at 1280px. What spends the extra field is the row of three moment
+     cards, which is the product.
+
+     .wrap WIDENS EVERYWHERE AT ONCE, header and footer included, and that is not laziness.
+     The campaign's grid is ONE LEFT EDGE for the type and for every object; it is the first
+     thing ground.ts states. An earlier version widened only some sections and put the
+     headline's left edge 190px inside the objects' left edge on a 3440px monitor. Two left
+     edges is worse than a narrow page.
+
+     The hero's top row is capped rather than left as a fraction: a 560px column of type, the
+     460px form, and the air in a third, empty column on the right, which is where
+     ground.ts's MEASURE note says the air belongs. The trailer link stays under the type. */
+  @media (min-width: 1500px) {
+    .wrap { max-width: 1560px; }
+    .hero-grid {
+      grid-template-columns: minmax(0, 560px) minmax(0, 460px) minmax(0, 1fr);
+      grid-template-areas: "copy act ." "watch act .";
+    }
+  }
+
+  /* SHORT SINGLE-COLUMN WINDOWS. Two shapes fail the "button on the first screen"
+     test with the phone layout's default type: a 320x568 handset, where the stack
+     runs 86px past the fold, and a 899x700 window, where the layout is still one
+     column but 8.4vw has grown the headline to 75px and the stack runs 112px past.
+     Same remedy as the desktop tier — the type steps down and the rhythm tightens,
+     nothing is removed — and it is keyed on height so a normal phone held normally
+     never sees it. The lede is the sentence carrying "18+" and "not dating", so it
+     is the least compressed thing here and never goes below 15.5px. */
+  @media (max-width: 899px) and (max-height: 760px) {
+    section.hero { padding: 16px 0 0; }
+    h1.display { font-size: clamp(30px, 7.2vw, 52px); margin-bottom: 0.28em; }
+    .lede { font-size: clamp(15.5px, 4.3vw, 19px); margin-bottom: 0.5em; }
+    .sub { font-size: clamp(13.5px, 3.6vw, 16px); margin-bottom: 1.15em; }
+    .eyebrow { font-size: clamp(10.5px, 2.41vw, 14px); margin-bottom: 0.75em; }
+    .field-label { margin-bottom: 6px; }
+    input[type="email"] { padding: 13px 14px; }
+    .adult { margin: 10px 0 13px; }
+    .cta { font-size: clamp(21px, 5.1vw, 34px); }
+  }
+
+  /* A PORTRAIT PHONE WITH BROWSER CHROME. The tier below moves the form beside the type,
+     which needs 480px of width to be worth doing; under that the stack is the only legible
+     layout and it has to earn its height instead. This is where it does.
+
+     Measured at 320x454 — an iPhone SE in Safari, the smallest viewport a real visitor
+     arrives on — the stack put the button's bottom edge at y=543, 89px under the fold. The
+     costs are all rhythm, never type: the header is 87px of a 454px window before the page
+     has said anything, the sub carries a 15.5px gap to the form, and the field, the
+     checkbox and the button each sit in spacing scaled for a window twice this tall.
+     Nothing is removed and no face gets smaller — the lede in particular stays at its
+     15.5px floor, because it is the sentence carrying "18+" and "not dating".
+
+     It buys 48px, which is not all 89: closing the rest would mean shrinking the headline
+     or the lede, and a button one flick below the fold is a smaller cost than a campaign
+     that cannot say its own name. What it does buy is every viewport from 320x500 up:
+     -43 -> +5 at 320x500, -23 -> +25 at 360x520, -2 -> +46 at 390x550, -44 -> +4 at
+     479x520, and +25 -> +73 at 320x568. Only 320x454 still needs the flick, at -41. */
+  @media (max-width: 479px) and (max-height: 620px) {
+    header.site-header { padding: 10px 0 2px; }
+    section.hero { padding: 8px 0 0; }
+    .eyebrow { margin-bottom: 0.5em; }
+    h1.display { margin-bottom: 0.2em; }
+    .lede { margin-bottom: 0.35em; }
+    .sub { margin-bottom: 0.7em; }
+    .field-label { margin-bottom: 4px; }
+    input[type="email"] { padding: 11px 14px; }
+    .adult { margin: 7px 0 9px; }
+  }
+
+  /* SHORT WINDOWS THAT ARE ALSO NARROW: the form moves beside the type here too.
+     This is the same remedy as the >=900px short-and-wide block below, at the other end of
+     the width axis, and it exists because a phone in landscape is a real shape that the
+     single-column stack simply cannot hold. Measured at 844x390, an iPhone on its side: the
+     compressed stack above puts the button's bottom edge at y=652 in a 390px window, 262px
+     below the fold, and no amount of further squeezing closes that - the eyebrow, a
+     two-line headline, a three-line lede and a three-line sub are 340px of type before the
+     field starts, in a window 390px tall.
+
+     Two EQUAL columns rather than the wide block's fixed 460px form column, because at
+     844px of viewport a 460px form leaves the copy 166px, which is narrower than the
+     headline's own first word. At 1fr/1fr the copy gets about 313px and the form gets the
+     same, which is wider than the 280px this layout already works at on a portrait phone.
+
+     Keyed at 560px of height AND 480px of width. The height alone is not enough, and
+     assuming it was is a real bug this block used to have: 560px was chosen so "a 320x568
+     handset held normally never sees it", but 320x568 is the SCREEN. The viewport inside a
+     browser is the screen minus its chrome — an iPhone SE in Safari is 320x454 — so every
+     small phone held normally landed in here and got the landscape layout in a portrait
+     window. Measured at 320x454: two 130px columns, "join the waitlist" wrapped onto two
+     lines (the exact failure the font-size note below exists to prevent), the email
+     placeholder clipped to "you@exampl", and a 14-character lede.
+
+     480px is where the tier starts paying for itself rather than costing. The form column
+     is half the content width, and "you@example.com" plus the input's own 14px padding
+     needs 178px: at 480 the inset is 40.7px and the gap 20px, so the column is 189px and
+     the placeholder fits with 11px to spare; below that it does not. Every landscape phone
+     is comfortably above the floor (568x320 is the smallest shape this tier was written
+     for, 844x390 the one it was measured on), and every portrait phone is below it and
+     keeps the single-column stack, which is legible at 320px where two columns are not. */
+  @media (min-width: 480px) and (max-width: 899px) and (max-height: 560px) {
+    section.hero { padding: 12px 0 0; }
+    /* The trailer link goes under the copy, as it does on a desktop, so the form keeps its
+       column to itself. */
+    .hero-grid {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      grid-template-areas: "copy act" "watch act";
+      grid-template-rows: auto 1fr;
+      column-gap: clamp(20px, 4vw, 40px);
+      align-items: start;
+    }
+    .hero-copy .sub { margin-bottom: 0; }
+    h1.display { font-size: clamp(26px, 5.6vw, 40px); }
+    .lede { font-size: clamp(14.5px, 2.4vw, 17px); }
+    .sub { font-size: clamp(13px, 2vw, 15px); }
+    /* The label has to stay on ONE line. Its column is now half the window, and at 568x320
+       the inherited clamp put a 29px face into a 221px button, which wrapped the words and
+       made a 103px-tall two-line control out of the page primary action. 3.6vw keeps
+       6.4em of 'join the waitlist' inside the column at every width this tier covers. */
+    .cta { font-size: clamp(17px, 3.6vw, 26px); }
+  }
+
+  /* ---- narrow or short desktop windows ------------------------------------ */
+  /* The type steps down and the rhythm tightens. Nothing is removed.
+     This used to be the block that rescued the fold, because the hero stacked the form
+     under 400px of copy; the form is now at the top of its own column at every desktop
+     width, so what is left for this block to do is the width problem rather than the
+     height one. At exactly 900px wide the copy column is about 190px, and a 76px headline
+     in 190px is four lines of one word. The height clause stays because a 1366x660 laptop
+     still wants a shorter hero even with the form beside the type: it decides how much of
+     the three moment cards is on the first screen, which is worth a step of type. */
+  @media (min-width: 900px) and (max-height: 940px),
+         (min-width: 900px) and (max-width: 1199px) {
+    section.hero { padding: ${RHYTHM.g1} 0 0; }
+    h1.display { font-size: clamp(34px, 5.1vw, 58px); margin-bottom: 0.3em; }
+    .lede { font-size: clamp(16px, 1.42vw, 19px); margin-bottom: 0.45em; }
+    .sub { font-size: clamp(14px, 1.18vw, 16px); margin-bottom: 1.1em; }
+    .eyebrow { margin-bottom: 0.7em; }
+    .field-label { margin-bottom: 5px; }
+    input[type="email"] { padding: 12px 14px; font-size: 16px; }
+    .adult { margin: 12px 0 14px; }
+    .cta { font-size: clamp(21px, 3.3vw, 34px); }
+    .promise { margin-top: 12px; }
+  }
+`;
+
+// THE CLOSING LOCKUP'S RULES, emitted only on the page that still draws one: the thanks
+// page. The five landing pages lost their lockup on 23 Sept 2026 (its one working part, the
+// second button, became the outlined link after the plain version), so they no longer carry
+// its CSS either.
+const LOCKUP_CSS = `
   /* ---- the closing lockup ------------------------------------------------ */
   /* The campaign's end card, standing still. Proportions are FragEnd.tsx's, taken
      as ratios of the 1080 field: mark 250, wordmark 152 at +2% tracking, 40px gaps,
      the slab 26 below at 22x42 padding, the URL 44 in mono at +12% tracking. */
-  /* Zero above, G4 below. The plain version's own G4 is the gap between them: two
-     sections cannot each pay for the same boundary, and the old 66 + 20 was 86px of
-     nothing that belonged to neither. */
+  /* Zero above, G4 below. The section before it (the outcome message) pays for the gap
+     above it: two sections cannot each pay for the same boundary. */
   section.lockup { padding: 0 0 ${RHYTHM.g4}; text-align: center; }
-  /* Only the root page carries a support block after the end card, and two sections cannot
-     each pay for the same boundary — the lockup's own G4 is it. This is the same rule the
-     hero's zero bottom padding follows; it is stated twice because it was broken twice. */
-  section.lockup + section.plain { padding-top: 0; }
   /* The lockup breaks the page's own grid, exactly as the end card breaks the
      campaign's: the wordmark is the widest element in the frame, running to about
      88.5% of the field where every other element stops at the 10.93% inset. So this
@@ -1904,270 +2004,19 @@ const CSS = `
     line-height: 1.16; letter-spacing: 0.02em; color: var(--ink); white-space: nowrap;
   }
   .wordmark { font-size: min(14.4cqi, 200px); }
-  /* The end card sets its call to action at 68 on a 1080 field (6.3%) with 22x42 of
-     padding, which is a much larger slab than the hero's in-form button. Same element,
-     two jobs: in the form it is a control sized to the field above it, and here it is
-     the campaign's closing frame. */
-  .lockup .cta {
-    display: inline-block; width: auto; margin-top: 2px;
-    font-size: clamp(24px, 6.3vw, 76px); padding: 0.38em 0.62em 0.44em;
-  }
   .url {
     font-family: ${MONO}; font-weight: 600; font-size: clamp(14px, 3.2vw, 30px);
     letter-spacing: 0.12em; color: var(--ink);
   }
 
-  /* ---- outcome pages ----------------------------------------------------- */
-  section.outcome { padding: 8vh 0 12vh; }
-  .outcome .display { max-width: 16ch; }
-  .outcome p { max-width: 44ch; }
-
-  /* ---- legal + support --------------------------------------------------- */
-  /* The legal documents contain long unbreakable tokens (email addresses, file paths
-     in code spans). At 320px they pushed the page 8px wider than the viewport, which
-     is a horizontal scrollbar on the two pages App Review opens. */
-  article { max-width: 68ch; padding: 26px 0 40px; overflow-wrap: anywhere; }
-  article h1 { font-family: ${SANS}; font-weight: 800; font-size: clamp(28px, 5vw, 40px); line-height: 1.18; letter-spacing: -0.02em; margin: 0 0 0.4em; }
-  article h2 { font-family: ${SANS}; font-weight: 800; font-size: 1.28em; line-height: 1.3; letter-spacing: -0.015em; margin: 1.9em 0 0.6em; padding-top: 0.7em; border-top: 1px solid var(--rule); }
-  article h2:first-child { border-top: none; padding-top: 0; margin-top: 0; }
-  /* The source documents put a --- before most section headings, which used to draw
-     the markdown's rule and the heading's own rule as two lines 20px apart. */
-  article hr + h2 { border-top: none; padding-top: 0; margin-top: 0.7em; }
-  article h3 { font-family: ${MONO}; font-weight: 600; font-size: 0.78em; margin: 1.5em 0 0.5em; color: var(--muted); text-transform: uppercase; letter-spacing: 0.14em; }
-  article p { margin: 0 0 1em; }
-  article ul, article ol { margin: 0 0 1em; padding-left: 1.4em; }
-  article li { margin: 0.35em 0; }
-  article li > ul, article li > ol { margin-top: 0.35em; }
-  article hr { border: none; border-top: 1px solid var(--rule); margin: 2em 0; }
-  article strong { font-weight: 700; color: var(--ink); }
-  article code {
-    background: rgba(22,26,15,0.05); border: 1px solid var(--rule);
-    padding: 0.15em 0.4em; font-size: 0.86em; font-family: ${MONO}; font-weight: 600;
-  }
-
-  .table-scroll { overflow-x: auto; margin: 0 0 1.4em; border: 1px solid var(--rule); }
-  table { border-collapse: collapse; width: 100%; min-width: 480px; font-size: 0.9em; }
-  th, td { text-align: left; padding: 0.6em 0.75em; border-bottom: 1px solid var(--rule); vertical-align: top; }
-  thead th { background: rgba(22,26,15,0.04); color: var(--muted); font-weight: 700; white-space: nowrap; }
-  tbody tr:last-child td { border-bottom: none; }
-
-  section.card { border: 1px solid var(--rule); padding: 1.5em; margin: 1.6em 0; max-width: 68ch; }
-  section.card h2 { margin-top: 0; border-top: none; padding-top: 0; }
-
-  /* ---- footer ------------------------------------------------------------ */
-  footer.site-footer { border-top: 1px solid var(--rule); padding: ${RHYTHM.g1} 0 ${RHYTHM.g3}; color: var(--muted); font-size: 13.5px; }
-  footer.site-footer nav { margin-top: 8px; display: flex; gap: 10px; flex-wrap: wrap; }
-  footer.site-footer a { color: var(--muted); }
-  footer.site-footer a:hover { color: var(--accent); }
-
-  /* =======================================================================
-     MOTION
-     =======================================================================
-
-     WHAT THIS IS FOR. A visitor lands here from an eighteen-second film in which nothing
-     ever fades: type builds forward out of the page, and objects arrive rotated and
-     oversized under blur and unwind. The page's first frame should be the film's next
-     frame. That is the only argument any of the motion below is making, and where an
-     element could not make it, it does not move.
-
-     THE THINGS THAT DELIBERATELY DO NOT ANIMATE, because "should this animate at all" has
-     a real answer and here it is no, three times:
-       * THE HEADLINE DOES NOT BUILD WORD BY WORD. The film does, and motion.ts measures
-         the cadence at 4 to 5 frames a word. The film builds words because it owns
-         eighteen seconds of linear time the viewer cannot skip; a landing page's headline
-         is the one sentence the visitor came to read, and staggering it delays exactly
-         that. It arrives as one object.
-       * THE GROUND DOES NOT MOVE. No drifting gradient, no parallax field. It is the one
-         thing the campaign holds absolutely constant across every deliverable, and a
-         full-viewport moving background is on the short list of things that reliably
-         provoke motion sickness.
-       * THE PLAIN VERSION DOES NOT REVEAL ON SCROLL. It is three paragraphs about 18+,
-         platonic, and everyone starting together. The whole point of that block is that
-         it is plain.
-
-     THE RULE THAT MAKES ALL OF IT SAFE: every animation below is fill-mode BACKWARDS, and
-     every to-state is identical to the element's resting style. So the resting style is
-     the truth and the animation is a displacement in front of it, which means an element
-     that is never animated - reduced motion, an older browser, a scroll timeline that
-     never runs - renders correct and complete. Nothing on this page is hidden by a base
-     rule waiting for an animation to reveal it. */
-
-  /* Type, and blocks of it. The film spends a word's travel on Z rather than Y: "the word
-     comes FORWARD out of the page, which is what a scale from 0.35 under a blur reads as,
-     where a vertical lift reads as a slide-up preset". Same axis here at a page-sized
-     amplitude - 70px of Z under a 900px perspective is a 7% approach - plus 10px of lift. */
-  @keyframes rise {
-    from { opacity: 0; transform: perspective(900px) translate3d(0, 10px, -70px); }
-    to   { opacity: 1; transform: perspective(900px) translate3d(0, 0, 0); }
-  }
-
-  /* THE ARRIVAL, exactly as motion.ts measures it, spliced to its own settle.
-     Two curves in one animation: quintic-out for the eight frames of arrival, sine-out for
-     the thirty-four frames of contraction after it. The timing functions are written into
-     the keyframes because each one governs the segment that STARTS at that keyframe, which
-     is also why the animation itself is declared linear - the curves are per-segment. */
-  @keyframes arrive {
-    0% {
-      opacity: 0;
-      transform: ${arrivalPose(1, ARRIVAL.scale)};
-      filter: blur(${ARRIVAL.blur}px);
-      animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
-    }
-    ${AT_IGNITE}% { opacity: 1; }
-    ${AT_LANDED}% {
-      opacity: 1;
-      transform: ${arrivalPose(0, ARRIVAL.landed)};
-      filter: blur(0);
-      animation-timing-function: cubic-bezier(0.61, 1, 0.88, 1);
-    }
-    100% { opacity: 1; transform: ${arrivalPose(0, 1)}; filter: blur(0); }
-  }
-
-  /* The scroll-driven version of the same arrival, and the one deviation from the film in
-     this whole block: NO BLUR. The film's blur is a smear across a cut, resolved in eight
-     frames by a projector the viewer does not control. A scroll timeline is scrubbed by
-     the reader's own finger, and a blur the reader can hold half-resolved is not a smear,
-     it is a page that has failed to load. The rotation, the overshoot and the Z survive
-     being scrubbed, so those are the parts that are here. */
-  /* IT ENDS AT IDENTITY, AND THAT IS NOT A STYLE CHOICE.
-     This one is applied to .plate-box, the GROUP, while the resting tilt lives on .object,
-     the child inside it. So its to-state has to be the group's own resting transform, which
-     is nothing at all. Written the way the hero's arrive is written - landing on the tilt -
-     it composes with the child and the object finishes the scroll at 14deg instead of 7,
-     then snaps back to 7 the moment the animation range ends. The arrival delta is
-     therefore stated bare here and lands on top of the child's tilt on the way in, which is
-     how it reaches the campaign's measured 25deg at the start without stating it twice. */
-  @keyframes enter {
-    from {
-      opacity: 0;
-      transform: rotateY(${ARRIVAL.rotY}deg) rotateX(${ARRIVAL.rotX}deg) rotateZ(${ARRIVAL.rotZ}deg) scale(${ARRIVAL.landed});
-    }
-    to { opacity: 1; transform: none; }
-  }
-
-  /* THE PARALLAX, AND WHY IT IS A SEPARATE ANIMATION FROM THE ARRIVAL.
-     Two things move the plates and they are on two different timelines: the arrival is
-     scrubbed over the plate's ENTRY, the drift over its whole passage across the window
-     (cover 0% to 100%). Composing them as one keyframe set is impossible; running them as
-     two animations on one element is what the comma-separated animation-* lists are for.
-
-     It writes the translate PROPERTY rather than a transform function, so it composes
-     with .plate-box's enter transform instead of overwriting it. Independent transform
-     properties apply outside transform, which is also the right order here: the drift is
-     the camera moving, the tilt is the object.
-
-     THE AMPLITUDES ARE THE DEPTHS, NOT A TASTE. --par is +1 for the back plate, 0 for the
-     middle and -1 for the front, and the travel is 12px each way. A nearer object moves
-     further against a moving camera; that is the whole content of the word parallax, and
-     it is the only reason this is on the page. 24px of relative separation between the
-     front and back plates over a full screen of scroll is under the perception threshold
-     as motion and over it as depth: what a reader actually notices is the top plate's cast
-     shadow sliding across the plate below it, which is the composition explaining itself.
-
-     12 IS HALF OF RHYTHM.g1's CEILING, and that is the bound rather than the preference.
-     The plates sit 26px apart in the two-column cut; a drift of half that means the gap
-     can close to 14px and open to 38px and never leave the band where one plate's cast
-     shadow lands on the next, which is the relationship the whole composition rests on. In
-     the stacked cut the gap is CAPTION_GAP, never below 22px, so the bound holds there
-     too. */
-  @keyframes drift {
-    from { translate: 0 calc(var(--par, 0) * 12px); }
-    to   { translate: 0 calc(var(--par, 0) * -12px); }
-  }
-
-  /* ---- the hero, on load ------------------------------------------------- */
-  /* 60ms between blocks. The film's own cadence is 4.5 frames, 150ms, which is right for
-     four words of a headline arriving one at a time and far too slow for five stacked
-     blocks: it would put the button 750ms behind the eyebrow. 60ms is inside the 30-80ms
-     a group entrance is allowed, and the whole hero has landed 507ms after first paint.
-     The button is usable for every one of those milliseconds - an element at opacity 0
-     still takes the pointer, and nothing here is display:none or visibility:hidden. */
-  .hero-copy .eyebrow,
-  .hero-copy h1.display,
-  .hero-copy .lede,
-  .hero-copy .sub,
-  .hero-act {
-    animation: rise var(--t-arrival) var(--ease-out) backwards;
-  }
-  .hero-copy h1.display { animation-delay: 60ms; }
-  .hero-copy .lede      { animation-delay: 120ms; }
-  .hero-copy .sub       { animation-delay: 180ms; }
-  .hero-act             { animation-delay: 240ms; }
-  /* THE SCENE IS NOT ON THIS TIMELINE ANY MORE, even though it is now inside the hero.
-     It used to be, because a single object sat in the hero's right column and was on the
-     first screen at desktop. The scene is the hero's bottom row now: at 1400x1000 its
-     first plate starts at y=568 and its last is 900px below the fold, so firing all three
-     on load would spend the whole assembly on a reader who cannot see two thirds of it.
-     It is scroll-driven, with the rest of the scene, below. */
-
-  /* ---- the stage and the close, on scroll -------------------------------- */
-  /* SCROLL-DRIVEN, NATIVELY, WITH NO SCRIPT. animation-timeline: view() ties an
-     animation's progress to the element's own passage through the viewport. There is no
-     IntersectionObserver here because there is no JavaScript on this site at all, and the
-     privacy policy published at /privacy/ says so in those words.
-
-     PROGRESSIVE ENHANCEMENT, ENFORCED TWO WAYS. The @supports gate asks for the timeline
-     AND for animation-range, because a browser that parses the range keywords is one that
-     shipped the whole feature rather than half of it. Without both, no animation property
-     is set at all and the stage renders at rest, which is correct and complete.
-
-     The range starts at entry 0% - the instant any part of the object crosses the bottom
-     edge - and finishes at entry 65%, long before the reader is reading it. That is
-     deliberate: a scroll timeline is scrubbed rather than fired, so an element can only
-     sit in its from-state while it is entirely off screen. There is no scroll position at
-     which this can leave a visible fragment invisible, which is the failure mode that
-     would matter on a page whose product is the thing being revealed.
-
-     THE ASSEMBLY IS ORDERED WITHIN A BEAT AS WELL AS BETWEEN THEM, which is the difference
-     between a stagger and a considered arrival. The SENTENCE lands first, over entry 0-58%,
-     and the plate it names arrives 8% of scroll space behind it over 8-70%. That order is
-     the beat's own: the line is above the plate in the stacked cut and it is the first
-     thing a reader meets, so a label that appeared after the object it labels would be
-     arriving into a question that had already been answered. Between beats the offsets are
-     6% of scroll space rather than milliseconds, because on this timeline there is no clock
-     — the reader's own scroll rate sets the cadence, and a fast flick therefore produces a
-     fast assembly rather than three plates queueing up behind a fixed delay. */
+  /* The end card arrives on scroll: the mark, the wordmark and the URL arrive the way the
+     film's last frame does. Scroll-driven, natively, with no script (there is no
+     JavaScript on this site at all, and the privacy policy says so in those words), and
+     gated on both the timeline and animation-range, so a browser that shipped half the
+     feature renders the card at rest. Each child carries its own view() timeline, so they
+     arrive in the order they are stacked without a single hand-typed delay, and the range
+     ends at entry 60%: a scrubbed element can only sit in its from-state off screen. */
   @supports (animation-timeline: view()) and (animation-range: entry) {
-    /* The scene's own head opens the assembly. It is the one eyebrow on the page that
-       moves: the plain version's deliberately does not (see the note above), because that
-       block's whole argument is that it is plain, while this one is the first beat of a
-       composition that is being assembled in front of the reader. */
-    .scene > .eyebrow {
-      animation-name: rise;
-      animation-fill-mode: backwards;
-      animation-timing-function: var(--ease-out);
-      animation-timeline: view();
-      animation-range: entry 0% entry 50%;
-    }
-    .scene .beat-line {
-      animation-name: rise;
-      animation-fill-mode: backwards;
-      animation-timing-function: var(--ease-out);
-      animation-timeline: view();
-      animation-range: entry 0% entry 58%;
-    }
-    .scene .beat:nth-child(2) .beat-line  { animation-range: entry 6% entry 64%; }
-    .scene .beat:nth-child(3) .beat-line  { animation-range: entry 12% entry 70%; }
-
-    /* THE PARALLAX RIDES ON TOP OF THE ARRIVAL, on its own range and its own curve.
-       Linear, because a parallax that eases is a parallax that lies about where the camera
-       is; cover 0% to 100%, because it is a property of the plate's whole passage
-       across the window rather than of its entrance. The two animations are listed
-       together here so the shorthand does not clobber the block above. */
-    .scene .plate-box {
-      animation-name: enter, drift;
-      animation-fill-mode: backwards, both;
-      animation-timing-function: var(--ease-out), linear;
-      animation-timeline: view(), view();
-      animation-range: entry 8% entry 70%, cover 0% cover 100%;
-    }
-    .scene .beat:nth-child(2) .plate-box { animation-range: entry 14% entry 76%, cover 0% cover 100%; }
-    .scene .beat:nth-child(3) .plate-box { animation-range: entry 20% entry 82%, cover 0% cover 100%; }
-
-    /* The end card. Same law as the hero's type, spent once at the close, which is where
-       the campaign spends its own: the mark, the wordmark, the button and the URL arrive
-       the way the film's last frame does. Each carries its own view() timeline, so they
-       arrive in the order they are stacked without a single hand-typed delay. */
     .lockup-inner > * {
       animation-name: rise;
       animation-fill-mode: backwards;
@@ -2176,229 +2025,8 @@ const CSS = `
       animation-range: entry 0% entry 60%;
     }
   }
-
-  /* ---- reduced motion ---------------------------------------------------- */
-  /* Not a blanket kill. Everything that MOVES stops - every entrance, both scroll
-     timelines, the hover lift, the press - and everything that is COLOUR stays, because a
-     button that deepens under the pointer and a field whose border answers focus are
-     feedback rather than motion, and removing them makes the page harder to use rather
-     than calmer. The page is fully usable with all of it off, because with all of it off
-     the page is simply its resting state, which is the state every to-keyframe equals. */
   @media (prefers-reduced-motion: reduce) {
-    .hero-copy .eyebrow,
-    .hero-copy h1.display,
-    .hero-copy .lede,
-    .hero-copy .sub,
-    .hero-act,
-    .scene > .eyebrow,
-    .scene .plate-box,
-    .scene .beat-line,
-    .lockup-inner > * {
-      animation: none;
-    }
-    /* The drift writes the translate property, which 'animation: none' does not clear on its own if a
-       timeline has already committed a value; stating the resting value is the same rule
-       the rest of this block follows — the resting style is the truth. */
-    .scene .plate-box { translate: none; }
-    .cta { transition-property: background-color, border-color; }
-    .cta:hover, .cta:active { transform: none; box-shadow: ${shadowCss(CTA_SHADOW_LAYERS, FRAG_SHADOW_INK)}; }
-    /* The tilt stops answering the pointer. The RECEDE does not: it is opacity, it is not
-       movement, and it is the one thing that tells a reader which of three overlapping
-       plates they are pointing at. Same distinction this block already draws for the
-       button's colour and the field's border. */
-    .plate-box .object { transition: opacity var(--t-deliberate) ease; }
-    .beat:hover .object { transform: translateZ(var(--z, 0px)) ${TILT.transform}; }
-  }
-
-  /* ---- wide viewports ---------------------------------------------------- */
-  /* THE FORM MOVES BESIDE THE TYPE AND THE SCENE TAKES THE FULL WIDTH.
-     Two dense columns that end near the same line, then one wide composition under them.
-     The 460px cap on the form column is the form's own max-width, so the column is the
-     control rather than a fraction that happens to contain it; the copy column takes
-     whatever is left, and the air falls on neither because both are filled. */
-  @media (min-width: 900px) {
-    .hero-grid {
-      grid-template-columns: minmax(0, 1fr) minmax(0, 460px);
-      grid-template-areas: "copy act" "scene scene";
-      grid-template-rows: auto auto;
-      column-gap: clamp(40px, 5vw, 84px); row-gap: 0;
-      align-items: start;
-    }
-    /* The sub is the last line of the copy column and the form is the top of the other,
-       so its bottom margin is measuring against nothing. */
-    .hero-copy .sub { margin-bottom: 0; }
-    .plain-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: ${RHYTHM.g3}; }
-  }
-
-  /* ---- BIG SCREENS: SPEND THE FIELD ON THE PRODUCT, NEVER ON THE MEASURE ----
-     Above 1180px of window the page used to stop changing: .wrap caps there and every
-     section became a 1180px ribbon with the rest of the display left as bare cream. On a
-     1280px laptop that is right. On a 2560px or 3440px monitor it meant the objects that
-     are the entire argument of the stage rendered at 449px - smaller, in absolute pixels,
-     than they render on a 768px tablet, where a single column gives them 520. The product
-     was getting smaller as the screen got bigger, which is the exact opposite of the
-     campaign's fragment doctrine.
-
-     SO THE FRAME WIDENS AND THE MEASURE DOES NOT. Those are two different things and the
-     distinction is the whole rule here. What grows is the FIELD: .wrap goes to 1560, so the
-     two objects reach 634px each - inside the 660px ceiling the contrast guard measures -
-     and the end card's wordmark reaches its 200px cap. What does not grow is any LINE OF
-     TEXT: the lede is capped at 30ch, the sub at 38ch, the plain version's paragraphs at
-     42ch and the legal documents at 68ch, so every measured line is the same length at
-     3440px as it is at 1280px. Measured on the built page, the lede is 413px wide at 1280,
-     at 1920, at 2560 and at 3440.
-
-     .wrap WIDENS EVERYWHERE AT ONCE, header and footer included, and that is not laziness.
-     The campaign's grid is ONE LEFT EDGE for the type and for every object - it is the
-     first thing ground.ts states and it is what stops six differently shaped fragments from
-     reading as six unrelated slides. An earlier version of this block widened only the
-     stage and the lockup, which measured beautifully and put the headline's left edge 190px
-     inside the objects' left edge on a 3440px monitor. Two left edges is worse than a
-     narrow page.
-
-     The hero's copy column is then capped rather than left as a fraction. A 1fr copy column
-     of a 1324px content box balloons to 780px, which is 60 characters of a headline meant
-     to break after two words; capped at 560 the type keeps the same relationship to its
-     column that it has at 1280 and the leftover falls between the two columns and then on
-     the RIGHT, which is where ground.ts's MEASURE note says the air belongs. The SCENE is
-     the thing that spends the extra field, because it is the product: its plates go from
-     548px at 1280 to their 640px ceiling. */
-  @media (min-width: 1500px) {
-    .wrap { max-width: 1560px; }
-    /* THREE COLUMNS, AND THE THIRD IS EMPTY ON PURPOSE. The top row is a 560px column of
-       type and a 460px column of form; the air is the third column, on the right, where it
-       belongs. The scene spans all three, so the product gets the whole 1324px field while
-       neither line of type gets a character longer. That is the same "the frame widens and
-       the measure does not" rule this block has always stated, applied to a grid that now
-       has a full-width row in it. */
-    .hero-grid {
-      grid-template-columns: minmax(0, 560px) minmax(0, 460px) minmax(0, 1fr);
-      grid-template-areas: "copy act ." "scene scene scene";
-    }
-  }
-
-  /* SHORT SINGLE-COLUMN WINDOWS. Two shapes fail the "button on the first screen"
-     test with the phone layout's default type: a 320x568 handset, where the stack
-     runs 86px past the fold, and a 899x700 window, where the layout is still one
-     column but 8.4vw has grown the headline to 75px and the stack runs 112px past.
-     Same remedy as the desktop tier — the type steps down and the rhythm tightens,
-     nothing is removed — and it is keyed on height so a normal phone held normally
-     never sees it. The lede is the sentence carrying "18+" and "not dating", so it
-     is the least compressed thing here and never goes below 15.5px. */
-  @media (max-width: 899px) and (max-height: 760px) {
-    section.hero { padding: 16px 0 40px; }
-    h1.display { font-size: clamp(30px, 7.2vw, 52px); margin-bottom: 0.28em; }
-    .lede { font-size: clamp(15.5px, 4.3vw, 19px); margin-bottom: 0.5em; }
-    .sub { font-size: clamp(13.5px, 3.6vw, 16px); margin-bottom: 1.15em; }
-    .eyebrow { font-size: clamp(10.5px, 2.41vw, 15px); margin-bottom: 0.75em; }
-    .field-label { margin-bottom: 6px; }
-    input[type="email"] { padding: 13px 14px; }
-    .adult { margin: 10px 0 13px; }
-    .cta { font-size: clamp(21px, 5.1vw, 34px); }
-  }
-
-  /* A PORTRAIT PHONE WITH BROWSER CHROME. The tier below moves the form beside the type,
-     which needs 480px of width to be worth doing; under that the stack is the only legible
-     layout and it has to earn its height instead. This is where it does.
-
-     Measured at 320x454 — an iPhone SE in Safari, the smallest viewport a real visitor
-     arrives on — the stack put the button's bottom edge at y=543, 89px under the fold. The
-     costs are all rhythm, never type: the header is 87px of a 454px window before the page
-     has said anything, the sub carries a 15.5px gap to the form, and the field, the
-     checkbox and the button each sit in spacing scaled for a window twice this tall.
-     Nothing is removed and no face gets smaller — the lede in particular stays at its
-     15.5px floor, because it is the sentence carrying "18+" and "not dating".
-
-     It buys 48px, which is not all 89: closing the rest would mean shrinking the headline
-     or the lede, and a button one flick below the fold is a smaller cost than a campaign
-     that cannot say its own name. What it does buy is every viewport from 320x500 up:
-     -43 -> +5 at 320x500, -23 -> +25 at 360x520, -2 -> +46 at 390x550, -44 -> +4 at
-     479x520, and +25 -> +73 at 320x568. Only 320x454 still needs the flick, at -41. */
-  @media (max-width: 479px) and (max-height: 620px) {
-    header.site-header { padding: 10px 0 2px; }
-    section.hero { padding: 8px 0 28px; }
-    .eyebrow { margin-bottom: 0.5em; }
-    h1.display { margin-bottom: 0.2em; }
-    .lede { margin-bottom: 0.35em; }
-    .sub { margin-bottom: 0.7em; }
-    .field-label { margin-bottom: 4px; }
-    input[type="email"] { padding: 11px 14px; }
-    .adult { margin: 7px 0 9px; }
-  }
-
-  /* SHORT WINDOWS THAT ARE ALSO NARROW: the form moves beside the type here too.
-     This is the same remedy as the >=900px short-and-wide block below, at the other end of
-     the width axis, and it exists because a phone in landscape is a real shape that the
-     single-column stack simply cannot hold. Measured at 844x390, an iPhone on its side: the
-     compressed stack above puts the button's bottom edge at y=652 in a 390px window, 262px
-     below the fold, and no amount of further squeezing closes that - the eyebrow, a
-     two-line headline, a three-line lede and a three-line sub are 340px of type before the
-     field starts, in a window 390px tall.
-
-     Two EQUAL columns rather than the wide block's fixed 460px form column, because at
-     844px of viewport a 460px form leaves the copy 166px, which is narrower than the
-     headline's own first word. At 1fr/1fr the copy gets about 313px and the form gets the
-     same, which is wider than the 280px this layout already works at on a portrait phone.
-
-     Keyed at 560px of height AND 480px of width. The height alone is not enough, and
-     assuming it was is a real bug this block used to have: 560px was chosen so "a 320x568
-     handset held normally never sees it", but 320x568 is the SCREEN. The viewport inside a
-     browser is the screen minus its chrome — an iPhone SE in Safari is 320x454 — so every
-     small phone held normally landed in here and got the landscape layout in a portrait
-     window. Measured at 320x454: two 130px columns, "join the waitlist" wrapped onto two
-     lines (the exact failure the font-size note below exists to prevent), the email
-     placeholder clipped to "you@exampl", and a 14-character lede.
-
-     480px is where the tier starts paying for itself rather than costing. The form column
-     is half the content width, and "you@example.com" plus the input's own 14px padding
-     needs 178px: at 480 the inset is 40.7px and the gap 20px, so the column is 189px and
-     the placeholder fits with 11px to spare; below that it does not. Every landscape phone
-     is comfortably above the floor (568x320 is the smallest shape this tier was written
-     for, 844x390 the one it was measured on), and every portrait phone is below it and
-     keeps the single-column stack, which is legible at 320px where two columns are not. */
-  @media (min-width: 480px) and (max-width: 899px) and (max-height: 560px) {
-    section.hero { padding: 12px 0 ${RHYTHM.g3}; }
-    .hero-grid {
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      grid-template-areas: "copy act" "scene scene";
-      grid-template-rows: auto auto;
-      column-gap: clamp(20px, 4vw, 40px);
-      align-items: start;
-    }
-    .hero-scene { margin-top: ${RHYTHM.g3}; }
-    .hero-copy .sub { margin-bottom: 0; }
-    h1.display { font-size: clamp(26px, 5.6vw, 40px); }
-    .lede { font-size: clamp(14.5px, 2.4vw, 17px); }
-    .sub { font-size: clamp(13px, 2vw, 15px); }
-    /* The label has to stay on ONE line. Its column is now half the window, and at 568x320
-       the inherited clamp put a 29px face into a 221px button, which wrapped the words and
-       made a 103px-tall two-line control out of the page primary action. 3.6vw keeps
-       6.4em of 'join the waitlist' inside the column at every width this tier covers. */
-    .cta { font-size: clamp(17px, 3.6vw, 26px); }
-  }
-
-  /* ---- narrow or short desktop windows ------------------------------------ */
-  /* The type steps down and the rhythm tightens. Nothing is removed.
-     This used to be the block that rescued the fold, because the hero stacked the form
-     under 400px of copy; the form is now at the top of its own column at every desktop
-     width, so what is left for this block to do is the width problem rather than the
-     height one. At exactly 900px wide the copy column is about 190px, and a 76px headline
-     in 190px is four lines of one word. The height clause stays because a 1366x660 laptop
-     still wants a shorter hero even with the form beside the type — it decides how much of
-     the SCENE is on the first screen, which is worth a step of type. */
-  @media (min-width: 900px) and (max-height: 940px),
-         (min-width: 900px) and (max-width: 1199px) {
-    section.hero { padding: ${RHYTHM.g1} 0 ${RHYTHM.g3}; }
-    .hero-scene { margin-top: ${RHYTHM.g3}; }
-    h1.display { font-size: clamp(34px, 5.1vw, 58px); margin-bottom: 0.3em; }
-    .lede { font-size: clamp(16px, 1.42vw, 19px); margin-bottom: 0.45em; }
-    .sub { font-size: clamp(14px, 1.18vw, 16px); margin-bottom: 1.1em; }
-    .eyebrow { margin-bottom: 0.7em; }
-    .field-label { margin-bottom: 5px; }
-    input[type="email"] { padding: 12px 14px; font-size: 16px; }
-    .adult { margin: 12px 0 14px; }
-    .cta { font-size: clamp(21px, 3.3vw, 34px); }
-    .promise { margin-top: 12px; }
+    .lockup-inner > * { animation: none; }
   }
 `;
 
@@ -2525,117 +2153,145 @@ ${bodyHtml}
 }
 
 // ---------------------------------------------------------------------------
-// The product fragments.
+// What you are joining: the three moment cards.
 //
-// Redrawn in HTML and CSS from the app's own source rather than screenshotted.
-// Three reasons, in order of how much they mattered:
+// Redrawn in HTML and CSS from the app's own source rather than screenshotted, for the
+// same three reasons the product fragments before them were:
 //
-//   1. The campaign's fragments are crops of an iPhone screen recording that
-//      contains photographs of real people. None of that is in the repository
-//      (marketing/video/public/footage and out/ are both gitignored), and putting
-//      a real person's face on a landing page is a consent decision this build
-//      should not make on anybody's behalf.
+//   1. The campaign's footage contains photographs of real people. None of that is in the
+//      repository, and putting a real person's face on a landing page is a consent decision
+//      this build should not make on anybody's behalf.
 //   2. Drawn in CSS it is crisp at every device pixel ratio and weighs nothing.
-//   3. It is genuinely the product: the strings are the app's strings, from
-//      SwipeCard.tsx's overlapLabel(), profile-labels.ts's SKILL_LABELS, and the
+//   3. It is genuinely the product: the strings are the app's strings, from SwipeCard.tsx's
+//      overlapLabel(), profile-labels.ts's SKILL_LABELS, the match screen's label and the
 //      chat composer's own placeholder.
 //
-// They follow the campaign's isolated-fragment doctrine rather than showing a
-// shrunken phone: pull ONE element out and let it own its frame. A card cropped to
-// one chip renders that chip's mono type at a readable size; the same chip inside a
-// whole phone screen at the same width renders it at 12px and Cameron's standing
-// note on every earlier cut was that you cannot see the app.
+// THE CARDS REPLACED THE FRAGMENTS on 23 Sept 2026, in the "Wildcard" direction Cameron
+// approved. The fragments were three cut-out pieces of different widths under heavy tilted
+// shadows, and they read as chopped; the first one also claimed "3 GAMES IN COMMON" over
+// two games. These are three cards of one size, each acting out one moment of the app's
+// loop: you match on what you play, you lock in as a duo, you talk and queue up.
+//
+// EVERY CARD IS WRITTEN IN ITS FINISHED STATE. The in-between states the motion plays
+// through (the badge's lower counts, the message being typed) are in the markup, invisible
+// at rest and aria-hidden, so a browser that runs no animation shows the complete card and a
+// screen reader hears only the finished one. The `sd` class marks every piece that moves.
 // ---------------------------------------------------------------------------
 
 const ARROW_UP_SVG = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${APP.onVolt}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>`;
 
-const FRAGMENTS = [
-  {
-    // ONE OBJECT, AND IT USED TO BE TWO.
-    //
-    // The overlap badge stood alone in its own frame, and Cameron's note on it was that it
-    // "just looks uncomfortable there, it feels isolated". It was, and the reason is that it
-    // is the only RELATIONAL thing on the page. A list of games means something by itself and
-    // so does a message composer, but three games in common is a count with no subject: in
-    // common with whom, out of what? In SwipeCard it never appears alone — it sits under the
-    // games it is counting, on the card belonging to the person it is counting them against.
-    //
-    // So this is not a rearrangement, it is a restoration: chips above, badge beneath, the
-    // order the app itself stacks them in. The number finally has a referent, which is the
-    // two chips directly above it.
-    //
-    // Chip.tsx with label + detail (details are SKILL_LABELS values), then
-    // SwipeCard.tsx:61-63, where overlapLabel(3) returns exactly this string.
-    html: `<div class="object"><div class="chips">
-      <span class="chip"><b>Rocket League</b><i>&middot; Ranked Grinder</i></span>
-      <span class="chip"><b>Valorant</b><i>&middot; Competitive</i></span>
-    </div><div class="overlap"><span>&gt;&gt; 3 GAMES IN COMMON</span></div></div>`,
-    caption: "you match on what you play, and how you play it",
-    depth: DEPTH.back,
-    par: 1,
-  },
-  {
-    // THE BEAT THE PAGE DID NOT HAVE, and it is the one the app is for.
-    //
-    // The two fragments above and below read "you match on what you play" and "then you
-    // talk". That is a sentence with its verb missing: nothing in it is the moment two
-    // people actually become a duo, which is the whole product and the thing the films
-    // build to. src/data/clips.ts carries five more cut fragments — the deck card,
-    // DUO LOCKED, the Send button, the highlights row and the pass/ping/boost row — and
-    // this is the only one of them that closes that gap, so it is the only one added.
-    //
-    // WHAT WAS REJECTED, AND WHY, BECAUSE "CHOOSE" MEANS SAYING NO THREE TIMES:
-    //   the deck card (frag-light-card-top) is the strongest fragment in the set and it is
-    //   unusable here: it IS a photograph of a real person, and the note at the top of this
-    //   block says why this build will not put one on a landing page;
-    //   the pass/ping/boost row is the swipe MECHANIC rather than any outcome, and three
-    //   unlabelled icon buttons lifted off a card they no longer sit on are furniture with
-    //   no referent — the exact fault the overlap badge had when it stood alone;
-    //   the highlights row is profile decoration, needs imagery to mean anything, and says
-    //   nothing about matching;
-    //   the chat bubble duplicates the composer's job one beat later.
-    //
-    // app/match/[matchId].tsx. The label is type.label at 16/22 with letterSpacing 3 in
-    // colors.volt; the line under it is type.body with the screen's own fallback name,
-    // because no fragment on this site carries a real one. The brackets are BracketGlyph:
-    // in the app they spring together around the avatar, and here they close around the
-    // words — the crop note is in the .duo CSS.
-    html: `<div class="object"><div class="duo">
-      <span class="bracket" aria-hidden="true">[</span>
-      <div class="said">
-        <p class="lock">Duo locked</p>
-        <p class="both">You and your new match both queued up.</p>
-      </div>
-      <span class="bracket" aria-hidden="true">]</span>
-    </div></div>`,
-    caption: "and when it is mutual, you are a duo",
-    depth: DEPTH.mid,
-    par: 0,
-  },
-  {
-    // app/chat/[matchId].tsx:749-795 — the composer, placeholder and all.
-    html: `<div class="object"><div class="composer">
-      <div class="box">Message&hellip;</div>
-      <div class="send">${ARROW_UP_SVG}</div>
-    </div></div>`,
-    caption: "then you talk, and queue up",
-    depth: DEPTH.front,
-    par: -1,
-  },
+/** Card 01's games, in Chip.tsx's label-and-detail form. League of Legends is the launch
+ *  game and "Gold II" is a real rank string (the film's own chip); the other two details
+ *  are SKILL_LABELS values. Three rows, because the badge under them says three. */
+const MOMENT_GAMES = [
+  ["League of Legends", "Gold II"],
+  ["Rocket League", "Ranked Grinder"],
+  ["Valorant", "Competitive"],
 ];
 
-/** One beat: a plate and the sentence that names it. The plate carries its depth as --z
- *  (the tilt reads it) and its parallax rate as --par (the drift keyframe reads it), so a
- *  beat's position in the stack is stated once, here, rather than in three CSS rules. */
-function beatsHtml(list = FRAGMENTS) {
-  return list
+/** SwipeCard.tsx's overlapLabel(), verbatim. */
+function overlapLabel(count) {
+  if (count <= 0) return ">> NO GAMES IN COMMON";
+  if (count === 1) return ">> 1 GAME IN COMMON";
+  return `>> ${count} GAMES IN COMMON`;
+}
+
+/** The logo's two rings for card 02, from the same ringShapes() the header's mark is drawn
+ *  from, so the geometry lives in one place. They are grouped in the three layers the weave
+ *  needs (the duo ring and its tail, the ink ring over it, then the short arc of the duo ring
+ *  that passes back over the ink) so each ring can slide in from its own side and still
+ *  interlock where they meet. The viewBox is the rings' own ink box, computed from the same
+ *  geometry, plus a small margin. */
+function lockinSvg() {
+  const { R, W, cxA, cxB, cy } = ringGeometry(1);
+  const { duoRing, tail, inkRing, weave } = ringShapes(1);
+  const left = cxA - R - W / 2;
+  const right = cxB + R + W / 2;
+  const top = cy - R - W / 2;
+  const bottom = cy + R + W / 2;
+  const box = [left - 14, top - 12, right - left + 28, bottom - top + 24].map(Math.round).join(" ");
+  return `<svg viewBox="${box}" xmlns="http://www.w3.org/2000/svg">
+                <g class="ring-duo sd">${duoRing}${tail}</g>
+                <g class="ring-ink sd">${inkRing}</g>
+                <g class="ring-duo sd">${weave}</g>
+              </svg>`;
+}
+
+/** The three moment cards, as the section that follows the hero on every landing page. */
+function momentsHtml() {
+  const chips = MOMENT_GAMES.map(
+    ([game, detail]) =>
+      `<li class="chip sd"><b>${escapeHtml(game)}</b><i>&middot; ${escapeHtml(detail)}</i></li>`
+  ).join("\n              ");
+  // The finished count rests visible; the three before it are only ever seen mid-animation.
+  const counts = [0, 1, 2, 3]
     .map(
-      (f, i) =>
-        `<div class="beat">` +
-        `<p class="beat-line"><span class="no">${String(i + 1).padStart(2, "0")}</span>${f.caption}</p>` +
-        `<div class="plate-box" style="--z:${f.depth}px;--par:${f.par}">${f.html}</div></div>`
+      (n) =>
+        `<span class="t${n} sd"${n < 3 ? ' aria-hidden="true"' : ""}>${escapeHtml(overlapLabel(n))}</span>`
     )
-    .join("\n        ");
+    .join("\n              ");
+  return `
+<section class="moments" aria-labelledby="moments-head">
+  <div class="wrap">
+    <h2 class="eyebrow" id="moments-head">What you are joining</h2>
+    <ol class="moment-list">
+      <li class="moment m1">
+        <div class="moment-card">
+          <div class="stage">
+            <ul class="chips">
+              ${chips}
+            </ul>
+            <div class="overlap sd">
+              ${counts}
+            </div>
+          </div>
+          <p class="moment-line"><span class="no">01</span>You match on what you play, and how you play it.</p>
+        </div>
+      </li>
+      <li class="moment m2">
+        <div class="moment-card">
+          <div class="stage">
+            <div class="lockin" aria-hidden="true">
+              <span class="br br-l sd">[</span>
+              ${lockinSvg()}
+              <span class="br br-r sd">]</span>
+            </div>
+            <p class="lock sd">Duo locked</p>
+            <p class="both sd">You and your new match both queued up.</p>
+          </div>
+          <p class="moment-line"><span class="no">02</span>And when it is mutual, you are a duo.</p>
+        </div>
+      </li>
+      <li class="moment m3">
+        <div class="moment-card">
+          <div class="stage talk">
+            <div class="chat">
+              <p class="bubble in sd">you on tonight?</p>
+              <p class="bubble out sd">yep, queue at 9</p>
+              <div class="composer" aria-hidden="true">
+                <div class="box"><span class="ph sd">Message&hellip;</span><span class="typed sd">yep, queue at 9</span></div>
+                <div class="send sd">${ARROW_UP_SVG}</div>
+              </div>
+            </div>
+          </div>
+          <p class="moment-line"><span class="no">03</span>Then you talk, and queue up.</p>
+        </div>
+      </li>
+    </ol>
+  </div>
+</section>`;
+}
+
+/** The trailer link, the film's only presence on a landing page. Each channel's page links
+ *  to its own channel's watch page (/tt/watch/ and so on), whose join button comes back to
+ *  that channel's form, so the hidden source field still says where a visitor came from
+ *  after a detour through the film. `channelDir` is "" for / and /waitlist/. */
+function trailerLinkHtml(channelDir = "") {
+  if (channelDir && !["tt", "ig", "yt"].includes(channelDir)) {
+    throw new Error(`build-site: trailerLinkHtml() got an unknown channel "${channelDir}"`);
+  }
+  const href = channelDir ? `/${channelDir}/watch/` : "/watch/";
+  return `<a class="trailer" href="${href}"><span class="trailer-play" aria-hidden="true"><svg viewBox="0 0 13 14"><path d="M0 0l13 7L0 14z"/></svg></span><span class="trailer-text">Watch the trailer</span><span class="trailer-time">${FILM.length}</span></a>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -2706,10 +2362,21 @@ function filmSection() {
 `;
 }
 
-function waitlistBody({ source, film = false }) {
+function waitlistBody({ source, film = false, channelDir = "" }) {
   const action = PHASE === "launched" ? launchedCta() : signupForm(source);
-  const slabHref = PHASE === "launched" ? APP_STORE_URL : "#waitlist-form";
-  const slabLabel = PHASE === "launched" ? "download duoqueue" : "join the waitlist";
+  // The outlined link after the plain version: back up to the form, or, once launched, to
+  // the store. It is what is left of the closing lockup's button.
+  const again =
+    PHASE === "launched"
+      ? `<a class="cta-ghost" href="${APP_STORE_URL}">download duoqueue</a>`
+      : `<a class="cta-ghost" href="#waitlist-form">join the waitlist <span aria-hidden="true">&uarr;</span></a>`;
+  // Only when the film is on, so the link can never point at a watch page that was not built.
+  const watch = film
+    ? `
+      <div class="hero-watch">
+        ${trailerLinkHtml(channelDir)}
+      </div>`
+    : "";
 
   return `
 <section class="hero">
@@ -2723,17 +2390,11 @@ function waitlistBody({ source, film = false }) {
       </div>
       <div class="hero-act">
 ${action}
-      </div>
-      <div class="hero-scene scene">
-        <h2 class="eyebrow">What you are joining</h2>
-        <div class="stack">
-        ${beatsHtml()}
-        </div>
-      </div>
+      </div>${watch}
     </div>
   </div>
 </section>
-${film ? filmSection() : ""}
+${momentsHtml()}
 <section class="plain">
   <div class="wrap">
     <h2 class="eyebrow">The plain version</h2>
@@ -2751,17 +2412,7 @@ ${film ? filmSection() : ""}
         <p>The whole list gets the app on the same day on purpose, so the first people in find someone to play with instead of an empty screen.</p>
       </li>
     </ul>
-  </div>
-</section>
-
-<section class="lockup">
-  <div class="wrap">
-    <div class="lockup-inner">
-      ${ringsMarkSvg({ size: 250, label: "" })}
-      <div class="wordmark">duoqueue</div>
-      <a class="cta" href="${slabHref}">${slabLabel}</a>
-      <div class="url">${CUSTOM_DOMAIN}</div>
-    </div>
+    <p class="again">${again}</p>
   </div>
 </section>
 `;
@@ -2784,7 +2435,7 @@ function supportSection() {
 `;
 }
 
-function buildWaitlistPage({ source, canonical, includeSupport, film = false }) {
+function buildWaitlistPage({ source, canonical, includeSupport, film = false, channelDir = "" }) {
   return pageShell({
     title:
       PHASE === "launched"
@@ -2793,8 +2444,7 @@ function buildWaitlistPage({ source, canonical, includeSupport, film = false }) 
     description:
       "DuoQueue is an 18+ app for finding people to play games with. Platonic, not dating. Join the waitlist and get one email the day it goes live.",
     canonical,
-    bodyHtml: waitlistBody({ source, film }) + (includeSupport ? supportSection() : ""),
-    extraCss: film ? FILM_CSS : "",
+    bodyHtml: waitlistBody({ source, film, channelDir }) + (includeSupport ? supportSection() : ""),
   });
 }
 
@@ -2840,6 +2490,7 @@ function buildThanksPage() {
     description: "You joined the DuoQueue waitlist. We will email you once, the day it goes live.",
     bodyHtml: body,
     noindex: true,
+    extraCss: LOCKUP_CSS,
   });
 }
 
@@ -3042,13 +2693,14 @@ function main() {
   // The landing page and its four aliases. `/` carries the support block because
   // it is the URL registered with App Store Connect; the aliases canonicalise to
   // it so five URLs serving one page is not four duplicate-content pages.
-  // The film goes on all five, since they are one page. Checked once, before any of them is
-  // written, so the five cannot disagree about it.
+  // The trailer link goes on all five, since they are one page, and each channel's copy links
+  // to its own channel's watch page. Whether the film is on is checked once, before any of
+  // them is written, so the five cannot disagree about it.
   const film = filmPresent();
   write("index.html", buildWaitlistPage({ source: "direct", canonical: `${SITE_ORIGIN}/`, includeSupport: true, film }));
   write("waitlist/index.html", buildWaitlistPage({ source: "direct", canonical: `${SITE_ORIGIN}/`, includeSupport: false, film }));
   for (const [dir, source] of [["tt", "tt"], ["ig", "ig"], ["yt", "yt"]]) {
-    write(`${dir}/index.html`, buildWaitlistPage({ source, canonical: `${SITE_ORIGIN}/`, includeSupport: false, film }));
+    write(`${dir}/index.html`, buildWaitlistPage({ source, canonical: `${SITE_ORIGIN}/`, includeSupport: false, film, channelDir: dir }));
   }
   write("waitlist/thanks/index.html", buildThanksPage());
   write("waitlist/try-again/index.html", buildTryAgainPage());
