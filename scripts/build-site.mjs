@@ -4,7 +4,9 @@
 // only node:fs, node:path, node:url. No markdown library, no bundler, no CDN.
 // Every page is fully self-contained HTML with an inline <style> block and inline
 // SVG, and the only sub-resources any page requests are five .woff2 files served
-// from this same origin. No third-party request of any kind, from any page. That
+// from this same origin, plus, on the landing page and its aliases, the launch film
+// and its poster (FILM below), also from this same origin and played by a plain
+// <video> element with no script. No third-party request of any kind, from any page. That
 // property is load-bearing twice over: it is what makes the site fast on a phone
 // on cellular, and it is what lets the privacy policy say there is no analytics or
 // advertising script on duoqueue.io without a caveat.
@@ -19,6 +21,11 @@
 //     site/waitlist/thanks/index.html     post-submit success
 //     site/waitlist/try-again/index.html  post-submit "fix one of two things"
 //   plus site/CNAME, site/.nojekyll, site/favicon.png, site/og.png
+//   and, committed rather than generated (like og.png and the fonts):
+//     site/assets/duoqueue-launch.mp4          the launch film, shown on the landing page
+//     site/assets/duoqueue-launch-poster.jpg   its poster frame
+//   The film section is built only when both files are present, so a page never points at
+//   a missing video; the build's last line says whether it went in.
 //
 // Run: node scripts/build-site.mjs
 //
@@ -195,6 +202,40 @@ const APP = {
   onVolt: "#F7F9F0",
   amber: "#8F5E00", // lightColors.overlap.many — three or more games in common
 };
+
+// THE FILM: the launch video, on the landing page and its four aliases.
+//
+// Committed media under site/assets/, like og.png and the fonts, because it is rendered
+// elsewhere (the Hyperframes launch render) and this build is zero-dependency. It is played
+// by a plain <video> element: native controls, no script, which is what lets the privacy
+// policy keep saying there is no JavaScript on the site. Muted, so browsers allow it to play
+// itself; loop, so it holds on a phone that scrolls back to it; playsinline, so iOS does not
+// throw it into the fullscreen player.
+//
+// AUTOPLAY IS THE ONE TRADE HERE. With no script there is no way to honour Reduce Motion for
+// a video: the CSS media query can stop an animation but cannot stop a <video> from playing.
+// The native controls are the pause (WCAG 2.2.2), and browsers pause a muted autoplay video
+// while it is off screen. If that is not enough, set autoplay to false and the film waits on
+// its poster for a tap on every device.
+const FILM = {
+  video: "assets/duoqueue-launch.mp4",
+  poster: "assets/duoqueue-launch-poster.jpg",
+  // darkColors.background in apps/mobile/src/theme/tokens.ts, which is also the film's own
+  // ground to within a unit, so the frame shows no seam while the poster loads.
+  ground: "#0A0B09",
+  autoplay: true,
+};
+
+/** Both files present and non-empty. The section is left out otherwise, loudly. */
+function filmPresent() {
+  return [FILM.video, FILM.poster].every((rel) => {
+    try {
+      return statSync(path.join(SITE_DIR, rel)).size > 0;
+    } catch {
+      return false;
+    }
+  });
+}
 
 // marketing/video/src/frag/ground.ts:241-257. One perspective container and one
 // rotation for every fragment on the page, so several differently shaped objects
@@ -688,6 +729,9 @@ const CONTRAST_PAIRS = [
   // rather than a button fill, so it gets the 4.5 that type is held to and not the 3.0 a
   // control's silhouette gets.
   { what: "volt label and brackets on app surface (the DUO LOCKED plate)", fg: APP.volt, bg: APP.surface, min: 4.5 },
+  // The film is the page's one large dark object. Its type is burned into the video, so
+  // the only pair this page owns is its edge: the frame against the paper.
+  { what: "the film's dark ground against the paper (its silhouette)", fg: FILM.ground, bg: GROUND.darkest, min: 3.0 },
 
   // THE CALL TO ACTION, in all three of its states.
   //
@@ -2358,6 +2402,60 @@ const CSS = `
   }
 `;
 
+// The film's rules, emitted only on the pages that carry the film (the landing page and
+// its four aliases), so the legal pages and the two outcome pages stay byte-identical to
+// what they were before the film existed.
+const FILM_CSS = `
+  /* ---- the film ---------------------------------------------------------- */
+  /* THE LAUNCH VIDEO, AS A DARK OBJECT ON THE PAPER.
+     The film is shot on the app's own dark ground, so on this page it is the one large dark
+     element, which is exactly where chartreuse is allowed to live: inside something dark,
+     never on the cream. It sits on the grid's one left edge like every other object, at the
+     fragments' 10px corner, and it casts the button's square-on shadow because, like the
+     button and unlike the plates, it faces the reader untilted.
+
+     G4 above and nothing below: the plain version's own G4 is the gap under it, and two
+     sections cannot each pay for the same boundary.
+
+     THE SENTENCE COMES FIRST IN THE DOM, as the scene's sentences do, so on a phone the line
+     sits above the film and no type is ever set inside its cast shadow. From 900px the film
+     is placed in the first column and the line beside it, centred on the film's band, which
+     is the scene's interleave again: a line of type and an object sharing a line.
+
+     THE WIDTH IS CAPPED TWICE. 360px keeps a 9:16 film the shape of a phone on a desktop,
+     and 43.875% of the window's height (so the film is at most 78% of it) lets a laptop see
+     the whole film without scrolling through it; on a portrait phone that second cap is what
+     keeps the controls on the same screen as the top of the picture. vh first, svh second:
+     the same fallback-then-override pattern as the fragments' cqw lines in CSS. */
+  section.film { padding: ${RHYTHM.g4} 0 0; }
+  .film .eyebrow { margin: 0 0 ${RHYTHM.g2}; }
+  .film-fig { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr); }
+  .film-line { font-size: clamp(15px, 1.7vw, 18px); color: var(--muted); margin: 0 0 ${RHYTHM.g2}; max-width: 38ch; }
+  .film-frame {
+    width: min(100%, 360px);
+    width: min(100%, 360px, 43.875vh);
+    width: min(100%, 360px, 43.875svh);
+    aspect-ratio: 9 / 16;
+    overflow: hidden; isolation: isolate;
+    background: ${FILM.ground};
+    border-radius: 10px;
+    box-shadow: ${shadowCss(CTA_SHADOW_LAYERS, FRAG_SHADOW_INK)};
+  }
+  .film-frame video {
+    display: block; width: 100%; height: 100%; object-fit: cover;
+    background: ${FILM.ground}; border-radius: 10px;
+  }
+
+  @media (min-width: 900px) {
+    /* The film on the left edge, its sentence beside it at the lede's size. The frame
+       drops its 100% term here because an auto track would make it cyclic, and at 900px
+       of window the content box is already wider than 360px. */
+    .film-fig { grid-template-columns: auto minmax(0, 1fr); column-gap: ${RHYTHM.g3}; align-items: center; }
+    .film-frame { grid-area: 1 / 1; width: min(360px, 43.875vh); width: min(360px, 43.875svh); }
+    .film-line { grid-area: 1 / 2; margin: 0; font-size: clamp(17px, 2.1vw, 22px); line-height: 1.5; color: var(--ink); max-width: 30ch; }
+  }
+`;
+
 // ---------------------------------------------------------------------------
 // Page shell
 // ---------------------------------------------------------------------------
@@ -2370,6 +2468,7 @@ function pageShell({
   footerNote,
   noindex = false,
   ogImage = "/og.png",
+  extraCss = "",
 }) {
   return `<!doctype html>
 <html lang="en">
@@ -2392,7 +2491,7 @@ ${noindex ? `<meta name="robots" content="noindex">` : ""}
 <meta property="og:image:height" content="630">
 ${canonical ? `<meta property="og:url" content="${canonical}">` : ""}
 <meta name="twitter:card" content="summary_large_image">
-<style>${CSS}</style>
+<style>${CSS}${extraCss}</style>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -2576,7 +2675,7 @@ function signupForm(source) {
         <button class="cta" type="submit">join the waitlist</button>
       </form>
       <p class="promise">One email, on the day it goes live. That is the only one you get.</p>
-      <p class="fineprint">We do not share your address. No analytics, no trackers and no cookies on this page &mdash; submitting the form sets one 30-minute anti-bot cookie on our backend&rsquo;s own domain, and nothing else. See the <a href="/privacy/">Privacy Policy</a>.</p>`;
+      <p class="fineprint">We do not share your address. No analytics, no trackers and no cookies on this page. Submitting the form sets one 30-minute anti-bot cookie on our backend&rsquo;s own domain, and nothing else. See the <a href="/privacy/">Privacy Policy</a>.</p>`;
 }
 
 /** The launched-phase body. Built now rather than left as a TODO so the flip in
@@ -2587,7 +2686,27 @@ function launchedCta() {
       <p class="promise">DuoQueue is live. If you joined the waitlist, the email is already on its way.</p>`;
 }
 
-function waitlistBody({ source }) {
+/** The launch film. A plain <video>: native controls, no script (see FILM). The sentence
+ * is the figure's caption and comes first in the DOM, so a phone reads it above the film. */
+function filmSection() {
+  return `
+<section class="film" aria-labelledby="film-head">
+  <div class="wrap">
+    <h2 class="eyebrow" id="film-head">The short version</h2>
+    <figure class="film-fig">
+      <figcaption class="film-line" id="film-line">The app, from the first swipe to queueing up.</figcaption>
+      <div class="film-frame">
+        <video src="/${FILM.video}" poster="/${FILM.poster}" controls muted${FILM.autoplay ? " autoplay" : ""} loop playsinline preload="metadata" aria-label="DuoQueue, a short film of the app" aria-describedby="film-line">
+          <a href="/${FILM.video}">Watch the DuoQueue film</a>
+        </video>
+      </div>
+    </figure>
+  </div>
+</section>
+`;
+}
+
+function waitlistBody({ source, film = false }) {
   const action = PHASE === "launched" ? launchedCta() : signupForm(source);
   const slabHref = PHASE === "launched" ? APP_STORE_URL : "#waitlist-form";
   const slabLabel = PHASE === "launched" ? "download duoqueue" : "join the waitlist";
@@ -2614,7 +2733,7 @@ ${action}
     </div>
   </div>
 </section>
-
+${film ? filmSection() : ""}
 <section class="plain">
   <div class="wrap">
     <h2 class="eyebrow">The plain version</h2>
@@ -2665,7 +2784,7 @@ function supportSection() {
 `;
 }
 
-function buildWaitlistPage({ source, canonical, includeSupport }) {
+function buildWaitlistPage({ source, canonical, includeSupport, film = false }) {
   return pageShell({
     title:
       PHASE === "launched"
@@ -2674,7 +2793,8 @@ function buildWaitlistPage({ source, canonical, includeSupport }) {
     description:
       "DuoQueue is an 18+ app for finding people to play games with. Platonic, not dating. Join the waitlist and get one email the day it goes live.",
     canonical,
-    bodyHtml: waitlistBody({ source }) + (includeSupport ? supportSection() : ""),
+    bodyHtml: waitlistBody({ source, film }) + (includeSupport ? supportSection() : ""),
+    extraCss: film ? FILM_CSS : "",
   });
 }
 
@@ -2922,10 +3042,13 @@ function main() {
   // The landing page and its four aliases. `/` carries the support block because
   // it is the URL registered with App Store Connect; the aliases canonicalise to
   // it so five URLs serving one page is not four duplicate-content pages.
-  write("index.html", buildWaitlistPage({ source: "direct", canonical: `${SITE_ORIGIN}/`, includeSupport: true }));
-  write("waitlist/index.html", buildWaitlistPage({ source: "direct", canonical: `${SITE_ORIGIN}/`, includeSupport: false }));
+  // The film goes on all five, since they are one page. Checked once, before any of them is
+  // written, so the five cannot disagree about it.
+  const film = filmPresent();
+  write("index.html", buildWaitlistPage({ source: "direct", canonical: `${SITE_ORIGIN}/`, includeSupport: true, film }));
+  write("waitlist/index.html", buildWaitlistPage({ source: "direct", canonical: `${SITE_ORIGIN}/`, includeSupport: false, film }));
   for (const [dir, source] of [["tt", "tt"], ["ig", "ig"], ["yt", "yt"]]) {
-    write(`${dir}/index.html`, buildWaitlistPage({ source, canonical: `${SITE_ORIGIN}/`, includeSupport: false }));
+    write(`${dir}/index.html`, buildWaitlistPage({ source, canonical: `${SITE_ORIGIN}/`, includeSupport: false, film }));
   }
   write("waitlist/thanks/index.html", buildThanksPage());
   write("waitlist/try-again/index.html", buildTryAgainPage());
@@ -2970,8 +3093,22 @@ function main() {
     console.warn("  WARNING: site/og.png is missing. Run `node scripts/make-og.mjs`.");
   }
 
+  // The film, asserted like og.png. deploy-site.mjs echoes only the "wrote" and "Built"
+  // lines of this output, so the verdict goes in the Built line itself: a deploy without
+  // the film says so on its own summary rather than in a warning nobody sees.
+  if (film) {
+    written.push(`${FILM.video} (pre-existing)`, `${FILM.poster} (pre-existing)`);
+  } else {
+    console.warn(
+      `  WARNING: site/${FILM.video} or site/${FILM.poster} is missing, so the film section was left out.\n` +
+        "  Copy the launch render and its poster there (see FILM in this file) and re-run."
+    );
+  }
+
   for (const p of written) console.log(`wrote site/${p}`);
-  console.log(`\nBuilt site/ successfully (PHASE = "${PHASE}").`);
+  console.log(
+    `\nBuilt site/ successfully (PHASE = "${PHASE}", film ${film ? "included" : `LEFT OUT, site/${FILM.video} or its poster is missing`}).`
+  );
 }
 
 // Run main() only when this file is executed directly (`node

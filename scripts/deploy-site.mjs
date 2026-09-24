@@ -48,6 +48,16 @@ const ORIGIN = "https://duoqueue.io";
 
 const DRY_RUN = process.argv.includes("--dry-run");
 
+// The launch film and its poster (FILM in build-site.mjs). Committed under site/assets/ rather
+// than generated, and build-site.mjs quietly leaves the film section out when either is
+// missing, so the build alone would publish a landing page without them and still exit 0.
+// Listing them here makes that a failed deploy instead, and the live checks below make a
+// deploy that serves the wrong bytes, or serves them as the wrong type, a failed deploy too.
+const FILM_FILES = [
+  { rel: "assets/duoqueue-launch.mp4", contentType: "video/mp4" },
+  { rel: "assets/duoqueue-launch-poster.jpg", contentType: "image/jpeg" },
+];
+
 // Every file the build must have produced. A missing one is a failed deploy, not a
 // warning: three of these five are the difference between a working custom domain and a
 // dead one.
@@ -69,6 +79,7 @@ const REQUIRED = [
   "fonts/manrope-700.woff2",
   "fonts/manrope-500.woff2",
   "fonts/plex-mono-600.woff2",
+  ...FILM_FILES.map((f) => f.rel),
 ];
 // .nojekyll is required to exist but is legitimately zero bytes, so it is checked apart
 // from the non-empty rule rather than exempted from a shared one by a special case.
@@ -77,8 +88,14 @@ const REQUIRED_MAY_BE_EMPTY = [".nojekyll"];
 // Per-page proof that the thing now being served is the thing that was just built. A 200
 // is not enough: GitHub Pages serves the PREVIOUS build with a 200 for a minute or so
 // after a push.
+//
+// A binary has no sentinel string, so the film's two files are checked by what they CAN
+// prove: `contentType` must match (a video served as text/html is a 404 page in disguise),
+// and `sizeOf` names the built file whose byte count the served Content-Length must equal,
+// which is what tells a new encode from the previous one still being served.
 const LIVE_CHECKS = [
   { url: `${ORIGIN}/`, sentinel: 'id="waitlist-form"' },
+  { url: `${ORIGIN}/`, sentinel: 'src="/assets/duoqueue-launch.mp4"' },
   { url: `${ORIGIN}/waitlist/`, sentinel: 'id="waitlist-form"' },
   { url: `${ORIGIN}/tt/`, sentinel: 'name="source" value="tt"' },
   { url: `${ORIGIN}/waitlist/thanks/`, sentinel: "on the list" },
@@ -87,6 +104,7 @@ const LIVE_CHECKS = [
   { url: `${ORIGIN}/terms/`, sentinel: "Terms of Service" },
   { url: `${ORIGIN}/CNAME`, sentinel: "duoqueue.io" },
   { url: `${ORIGIN}/fonts/manrope-800.woff2`, sentinel: null },
+  ...FILM_FILES.map((f) => ({ url: `${ORIGIN}/${f.rel}`, sentinel: null, contentType: f.contentType, sizeOf: f.rel })),
 ];
 
 function die(message) {
@@ -252,17 +270,34 @@ console.log(`   origin/${BRANCH} = ${remoteSha.slice(0, 12)} (matches)`);
 // ---------------------------------------------------------------------------
 console.log("9. verifying the live site (up to 90s while Pages rebuilds)");
 
-async function check({ url, sentinel }) {
+async function check({ url, sentinel, contentType, sizeOf }) {
   const deadline = Date.now() + 90_000;
+  // Read once, before the loop: the size of the file this deploy just built and pushed.
+  const wantBytes = sizeOf ? statSync(path.join(SITE_DIR, sizeOf)).size : null;
   let last = "";
   for (;;) {
     try {
       const res = await fetch(url, { cache: "no-store", redirect: "follow" });
       if (res.ok) {
-        if (!sentinel) return { ok: true, note: `${res.status} ${res.headers.get("content-type") ?? ""}` };
-        const body = await res.text();
-        if (body.includes(sentinel)) return { ok: true, note: `${res.status}, sentinel found` };
-        last = `${res.status} but sentinel ${JSON.stringify(sentinel)} not found`;
+        const type = res.headers.get("content-type") ?? "";
+        if (!sentinel) {
+          const length = res.headers.get("content-length");
+          const encoded = res.headers.get("content-encoding");
+          // Headers are all this needs; do not download a whole film to throw it away.
+          await res.body?.cancel();
+          if (contentType && !type.toLowerCase().startsWith(contentType)) {
+            last = `${res.status} but content-type is ${JSON.stringify(type)}, expected ${contentType}`;
+          } else if (wantBytes !== null && !encoded && length !== null && Number(length) !== wantBytes) {
+            last = `${res.status} but ${length} bytes served, ${wantBytes} built (still the previous build?)`;
+          } else {
+            const size = wantBytes === null ? "" : `, ${length ?? "no content-length"} of ${wantBytes} bytes`;
+            return { ok: true, note: `${res.status} ${type}${size}` };
+          }
+        } else {
+          const body = await res.text();
+          if (body.includes(sentinel)) return { ok: true, note: `${res.status}, sentinel found` };
+          last = `${res.status} but sentinel ${JSON.stringify(sentinel)} not found`;
+        }
       } else {
         last = `HTTP ${res.status}`;
       }
