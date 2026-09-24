@@ -1,59 +1,83 @@
-import { useEffect, useRef } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
   Extrapolation,
+  FadeIn,
   FadeInDown,
   interpolate,
+  ReduceMotion,
   useAnimatedRef,
   useAnimatedStyle,
+  useReducedMotion,
   useScrollViewOffset,
 } from "react-native-reanimated";
 
-import { GraticuleBackground } from "@/components/GraticuleBackground";
 import { Button } from "@/components/Button";
-import { Card } from "@/components/Card";
-import { Chip } from "@/components/Chip";
 import { GrainOverlay } from "@/components/GrainOverlay";
-import { SectionLabel } from "@/components/SectionLabel";
+import { GraticuleBackground } from "@/components/GraticuleBackground";
 import { Skeleton } from "@/components/Skeleton";
-import { PLATFORM_LABELS, PLAYSTYLE_LABELS, SKILL_LABELS, formatPlayWindow } from "@/features/onboarding/profile-labels";
+import { PLAYSTYLE_LABELS, TILT_HANDLING_LABELS } from "@/features/onboarding/profile-labels";
+import { FeaturedPrompt } from "@/features/profile/FeaturedPrompt";
+import { GamesPanel } from "@/features/profile/GamesPanel";
+import { howIPlayTiles } from "@/features/profile/howIPlay";
+import { HowIPlayGrid } from "@/features/profile/HowIPlayGrid";
+import { MoreFromMe } from "@/features/profile/MoreFromMe";
 import { OwnCardSection } from "@/features/profile/OwnCardSection";
 import { ownPictureState } from "@/features/profile/pictureStatus";
 import { OWN_CARD_HEIGHT } from "@/features/profile/profileTab";
-import { HowIPlaySection, MetaLine, PromptsSection, ShowsSection, VibeSection } from "@/features/profile/sections";
+import { ShowsSection } from "@/features/profile/sections";
 import { useEditableProfileDetails } from "@/features/profile/useEditableProfileDetails";
-import { useOwnProfileDetails } from "@/features/profile/useOwnProfileDetails";
 import { useOwnProfilePhotos } from "@/features/profile/useOwnProfilePhotos";
 import { useOwnPrompts } from "@/features/profile/useOwnPrompts";
 import { useVerifiedStats } from "@/features/profile/useVerifiedStats";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
-// The bento grid's half-tiles: two per row with spacing.sm between them.
-const HALF_TILE_WIDTH = "48.5%";
 // First-reveal cascade: 45ms per block, capped so a full page settles inside ~400ms.
 const STAGGER_STEP_MS = 45;
 const STAGGER_CAP_MS = 400;
 
-export default function ProfileScreen() {
-  const { colors, radius, spacing, type } = useTheme();
-  const insets = useSafeAreaInsets();
+function ProfileSkeleton() {
+  const { radius, spacing } = useTheme();
+  return (
+    <View style={{ gap: spacing.md }}>
+      <Skeleton width={140} height={12} />
+      <Skeleton height={OWN_CARD_HEIGHT} borderRadius={radius.card} />
+      <Skeleton width="90%" height={14} />
+      <Skeleton width="70%" height={14} />
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+        {[0, 1, 2, 3].map((i) => (
+          <Skeleton key={i} width="48.5%" height={76} borderRadius={radius.card} />
+        ))}
+      </View>
+      <Skeleton height={104} borderRadius={radius.card} />
+    </View>
+  );
+}
 
+/**
+ * The Profile tab: a fixed header, then your card (HOW OTHERS SEE YOU), then blocks that each
+ * change rhythm: a 2x2 tile grid, an open quote, 44pt rows, a sideways carousel, loose chips.
+ * Photos and the completeness meter live in Edit.
+ */
+export default function ProfileScreen() {
+  const { colors, spacing, type } = useTheme();
+  const insets = useSafeAreaInsets();
+  const reduced = useReducedMotion();
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const scrollY = useScrollViewOffset(scrollRef);
-
   // First-reveal gate for the stagger cascade: flips true the first time pageReady goes true and
   // then latches, so background refetches never replay the entrance.
   const hasRevealedRef = useRef(false);
+  const [headerHeight, setHeaderHeight] = useState(insets.top + 64);
 
   const profile = useSessionStore((s) => s.profile);
   const { data: photos, isLoading: photosLoading } = useOwnProfilePhotos(profile?.id);
   const { data: prompts, isLoading: promptsLoading } = useOwnPrompts(profile?.id);
-  const { data: details, isLoading: detailsLoading } = useOwnProfileDetails(profile?.id);
-  const { data: editableDetails, isLoading: editableLoading } = useEditableProfileDetails(profile?.id);
+  const { data: editable, isLoading: editableLoading } = useEditableProfileDetails(profile?.id);
   const { data: verifiedByName } = useVerifiedStats(profile?.id);
 
   // Warm the picture your card will draw while the other queries finish, so it doesn't pop in
@@ -64,35 +88,21 @@ export default function ProfileScreen() {
     if (pictureUrl) void Image.prefetch([pictureUrl], "memory-disk");
   }, [pictureUrl]);
 
-  const pageReady = !photosLoading && !promptsLoading && !detailsLoading && !editableLoading;
-
+  // Your card shows its own skeleton while get_profile_card loads (and nothing to wait for when
+  // the profile is paused), so the page gate leaves it out.
+  const pageReady = !photosLoading && !promptsLoading && !editableLoading;
   const isFirstReveal = pageReady && !hasRevealedRef.current;
   useEffect(() => {
     if (pageReady) hasRevealedRef.current = true;
   }, [pageReady]);
 
-  // From the details query, which Edit invalidates on save. The session profile's
-  // usual_play_* columns stayed stale after an edit because nothing refreshes the session.
-  const playWindowLabel = editableDetails
-    ? formatPlayWindow(editableDetails.playWindow.startHour, editableDetails.playWindow.endHour)
-    : null;
-
-  const gamesList = (details?.games ?? []).map((game) => ({
-    name: game.name,
-    skillLevel: SKILL_LABELS[game.skillLevel],
-    rank: game.rankText,
-  }));
-  const platformsList = (details?.platforms ?? []).map((platform) => PLATFORM_LABELS[platform]);
-  const playstylesList = (details?.playstyles ?? []).map((tag) => PLAYSTYLE_LABELS[tag]);
-  const showsList = details?.shows ?? [];
-  const vibe = editableDetails?.vibe ?? null;
-
   let staggerSlot = 0;
-  function nextDelay(): number {
-    return Math.min(staggerSlot++ * STAGGER_STEP_MS, STAGGER_CAP_MS);
-  }
   function revealEntering() {
-    return isFirstReveal ? FadeInDown.springify().delay(nextDelay()) : undefined;
+    if (!isFirstReveal) return undefined;
+    const delay = Math.min(staggerSlot++ * STAGGER_STEP_MS, STAGGER_CAP_MS);
+    return reduced
+      ? FadeIn.duration(200).delay(delay).reduceMotion(ReduceMotion.Never)
+      : FadeInDown.springify().delay(delay);
   }
 
   // The atmosphere lags a beat behind the content: 0.15x scroll rate, capped at 40px.
@@ -100,6 +110,23 @@ export default function ProfileScreen() {
     const translateY = interpolate(scrollY.value, [0, 267], [0, -40], Extrapolation.CLAMP);
     return { transform: [{ translateY }] };
   });
+  // The header gets its bottom rule once content scrolls under it.
+  const headerRuleStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [0, 12], [0, 1], Extrapolation.CLAMP),
+  }));
+
+  const tiles = editable
+    ? howIPlayTiles({
+        vibe: editable.vibe,
+        playstyles: editable.playstyles,
+        playWindow: editable.playWindow,
+        playstyleLabels: PLAYSTYLE_LABELS,
+        tiltLabels: TILT_HANDLING_LABELS,
+      })
+    : [];
+  const featured = prompts?.[0] ?? null;
+  const more = prompts?.slice(1) ?? [];
+  const shows = (editable?.shows ?? []).map((show) => show.name);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -111,124 +138,76 @@ export default function ProfileScreen() {
       <Animated.ScrollView
         ref={scrollRef}
         contentContainerStyle={{
-          paddingTop: insets.top + spacing.lg,
-          paddingBottom: insets.bottom + spacing.lg,
+          paddingTop: headerHeight + spacing.sm,
+          paddingBottom: insets.bottom + spacing.xl,
           paddingHorizontal: spacing.lg,
         }}
-        keyboardShouldPersistTaps="handled"
       >
-        <View style={{ gap: spacing.md }}>
-          {!pageReady ? (
-            <>
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                <Skeleton width={110} height={24} />
-                <Skeleton width={64} height={32} borderRadius={radius.button} />
-              </View>
-              <Skeleton height={OWN_CARD_HEIGHT} borderRadius={radius.card} />
-              <Skeleton width="100%" height={120} borderRadius={radius.card} />
-            </>
-          ) : (
-            profile && (
-              <View style={{ gap: spacing.lg }}>
-                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                  <Text style={[type.screenTitle, { color: colors.text }]}>Profile</Text>
-                  <Button size="sm" label="Edit" onPress={() => router.push("/edit-details")} />
-                </View>
+        {!pageReady || !profile ? (
+          <ProfileSkeleton />
+        ) : (
+          <View style={{ gap: spacing.xl }}>
+            <Animated.View entering={revealEntering()}>
+              <OwnCardSection profile={profile} />
+            </Animated.View>
 
-                <Animated.View entering={revealEntering()}>
-                  <OwnCardSection profile={profile} />
-                </Animated.View>
+            {tiles.length > 0 && (
+              <Animated.View entering={revealEntering()}>
+                <HowIPlayGrid tiles={tiles} />
+              </Animated.View>
+            )}
 
-                {/* Today's tiles, each rendered only when its data is non-empty. */}
-                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
-                  {gamesList.length > 0 && (
-                    <Animated.View entering={revealEntering()} style={{ width: "100%" }}>
-                      <Card style={{ padding: spacing.tight }}>
-                        <SectionLabel>Games</SectionLabel>
-                        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
-                          {gamesList.map((game) => {
-                            const verified = verifiedByName?.[game.name];
-                            return verified ? (
-                              <Chip key={game.name} label={game.name} detail={`✓ ${verified}`} tone="volt" />
-                            ) : (
-                              <Chip key={game.name} label={game.name} detail={game.rank || game.skillLevel || undefined} />
-                            );
-                          })}
-                        </View>
-                      </Card>
-                    </Animated.View>
-                  )}
+            {featured && (
+              <Animated.View entering={revealEntering()}>
+                <FeaturedPrompt question={featured.question} answer={featured.answer} />
+              </Animated.View>
+            )}
 
-                  {(platformsList.length > 0 || playstylesList.length > 0) && (
-                    <Animated.View
-                      entering={revealEntering()}
-                      style={{ width: playWindowLabel ? HALF_TILE_WIDTH : "100%" }}
-                    >
-                      <Card style={{ padding: spacing.tight }}>
-                        <HowIPlaySection platforms={platformsList} playstyles={playstylesList} />
-                      </Card>
-                    </Animated.View>
-                  )}
-                  {playWindowLabel && (
-                    <Animated.View
-                      entering={revealEntering()}
-                      style={{ width: platformsList.length > 0 || playstylesList.length > 0 ? HALF_TILE_WIDTH : "100%" }}
-                    >
-                      <Card style={{ padding: spacing.tight }}>
-                        <SectionLabel>Schedule</SectionLabel>
-                        <MetaLine playWindow={playWindowLabel} />
-                      </Card>
-                    </Animated.View>
-                  )}
+            {editable && editable.games.length > 0 && (
+              <Animated.View entering={revealEntering()}>
+                <GamesPanel games={editable.games} verifiedByName={verifiedByName ?? {}} />
+              </Animated.View>
+            )}
 
-                  {vibe && (
-                    <Animated.View entering={revealEntering()} style={{ width: "100%" }}>
-                      <Card style={{ padding: spacing.tight }}>
-                        <VibeSection vibe={vibe} footerDivider />
-                      </Card>
-                    </Animated.View>
-                  )}
+            {more.length > 0 && (
+              <Animated.View entering={revealEntering()}>
+                <MoreFromMe prompts={more} />
+              </Animated.View>
+            )}
 
-                  {showsList.length > 0 && (
-                    <Animated.View entering={revealEntering()} style={{ width: "100%" }}>
-                      <Card style={{ padding: spacing.tight }}>
-                        <ShowsSection shows={showsList} />
-                      </Card>
-                    </Animated.View>
-                  )}
-
-                  <Animated.View entering={revealEntering()} style={{ width: "100%", position: "relative" }}>
-                    <PromptsSection prompts={prompts ?? []} />
-                    <Pressable
-                      onPress={() => router.push("/edit-prompts")}
-                      accessibilityRole="button"
-                      hitSlop={8}
-                      style={{ position: "absolute", top: 0, right: 0 }}
-                    >
-                      <Text style={[type.label, { color: colors.voltDim }]}>Edit</Text>
-                    </Pressable>
-                  </Animated.View>
-                </View>
-              </View>
-            )
-          )}
-        </View>
+            {shows.length > 0 && (
+              <Animated.View entering={revealEntering()}>
+                <ShowsSection shows={shows} />
+              </Animated.View>
+            )}
+          </View>
+        )}
       </Animated.ScrollView>
 
-      {/* Fixed backdrop so content never passes behind the status bar icons with nothing behind it. */}
-      {insets.top > 0 && (
-        <View
+      {/* Fixed header: it also covers the status bar, so nothing scrolls under the clock. */}
+      <View
+        onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingTop: insets.top + spacing.md,
+          paddingBottom: spacing.sm,
+          paddingHorizontal: spacing.lg,
+          backgroundColor: colors.background,
+        }}
+      >
+        <Text style={[type.screenTitle, { color: colors.text }]}>Profile</Text>
+        <Button size="sm" label="Edit" onPress={() => router.push("/edit-details")} />
+        <Animated.View
           pointerEvents="none"
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            height: insets.top,
-            backgroundColor: colors.background,
-          }}
+          style={[{ position: "absolute", left: 0, right: 0, bottom: 0, height: 1, backgroundColor: colors.border }, headerRuleStyle]}
         />
-      )}
+      </View>
     </View>
   );
 }

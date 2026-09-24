@@ -1,4 +1,4 @@
-import { lolDuoRuleSummary, type LolDivision, type LolTierChoice } from "@duoqueue/shared-types";
+import { lolDuoRuleSummary, type LolDivision, type LolTierChoice, type SkillLevel } from "@duoqueue/shared-types";
 
 /** Your card on the Profile tab: the deck card's 345x483 at iPhone 15 width. */
 export const OWN_CARD_HEIGHT = 483;
@@ -19,4 +19,22 @@ export function leagueRuleLine(games: { lolTier: LolTierChoice | null; lolDivisi
     }
   }
   return null;
+}
+
+/** GAMES shows this many rows, then "Show all n ›" expands the rest in place. */
+export const GAMES_PREVIEW_COUNT = 4;
+
+/** The right-hand value of a GAMES row on your own tab: a verified stat, else the rank you typed
+ * or picked, else your skill level. (Strangers never see free-text ranks; this is your own tab.) */
+export function gameRowValue(
+  game: { skillLevel: SkillLevel; rankText: string },
+  verified: string | null,
+  skillLabels: Record<SkillLevel, string>,
+): string {
+  if (verified) return `✓ ${verified}`;
+  return game.rankText.trim() || skillLabels[game.skillLevel];
+}
+
+export function showAllLabel(total: number): string {
+  return `Show all ${total} ›`;
 }
