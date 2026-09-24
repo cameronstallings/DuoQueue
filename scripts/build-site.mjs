@@ -243,9 +243,9 @@ const FILM = {
   // ground to within a unit, so the frame shows no seam while the poster loads.
   ground: "#0A0B09",
   autoplay: true,
-  // The running time as a player shows it (the render is 21.6s), printed on the trailer link
-  // so a visitor knows what the tap costs before they make it.
-  length: "0:21",
+  // The running time as a player shows it (the build 15 trailer renders at 22.4s), printed on the
+  // trailer link so a visitor knows what the tap costs before they make it.
+  length: "0:22",
 };
 
 // THE SCREENING ROOM'S PALETTE: the watch pages, the one dark page on the site. It is the app's
