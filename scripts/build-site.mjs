@@ -1671,11 +1671,20 @@ const CSS = `
      label, radius.button, the scale(0.97) press, the button's contact shadow).
 
      It is display:none here, and it only exists inside the scroll-timeline block in MOTION
-     below. Without a scroll timeline there is no way to show it only once the form has gone
-     (there is no script to watch the scroll), and a bar that sat over the form's own button
-     would be worse than no bar, so where the timeline is missing it is simply absent and the
-     form and the outlined link after the plain version are the page's calls to action. Its
-     markup is emitted on the landing pages only (pageShell's qbar option). */
+     below, and only on a page that has the form. Without a scroll timeline there is no way
+     to show it only once the form has gone (there is no script to watch the scroll), and a
+     bar that sat over the form's own button would be worse than no bar, so in a browser
+     without one it stays display:none and the form and the outlined link after the plain
+     version are the page's calls to action.
+     A page with the bar and no #waitlist-form needs its own rule, because the timeline
+     support check cannot see it: the landing pages are that page once PHASE is "launched"
+     (waitlistBody then emits the download button, not the form). With no form there is no
+     --form timeline, the bar's animation is inactive and has no effect, and the bar would
+     sit at its resting style in that block, fixed and visible at every scroll position,
+     over the site header at the top of the page. So that block also hides it wherever
+     body:not(:has(#waitlist-form)). Its markup is emitted on the landing pages only
+     (pageShell's qbar option), and pageShell should not emit it at all when PHASE is
+     "launched"; the guard is there so that forgetting to costs nothing. */
   .qbar { display: none; }
   .qbar-in { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 58px; }
   .qbar .brand span { font-size: 17px; }
@@ -1745,19 +1754,33 @@ const CSS = `
      animation passing through them.
 
      THE MOMENT CARDS HAVE TWO DRIVERS, split at 860px:
-       * BELOW 860 (phones, and tablets where the cards stack under the hero) each card's
-         moment is scrubbed by that card's own passage up the screen, on a view timeline, so
-         it plays while the reader is looking at it and a fast flick plays it fast. Every
-         range ends at cover 40%, while the card's middle is still below the middle of the
-         screen (cover 50% is the exact moment the two middles meet), so a reader who stops
-         with a card in front of them sees it finished. And the whole moment spans about a
-         third of a screen of scrolling, so a half-typed message is a short band a thumb
-         passes through rather than a place the page can rest.
-       * FROM 860 the cards are on or near the first screen, where a scroll timeline would sit
-         half-played at scroll 0 and a visitor who never scrolls would see "NO GAMES IN
-         COMMON", two rings apart and an empty chat. So there the moments play once, on
-         load, on a clock: the three cards rise at 300, 360 and 420ms, then 01, 02 and 03
-         play in order, and the page is finished and still at 3.0s.
+       * BELOW 860 (phones and portrait tablets: the hero is one column and the cards stack
+         under it) each card's moment is scrubbed by that card's own passage up the screen,
+         on a view timeline, so it plays while the reader is looking at it and a fast flick
+         plays it fast. Every range ends at cover 40%, while the card's middle is still below
+         the middle of the screen (cover 50% is the exact moment the two middles meet), so a
+         reader who stops with a card in front of them sees it finished. And the whole moment
+         spans about a third of a screen of scrolling, so a half-typed message is a short band
+         a thumb passes through rather than a place the page can rest.
+       * FROM 860 the moments play once, on load, on a clock: the three cards rise at 300,
+         360 and 420ms, then 01, 02 and 03 play in order, and the page is finished and still
+         at 3.0s. The reason is the first screen of a laptop or a desktop, and it holds from
+         1080, where the three cards stand in one row whose top edge is on the first screen
+         at scroll 0 (measured after load: 66px of each card at 1080x700, 124px at 1280x800,
+         214px at 1440x900, 281px at 1920x1080), and for card 01 alone from 900 (153px of it
+         at 1024x768, all of it at 900x900). A scroll timeline there would sit wherever the
+         fold cut it, and a visitor who never scrolls would see the moments stopped: with the
+         phone driver forced on at scroll 0, every card is 12% of the way through at 1440x900
+         and 30% at 1920x1080 (a game row still sliding in, two rings apart, an empty chat),
+         card 01 is 34% through at 900x900, and at 1280x720 none has started.
+         Below 1080 that reason does not cover every card. From 860 to 899 the hero is still
+         one column and all three cards are below the first screen (card 01's top is 990px
+         down at 899x700, 1108px at 860x900); from 900 to 1079 the cards lie on their sides in
+         a stack and 02 and 03 are below it. Those cards play their load sequence where nobody
+         sees it, and since it is over at 3.0s they are almost always finished and still by
+         the time a reader scrolls to them: that reader gets the finished cards without the
+         moments. It is the cost of splitting at 860, where the plan puts the split, rather
+         than at 1080.
      Scroll timelines are Chrome 115+ and Safari 26+. Below 860, a browser without them shows
      the cards finished; under Reduce Motion, every width does. */
 
@@ -1924,11 +1947,13 @@ const CSS = `
   }
 
   /* DRIVER TWO, from 860px: once, on load, on a clock. Each card's window is placed so the
-     three moments follow one another left to right, each one starting while the one before
-     it makes its last small move (01's stamp, 02's line coming up): 01 runs from 600ms,
-     02 from 1250ms, 03 from 1800ms. The sent bubble, the last thing that moves, settles at
-     2.71s, and every animation on the page has ended at 3.0s. The chat gets the longest
-     window because it holds the typing. */
+     three moments follow one another in reading order (left to right from 1080, top to
+     bottom below it; see the MOTION header for which of them are on the first screen at
+     which widths), each one starting while the one before it makes its last small move
+     (01's stamp, 02's line coming up): 01 runs from 600ms, 02 from 1250ms, 03 from 1800ms.
+     The sent bubble, the last thing that moves, settles at 2.71s, and every animation on
+     the page has ended at 3.0s. The chat gets the longest window because it holds the
+     typing. */
   @media (prefers-reduced-motion: no-preference) and (min-width: 860px) {
     .moment-card { animation: card-rise var(--t-arrival) var(--ease-out) backwards; }
     .moment:nth-child(1) .moment-card { animation-delay: 300ms; }
@@ -1946,13 +1971,16 @@ const CSS = `
      position at which the form's last pixel has gone off the top of the screen. So the bar
      can never sit over the form's button, and it slides down over the next 72px of
      scrolling, a little more than its own height. Scroll back until the form's bottom edge
-     returns and it slides away again. Chrome and Safari 26+; elsewhere the bar is absent.
+     returns and it slides away again. Chrome and Safari 26+; elsewhere the bar is absent,
+     and so it is on any page without the form (the last rule in this block: no form, no
+     timeline to show the bar on, so no bar).
 
      scroll-padding keeps what a keyboard focuses, or an in-page link jumps to, out from
-     under the bar. It is scoped with :has(.qbar) to the pages that carry the bar, so the
-     privacy, terms and waitlist result pages (which share this CSS and have no bar) keep
-     their jumps at the real top of the screen; every browser with timeline-scope also has
-     :has. It has a side effect that every view timeline on the page has to undo:
+     under the bar. It is scoped with :has(.qbar):has(#waitlist-form) to the pages where the
+     bar can show, so the privacy, terms and waitlist result pages (which share this CSS and
+     have no bar), and a landing page whose form has gone, keep their jumps at the real top
+     of the screen; every browser with timeline-scope also has :has. It has a side effect
+     that every view timeline on the page has to undo:
      a view timeline's default inset ("auto") IS the scroll-padding, so without an explicit
      view-timeline-inset of 0 the form's exit 100% would fall 72px early, with the form's
      button still on screen, and the bar would slide over it. That is why the form, the
@@ -1969,7 +1997,7 @@ const CSS = `
   @supports (timeline-scope: --form) and (animation-timeline: view()) and (animation-range: exit) {
     body { timeline-scope: --form; }
     #waitlist-form { view-timeline: --form; view-timeline-inset: 0; }
-    html:has(.qbar) { scroll-padding-top: 72px; }
+    html:has(.qbar):has(#waitlist-form) { scroll-padding-top: 72px; }
     .qbar {
       display: block; position: fixed; z-index: 30; top: 0; left: 0; right: 0;
       background: rgba(${hexToRgb(GROUND.base).join(",")},0.9);
@@ -1983,6 +2011,10 @@ const CSS = `
     @media (prefers-reduced-motion: reduce) {
       .qbar { animation-name: qbar-show; animation-timing-function: steps(1, start); }
     }
+    /* No form, no bar: see the note at the bar's resting style. It sets display alone, so
+       it outranks the display:block above (an id inside :has) and leaves the Reduce Motion
+       rule's animation-name alone. */
+    body:not(:has(#waitlist-form)) .qbar { display: none; }
   }
 
   /* ---- reduced motion ---------------------------------------------------- */
