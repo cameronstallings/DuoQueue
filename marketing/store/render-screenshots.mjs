@@ -2,14 +2,16 @@
  * DuoQueue App Store screenshots for build 15 (commit 22ce7b9), two sets from one copy deck.
  *
  *   Set DARK   Volt off-black ground, the dark-theme screens. The recommended default page.
- *   Set LIGHT  Paper ground, the same seven screens in Paper. An alternate.
+ *   Set LIGHT  Paper ground, the same six screens in Paper. An alternate.
  *
  * The frame is Previously's store frame rebuilt in the Volt identity: a headline at the top, a
  * short line under it, then a REAL app screen presented as one rounded panel on the brand ground.
  * Nothing inside a panel is drawn here: every panel is a window on a PNG that the screen renderer
  * (a port of Previously's tools/render) drew from build 15's own screen code, from a clean,
  * detached checkout pinned at 22ce7b9, told with the review account's seed. Build 10's set came
- * from screen-recording stills instead; that version of this file is in git history.
+ * from screen-recording stills, composed by an earlier version of this script that was never
+ * committed: this file first entered git in fd93d4b, already the renderer-based composer, so
+ * the stills-based one is NOT in git history.
  *
  * THE SOURCES AND WHAT IS CHECKED BEFORE ONE IS USED
  *   The renderer writes shots/<key>.png plus shots/report.json. `--import <that folder>` copies
@@ -19,11 +21,15 @@
  *     - the shot rendered with no problems, at 393 x 852 pt, in the theme the set asks for;
  *     - the PNG is exactly 393 x 852 pt at the report's scale (1179 x 2556 at 3x, 1769 x 3834
  *       at 4.5x); build 10's 1180 x 2556 recordings are no longer accepted;
- *     - the shot may go in the App Store set ("yes"), unless the slide carries `unverified`
- *       naming why it is used anyway (printed, and marked on the contact sheet);
+ *     - the shot may go in the App Store set ("yes"). There is NO override: build 15's first
+ *       set let DUO LOCKED through with one, and the renderer's "no, until verified" meant the
+ *       listing would show either a predicted app defect or a picture that is not the app;
  *     - the slide's window lies inside the window the renderer allows for that shot.
  *   What the renderer says Cameron must confirm before upload (`confirm`) is printed per slide,
- *   written to out/manifest-<set>-b15.json and shown on the contact sheet.
+ *   written to out/manifest-<set>-b15.json and shown on the contact sheet. A slide whose source
+ *   shows the Deck's subscriber strip (confirm "strip shows a subscriber": UNLIMITED, Ping and
+ *   the Power-Ups count are all on that screen) must carry the in-app purchase note NOTE_PLUS
+ *   (Guideline 2.3.2), or the run stops.
  *
  * PANELS ARE WINDOWS, NOT WHOLE SCREENS. Every panel is the same width (PW). Each slide names a
  * window on its source in POINTS, and the panel shows exactly that window, so a panel ends on
@@ -123,8 +129,10 @@ const scaleOf = (key) => SHOT_SCALE[key] ?? 3;
 const sourceKey = (theme, key) => (theme === "light" ? `${key}-paper` : key);
 
 /* ---- the copy --------------------------------------------------------------------------------
- * `lines` are the headline's own line breaks and *word* marks the one lit word. No em dashes, no
- * negations, no prices, no ages in a headline. Every sub-line describes what its panel shows.
+ * `lines` are the headline's own line breaks and *word* marks the one lit word (never its
+ * punctuation). No em dashes, no negations, no prices, no ages in a headline, nothing that reads
+ * as dating next to photo cards with ages (COPY_BANS). Every sub-line describes what its panel
+ * shows, not merely what is true of the app.
  *
  * Windows are [left, top, right, bottom] in POINTS on the 393 x 852 pt source; `pad` (points)
  * adds plain rows above. Each was measured on the build 15 renders so that the first content
@@ -140,9 +148,14 @@ const DECK = { win: [0, 60, PHONE.w, 757] };
 // nothing under it on this screen, and the card plus HOW I PLAY (132-937 pt) is taller than a
 // panel can be (PMAX is 711 pt of a full-width window).
 const PROFILE = { win: [0, 60, PHONE.w, 742], pad: 13 };
-// DUO LOCKED: inside the page sheet, below its rounded top corners (to 91 pt), from above the
-// brackets (143 pt) to under "Keep swiping" (614 pt). The sheet below it is empty.
-const DUO = { win: [0, 114, PHONE.w, 642] };
+// DUO LOCKED is OUT of the set until a device recording of build 15's DUO LOCKED is checked
+// (render-dq device/bracket_check.py). The renderer holds every DUO LOCKED at "no, until
+// verified": build 15's match/[matchId].tsx gives BracketGlyph fontSize and lineHeight both
+// BRACKET_SIZE, so iOS is predicted to clip each bracket's top arm (4.3 pt against 8.3 at the
+// bottom), and the moment sits high in the sheet with its lower ~45% empty (its window here was
+// 114-642 pt, a 1518 px panel over 750 px of bare ground). If the prediction holds, the listing
+// shows an app defect; if not, the picture is not the app. It comes back only when the renderer
+// says "yes".
 // The chat: from the gap above the first whole bubble (164 pt, the renderer's window, clear of
 // the glass bar and its SF Pro stand-in) to under the message field (802 pt).
 const CHAT = { win: [0, 164, PHONE.w, 830], pad: 24 };
@@ -154,14 +167,10 @@ const TOOLS = { win: [0, 308, PW / 4.5, 752], pad: 2 };
 // Account and Legal (to 700 pt), ending at 716 pt as the renderer's window allows.
 const SAFETY = { win: [0, 60, PHONE.w, 716], pad: 9 };
 
-/**
- * Why slide 04 uses a shot the renderer holds out of the store set (screens.mjs
- * DUO_LOCKED_UNVERIFIED): the bracket arms and the layout are predictions until a device
- * recording of build 15's DUO LOCKED confirms them.
+/*
+ * Six slides. Build 15's first set had seven, with DUO LOCKED fourth (see DUO LOCKED above);
+ * the chat, tools and safety slides moved up one.
  */
-const DUO_UNVERIFIED =
-  "the renderer holds every DUO LOCKED out of the store set until a device recording confirms it: the brackets' top arms are predicted to be clipped, and the moment sits high in the sheet (this window leaves the empty lower part out)";
-
 const COPY = [
   {
     n: "01", slug: "deck",
@@ -175,44 +184,50 @@ const COPY = [
   },
   {
     n: "02", slug: "prompt",
-    lines: ["Games first.", "*Photo* optional."],
+    // The lit word carries the message (was "*Photo* optional.", which lit what the line plays
+    // down, on a panel that shows no photo).
+    lines: ["*Games* first.", "Photo optional."],
     sub: "One picture if you want, then their prompts",
-    // The same card as 01, turned to its first prompt. deck-prompt (the unchanged seed) would
-    // show Kofi in AFRICA with Rocket League, contradicting 01, so this is told in the store story.
-    key: "deck-prompt-store", ...DECK,
+    // The same Deck chrome as 01: UNLIMITED, Ping and the Power-Ups count.
+    note: NOTE_PLUS,
+    // The store story's NEXT card (Dae, League Platinum I, can duo), reached by passing Kofi, on
+    // his first prompt ("I main / Whatever the draft needs..."). It was deck-prompt-store, 01's
+    // own card turned (same name, rank and cells, so two of the three search-visible slots looked
+    // alike, and its prompt made "Rocket League" the most legible game name in slot 2).
+    key: "deck-prompt-dae-store", ...DECK,
   },
   {
     n: "03", slug: "profile",
     lines: ["Your *card*, as", "others see it"],
-    // Was "Vibe, comms and how you take a loss", which is HOW I PLAY: not on this panel (see PROFILE).
-    sub: "Rank, platforms and games in common",
-    // profile-top is told in plain mode; the store story draws the same picture pixel for pixel
-    // (render-dq profile-store: the review account has no --filming photo and keeps its League row).
-    key: "profile-top", ...PROFILE,
+    // Was "Rank, platforms and games in common": the card's third cell is GAMES 14, your own
+    // total; "games in common" is only in the caption under the card.
+    sub: "Rank, platforms and games",
+    // profile-store: profile-top told in the store story, which names the review account
+    // "Jordan". profile-top reads "App Reviewer" on the card, legible even at search-result size.
+    key: "profile-store", ...PROFILE,
   },
   {
-    n: "04", slug: "duo-locked",
-    lines: ["Both queued up.", "Duo *locked.*"],
-    sub: "Then chat about a game you both play",
-    key: "duo-locked-store", ...DUO,
-    unverified: DUO_UNVERIFIED,
-  },
-  {
-    n: "05", slug: "chat",
+    n: "04", slug: "chat",
     lines: ["Plan the *session*", "in chat"],
-    sub: "Pick a night, then queue up",
+    // Was "Pick a night, then queue up": "a night" next to photo cards with ages leans dating.
+    sub: "Pick a time, then queue up",
     key: "chat", ...CHAT,
   },
   {
-    n: "06", slug: "tools",
-    lines: ["Invite a *third*", "to the party"],
+    n: "05", slug: "tools",
+    // Was "Invite a *third* / to the party": in a swipe app with photos and ages, "a third" is
+    // dating-app slang for a threesome partner, and lighting it made that worse.
+    lines: ["Grow the duo", "into a *trio*"],
     sub: "Schedule a session, share your handle",
     key: "tools", ...TOOLS,
   },
   {
-    n: "07", slug: "safety",
+    n: "06", slug: "safety",
     lines: ["*Safety* tools,", "built in"],
-    sub: "18+ only. Block people, hide words",
+    // Was "18+ only. Block people, hide words": nothing on this panel shows an age or 18+ (the
+    // age gate is true of the app, MIN_AGE, but not of this screen), and an age next to photo
+    // cards leans dating.
+    sub: "Block people and hide words",
     key: "safety", ...SAFETY,
   },
 ];
@@ -274,6 +289,10 @@ const COPY_BANS = [
   [/\u2014|\u2013/, "an em or en dash"],
   [/\$|€|£|\bprice|\bfree trial|\/mo\b|per month/i, "a price or trial term"],
   [/\bdat(e|ing)\b|\bsingles?\b|\blove\b|\bromance|\bflirt|\bcrush\b|♥|❤/i, "a dating cue"],
+  // Next to photo cards with ages and swipe buttons: "a third" / "unicorn" are dating-app slang
+  // for a threesome partner, and a night out or an age gate reads as a dating app.
+  [/\bthird\b|\bthreesome|\bunicorns?\b/i, "dating-app slang (a third, unicorn)"],
+  [/\b(to)?nights?\b|\bevenings?\b|\b18\s*\+|\badults? only\b/i, "a night out or an age gate, which reads as dating here"],
   [/\bnot\b|n't\b|\bno more\b/i, "a negation"],
   [/#1|\bbest\b|\bnumber one\b/i, "an unverifiable claim"],
 ];
@@ -284,6 +303,8 @@ for (const s of COPY) {
   if (s.lines.join(" ").match(/\b\d{2}\b/)) throw new Error(`${s.n}: a number that could read as an age in a headline`);
   const lit = s.lines.join(" ").match(/\*[^*]+\*/g) ?? [];
   if (lit.length !== 1) throw new Error(`${s.n}: ${lit.length} lit words; a headline has exactly one`);
+  // The lit span is the word alone: its punctuation stays ink, as on every other slide.
+  if (/[^\p{L}\p{N}\s'’]/u.test(lit[0].slice(1, -1))) throw new Error(`${s.n}: lit span ${lit[0]} lights punctuation`);
 }
 
 /* ---- sources: import and verify --------------------------------------------------------------- */
@@ -348,13 +369,17 @@ const sourceFor = (theme, slide) => {
   }
   if (r.theme !== LOOKS[theme].renderTheme) throw new Error(`${where}: rendered in ${r.theme}, the set is ${LOOKS[theme].renderTheme}`);
   const store = String(r.store ?? "");
-  if (!/^yes\b/.test(store) && !slide.unverified) throw new Error(`${where}: the renderer says store "${store.slice(0, 120)}"`);
+  if (!/^yes\b/.test(store)) throw new Error(`${where}: the renderer says store "${store.slice(0, 120)}"; only a "yes" goes in the set`);
+  const confirm = (r.confirm ?? []).map((c) => c.short);
+  if (confirm.some((c) => /subscriber/.test(c)) && slide.note !== NOTE_PLUS) {
+    throw new Error(`${where}: the panel shows the Deck's subscriber strip (UNLIMITED, Ping, Power-Ups), so the slide needs note: NOTE_PLUS (Guideline 2.3.2)`);
+  }
   const file = path.join(scaleDir(scale), `${key}.png`);
   if (!fs.existsSync(file)) throw new Error(`${where}: ${file} is missing: run with --import`);
   return {
     key, scale, file, store, report,
     window: r.window ?? null,
-    confirm: (r.confirm ?? []).map((c) => c.short),
+    confirm,
     mode: r.mode ?? null,
     sha256: crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex"),
   };
@@ -721,7 +746,7 @@ try {
         source: { key: src.key, scale: src.scale, mode: src.mode, sha256: src.sha256, store: src.store.slice(0, 160) },
         windowPt: slide.win.map((v) => Math.round(v * 100) / 100), padPt: slide.pad ?? 0, windowPx: panel.windowPx,
         panel: { width: PW, height: panel.height, scale: Number(panel.scale.toFixed(4)), insetTop: panel.insetTop, insetBottom: panel.insetBottom },
-        confirm: src.confirm, unverified: slide.unverified ?? null,
+        confirm: src.confirm,
       });
     }
     report.push({ theme, setDir, size, widest: Math.round(widest), subs: m.subs, made });
@@ -740,7 +765,6 @@ try {
           items: made.map((x) => [
             [x.name],
             [`${x.source.key} @${x.source.scale}x, panel ${x.panel.height}px`],
-            ...(x.unverified ? [["UNVERIFIED: renderer says store no", true]] : []),
             ...x.confirm.map((c) => [`confirm: ${c}`, true]),
           ]),
         },
@@ -759,7 +783,6 @@ for (const r of report) {
     console.log(
       `  ${x.name}.png  ${x.source.key} @${x.source.scale}x  window ${x.windowPt[1]}-${x.windowPt[3]} pt  panel ${PW}x${x.panel.height} at ${x.panel.scale}x  inset top ${x.panel.insetTop} bottom ${x.panel.insetBottom}`,
     );
-    if (x.unverified) console.log(`      UNVERIFIED: ${x.unverified}`);
     for (const c of x.confirm) console.log(`      confirm: ${c}`);
   }
 }
