@@ -1,0 +1,1346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Watch the trailer | DuoQueue</title>
+<meta name="description" content="The DuoQueue trailer, 21 seconds: an 18+ app for finding people to play games with. Platonic, not dating.">
+<link rel="canonical" href="https://duoqueue.io/watch/">
+
+<link rel="icon" href="/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="/favicon.png">
+<meta name="theme-color" content="#0A0B09">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="DuoQueue">
+<meta property="og:title" content="Watch the trailer | DuoQueue">
+<meta property="og:description" content="The DuoQueue trailer, 21 seconds: an 18+ app for finding people to play games with. Platonic, not dating.">
+<meta property="og:image" content="https://duoqueue.io/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://duoqueue.io/watch/">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+  @font-face{font-family:"Unbounded";src:url(/fonts/unbounded-700.woff2) format("woff2");font-weight:700;font-style:normal;font-display:swap;}
+  @font-face{font-family:"Manrope";src:url(/fonts/manrope-800.woff2) format("woff2");font-weight:800;font-style:normal;font-display:swap;}
+  @font-face{font-family:"Manrope";src:url(/fonts/manrope-700.woff2) format("woff2");font-weight:700;font-style:normal;font-display:swap;}
+  @font-face{font-family:"Manrope";src:url(/fonts/manrope-500.woff2) format("woff2");font-weight:500;font-style:normal;font-display:swap;}
+  @font-face{font-family:"IBM Plex Mono";src:url(/fonts/plex-mono-600.woff2) format("woff2");font-weight:600;font-style:normal;font-display:swap;}
+
+  :root {
+    --ground: #F6F3EA;
+    --ink: #161A0F;
+    --muted: #5C6450;
+    --accent: #4A6B00;
+    --brand: #CDFF3D;
+    --slab: #0A0B09;
+    --field: #FFFFFF;
+    --rule: #C9CFBB;
+    --mark-ink: #161A0F;
+    --mark-duo: #72766b;
+    --x0: clamp(20px, 12.9vw - 21.26px, 118px);
+    --app-bg: #F2F4EB;
+    --app-surface: #FFFFFF;
+    --app-alt: #E7EBDB;
+    --app-border: #C9CFBB;
+    --app-text: #161A0F;
+    --app-muted: #5C6450;
+    --app-volt: #4A6B00;
+    --app-volt-dim: #3B5600;
+    --app-on-volt: #F7F9F0;
+    --app-amber: #8F5E00;
+    /* The moment cards: the badge's four overlap inks, the sent bubble, the cards' edge and
+       their shadow (APP, CARD and CARD_SHADOW_LAYERS in build-site.mjs). */
+    --tier-none: #66705C;
+    --tier-one: #4E7018;
+    --tier-two: #5A7A00;
+    --tier-many: #8F5E00;
+    --bubble-own: #E4EDC8;
+    --hairline: #E2E0D6;
+    --card-shadow: 0px 1px 2px rgba(41,34,18,0.06), 0px 14px 32px -14px rgba(41,34,18,0.22);
+    /* One ground, no scheme swap. See the design-system note in build-site.mjs. */
+    color-scheme: light;
+
+    /* ---- MOTION, from two sources and no third -------------------------------
+       The four durations are the APP's (apps/mobile/src/theme/tokens.ts:138 —
+       motion = { instant: 90, quick: 140, base: 200, deliberate: 260 }), so a control on
+       this page reacts on the same clock as the same control inside the app.
+
+       The two arrival numbers are the CAMPAIGN's, converted from frames at 30fps:
+       marketing/video/src/pro/motion.ts sets ARRIVAL.frames = 8 (267ms) and
+       ARRIVAL.settle = 34 (1133ms). That file is worth reading before touching any of
+       this, because it is where the numbers were measured off the reference reels frame
+       by frame, and because it names the exact failure this page had: a constant,
+       never-animated tilt, which it calls "the entire difference between a 3D move and
+       a Dribbble mockup".
+
+       --ease-out is the strong ease-out the animate skill specifies, and it is also, to
+       within a rounding error, the quintic-out that ARRIVAL is authored on: the flattest
+       standard curve, which is what "arrives already at speed and stops without a bump"
+       looks like. --ease-sine-out is the settle's curve. Nothing here is hand-rolled and
+       nothing here is a browser default; the built-in easings are too weak. */
+    --t-instant: 90ms;
+    --t-quick: 140ms;
+    --t-base: 200ms;
+    --t-deliberate: 260ms;
+    --t-arrival: 267ms;
+    --t-settle: 1133ms;
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-sine-out: cubic-bezier(0.61, 1, 0.88, 1);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  body {
+    /* Pool over sweep over base: the lit surface the whole campaign sits on. */
+    background-color: var(--ground);
+    background-image: radial-gradient(56% 32% at 42% 58%, rgba(255,255,251,0.5) 0%, rgba(255,255,251,0) 74%), linear-gradient(178deg, #FAF8F2 0%, #F6F3EA 52%, #F3EFE5 100%);
+    background-attachment: fixed, fixed;
+    color: var(--ink);
+    font-family: Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-weight: 500;
+    font-size: 17px;
+    line-height: 1.6;
+    letter-spacing: -0.005em;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  /* No one-word last lines in a paragraph, where the browser can manage it. Line breaking
+     only: no size, no colour, no measure changes. */
+  p { text-wrap: pretty; }
+
+  a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+  a:hover { text-decoration-thickness: 2px; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  .skip-link {
+    position: absolute; left: -9999px; top: 0;
+    background: var(--slab); color: var(--brand); padding: 0.75em 1em; text-decoration: none;
+  }
+  .skip-link:focus { left: 0.5em; top: 0.5em; z-index: 20; }
+
+  /* ---- shared measure ---------------------------------------------------- */
+  /* One left edge for the type and for every object, exactly as the campaign
+     does it: 118/1080 of the field, clamped so it stops growing past the
+     literal number the ads use. */
+  .wrap { max-width: 1180px; margin: 0 auto; padding-left: var(--x0); padding-right: var(--x0); }
+
+  /* ---- header ------------------------------------------------------------ */
+  /* On the ladder, like every other block gap on this page: G1 above the mark, nothing
+     below it, because the hero's own G2 is the gap under the header and two blocks cannot
+     both pay for one boundary. It was 22 and 4, which were neither. */
+  header.site-header { padding: clamp(10px, 2.41vw, 26px) 0 0; }
+  header.site-header .wrap { display: flex; align-items: center; justify-content: space-between; gap: 8px 1em; flex-wrap: wrap; }
+  .brand { display: inline-flex; align-items: baseline; gap: 0.42em; color: var(--ink); text-decoration: none; }
+  .brand .brand-mark { align-self: center; }
+  .brand span {
+    font-family: Unbounded, Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 700; font-size: 19px; letter-spacing: 0.02em; line-height: 1;
+  }
+  .brand:hover { text-decoration: none; }
+  /* The links carry 6px above and below, so each is a 30px-tall target rather than a 17px
+     line of mono. */
+  header.site-header nav { display: flex; gap: 1.3em; flex-wrap: wrap; align-items: center; }
+  header.site-header nav a {
+    font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 600; font-size: 11px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--muted); text-decoration: none; padding: 6px 0;
+  }
+  header.site-header nav a:hover { color: var(--accent); text-decoration: underline; }
+  /* WATCH comes first and in the accent, with a play triangle drawn in SVG rather than typed
+     (iOS turns a typed U+25B6 into an emoji). pageShell emits it only where the film is on,
+     so it can never point at a watch page that was not built; on the watch page itself it is
+     the aria-current link. */
+  header.site-header nav a.nav-watch { color: var(--accent); display: inline-flex; align-items: center; gap: 0.5em; }
+  .nav-watch svg { width: 8px; height: 9px; fill: currentColor; flex: none; }
+  /* On a phone the nav is its own row, spread edge to edge and closed with a hairline, so it
+     reads as the site's nav bar rather than as one more mono label sitting on the eyebrow. */
+  @media (max-width: 599px) {
+    header.site-header nav { width: 100%; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--rule); }
+  }
+
+  /* ---- the mono furniture ------------------------------------------------ */
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 600; font-size: clamp(11px, 1.05vw, 14px);
+    letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted);
+    margin: 0 0 1.1em;
+  }
+
+  /* ---- display type ------------------------------------------------------ */
+  /* Manrope 800 at -2% is the campaign's headline face and tracking. The accent
+     word is the app's own olive resolution of chartreuse on paper, and there is
+     exactly one of them per headline, which is the campaign's rule too. */
+  h1.display, h2.display {
+    font-family: Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 800;
+    font-size: clamp(34px, 8.4vw, 76px); line-height: 1.34; letter-spacing: -0.02em;
+    color: var(--ink); margin: 0 0 0.42em; text-wrap: balance;
+  }
+  .display .key { color: var(--accent); }
+  /* THE HERO'S ACCENT WORD IS MARKED, NOT INKED. The app's rule for chartreuse on paper is
+     "inks fill, chartreuse marks": the word stays in ink, and chartreuse is laid UNDER it as
+     a highlighter stroke. Ink on the stroke is 15.11:1. It is the one place raw chartreuse
+     touches the cream, and it is legal there for the reason the design note gives against
+     it everywhere else: a chartreuse FILL has no silhouette on this ground (1.05:1), so it
+     can never be the thing a reader reads by. Here nothing is read by the stroke; the word
+     is read by its ink, and the stroke only says which word matters.
+     Scoped to the hero, so the two outcome pages keep their olive accent. If the stroke
+     reads as a smudge on a real phone, delete these two rules and "duo" goes back to the
+     olive above. The stroke is drawn from its left end (transform-origin) so the motion
+     block can swipe it in; at rest it is simply there. */
+  .hero .display .key { position: relative; z-index: 0; color: var(--ink); white-space: nowrap; }
+  .hero .display .key::after {
+    content: ""; position: absolute; z-index: -1;
+    left: -0.06em; right: -0.08em; bottom: 0.24em; height: 0.36em;
+    background: var(--brand); border-radius: 0.06em;
+    transform-origin: 0 50%;
+  }
+
+  .lede { font-size: clamp(17px, 2.1vw, 22px); line-height: 1.5; margin: 0 0 0.7em; max-width: 30ch; }
+  .sub { color: var(--muted); font-size: clamp(15px, 1.7vw, 18px); margin: 0 0 1.9em; max-width: 38ch; }
+
+  /* ---- hero -------------------------------------------------------------- */
+  main { display: block; }
+  /* THE HERO GRID IS THREE NAMED AREAS: the type, the form, and the trailer link.
+     They are separate grid children so the composition can be re-cut per viewport SHAPE
+     rather than only per width. On a phone they stack in reading order, so the link to the
+     film sits under the fine print and never between a visitor and the form; from 900px the
+     form moves beside the type and the link tucks under the copy column. Same markup, same
+     order in the DOM, every cut.
+
+     The product used to be this grid's third area (one card sliced into three plates). It
+     is its own section now, the three moment cards under the hero, so the hero ends where
+     its form and its link end and the next section pays for the gap. That is why the
+     hero's bottom padding is zero at every size: two sections cannot both pay for one
+     boundary. */
+  section.hero { padding: clamp(16px, 3.70vw, 40px) 0 0; }
+  .hero-grid {
+    display: grid; grid-template-columns: minmax(0, 1fr); gap: 0;
+    grid-template-areas: "copy" "act" "watch";
+    align-items: start;
+  }
+  .hero-copy { grid-area: copy; }
+  .hero-act { grid-area: act; }
+  .hero-watch { grid-area: watch; margin-top: 26px; }
+
+  /* ---- the form ---------------------------------------------------------- */
+  /* THE FORM USED TO BE SQUARE AND IS NOW THE APP'S OWN FORM.
+     The old rule was that the campaign's furniture is square (the end card's slab, the
+     swipe cue) and only the PRODUCT carries the app's radii, so the form was square and
+     the fragments were not. That rule died with the slab: the button below is no longer
+     the end card's furniture, it is apps/mobile/src/components/Button.tsx at
+     radius.button = 6, so the field above it is TextField at radius.input = 6 — also 6,
+     because the app gives its input and its button the same corner. Two controls a
+     visitor uses in one motion should not disagree about what shape a control is. */
+  form.signup { max-width: 460px; }
+  .field-label {
+    display: block; font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 600; font-size: 11px;
+    letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
+  }
+  input[type="email"] {
+    width: 100%; display: block;
+    background: var(--field); color: var(--ink);
+    border: 1.5px solid var(--ink); border-radius: 6px; /* radius.input */
+    padding: 15px 16px; font-family: Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 500; font-size: 17px; line-height: 1.3;
+    appearance: none;
+    /* Colour only, and it survives prefers-reduced-motion: a border that snaps from ink to
+       accent is a state change with no transition on it, which is the one thing a 140ms
+       fade genuinely improves. Nothing moves. */
+    transition: border-color var(--t-quick) ease;
+  }
+  input[type="email"]::placeholder { color: var(--muted); opacity: 1; }
+  input[type="email"]:hover { border-color: var(--accent); }
+  input[type="email"]:focus { outline: 3px solid var(--accent); outline-offset: 2px; border-color: var(--accent); }
+
+  /* 24px, not the browser's 13px default: WCAG 2.5.8 wants a 24x24 target and this
+     is the one control between a visitor and the list. The label is the same height
+     and is bound to the input, so the whole line is the target. */
+  .adult { display: flex; align-items: center; gap: 11px; margin: 16px 0 20px; }
+  .adult input[type="checkbox"] {
+    flex: none; width: 24px; height: 24px; margin: 0; accent-color: var(--app-volt);
+  }
+  .adult label { font-size: 15px; line-height: 24px; min-height: 24px; color: var(--ink); cursor: pointer; }
+
+  /* THE CALL TO ACTION — the app's own primary button, on paper.
+     apps/mobile/src/components/Button.tsx, variant "primary": colors.volt fills it,
+     colors.onVolt writes on it, radius.button rounds it, and pressing it scales it to
+     0.97. All four are transcribed rather than chosen. The long version of why it stopped
+     being an off-black slab with chartreuse words, and what that cost, is the design-system
+     note at the top of build-site.mjs.
+
+     IT IS STILL MEANT TO BE THE LOUDEST THING ON THE FIRST SCREEN, and it lost 17.18:1 of
+     silhouette to get there, so four things pay that back and each is deliberate:
+       * a cast shadow in the page's own shadow ink, so it is the only lifted piece of
+         FURNITURE on the page and reads as an object sitting on the paper rather than as a
+         colour printed into it (see CTA_SHADOW_LAYERS, and note that the guard composites
+         it before measuring the two sentences underneath);
+       * heavier vertical padding than the old slab, 0.42/0.48em against 0.36/0.42em;
+       * air above it — the checkbox row's bottom margin, not the button, holds it apart;
+       * a deep olive is the only chromatic mass on a neutral warm ground. Off-black had
+         more luminance contrast and no colour at all; this has less of the first and all
+         of the second, which is the trade Cameron asked for in those words.
+
+     Chartreuse is not here and cannot be: 1.05:1 on this ground is not low contrast, it is
+     no silhouette whatsoever. */
+  .cta {
+    display: block; width: 100%; text-align: center; cursor: pointer;
+    background: var(--app-volt); color: var(--app-on-volt);
+    border: 1.5px solid var(--app-volt); border-radius: 6px; /* radius.button */
+    padding: 0.42em 0.6em 0.48em;
+    font-family: Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 800; font-size: clamp(21px, 5.4vw, 44px); line-height: 1.3;
+    letter-spacing: -0.02em;
+    text-decoration: none;
+    box-shadow: 0px 2px 5px rgba(41,34,18,0.16), 0px 12px 26px -8px rgba(41,34,18,0.3);
+    /* Named properties, never 'all'. Colour moves on the app's 'quick', the lift on the
+       app's 'base', and the press below drops to the app's 'instant'. */
+    transition:
+      background-color var(--t-quick) ease,
+      border-color var(--t-quick) ease,
+      box-shadow var(--t-base) var(--ease-out),
+      transform var(--t-base) var(--ease-out);
+  }
+  /* Gated, because a touch device fires a false :hover on tap and would leave the button
+     stuck in its hovered state after the finger lifts. */
+  @media (hover: hover) and (pointer: fine) {
+    .cta:hover {
+      background: var(--app-volt-dim); border-color: var(--app-volt-dim);
+      box-shadow: 0px 3px 7px rgba(41,34,18,0.16), 0px 20px 38px -10px rgba(41,34,18,0.34);
+      transform: translate3d(0, -2px, 0);
+      text-decoration: none;
+    }
+  }
+  /* The press is the app's own: scale(0.97), and the shadow collapses to its contact layer
+     because the object has been pushed down onto the paper. It comes after the hover rule
+     on purpose so a pressed button is never also a lifted one, and it is not gated — a
+     press is the one piece of feedback a touch device must get. */
+  .cta:active {
+    background: var(--app-volt-dim); border-color: var(--app-volt-dim);
+    box-shadow: 0px 1px 3px rgba(41,34,18,0.18);
+    transform: scale(0.97);
+    transition-duration: var(--t-instant);
+  }
+
+  .promise { font-size: 15px; line-height: 1.5; margin: 16px 0 0; max-width: 44ch; }
+  .fineprint { font-size: 13.5px; line-height: 1.55; color: var(--muted); margin: 8px 0 0; max-width: 46ch; }
+
+  /* The honeypot. Off-canvas rather than display:none, because some form-filling
+     bots skip anything that is not rendered. tabindex, autocomplete and aria-hidden
+     on the input itself keep it away from keyboards and screen readers. */
+  .hp { position: absolute; left: -9999px; top: auto; width: 1px; height: 1px; overflow: hidden; }
+
+  /* ---- the trailer link -------------------------------------------------- */
+  /* THE FILM'S ONLY PRESENCE ON A LANDING PAGE. The launch film used to sit on this page as
+     a dark 21-second block that broke the light page's flow, and every visit downloaded
+     2.9 MB for it, although most visitors arrive from a video already. It has its own dark
+     page now (/watch/, and one per channel), and this is the door to it: a light pill with
+     the app's olive play disc, the words, and the running time, so the cost of the tap is
+     on the label. Every colour in it is a pair the page already passes: ink on a lightened
+     ground, onVolt on volt, muted ink in the time chip. 48px tall, a comfortable target. */
+  .trailer {
+    display: inline-flex; align-items: center; gap: 12px;
+    min-height: 48px; padding: 7px 18px 7px 7px;
+    background: rgba(255,255,255,0.6); border: 1px solid var(--rule); border-radius: 999px;
+    color: var(--ink); text-decoration: none;
+    font-weight: 700; font-size: 15px; line-height: 1.2;
+    transition:
+      border-color var(--t-quick) ease,
+      transform var(--t-base) var(--ease-out),
+      box-shadow var(--t-base) var(--ease-out);
+  }
+  .trailer-play {
+    flex: none; width: 34px; height: 34px; border-radius: 999px; background: var(--app-volt);
+    display: grid; place-items: center;
+  }
+  .trailer-play svg { width: 13px; height: 14px; margin-left: 2px; fill: var(--app-on-volt); display: block; }
+  .trailer-time {
+    font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 600; font-size: 12px;
+    letter-spacing: 0.08em; color: var(--muted);
+    padding-left: 12px; border-left: 1px solid var(--rule);
+  }
+  .trailer:hover { text-decoration: none; border-color: var(--accent); }
+  /* Gated like the button's lift, because a touch device fires a false :hover on tap. */
+  @media (hover: hover) and (pointer: fine) {
+    .trailer:hover { transform: translate3d(0, -1px, 0); box-shadow: 0 10px 22px -12px rgba(41,34,18,0.35); }
+  }
+  .trailer:active { transform: scale(0.97); transition-duration: var(--t-instant); }
+
+  /* ---- what you are joining: three moment cards -------------------------- */
+  /* THREE CARDS OF ONE SIZE, AND THAT IS THE WHOLE FIX. What was here was three cut-out
+     fragments of different widths under heavy tilted shadows: the "chopped" look, because
+     nothing in an arrangement of differently sized objects relates one to the next. These
+     three agree about everything a frame can agree about: the same width, the same corner,
+     the same soft shadow, and an inner screen of the same height whatever it holds. So they
+     read as three frames of one sequence (match, lock, talk: the hero sub's own sentence)
+     rather than as three pictures. grid-auto-rows: 1fr holds the heights equal in the
+     stacked cut too, where each card would otherwise be as tall as its own sentence.
+
+     The shadow is small on purpose (CARD_SHADOW_LAYERS). A card is furniture resting on
+     the paper, not an object arriving at the reader. */
+  section.moments { padding: clamp(56px, 9vw, 104px) 0 0; }
+  .moments .eyebrow { margin-bottom: clamp(16px, 2.2vw, 26px); }
+  .moment-list {
+    list-style: none; margin: 0; padding: 0;
+    display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-rows: 1fr; gap: 16px;
+    max-width: 480px;
+  }
+  .moment-card {
+    height: 100%; display: flex; flex-direction: column;
+    background: var(--app-surface); border: 1px solid var(--hairline); border-radius: 14px;
+    box-shadow: var(--card-shadow);
+  }
+  /* The screen inside each card: the app's own background, ONE fixed height, and the moment
+     centred in it. It is the query container the chips size themselves against. */
+  .stage {
+    container-type: inline-size;
+    margin: 7px 7px 0; height: 214px; padding: 14px;
+    border-radius: 9px; background: var(--app-bg); border: 1px solid #E6E9DD;
+    display: flex; flex-direction: column; justify-content: center;
+    overflow: hidden; overflow: clip;
+  }
+  .moment-line {
+    margin: 0; padding: 14px 18px 18px;
+    font-weight: 700; font-size: 16.5px; line-height: 1.38; letter-spacing: -0.01em; color: var(--ink);
+    text-wrap: balance;
+  }
+  /* The index is the app's type.tick, its face for "timestamps, statuses, counters, index
+     marks", in the accent: it says the three cards are a sequence. */
+  .moment-line .no {
+    display: block; margin-bottom: 6px;
+    font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 600; font-size: 11px; letter-spacing: 0.16em; color: var(--accent);
+  }
+
+  /* 01: THE GAMES, AND THE OVERLAP READ THE APP DRAWS FROM THEM.
+     Chip.tsx's sharp 3px mono tag, full width so three rows stack like a profile's games,
+     with the skill level after a middle dot. The detail is plain app muted on white; it
+     used to carry a 0.8 opacity that took it to 3.91:1, under AA, and it no longer does.
+     The badge is SwipeCard.tsx's overlapLabel() in overlapBucket()'s four inks. All four
+     counts are in the markup, stacked in one grid cell: the finished count is the resting
+     style, and the three before it are invisible and aria-hidden until the motion block
+     counts up through them. Mono and nowrap, so the cell is as wide as the longest label
+     and the badge never changes width while it counts. */
+  .chips { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .chip {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+    background: var(--app-surface); border: 1px solid var(--app-border); border-radius: 3px;
+    padding: 0.62em 0.75em; line-height: 1.2;
+    font-size: 12px;
+    font-size: clamp(10px, 4.5cqi, 13px);
+  }
+  .chip b {
+    font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--app-text); white-space: nowrap;
+  }
+  .chip i { font-style: normal; font-size: 1.04em; color: var(--app-muted); white-space: nowrap; }
+  .overlap {
+    display: grid; margin-top: 10px; padding: 0.62em 0.75em;
+    border: 1px solid var(--tier-many); border-radius: 3px; background: var(--app-surface);
+    font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 600; line-height: 1.2; letter-spacing: 0.08em; white-space: nowrap;
+    font-size: 12.5px;
+    font-size: clamp(10.5px, 4.8cqi, 14px);
+    transform-origin: 0 50%;
+  }
+  .overlap > span { grid-area: 1 / 1; }
+  .overlap .t0 { color: var(--tier-none); opacity: 0; }
+  .overlap .t1 { color: var(--tier-one); opacity: 0; }
+  .overlap .t2 { color: var(--tier-two); opacity: 0; }
+  .overlap .t3 { color: var(--tier-many); }
+
+  /* 02: THE MATCH SCREEN, app/match/[matchId].tsx, the one moment the app exists to produce.
+     The app's two volt bracket glyphs close around the logo's own two rings, which are drawn
+     from ringGeometry() in three layers so they can slide in from either side and interlock
+     (see lockinSvg()). DUO LOCKED is the screen's label at the app's 0.1875em tracking, and
+     the line under it is the screen's own fallback wording, because no card on this site
+     carries a real person. */
+  .lockin { display: flex; align-items: center; justify-content: center; gap: 4px; }
+  .lockin .br { font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 600; font-size: 58px; line-height: 0.74; color: var(--app-volt); }
+  .lockin svg { display: block; width: 98px; height: auto; overflow: visible; }
+  .lock {
+    margin: 14px 0 2px; text-align: center;
+    font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 600; font-size: 14px; line-height: 1.375;
+    letter-spacing: 0.1875em; text-indent: 0.1875em; text-transform: uppercase; color: var(--app-volt);
+  }
+  .both { margin: 0; text-align: center; font-size: 14px; line-height: 1.45; color: var(--app-text); }
+
+  /* 03: THEN YOU TALK, app/chat/[matchId].tsx. An incoming bubble, the sent one in the app's
+     own bubbleOwn, and the composer: a surfaceAlt field with the app's placeholder and the
+     round volt send button. The typed message sits in the field at rest, invisible, for the
+     motion block to type in; the finished chat is the resting style. */
+  .stage.talk { justify-content: flex-end; }
+  .chat { display: flex; flex-direction: column; gap: 6px; margin-top: auto; }
+  .bubble { margin: 0; max-width: 80%; padding: 7px 12px; font-size: 14.5px; line-height: 1.35; border-radius: 13px; color: var(--app-text); }
+  .bubble.in { align-self: flex-start; background: var(--app-surface); border: 1px solid var(--app-border); border-bottom-left-radius: 4px; }
+  .bubble.out { align-self: flex-end; background: var(--bubble-own); border: 1px solid #D3DFB0; border-bottom-right-radius: 4px; }
+  .composer { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+  .composer .box {
+    position: relative; flex: 1; min-width: 0;
+    background: var(--app-alt); border: 1px solid var(--app-border); border-radius: 6px;
+    padding: 9px 12px; font-size: 14.5px; line-height: 1.35; color: var(--app-muted);
+  }
+  .composer .typed { position: absolute; left: 12px; top: 9px; color: var(--app-text); opacity: 0; white-space: nowrap; }
+  .composer .send {
+    flex: none; width: 38px; height: 38px; border-radius: 999px; background: var(--app-volt);
+    display: grid; place-items: center;
+  }
+  .composer .send svg { display: block; width: 18px; height: 18px; }
+
+  /* From 720 to 1079 each card lies on its side, screen left and sentence right, so three
+     cards do not become three narrow columns on a tablet. From 1080 they stand in a row of
+     three and share the field between them. */
+  @media (min-width: 720px) and (max-width: 1079px) {
+    .moment-list { max-width: 760px; }
+    .moment-card { flex-direction: row; align-items: center; }
+    .stage { flex: none; width: 320px; margin: 7px; }
+    .moment-line { padding: 20px 28px 20px 22px; font-size: 20px; }
+  }
+  @media (min-width: 1080px) {
+    .moment-list { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: none; gap: clamp(16px, 1.8vw, 26px); }
+    .moment-line { font-size: 17px; }
+  }
+
+  /* ---- the plain version ------------------------------------------------- */
+  /* Each item hangs from a hairline rule with a short olive tick at its left end. Both are
+     pseudo-elements anchored at their left end (transform-origin), so the motion block can
+     draw them across without the markup knowing; at rest they are simply there. The tick
+     is a graphic in the accent, which is the accent-on-ground pair the guard already
+     measures, against the 3.0 a graphic needs. */
+  section.plain { padding: clamp(56px, 9vw, 104px) 0; }
+  /* A plain section that follows another starts at the first one's bottom padding: two
+     sections cannot each pay for the same boundary. On the root page that is the support
+     block after the plain version. */
+  section.plain + section.plain { padding-top: 0; }
+  .plain-list { display: grid; grid-template-columns: 1fr; gap: clamp(20px, 3.2vw, 36px); margin: 0; padding: 0; list-style: none; }
+  .plain-list li { position: relative; padding-top: clamp(14px, 2vw, 22px); }
+  .plain-list li::before {
+    content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1px;
+    background: var(--rule); transform-origin: 0 50%;
+  }
+  .plain-list li::after {
+    content: ""; position: absolute; left: 0; top: -1px; width: 28px; height: 3px;
+    background: var(--accent); transform-origin: 0 50%;
+  }
+  .plain-list h3 {
+    font-family: Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 800; font-size: 20px; letter-spacing: -0.02em;
+    margin: 0 0 6px; color: var(--ink); text-wrap: balance;
+  }
+  .plain-list p { margin: 0; color: var(--muted); font-size: 15.5px; line-height: 1.55; max-width: 42ch; }
+
+  /* JOIN AGAIN, after the plain version. The big closing end card's only working part was a
+     second button that jumped back to the form; this is that button without the end card
+     around it, and deliberately quieter than the hero's: outlined rather than filled, so
+     the page keeps exactly one loud call to action. Volt type on the paper is the
+     accent-on-ground pair; hover fills it with the button's own volt and onVolt, and the
+     press is the app's scale(0.97). 44px tall for the touch target. */
+  .again { margin: clamp(28px, 4vw, 44px) 0 0; }
+  .cta-ghost {
+    display: inline-flex; align-items: center; gap: 0.45em;
+    min-height: 44px; padding: 0 16px;
+    border: 1.5px solid var(--app-volt); border-radius: 6px;
+    background: transparent; color: var(--app-volt); text-decoration: none;
+    font-family: Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 800; font-size: 16px; line-height: 1.2; letter-spacing: -0.01em;
+    transition:
+      background-color var(--t-quick) ease,
+      border-color var(--t-quick) ease,
+      color var(--t-quick) ease,
+      transform var(--t-base) var(--ease-out);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .cta-ghost:hover { background: var(--app-volt); color: var(--app-on-volt); text-decoration: none; }
+  }
+  .cta-ghost:active {
+    background: var(--app-volt-dim); border-color: var(--app-volt-dim); color: var(--app-on-volt);
+    transform: scale(0.97); transition-duration: var(--t-instant);
+  }
+
+  /* ---- outcome pages ----------------------------------------------------- */
+  section.outcome { padding: 8vh 0 12vh; }
+  .outcome .display { max-width: 16ch; }
+  .outcome p { max-width: 44ch; }
+
+  /* ---- legal + support --------------------------------------------------- */
+  /* The legal documents contain long unbreakable tokens (email addresses, file paths
+     in code spans). At 320px they pushed the page 8px wider than the viewport, which
+     is a horizontal scrollbar on the two pages App Review opens. */
+  article { max-width: 68ch; padding: 26px 0 40px; overflow-wrap: anywhere; }
+  article h1 { font-family: Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 800; font-size: clamp(28px, 5vw, 40px); line-height: 1.18; letter-spacing: -0.02em; margin: 0 0 0.4em; }
+  article h2 { font-family: Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 800; font-size: 1.28em; line-height: 1.3; letter-spacing: -0.015em; margin: 1.9em 0 0.6em; padding-top: 0.7em; border-top: 1px solid var(--rule); }
+  article h2:first-child { border-top: none; padding-top: 0; margin-top: 0; }
+  /* The source documents put a --- before most section headings, which used to draw
+     the markdown's rule and the heading's own rule as two lines 20px apart. */
+  article hr + h2 { border-top: none; padding-top: 0; margin-top: 0.7em; }
+  article h3 { font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 600; font-size: 0.78em; margin: 1.5em 0 0.5em; color: var(--muted); text-transform: uppercase; letter-spacing: 0.14em; }
+  article p { margin: 0 0 1em; }
+  article ul, article ol { margin: 0 0 1em; padding-left: 1.4em; }
+  article li { margin: 0.35em 0; }
+  article li > ul, article li > ol { margin-top: 0.35em; }
+  article hr { border: none; border-top: 1px solid var(--rule); margin: 2em 0; }
+  article strong { font-weight: 700; color: var(--ink); }
+  article code {
+    background: rgba(22,26,15,0.05); border: 1px solid var(--rule);
+    padding: 0.15em 0.4em; font-size: 0.86em; font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 600;
+  }
+
+  .table-scroll { overflow-x: auto; margin: 0 0 1.4em; border: 1px solid var(--rule); }
+  table { border-collapse: collapse; width: 100%; min-width: 480px; font-size: 0.9em; }
+  th, td { text-align: left; padding: 0.6em 0.75em; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  thead th { background: rgba(22,26,15,0.04); color: var(--muted); font-weight: 700; white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: none; }
+
+  /* THE SUPPORT CARD, in the moment cards' language rather than a style of its own: the same
+     white surface, hairline, 14px corner and soft shadow. Full width; from 900px the heading
+     sits in a narrow left column with the text beside it (see the wide-viewport block). The
+     text is what App Review reads at the Support URL, and it is unchanged. */
+  section.card {
+    background: var(--app-surface); border: 1px solid var(--hairline); border-radius: 14px;
+    box-shadow: var(--card-shadow);
+    padding: clamp(20px, 3vw, 36px); margin: 0;
+  }
+  section.card h2 {
+    font-family: Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 800; font-size: 22px; letter-spacing: -0.02em; line-height: 1.3;
+    margin: 0 0 10px;
+  }
+  section.card p { margin: 0 0 0.9em; font-size: 16px; line-height: 1.6; max-width: 62ch; }
+  section.card p:last-child { margin-bottom: 0; }
+
+  /* ---- footer ------------------------------------------------------------ */
+  footer.site-footer { border-top: 1px solid var(--rule); padding: clamp(10px, 2.41vw, 26px) 0 clamp(24px, 5.74vw, 62px); color: var(--muted); font-size: 13.5px; }
+  footer.site-footer nav { margin-top: 8px; display: flex; gap: 10px; flex-wrap: wrap; }
+  footer.site-footer a { color: var(--muted); }
+  footer.site-footer a:hover { color: var(--accent); }
+
+  /* ---- the queue bar ----------------------------------------------------- */
+  /* THE CLOSING LOCKUP'S ONE JOB, DONE FROM THE TOP OF THE SCREEN. The lockup's only working
+     part was a second button that jumped back to the form, once, at the bottom of the page.
+     This slim bar does that job at every scroll position after the form has left the screen:
+     the logo, and "join the waitlist" in the app's own primary button (volt fill, onVolt
+     label, radius.button, the scale(0.97) press, the button's contact shadow).
+
+     It is display:none here, and it only exists inside the scroll-timeline block in MOTION
+     below, and only on a page that has the form. Without a scroll timeline there is no way
+     to show it only once the form has gone (there is no script to watch the scroll), and a
+     bar that sat over the form's own button would be worse than no bar, so in a browser
+     without one it stays display:none and the form and the outlined link after the plain
+     version are the page's calls to action.
+     A page with the bar and no #waitlist-form needs its own rule, because the timeline
+     support check cannot see it: the landing pages are that page once PHASE is "launched"
+     (waitlistBody then emits the download button, not the form). With no form there is no
+     --form timeline, the bar's animation is inactive and has no effect, and the bar would
+     sit at its resting style in that block, fixed and visible at every scroll position,
+     over the site header at the top of the page. So that block also hides it wherever
+     body:not(:has(#waitlist-form)). Its markup is emitted on the landing pages only
+     (pageShell's qbar option, qbarHtml()), and pageShell does not emit it at all when PHASE
+     is "launched"; the guard is there so that a page that forgets costs nothing. */
+  .qbar { display: none; }
+  .qbar-in { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 58px; }
+  .qbar .brand span { font-size: 17px; }
+  .qbar-cta {
+    display: inline-flex; align-items: center; gap: 8px;
+    min-height: 40px; padding: 0 14px;
+    background: var(--app-volt); color: var(--app-on-volt); border-radius: 6px; /* radius.button */
+    text-decoration: none;
+    font-family: Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 800; font-size: 15px; line-height: 1.2; letter-spacing: -0.01em;
+    box-shadow: 0px 2px 5px rgba(41,34,18,0.16);
+    transition:
+      background-color var(--t-quick) ease,
+      transform var(--t-base) var(--ease-out);
+  }
+  .qbar-cta:hover { background: var(--app-volt-dim); text-decoration: none; }
+  .qbar-cta:active { background: var(--app-volt-dim); transform: scale(0.97); transition-duration: var(--t-instant); }
+  .qbar-cta svg { width: 15px; height: 15px; display: block; }
+
+  /* =======================================================================
+     MOTION
+     =======================================================================
+
+     WHAT THIS IS FOR. A visitor lands here from an eighteen-second film in which nothing
+     ever fades: type builds forward out of the page, and objects arrive rotated and
+     oversized under blur and unwind. The page's first frame should be the film's next
+     frame. The hero's entrance makes that argument, and nothing else below does. The
+     moment cards (which rise in and then act out the app's three moments), the plain
+     version's rules (which draw across) and the queue bar (which slides in once the form
+     has gone) each have a job of their own, stated where they are.
+
+     THE THINGS THAT DELIBERATELY DO NOT ANIMATE, because "should this animate at all" has
+     a real answer and here it is no, three times:
+       * THE HEADLINE DOES NOT BUILD WORD BY WORD. The film does, and motion.ts measures
+         the cadence at 4 to 5 frames a word. The film builds words because it owns
+         eighteen seconds of linear time the viewer cannot skip; a landing page's headline
+         is the one sentence the visitor came to read, and staggering it delays exactly
+         that. It arrives as one object.
+       * THE GROUND DOES NOT MOVE. No drifting gradient, no parallax field. It is the one
+         thing the campaign holds absolutely constant across every deliverable, and a
+         full-viewport moving background is on the short list of things that reliably
+         provoke motion sickness.
+       * THE PLAIN VERSION'S WORDS DO NOT REVEAL ON SCROLL. They are three paragraphs about
+         18+, platonic, and everyone starting together, and the whole point of that block is
+         that it is plain, so its type is simply there. Only its rules move: each hairline
+         draws across as its item comes up the screen, then its short olive tick. Those are
+         graphics, not words.
+     And nothing repeats: every piece below plays once, settles, and then stays still.
+
+     THE RULE THAT MAKES ALL OF IT SAFE: every animation below is fill-mode BACKWARDS, and
+     every to-state is identical to the element's resting style. So the resting style is
+     the truth and the animation is a displacement in front of it, which means an element
+     that is never animated - reduced motion, an older browser, a scroll timeline that
+     never runs - renders correct and complete. Nothing on this page is hidden by a base
+     rule waiting for an animation to reveal it.
+
+     The one refinement: the SCROLL-SCRUBBED animations (the cards below 860px, the plain
+     version's rules, the queue bar) fill BOTH ways. Their forwards fill is their 100%
+     keyframe, which is the resting style, so it changes nothing a reader can see except one
+     thing, measured: with backwards only, Chrome can leave a stale composited value behind
+     when a scrubbed opacity animation passes into its after phase. Scrolled past card 02, its
+     "both queued up" line stayed at about a third of its opacity while its computed style
+     said 1; loaded at the same scroll position it was solid. Filling forwards means the
+     animation itself holds the finished value, so there is no hand-off to go stale.
+
+     The moment cards' in-between states (the badge's lower counts, the half-typed message)
+     are the other way round: hidden and aria-hidden at rest, and only ever shown by an
+     animation passing through them.
+
+     THE MOMENT CARDS HAVE TWO DRIVERS, split at 860px:
+       * BELOW 860 (phones and portrait tablets: the hero is one column and the cards stack
+         under it) each card's moment is scrubbed by that card's own passage up the screen,
+         on a view timeline, so it plays while the reader is looking at it and a fast flick
+         plays it fast. Every range ends at cover 40%, while the card's middle is still below
+         the middle of the screen (cover 50% is the exact moment the two middles meet), so a
+         reader who stops with a card in front of them sees it finished. And the whole moment
+         spans about a third of a screen of scrolling, so a half-typed message is a short band
+         a thumb passes through rather than a place the page can rest.
+       * FROM 860 the moments play once, on load, on a clock: the three cards rise at 300,
+         360 and 420ms, then 01, 02 and 03 play in order, and the page is finished and still
+         at 3.0s. The reason is the first screen of a laptop or a desktop, and it holds from
+         1080, where the three cards stand in one row whose top edge is on the first screen
+         at scroll 0 (measured after load: 66px of each card at 1080x700, 124px at 1280x800,
+         214px at 1440x900, 281px at 1920x1080), and for card 01 alone from 900 (153px of it
+         at 1024x768, all of it at 900x900). A scroll timeline there would sit wherever the
+         fold cut it, and a visitor who never scrolls would see the moments stopped: with the
+         phone driver forced on at scroll 0, every card is 12% of the way through at 1440x900
+         and 30% at 1920x1080 (a game row still sliding in, two rings apart, an empty chat),
+         card 01 is 34% through at 900x900, and at 1280x720 none has started.
+         Below 1080 that reason does not cover every card. From 860 to 899 the hero is still
+         one column and all three cards are below the first screen (card 01's top is 990px
+         down at 899x700, 1108px at 860x900); from 900 to 1079 the cards lie on their sides in
+         a stack and 02 and 03 are below it. Those cards play their load sequence where nobody
+         sees it, and since it is over at 3.0s they are almost always finished and still by
+         the time a reader scrolls to them: that reader gets the finished cards without the
+         moments. It is the cost of splitting at 860, where the plan puts the split, rather
+         than at 1080.
+     Scroll timelines are Chrome 115+ and Safari 26+. Below 860, a browser without them shows
+     the cards finished; under Reduce Motion, every width does. */
+
+  /* Type, and blocks of it. The film spends a word's travel on Z rather than Y: "the word
+     comes FORWARD out of the page, which is what a scale from 0.35 under a blur reads as,
+     where a vertical lift reads as a slide-up preset". Same axis here at a page-sized
+     amplitude - 70px of Z under a 900px perspective is a 7% approach - plus 10px of lift. */
+  @keyframes rise {
+    from { opacity: 0; transform: perspective(900px) translate3d(0, 10px, -70px); }
+    to   { opacity: 1; transform: perspective(900px) translate3d(0, 0, 0); }
+  }
+
+  /* ---- the hero, on load ------------------------------------------------- */
+  /* 60ms between blocks. The film's own cadence is 4.5 frames, 150ms, which is right for
+     four words of a headline arriving one at a time and far too slow for six stacked
+     blocks: it would put the trailer link 900ms behind the eyebrow. 60ms is inside the
+     30-80ms a group entrance is allowed, and the whole hero has landed 567ms after first
+     paint. The button is usable for every one of those milliseconds - an element at
+     opacity 0 still takes the pointer, and nothing here is display:none or
+     visibility:hidden. */
+  .hero-copy .eyebrow,
+  .hero-copy h1.display,
+  .hero-copy .lede,
+  .hero-copy .sub,
+  .hero-act,
+  .hero-watch {
+    animation: rise var(--t-arrival) var(--ease-out) backwards;
+  }
+  .hero-copy h1.display { animation-delay: 60ms; }
+  .hero-copy .lede      { animation-delay: 120ms; }
+  .hero-copy .sub       { animation-delay: 180ms; }
+  .hero-act             { animation-delay: 240ms; }
+  .hero-watch           { animation-delay: 300ms; }
+
+  /* The highlighter goes on after the headline has landed (60 + 267 = 327ms): one stroke
+     from the left end, 460ms on the in-out curve a hand-drawn mark has, starting at 360ms.
+     At rest the stroke is simply there. */
+  @keyframes mark-swipe {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+  }
+  .hero .display .key::after { animation: mark-swipe 460ms cubic-bezier(0.65, 0, 0.35, 1) 360ms backwards; }
+
+  /* ---- the moment cards -------------------------------------------------- */
+  /* Every keyframe below is written as a share of ONE window per card, so a card's pieces
+     keep their choreography whichever driver stretches that window: a scroll range on a
+     phone, a duration on a desktop. The timing inside each window is carried by the
+     keyframes (each step's own curve), and the window itself runs linear. */
+  @keyframes card-in {
+    from { opacity: 0; transform: translateY(32px); }
+    to   { opacity: 1; transform: none; }
+  }
+  /* The load version travels less: it is an entrance on a still page, not a card being
+     carried up the screen by a thumb. */
+  @keyframes card-rise {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* 01. The three game rows land from alternating sides, and the badge counts up in the
+     app's own words and overlap inks as each one lands. The chips ease out, so each reads
+     as landed about 60% of the way through its own slot, and that is where the count
+     steps: 20%, 40%, 60%. Then the badge stamps once. */
+  @keyframes chip-a { 0%, 4%  { opacity: 0; transform: translateX(-40px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); } 28%, 100% { opacity: 1; transform: none; } }
+  @keyframes chip-b { 0%, 24% { opacity: 0; transform: translateX(40px);  animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); } 48%, 100% { opacity: 1; transform: none; } }
+  @keyframes chip-c { 0%, 44% { opacity: 0; transform: translateX(-40px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); } 68%, 100% { opacity: 1; transform: none; } }
+  @keyframes t0 { 0%, 19.9% { opacity: 1; } 20%, 100% { opacity: 0; } }
+  @keyframes t1 { 0%, 19.9% { opacity: 0; } 20%, 39.9% { opacity: 1; } 40%, 100% { opacity: 0; } }
+  @keyframes t2 { 0%, 39.9% { opacity: 0; } 40%, 59.9% { opacity: 1; } 60%, 100% { opacity: 0; } }
+  @keyframes t3 { 0%, 59.9% { opacity: 0; } 60%, 100% { opacity: 1; } }
+  @keyframes tier {
+    0%, 19.9%   { border-color: #66705C; }
+    20%, 39.9%  { border-color: #4E7018; }
+    40%, 59.9%  { border-color: #5A7A00; }
+    60%, 100%   { border-color: #8F5E00; }
+  }
+  @keyframes stamp { 0%, 60% { transform: none; } 66% { transform: scale(1.05); } 78%, 100% { transform: none; } }
+
+  /* 02. The logo's two rings slide in from either side and interlock, the brackets snap shut
+     with a small overshoot, DUO LOCKED stamps in, then its line comes up. The rings travel
+     190 user units, about 21px at the mark's 98px. */
+  @keyframes ring-ink { 0%, 4% { transform: translateX(-190px); animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1); } 46%, 100% { transform: none; } }
+  @keyframes ring-duo { 0%, 4% { transform: translateX(190px);  animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1); } 46%, 100% { transform: none; } }
+  @keyframes br-l { 0%, 40% { opacity: 0; transform: translateX(-0.7em); animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); } 60%, 100% { opacity: 1; transform: none; } }
+  @keyframes br-r { 0%, 40% { opacity: 0; transform: translateX(0.7em);  animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); } 60%, 100% { opacity: 1; transform: none; } }
+  @keyframes lock-in { 0%, 52% { opacity: 0; transform: scale(1.25); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); } 68%, 100% { opacity: 1; transform: none; } }
+  @keyframes line-in { 0%, 62% { opacity: 0; transform: translateY(6px); } 80%, 100% { opacity: 1; transform: none; } }
+
+  /* 03. "you on tonight?" arrives, the reply types into the box in fifteen steps (one per
+     character of "yep, queue at 9"), send presses, the sent bubble comes up and the box
+     goes back to its placeholder. */
+  @keyframes bubble-in { 0%, 4% { opacity: 0; transform: translateY(10px) scale(0.96); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); } 20%, 100% { opacity: 1; transform: none; } }
+  @keyframes ph { 0%, 23.9% { opacity: 1; } 24%, 61.9% { opacity: 0; } 62%, 100% { opacity: 1; } }
+  @keyframes typing {
+    0%, 24%    { opacity: 1; clip-path: inset(0 100% 0 0); animation-timing-function: steps(15, end); }
+    50%, 59.9% { opacity: 1; clip-path: inset(0 0 0 0); }
+    60%, 100%  { opacity: 0; clip-path: inset(0 0 0 0); }
+  }
+  @keyframes press { 0%, 53% { transform: none; } 57% { transform: scale(0.84); } 62%, 100% { transform: none; } }
+  @keyframes bubble-out { 0%, 60% { opacity: 0; transform: translateY(12px) scale(0.94); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); } 76%, 100% { opacity: 1; transform: none; } }
+
+  /* The plain version's rules. */
+  @keyframes rule-draw {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+  }
+
+  /* Which moment each moving piece (class sd) plays. A name on its own does nothing: its
+     duration is 0s and it has no fill until one of the two drivers below gives it a clock or
+     a scroll range, so a browser that meets neither driver shows the cards at rest. */
+  @media (prefers-reduced-motion: no-preference) {
+    .m1 .chip:nth-child(1) { animation-name: chip-a; }
+    .m1 .chip:nth-child(2) { animation-name: chip-b; }
+    .m1 .chip:nth-child(3) { animation-name: chip-c; }
+    .m1 .overlap { animation-name: tier, stamp; }
+    .m1 .t0 { animation-name: t0; }
+    .m1 .t1 { animation-name: t1; }
+    .m1 .t2 { animation-name: t2; }
+    .m1 .t3 { animation-name: t3; }
+    .m2 .ring-ink { animation-name: ring-ink; }
+    .m2 .ring-duo { animation-name: ring-duo; }
+    .m2 .br-l { animation-name: br-l; }
+    .m2 .br-r { animation-name: br-r; }
+    .m2 .lock { animation-name: lock-in; }
+    .m2 .both { animation-name: line-in; }
+    .m3 .bubble.in { animation-name: bubble-in; }
+    .m3 .ph { animation-name: ph; }
+    .m3 .typed { animation-name: typing; }
+    .m3 .send { animation-name: press; }
+    .m3 .bubble.out { animation-name: bubble-out; }
+  }
+
+  /* DRIVER ONE, below 860px: the card's own passage up the screen. The card rises in over the
+     first 65% of its entry. Its moment starts once 55% of the card is on screen, which is
+     most of its app screen (the screen is the card's top 214px), and ends at cover 40%.
+     Measured on a 390x760 phone: 256px of scrolling for the whole moment, of which the
+     half-typed message is 64px, and each card is finished while its middle is still about
+     107px below the middle of the screen (95px at 390x664, 123px at 768x1024). */
+  @supports (animation-timeline: view()) and (animation-range: entry) {
+    @media (prefers-reduced-motion: no-preference) and (max-width: 859.98px) {
+      .moment { view-timeline: --moment; view-timeline-inset: 0; }
+      .moment-card {
+        animation-name: card-in; animation-fill-mode: both; animation-timing-function: var(--ease-out);
+        animation-timeline: --moment; animation-range: entry 0% entry 65%;
+      }
+      .sd {
+        animation-fill-mode: both; animation-timing-function: linear;
+        animation-timeline: --moment; animation-range: entry 55% cover 40%;
+      }
+    }
+    /* The plain version's hairlines draw across as each item comes up, then the olive tick,
+       at every width: they are below the first screen everywhere. */
+    @media (prefers-reduced-motion: no-preference) {
+      .plain-list li { view-timeline: --plain; view-timeline-inset: 0; }
+      .plain-list li::before {
+        animation: rule-draw linear both;
+        animation-timeline: --plain; animation-range: entry 30% contain 25%;
+      }
+      .plain-list li::after {
+        animation: rule-draw linear both;
+        animation-timeline: --plain; animation-range: entry 70% contain 40%;
+      }
+    }
+  }
+
+  /* DRIVER TWO, from 860px: once, on load, on a clock. Each card's window is placed so the
+     three moments follow one another in reading order (left to right from 1080, top to
+     bottom below it; see the MOTION header for which of them are on the first screen at
+     which widths), each one starting while the one before it makes its last small move
+     (01's stamp, 02's line coming up): 01 runs from 600ms, 02 from 1250ms, 03 from 1800ms.
+     The sent bubble, the last thing that moves, settles at 2.71s, and every animation on
+     the page has ended at 3.0s. The chat gets the longest window because it holds the
+     typing. */
+  @media (prefers-reduced-motion: no-preference) and (min-width: 860px) {
+    .moment-card { animation: card-rise var(--t-arrival) var(--ease-out) backwards; }
+    .moment:nth-child(1) .moment-card { animation-delay: 300ms; }
+    .moment:nth-child(2) .moment-card { animation-delay: 360ms; }
+    .moment:nth-child(3) .moment-card { animation-delay: 420ms; }
+    .sd { animation-fill-mode: backwards; animation-timing-function: linear; }
+    .m1 .sd { animation-delay: 600ms;  animation-duration: 950ms; }
+    .m2 .sd { animation-delay: 1250ms; animation-duration: 950ms; }
+    .m3 .sd { animation-delay: 1800ms; animation-duration: 1200ms; }
+  }
+
+  /* ---- the queue bar, on the form's own timeline -------------------------- */
+  /* The bar watches the form. body's timeline-scope lifts the form's view timeline up to
+     where a bar outside <main> can see it, and the range starts at exit 100%: the scroll
+     position at which the form's last pixel has gone off the top of the screen. So the bar
+     can never sit over the form's button, and it slides down over the next 72px of
+     scrolling, a little more than its own height. Scroll back until the form's bottom edge
+     returns and it slides away again. Chrome and Safari 26+; elsewhere the bar is absent,
+     and so it is on any page without the form (the last rule in this block: no form, no
+     timeline to show the bar on, so no bar).
+
+     scroll-padding keeps what a keyboard focuses, or an in-page link jumps to, out from
+     under the bar. It is scoped with :has(.qbar):has(#waitlist-form) to the pages where the
+     bar can show, so the privacy, terms and waitlist result pages (which share this CSS and
+     have no bar), and a landing page whose form has gone, keep their jumps at the real top
+     of the screen; every browser with timeline-scope also has :has. It has a side effect
+     that every view timeline on the page has to undo:
+     a view timeline's default inset ("auto") IS the scroll-padding, so without an explicit
+     view-timeline-inset of 0 the form's exit 100% would fall 72px early, with the form's
+     button still on screen, and the bar would slide over it. That is why the form, the
+     moment cards and the plain version's items all declare view-timeline-inset: 0: their
+     ranges are measured against the real edges of the screen. */
+  @keyframes qbar-in {
+    from { transform: translateY(-100%); visibility: hidden; }
+    to   { transform: none; visibility: visible; }
+  }
+  @keyframes qbar-show {
+    from { visibility: hidden; }
+    to   { visibility: visible; }
+  }
+  @supports (timeline-scope: --form) and (animation-timeline: view()) and (animation-range: exit) {
+    body { timeline-scope: --form; }
+    #waitlist-form { view-timeline: --form; view-timeline-inset: 0; }
+    html:has(.qbar):has(#waitlist-form) { scroll-padding-top: 72px; }
+    .qbar {
+      display: block; position: fixed; z-index: 30; top: 0; left: 0; right: 0;
+      background: rgba(246,243,234,0.9);
+      -webkit-backdrop-filter: saturate(1.4) blur(14px); backdrop-filter: saturate(1.4) blur(14px);
+      border-bottom: 1px solid var(--rule);
+      animation-name: qbar-in; animation-fill-mode: both; animation-timing-function: linear;
+      animation-timeline: --form; animation-range: exit 100% exit calc(100% + 72px);
+    }
+    /* Reduce Motion: no slide and no half-shown bar. It is simply there once the form has
+       gone, and gone once the form is back: one step, at the start of the same range. */
+    @media (prefers-reduced-motion: reduce) {
+      .qbar { animation-name: qbar-show; animation-timing-function: steps(1, start); }
+    }
+    /* No form, no bar: see the note at the bar's resting style. It sets display alone, so
+       it outranks the display:block above (an id inside :has) and leaves the Reduce Motion
+       rule's animation-name alone. */
+    body:not(:has(#waitlist-form)) .qbar { display: none; }
+  }
+
+  /* ---- reduced motion ---------------------------------------------------- */
+  /* REDUCE MOTION MEANS ZERO ANIMATION, and it is said twice. The card and divider drivers
+     above are already gated on no-preference; this block also switches off every animated
+     selector outright, with !important, so no later rule can hand one of them a clock again.
+     With all of it off the page is simply its resting state, which is the finished one:
+     every row in, 3 GAMES IN COMMON, the rings locked, the chat sent, every rule drawn.
+
+     The queue bar is the one exception, and it does not move: under Reduce Motion it is
+     shown or hidden in a single step as the form leaves or returns (see its block above),
+     never slid and never half-shown.
+
+     Not a blanket kill beyond that. Everything that MOVES stops - every entrance, the hover
+     lifts, the presses - and everything that is COLOUR stays, because a button that deepens
+     under the pointer and a field whose border answers focus are feedback rather than
+     motion, and removing them makes the page harder to use rather than calmer. */
+  @media (prefers-reduced-motion: reduce) {
+    .hero-copy .eyebrow,
+    .hero-copy h1.display,
+    .hero-copy .lede,
+    .hero-copy .sub,
+    .hero-act,
+    .hero-watch,
+    .hero .display .key::after,
+    .moment-card,
+    .sd,
+    .plain-list li::before,
+    .plain-list li::after {
+      animation: none !important;
+      transition: none !important;
+    }
+    .cta { transition-property: background-color, border-color; }
+    .cta:hover, .cta:active { transform: none; box-shadow: 0px 2px 5px rgba(41,34,18,0.16), 0px 12px 26px -8px rgba(41,34,18,0.3); }
+    /* The trailer link, the outlined join link and the queue bar's button keep their colour
+       answers and lose their lift and their press, the same line this block draws for the
+       button. */
+    .trailer, .trailer:hover, .trailer:active,
+    .cta-ghost, .cta-ghost:active,
+    .qbar-cta, .qbar-cta:active { transform: none; }
+  }
+
+  /* ---- wide viewports ---------------------------------------------------- */
+  /* THE FORM MOVES BESIDE THE TYPE AND THE TRAILER LINK TUCKS UNDER THE COPY.
+     Two dense columns that end near the same line. The 460px cap on the form column is the
+     form's own max-width, so the column is the control rather than a fraction that happens
+     to contain it; the copy column takes whatever is left. The form spans both rows, so the
+     link sits under the copy without pushing the form down. */
+  @media (min-width: 900px) {
+    .hero-grid {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 460px);
+      grid-template-areas: "copy act" "watch act";
+      grid-template-rows: auto 1fr;
+      column-gap: clamp(40px, 5vw, 84px); row-gap: 0;
+      align-items: start;
+    }
+    /* The sub is the last line of the copy column and the form is the top of the other,
+       so its bottom margin is measuring against nothing. */
+    .hero-copy .sub { margin-bottom: 0; }
+    .hero-watch { margin-top: 30px; }
+    .plain-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(24px, 4vw, 52px); }
+    /* The support card: heading in a narrow left column, its three paragraphs beside it. */
+    section.card {
+      display: grid; grid-template-columns: minmax(0, 240px) minmax(0, 1fr);
+      column-gap: clamp(24px, 4vw, 56px);
+    }
+    section.card h2 { grid-row: 1 / span 3; }
+  }
+
+  /* ---- BIG SCREENS: THE FRAME WIDENS, THE MEASURE DOES NOT ---------------
+     Above 1180px of window .wrap used to cap and every section became a 1180px ribbon with
+     the rest of the display left as bare cream. So the FIELD widens, to 1560, and no LINE OF
+     TEXT does: the lede is capped at 30ch, the sub at 38ch, the plain version's paragraphs
+     at 42ch and the legal documents at 68ch, so every measured line is the same length at
+     3440px as it is at 1280px. What spends the extra field is the row of three moment
+     cards, which is the product.
+
+     .wrap WIDENS EVERYWHERE AT ONCE, header and footer included, and that is not laziness.
+     The campaign's grid is ONE LEFT EDGE for the type and for every object; it is the first
+     thing ground.ts states. An earlier version widened only some sections and put the
+     headline's left edge 190px inside the objects' left edge on a 3440px monitor. Two left
+     edges is worse than a narrow page.
+
+     The hero's top row is capped rather than left as a fraction: a 560px column of type, the
+     460px form, and the air in a third, empty column on the right, which is where
+     ground.ts's MEASURE note says the air belongs. The trailer link stays under the type. */
+  @media (min-width: 1500px) {
+    .wrap { max-width: 1560px; }
+    .hero-grid {
+      grid-template-columns: minmax(0, 560px) minmax(0, 460px) minmax(0, 1fr);
+      grid-template-areas: "copy act ." "watch act .";
+    }
+  }
+
+  /* SHORT SINGLE-COLUMN WINDOWS. Two shapes fail the "button on the first screen"
+     test with the phone layout's default type: a 320x568 handset, where the stack
+     runs 86px past the fold, and a 899x700 window, where the layout is still one
+     column but 8.4vw has grown the headline to 75px and the stack runs 112px past.
+     Same remedy as the desktop tier — the type steps down and the rhythm tightens,
+     nothing is removed — and it is keyed on height so a normal phone held normally
+     never sees it. The lede is the sentence carrying "18+" and "not dating", so it
+     is the least compressed thing here and never goes below 15.5px. */
+  @media (max-width: 899px) and (max-height: 760px) {
+    section.hero { padding: 16px 0 0; }
+    h1.display { font-size: clamp(30px, 7.2vw, 52px); margin-bottom: 0.28em; }
+    .lede { font-size: clamp(15.5px, 4.3vw, 19px); margin-bottom: 0.5em; }
+    .sub { font-size: clamp(13.5px, 3.6vw, 16px); margin-bottom: 1.15em; }
+    .eyebrow { font-size: clamp(10.5px, 2.41vw, 14px); margin-bottom: 0.75em; }
+    .field-label { margin-bottom: 6px; }
+    input[type="email"] { padding: 13px 14px; }
+    .adult { margin: 10px 0 13px; }
+    .cta { font-size: clamp(21px, 5.1vw, 34px); }
+  }
+
+  /* A PORTRAIT PHONE WITH BROWSER CHROME. The tier below moves the form beside the type,
+     which needs 480px of width to be worth doing; under that the stack is the only legible
+     layout and it has to earn its height instead. This is where it does.
+
+     Measured at 320x454 — an iPhone SE in Safari, the smallest viewport a real visitor
+     arrives on — the stack put the button's bottom edge at y=543, 89px under the fold. The
+     costs are all rhythm, never type: the header is 87px of a 454px window before the page
+     has said anything, the sub carries a 15.5px gap to the form, and the field, the
+     checkbox and the button each sit in spacing scaled for a window twice this tall.
+     Nothing is removed and no face gets smaller — the lede in particular stays at its
+     15.5px floor, because it is the sentence carrying "18+" and "not dating".
+
+     It buys 48px, which is not all 89: closing the rest would mean shrinking the headline
+     or the lede, and a button one flick below the fold is a smaller cost than a campaign
+     that cannot say its own name. What it does buy is every viewport from 320x500 up:
+     -43 -> +5 at 320x500, -23 -> +25 at 360x520, -2 -> +46 at 390x550, -44 -> +4 at
+     479x520, and +25 -> +73 at 320x568. Only 320x454 still needs the flick, at -41.
+
+     SINCE WATCH JOINED THE NAV (23 Sept 2026) the nav is four links on its own row. Here that
+     row closes up to the mark and drops its 4px bands (the links keep their 30px targets), so
+     the header is 2px shorter than three links on a wrapped line were. Measured, the room
+     under the button: +8 at 320x500, +28 at 360x520, +49 at 390x550, +76 at 320x568, -38 at
+     320x454. The one loser is 479x520, now -26: from about 416px wide three links sat
+     beside the mark, and below 600px the nav now always takes its own row. No phone is that
+     shape (portrait phones stop at 430 wide, and a phone on its side is the tier below). */
+  @media (max-width: 479px) and (max-height: 620px) {
+    header.site-header { padding: 10px 0 2px; }
+    header.site-header .wrap { row-gap: 2px; }
+    header.site-header nav { padding: 0; }
+    section.hero { padding: 8px 0 0; }
+    .eyebrow { margin-bottom: 0.5em; }
+    h1.display { margin-bottom: 0.2em; }
+    .lede { margin-bottom: 0.35em; }
+    .sub { margin-bottom: 0.7em; }
+    .field-label { margin-bottom: 4px; }
+    input[type="email"] { padding: 11px 14px; }
+    .adult { margin: 7px 0 9px; }
+  }
+
+  /* SHORT WINDOWS THAT ARE ALSO NARROW: the form moves beside the type here too.
+     This is the same remedy as the >=900px short-and-wide block below, at the other end of
+     the width axis, and it exists because a phone in landscape is a real shape that the
+     single-column stack simply cannot hold. Measured at 844x390, an iPhone on its side: the
+     compressed stack above puts the button's bottom edge at y=652 in a 390px window, 262px
+     below the fold, and no amount of further squeezing closes that - the eyebrow, a
+     two-line headline, a three-line lede and a three-line sub are 340px of type before the
+     field starts, in a window 390px tall.
+
+     Two EQUAL columns rather than the wide block's fixed 460px form column, because at
+     844px of viewport a 460px form leaves the copy 166px, which is narrower than the
+     headline's own first word. At 1fr/1fr the copy gets about 313px and the form gets the
+     same, which is wider than the 280px this layout already works at on a portrait phone.
+
+     Keyed at 560px of height AND 480px of width. The height alone is not enough, and
+     assuming it was is a real bug this block used to have: 560px was chosen so "a 320x568
+     handset held normally never sees it", but 320x568 is the SCREEN. The viewport inside a
+     browser is the screen minus its chrome — an iPhone SE in Safari is 320x454 — so every
+     small phone held normally landed in here and got the landscape layout in a portrait
+     window. Measured at 320x454: two 130px columns, "join the waitlist" wrapped onto two
+     lines (the exact failure the font-size note below exists to prevent), the email
+     placeholder clipped to "you@exampl", and a 14-character lede.
+
+     480px is where the tier starts paying for itself rather than costing. The form column
+     is half the content width, and "you@example.com" plus the input's own 14px padding
+     needs 178px: at 480 the inset is 40.7px and the gap 20px, so the column is 189px and
+     the placeholder fits with 11px to spare; below that it does not. Every landscape phone
+     is comfortably above the floor (568x320 is the smallest shape this tier was written
+     for, 844x390 the one it was measured on), and every portrait phone is below it and
+     keeps the single-column stack, which is legible at 320px where two columns are not. */
+  @media (min-width: 480px) and (max-width: 899px) and (max-height: 560px) {
+    section.hero { padding: 12px 0 0; }
+    /* The trailer link goes under the copy, as it does on a desktop, so the form keeps its
+       column to itself. */
+    .hero-grid {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      grid-template-areas: "copy act" "watch act";
+      grid-template-rows: auto 1fr;
+      column-gap: clamp(20px, 4vw, 40px);
+      align-items: start;
+    }
+    .hero-copy .sub { margin-bottom: 0; }
+    h1.display { font-size: clamp(26px, 5.6vw, 40px); }
+    .lede { font-size: clamp(14.5px, 2.4vw, 17px); }
+    .sub { font-size: clamp(13px, 2vw, 15px); }
+    /* The label has to stay on ONE line. Its column is now half the window, and at 568x320
+       the inherited clamp put a 29px face into a 221px button, which wrapped the words and
+       made a 103px-tall two-line control out of the page primary action. 3.6vw keeps
+       6.4em of 'join the waitlist' inside the column at every width this tier covers. */
+    .cta { font-size: clamp(17px, 3.6vw, 26px); }
+  }
+
+  /* ---- narrow or short desktop windows ------------------------------------ */
+  /* The type steps down and the rhythm tightens. Nothing is removed.
+     This used to be the block that rescued the fold, because the hero stacked the form
+     under 400px of copy; the form is now at the top of its own column at every desktop
+     width, so what is left for this block to do is the width problem rather than the
+     height one. At exactly 900px wide the copy column is about 190px, and a 76px headline
+     in 190px is four lines of one word. The height clause stays because a 1366x660 laptop
+     still wants a shorter hero even with the form beside the type: it decides how much of
+     the three moment cards is on the first screen, which is worth a step of type. */
+  @media (min-width: 900px) and (max-height: 940px),
+         (min-width: 900px) and (max-width: 1199px) {
+    section.hero { padding: clamp(10px, 2.41vw, 26px) 0 0; }
+    h1.display { font-size: clamp(34px, 5.1vw, 58px); margin-bottom: 0.3em; }
+    .lede { font-size: clamp(16px, 1.42vw, 19px); margin-bottom: 0.45em; }
+    .sub { font-size: clamp(14px, 1.18vw, 16px); margin-bottom: 1.1em; }
+    .eyebrow { margin-bottom: 0.7em; }
+    .field-label { margin-bottom: 5px; }
+    input[type="email"] { padding: 12px 14px; font-size: 16px; }
+    .adult { margin: 12px 0 14px; }
+    .cta { font-size: clamp(21px, 3.3vw, 34px); }
+    .promise { margin-top: 12px; }
+  }
+
+  /* ---- page to page: the trailer link opens into the film ------------------ */
+  /* Following the trailer link (or the nav's WATCH), the paper cross-fades to the dark page in
+     240ms and the link's play disc grows into the film's frame; coming home, the frame shrinks
+     back into the disc. It is declared only under no-preference, so with Reduce Motion on the
+     page simply changes, and so it does in a browser without cross-document view transitions
+     (Chrome 126 and Safari 18.2 have them). No script: this is CSS alone. */
+  @media (prefers-reduced-motion: no-preference) {
+    @view-transition { navigation: auto; }
+  }
+  ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 240ms; }
+  .trailer-play, .film-frame { view-transition-name: film; }
+  ::view-transition-group(film) { animation-duration: 440ms; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+
+  /* ---- the watch page: the screening room --------------------------------- */
+  /* THE ONE DARK PAGE ON THE SITE, on the app's own dark ground (VOLT in build-site.mjs, which
+     is darkColors verbatim), because the film was shot on it: the page, the frame and the
+     film's own ground are one colour, so the picture has no edge to fight. It is also the one
+     page where chartreuse may be a fill, for the reason the design note gives against it
+     everywhere else: here it is 16.88:1, on the cream it is 1.05:1. */
+  :root {
+    --ground: #0A0B09;
+    --ink: #EDF1E6;
+    --muted: #B4BDA6;
+    --accent: #CDFF3D;
+    --rule: #232720;
+    --mark-ink: #EDF1E6;
+    --mark-duo: #8A927E;
+    color-scheme: dark;
+  }
+  /* The paper's lit sweep is off, and the footer is held to the bottom of a tall window. */
+  body {
+    background: var(--ground);
+    min-height: 100vh; min-height: 100svh;
+    display: flex; flex-direction: column;
+  }
+  main { flex: 1; }
+  .skip-link { background: #CDFF3D; color: #0A0B09; }
+
+  section.watch { padding: clamp(16px, 3.70vw, 40px) 0 clamp(40px, 7vw, 88px); }
+  .watch-grid {
+    display: grid; grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "film" "copy"; row-gap: 26px;
+  }
+  /* THE FILM'S WIDTH IS CAPPED THREE WAYS: by its column; at 400px, so a 9:16 film stays the
+     shape of a phone on a desktop; and by the window's height less the header, so a phone sees
+     the whole picture and its controls on the first screen. vh first, svh second: the
+     fallback, then the override. */
+  .film-frame {
+    grid-area: film;
+    width: min(100%, 400px, calc((100vh - 150px) * 0.5625));
+    width: min(100%, 400px, calc((100svh - 150px) * 0.5625));
+    aspect-ratio: 9 / 16; margin: 0 auto;
+    overflow: hidden; isolation: isolate; border-radius: 12px;
+    background: #0A0B09; border: 1px solid var(--rule);
+  }
+  .film-frame video { display: block; width: 100%; height: 100%; object-fit: cover; background: #0A0B09; }
+  .watch-copy { grid-area: copy; max-width: 30rem; }
+  .watch .eyebrow { margin: 0 0 1em; }
+  .watch h1.display { font-size: clamp(30px, 7.6vw, 54px); line-height: 1.22; margin: 0 0 0.45em; }
+  .watch .lede {
+    font-size: clamp(16px, 1.6vw, 19px); line-height: 1.5; color: var(--muted);
+    margin: 0 0 1.4em; max-width: 34ch;
+  }
+
+  /* The app's own primary button in its own dark colours: volt fill, onVolt label,
+     radius.button and the scale(0.97) press, from the shared rule. No cast shadow, since a
+     shadow on this ground is invisible, and so no lift under the pointer either: a lift is
+     read by its shadow. The label goes back to that channel's form (buildWatchPage). */
+  .watch .cta {
+    max-width: 460px;
+    background: #CDFF3D; color: #0A0B09; border-color: #CDFF3D;
+    box-shadow: none;
+    font-size: clamp(21px, 5.4vw, 30px);
+  }
+  .watch .cta:hover { background: #94BC2C; border-color: #94BC2C; box-shadow: none; transform: none; }
+  .watch .cta:active { background: #94BC2C; border-color: #94BC2C; box-shadow: none; transform: scale(0.97); }
+  .watch .promise { color: var(--muted); margin-top: 14px; }
+
+  /* From 900px the film stands on the left edge and the copy sits beside it, centred on the
+     film's band, all on one screen. The frame drops its 100% term here, because an auto track
+     would make it cyclic. */
+  @media (min-width: 900px) {
+    .watch-grid {
+      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-areas: "film copy";
+      column-gap: clamp(40px, 6vw, 96px); align-items: center;
+    }
+    .film-frame {
+      margin: 0;
+      width: min(400px, calc((100vh - 170px) * 0.5625));
+      width: min(400px, calc((100svh - 170px) * 0.5625));
+    }
+  }
+
+  /* The copy settles in once on load, on the hero's clock (267ms each, 60ms apart). The film is
+     the motion on this page, so nothing else moves. Reduce Motion: none of it, and no press. */
+  .watch-copy > * { animation: rise var(--t-arrival) var(--ease-out) backwards; }
+  .watch-copy > :nth-child(2) { animation-delay: 60ms; }
+  .watch-copy > :nth-child(3) { animation-delay: 120ms; }
+  .watch-copy > :nth-child(4) { animation-delay: 180ms; }
+  .watch-copy > :nth-child(5) { animation-delay: 240ms; }
+  @media (prefers-reduced-motion: reduce) {
+    .watch-copy > * { animation: none !important; transition: none !important; }
+    .watch .cta, .watch .cta:hover, .watch .cta:active { transform: none; }
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="/yt/"><svg class="brand-mark" width="26" height="26" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="DuoQueue">
+    <circle cx="660.992" cy="512" r="215.04" fill="none" stroke="var(--mark-duo)" stroke-width="98.9184" />
+    <circle cx="842.425508224487" cy="693.433508224487" r="55.394304000000005" fill="var(--mark-duo)" />
+    <circle cx="338.432" cy="512" r="215.04" fill="none" stroke="var(--mark-ink)" stroke-width="98.9184" />
+    <path d="M 583.6133027625533 712.6358363150401 A 215.04 215.04 0 0 1 452.25814711396214 563.6950699714191" fill="none" stroke="var(--mark-duo)" stroke-width="98.9184" />
+  </svg><span>duoqueue</span></a>
+    <nav>
+      <a class="nav-watch" href="/yt/watch/" aria-current="page"><svg viewBox="0 0 8 9" aria-hidden="true"><path d="M0 0l8 4.5L0 9z"/></svg>Watch</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="/terms/">Terms</a>
+      <a href="/#support">Support</a>
+    </nav>
+  </div>
+</header>
+<main id="main">
+
+<section class="watch" aria-labelledby="watch-head">
+  <div class="wrap watch-grid">
+    <div class="film-frame">
+      <video src="/assets/duoqueue-launch.mp4" poster="/assets/duoqueue-launch-poster.jpg" controls muted autoplay playsinline preload="metadata" aria-label="DuoQueue, a short film of the app" aria-describedby="watch-head">
+        <a href="/assets/duoqueue-launch.mp4">Watch the DuoQueue film</a>
+      </video>
+    </div>
+    <div class="watch-copy">
+      <p class="eyebrow">The trailer &middot; 0:21</p>
+      <h1 class="display" id="watch-head">from the first swipe to <span class="key">queueing up</span></h1>
+      <p class="lede">DuoQueue is an 18+ app for finding people to play games with. It is not dating.</p>
+      <a class="cta" href="/yt/#waitlist-form">join the waitlist</a>
+      <p class="promise">One email, on the day it goes live. That is the only one you get.</p>
+    </div>
+  </div>
+</section>
+
+</main>
+<footer class="site-footer">
+  <div class="wrap">
+    <p>DuoQueue is an 18+ app for finding people to play games with. It is platonic, not dating.</p>
+    <nav>
+      <a href="/yt/">Home</a> <span aria-hidden="true">&middot;</span>
+      <a href="/privacy/">Privacy Policy</a> <span aria-hidden="true">&middot;</span>
+      <a href="/terms/">Terms of Service</a> <span aria-hidden="true">&middot;</span>
+      <a href="mailto:support@duoqueue.io">support@duoqueue.io</a>
+    </nav>
+  </div>
+</footer>
+</body>
+</html>

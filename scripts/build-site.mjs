@@ -4,9 +4,9 @@
 // only node:fs, node:path, node:url. No markdown library, no bundler, no CDN.
 // Every page is fully self-contained HTML with an inline <style> block and inline
 // SVG, and the only sub-resources any page requests are five .woff2 files served
-// from this same origin, plus, on the landing page and its aliases, the launch film
-// and its poster (FILM below), also from this same origin and played by a plain
-// <video> element with no script. No third-party request of any kind, from any page. That
+// from this same origin, plus, on the four watch pages, the launch film and its poster
+// (FILM below), also from this same origin and played by a plain <video> element with
+// no script. No third-party request of any kind, from any page. That
 // property is load-bearing twice over: it is what makes the site fast on a phone
 // on cellular, and it is what lets the privacy policy say there is no analytics or
 // advertising script on duoqueue.io without a caveat.
@@ -18,14 +18,16 @@
 //     site/index.html                     the landing page, form and all
 //     site/waitlist/index.html            the same page at its canonical-ish path
 //     site/tt|ig|yt/index.html            the same page, one hidden field different
+//     site/watch/index.html               the film on its own dark page
+//     site/tt|ig|yt/watch/index.html      the same page, its join button back to that channel
 //     site/waitlist/thanks/index.html     post-submit success
 //     site/waitlist/try-again/index.html  post-submit "fix one of two things"
 //   plus site/CNAME, site/.nojekyll, site/favicon.png, site/og.png
 //   and, committed rather than generated (like og.png and the fonts):
-//     site/assets/duoqueue-launch.mp4          the launch film, shown on the landing page
+//     site/assets/duoqueue-launch.mp4          the launch film, shown on the watch pages
 //     site/assets/duoqueue-launch-poster.jpg   its poster frame
-//   The film section is built only when both files are present, so a page never points at
-//   a missing video; the build's last line says whether it went in.
+//   The watch pages, and every link to them, are built only when both files are present, so
+//   a page never points at a missing video; the build's last line says whether they went in.
 //
 // Run: node scripts/build-site.mjs
 //
@@ -210,14 +212,16 @@ const APP = {
   bubbleOwn: "#E4EDC8", // lightColors.bubbleOwn, the sent message on the third card
 };
 
-// THE FILM: the launch video, on the landing page and its four aliases.
+// THE FILM: the launch video, on its own dark watch pages (/watch/ and one per channel,
+// buildWatchPage). The landing pages carry only the trailer link to it.
 //
 // Committed media under site/assets/, like og.png and the fonts, because it is rendered
 // elsewhere (the Hyperframes launch render) and this build is zero-dependency. It is played
 // by a plain <video> element: native controls, no script, which is what lets the privacy
 // policy keep saying there is no JavaScript on the site. Muted, so browsers allow it to play
-// itself; loop, so it holds on a phone that scrolls back to it; playsinline, so iOS does not
-// throw it into the fullscreen player.
+// itself; playsinline, so iOS does not throw it into the fullscreen player. It plays ONCE and
+// has no loop attribute, so it comes to rest on its last frame, "Duo queue tonight.", with the
+// join button beside it (on the landing page it looped, to hold a phone that scrolled back).
 //
 // AUTOPLAY IS THE ONE TRADE HERE. With no script there is no way to honour Reduce Motion for
 // a video: the CSS media query can stop an animation but cannot stop a <video> from playing.
@@ -236,7 +240,23 @@ const FILM = {
   length: "0:21",
 };
 
-/** Both files present and non-empty. The section is left out otherwise, loudly. */
+// THE SCREENING ROOM'S PALETTE: the watch pages, the one dark page on the site. It is the app's
+// own dark theme, apps/mobile/src/theme/tokens.ts `darkColors`, verbatim, because the film was
+// shot on it: the page and the film's frame are one ground, and chartreuse is legal here for the
+// same reason it is not on the paper (16.88:1 on this ground, 1.05:1 on the cream).
+const VOLT = {
+  background: "#0A0B09", // darkColors.background, the film's own ground (FILM.ground)
+  text: "#EDF1E6", // darkColors.text
+  textMuted: "#B4BDA6", // darkColors.textMuted
+  volt: "#CDFF3D", // darkColors.volt, the join button's fill and the accent
+  voltDim: "#94BC2C", // darkColors.voltDim, the button pressed and hovered
+  onVolt: "#0A0B09", // darkColors.onVolt, the button's label
+  border: "#232720", // darkColors.border, the hairlines and the film frame's edge
+  markDuo: "#8A927E", // darkColors.overlap.none, the mark's second ring on the dark ground
+};
+
+/** Both files present and non-empty. Otherwise the four watch pages, the trailer link and the
+ *  nav's Watch link are all left out, loudly, so nothing can point at a missing film. */
 function filmPresent() {
   return [FILM.video, FILM.poster].every((rel) => {
     try {
@@ -1202,19 +1222,32 @@ const CSS = `
      below it, because the hero's own G2 is the gap under the header and two blocks cannot
      both pay for one boundary. It was 22 and 4, which were neither. */
   header.site-header { padding: ${RHYTHM.g1} 0 0; }
-  header.site-header .wrap { display: flex; align-items: center; justify-content: space-between; gap: 1em; flex-wrap: wrap; }
+  header.site-header .wrap { display: flex; align-items: center; justify-content: space-between; gap: 8px 1em; flex-wrap: wrap; }
   .brand { display: inline-flex; align-items: baseline; gap: 0.42em; color: var(--ink); text-decoration: none; }
   .brand .brand-mark { align-self: center; }
   .brand span {
     font-family: ${DISPLAY}; font-weight: 700; font-size: 19px; letter-spacing: 0.02em; line-height: 1;
   }
   .brand:hover { text-decoration: none; }
-  header.site-header nav { display: flex; gap: 1.1em; flex-wrap: wrap; }
+  /* The links carry 6px above and below, so each is a 30px-tall target rather than a 17px
+     line of mono. */
+  header.site-header nav { display: flex; gap: 1.3em; flex-wrap: wrap; align-items: center; }
   header.site-header nav a {
     font-family: ${MONO}; font-weight: 600; font-size: 11px; letter-spacing: 0.14em;
-    text-transform: uppercase; color: var(--muted); text-decoration: none;
+    text-transform: uppercase; color: var(--muted); text-decoration: none; padding: 6px 0;
   }
   header.site-header nav a:hover { color: var(--accent); text-decoration: underline; }
+  /* WATCH comes first and in the accent, with a play triangle drawn in SVG rather than typed
+     (iOS turns a typed U+25B6 into an emoji). pageShell emits it only where the film is on,
+     so it can never point at a watch page that was not built; on the watch page itself it is
+     the aria-current link. */
+  header.site-header nav a.nav-watch { color: var(--accent); display: inline-flex; align-items: center; gap: 0.5em; }
+  .nav-watch svg { width: 8px; height: 9px; fill: currentColor; flex: none; }
+  /* On a phone the nav is its own row, spread edge to edge and closed with a hairline, so it
+     reads as the site's nav bar rather than as one more mono label sitting on the eyebrow. */
+  @media (max-width: 599px) {
+    header.site-header nav { width: 100%; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--rule); }
+  }
 
   /* ---- the mono furniture ------------------------------------------------ */
   .eyebrow {
@@ -1683,8 +1716,8 @@ const CSS = `
      sit at its resting style in that block, fixed and visible at every scroll position,
      over the site header at the top of the page. So that block also hides it wherever
      body:not(:has(#waitlist-form)). Its markup is emitted on the landing pages only
-     (pageShell's qbar option), and pageShell should not emit it at all when PHASE is
-     "launched"; the guard is there so that forgetting to costs nothing. */
+     (pageShell's qbar option, qbarHtml()), and pageShell does not emit it at all when PHASE
+     is "launched"; the guard is there so that a page that forgets costs nothing. */
   .qbar { display: none; }
   .qbar-in { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 58px; }
   .qbar .brand span { font-size: 17px; }
@@ -1731,7 +1764,7 @@ const CSS = `
          that it is plain, so its type is simply there. Only its rules move: each hairline
          draws across as its item comes up the screen, then its short olive tick. Those are
          graphics, not words.
-     And nothing loops: every piece below plays once, settles, and then stays still.
+     And nothing repeats: every piece below plays once, settles, and then stays still.
 
      THE RULE THAT MAKES ALL OF IT SAFE: every animation below is fill-mode BACKWARDS, and
      every to-state is identical to the element's resting style. So the resting style is
@@ -2145,9 +2178,19 @@ const CSS = `
      or the lede, and a button one flick below the fold is a smaller cost than a campaign
      that cannot say its own name. What it does buy is every viewport from 320x500 up:
      -43 -> +5 at 320x500, -23 -> +25 at 360x520, -2 -> +46 at 390x550, -44 -> +4 at
-     479x520, and +25 -> +73 at 320x568. Only 320x454 still needs the flick, at -41. */
+     479x520, and +25 -> +73 at 320x568. Only 320x454 still needs the flick, at -41.
+
+     SINCE WATCH JOINED THE NAV (23 Sept 2026) the nav is four links on its own row. Here that
+     row closes up to the mark and drops its 4px bands (the links keep their 30px targets), so
+     the header is 2px shorter than three links on a wrapped line were. Measured, the room
+     under the button: +8 at 320x500, +28 at 360x520, +49 at 390x550, +76 at 320x568, -38 at
+     320x454. The one loser is 479x520, now -26: from about 416px wide three links sat
+     beside the mark, and below 600px the nav now always takes its own row. No phone is that
+     shape (portrait phones stop at 430 wide, and a phone on its side is the tier below). */
   @media (max-width: 479px) and (max-height: 620px) {
     header.site-header { padding: 10px 0 2px; }
+    header.site-header .wrap { row-gap: 2px; }
+    header.site-header nav { padding: 0; }
     section.hero { padding: 8px 0 0; }
     .eyebrow { margin-bottom: 0.5em; }
     h1.display { margin-bottom: 0.2em; }
@@ -2341,63 +2384,160 @@ const LOCKUP_CSS = `
   }
 `;
 
-// The film's rules, emitted only on the pages that carry the film (the landing page and
-// its four aliases), so the legal pages and the two outcome pages stay byte-identical to
-// what they were before the film existed.
-const FILM_CSS = `
-  /* ---- the film ---------------------------------------------------------- */
-  /* THE LAUNCH VIDEO, AS A DARK OBJECT ON THE PAPER.
-     The film is shot on the app's own dark ground, so on this page it is the one large dark
-     element, which is exactly where chartreuse is allowed to live: inside something dark,
-     never on the cream. It sits on the grid's one left edge like every other object, at the
-     fragments' 10px corner, and it casts the button's square-on shadow because, like the
-     button and unlike the plates, it faces the reader untilted.
+// THE DOOR AND THE ROOM: the cross-document view transition between a landing page and its
+// watch page. Emitted only on the pages that carry the film (pageShell's `film` option: the five
+// landing pages and the four watch pages), because a cross-document transition runs only when
+// BOTH pages opt in. So / and /watch/ animate into each other, and the legal pages and the two
+// waitlist result pages navigate exactly as they always have.
+const VIEW_TRANSITION_CSS = `
+  /* ---- page to page: the trailer link opens into the film ------------------ */
+  /* Following the trailer link (or the nav's WATCH), the paper cross-fades to the dark page in
+     240ms and the link's play disc grows into the film's frame; coming home, the frame shrinks
+     back into the disc. It is declared only under no-preference, so with Reduce Motion on the
+     page simply changes, and so it does in a browser without cross-document view transitions
+     (Chrome 126 and Safari 18.2 have them). No script: this is CSS alone. */
+  @media (prefers-reduced-motion: no-preference) {
+    @view-transition { navigation: auto; }
+  }
+  ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 240ms; }
+  .trailer-play, .film-frame { view-transition-name: film; }
+  ::view-transition-group(film) { animation-duration: 440ms; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+`;
 
-     G4 above and nothing below: the plain version's own G4 is the gap under it, and two
-     sections cannot each pay for the same boundary.
+// THE WATCH PAGES' RULES, emitted only on the four watch pages (buildWatchPage), after the
+// shared CSS and the view transition. The shared header, footer, type and button rules are
+// reused as they are; this block points their colour tokens at the dark palette (VOLT) and
+// lays out the film and its copy, as in the "Wildcard" prototype Cameron approved on 23 Sept
+// 2026.
+const WATCH_CSS = `
+  /* ---- the watch page: the screening room --------------------------------- */
+  /* THE ONE DARK PAGE ON THE SITE, on the app's own dark ground (VOLT in build-site.mjs, which
+     is darkColors verbatim), because the film was shot on it: the page, the frame and the
+     film's own ground are one colour, so the picture has no edge to fight. It is also the one
+     page where chartreuse may be a fill, for the reason the design note gives against it
+     everywhere else: here it is 16.88:1, on the cream it is 1.05:1. */
+  :root {
+    --ground: ${VOLT.background};
+    --ink: ${VOLT.text};
+    --muted: ${VOLT.textMuted};
+    --accent: ${VOLT.volt};
+    --rule: ${VOLT.border};
+    --mark-ink: ${VOLT.text};
+    --mark-duo: ${VOLT.markDuo};
+    color-scheme: dark;
+  }
+  /* The paper's lit sweep is off, and the footer is held to the bottom of a tall window. */
+  body {
+    background: var(--ground);
+    min-height: 100vh; min-height: 100svh;
+    display: flex; flex-direction: column;
+  }
+  main { flex: 1; }
+  .skip-link { background: ${VOLT.volt}; color: ${VOLT.onVolt}; }
 
-     THE SENTENCE COMES FIRST IN THE DOM, as the scene's sentences do, so on a phone the line
-     sits above the film and no type is ever set inside its cast shadow. From 900px the film
-     is placed in the first column and the line beside it, centred on the film's band, which
-     is the scene's interleave again: a line of type and an object sharing a line.
-
-     THE WIDTH IS CAPPED TWICE. 360px keeps a 9:16 film the shape of a phone on a desktop,
-     and 43.875% of the window's height (so the film is at most 78% of it) lets a laptop see
-     the whole film without scrolling through it; on a portrait phone that second cap is what
-     keeps the controls on the same screen as the top of the picture. vh first, svh second:
-     the same fallback-then-override pattern as the fragments' cqw lines in CSS. */
-  section.film { padding: ${RHYTHM.g4} 0 0; }
-  .film .eyebrow { margin: 0 0 ${RHYTHM.g2}; }
-  .film-fig { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr); }
-  .film-line { font-size: clamp(15px, 1.7vw, 18px); color: var(--muted); margin: 0 0 ${RHYTHM.g2}; max-width: 38ch; }
+  section.watch { padding: ${RHYTHM.g2} 0 clamp(40px, 7vw, 88px); }
+  .watch-grid {
+    display: grid; grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "film" "copy"; row-gap: 26px;
+  }
+  /* THE FILM'S WIDTH IS CAPPED THREE WAYS: by its column; at 400px, so a 9:16 film stays the
+     shape of a phone on a desktop; and by the window's height less the header, so a phone sees
+     the whole picture and its controls on the first screen. vh first, svh second: the
+     fallback, then the override. */
   .film-frame {
-    width: min(100%, 360px);
-    width: min(100%, 360px, 43.875vh);
-    width: min(100%, 360px, 43.875svh);
-    aspect-ratio: 9 / 16;
-    overflow: hidden; isolation: isolate;
-    background: ${FILM.ground};
-    border-radius: 10px;
-    box-shadow: ${shadowCss(CTA_SHADOW_LAYERS, FRAG_SHADOW_INK)};
+    grid-area: film;
+    width: min(100%, 400px, calc((100vh - 150px) * 0.5625));
+    width: min(100%, 400px, calc((100svh - 150px) * 0.5625));
+    aspect-ratio: 9 / 16; margin: 0 auto;
+    overflow: hidden; isolation: isolate; border-radius: 12px;
+    background: ${FILM.ground}; border: 1px solid var(--rule);
   }
-  .film-frame video {
-    display: block; width: 100%; height: 100%; object-fit: cover;
-    background: ${FILM.ground}; border-radius: 10px;
+  .film-frame video { display: block; width: 100%; height: 100%; object-fit: cover; background: ${FILM.ground}; }
+  .watch-copy { grid-area: copy; max-width: 30rem; }
+  .watch .eyebrow { margin: 0 0 1em; }
+  .watch h1.display { font-size: clamp(30px, 7.6vw, 54px); line-height: 1.22; margin: 0 0 0.45em; }
+  .watch .lede {
+    font-size: clamp(16px, 1.6vw, 19px); line-height: 1.5; color: var(--muted);
+    margin: 0 0 1.4em; max-width: 34ch;
   }
 
+  /* The app's own primary button in its own dark colours: volt fill, onVolt label,
+     radius.button and the scale(0.97) press, from the shared rule. No cast shadow, since a
+     shadow on this ground is invisible, and so no lift under the pointer either: a lift is
+     read by its shadow. The label goes back to that channel's form (buildWatchPage). */
+  .watch .cta {
+    max-width: 460px;
+    background: ${VOLT.volt}; color: ${VOLT.onVolt}; border-color: ${VOLT.volt};
+    box-shadow: none;
+    font-size: clamp(21px, 5.4vw, 30px);
+  }
+  .watch .cta:hover { background: ${VOLT.voltDim}; border-color: ${VOLT.voltDim}; box-shadow: none; transform: none; }
+  .watch .cta:active { background: ${VOLT.voltDim}; border-color: ${VOLT.voltDim}; box-shadow: none; transform: scale(0.97); }
+  .watch .promise { color: var(--muted); margin-top: 14px; }
+
+  /* From 900px the film stands on the left edge and the copy sits beside it, centred on the
+     film's band, all on one screen. The frame drops its 100% term here, because an auto track
+     would make it cyclic. */
   @media (min-width: 900px) {
-    /* The film on the left edge, its sentence beside it at the lede's size. The frame
-       drops its 100% term here because an auto track would make it cyclic, and at 900px
-       of window the content box is already wider than 360px. */
-    .film-fig { grid-template-columns: auto minmax(0, 1fr); column-gap: ${RHYTHM.g3}; align-items: center; }
-    .film-frame { grid-area: 1 / 1; width: min(360px, 43.875vh); width: min(360px, 43.875svh); }
-    .film-line { grid-area: 1 / 2; margin: 0; font-size: clamp(17px, 2.1vw, 22px); line-height: 1.5; color: var(--ink); max-width: 30ch; }
+    .watch-grid {
+      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-areas: "film copy";
+      column-gap: clamp(40px, 6vw, 96px); align-items: center;
+    }
+    .film-frame {
+      margin: 0;
+      width: min(400px, calc((100vh - 170px) * 0.5625));
+      width: min(400px, calc((100svh - 170px) * 0.5625));
+    }
+  }
+
+  /* The copy settles in once on load, on the hero's clock (267ms each, 60ms apart). The film is
+     the motion on this page, so nothing else moves. Reduce Motion: none of it, and no press. */
+  .watch-copy > * { animation: rise var(--t-arrival) var(--ease-out) backwards; }
+  .watch-copy > :nth-child(2) { animation-delay: 60ms; }
+  .watch-copy > :nth-child(3) { animation-delay: 120ms; }
+  .watch-copy > :nth-child(4) { animation-delay: 180ms; }
+  .watch-copy > :nth-child(5) { animation-delay: 240ms; }
+  @media (prefers-reduced-motion: reduce) {
+    .watch-copy > * { animation: none !important; transition: none !important; }
+    .watch .cta, .watch .cta:hover, .watch .cta:active { transform: none; }
   }
 `;
 
 // ---------------------------------------------------------------------------
 // Page shell
 // ---------------------------------------------------------------------------
+
+/** The channels with their own copy of the landing page and of the watch page. */
+const CHANNELS = ["tt", "ig", "yt"];
+
+/** The root of a channel's copy of the site: "/" for the unlabelled pages, "/tt/" and so on for
+ *  a channel's. Anything else throws, so a typo cannot build a link to a page that does not
+ *  exist. */
+function channelRoot(channelDir = "") {
+  if (channelDir && !CHANNELS.includes(channelDir)) {
+    throw new Error(`build-site: unknown channel "${channelDir}"`);
+  }
+  return channelDir ? `/${channelDir}/` : "/";
+}
+
+/** The nav's play triangle, drawn rather than typed: iOS renders a typed U+25B6 as an emoji. */
+const NAV_PLAY_SVG = `<svg viewBox="0 0 8 9" aria-hidden="true"><path d="M0 0l8 4.5L0 9z"/></svg>`;
+
+/** The browser chrome's colour per theme: the paper, or the watch pages' dark ground. */
+const THEME_COLOR = { paper: GROUND.base, volt: VOLT.background };
+
+/** The queue bar: the logo and "join the waitlist", which slides down from the top of the
+ *  screen once the form has fully left it (the queue bar's CSS says how, with no script). */
+function qbarHtml() {
+  return `<div class="qbar">
+  <div class="wrap qbar-in">
+    <a class="brand" href="#main">${ringsMarkSvg({ size: 24, label: "" })}<span>duoqueue</span></a>
+    <a class="qbar-cta" href="#waitlist-form">join the waitlist${ARROW_UP_SVG}</a>
+  </div>
+</div>
+`;
+}
 
 function pageShell({
   title,
@@ -2408,7 +2548,30 @@ function pageShell({
   noindex = false,
   ogImage = "/og.png",
   extraCss = "",
+  // "paper" (every page but the watch pages) or "volt" (the watch pages). It sets the browser's
+  // theme-color; the dark palette itself arrives with the watch page's extraCss, WATCH_CSS.
+  theme = "paper",
+  // The film is on (main() checks once): the nav leads with WATCH, and the page opts into the
+  // view transition between a landing page and its watch page.
+  film = false,
+  // The queue bar, for a landing page. Never emitted once PHASE is "launched": the bar only
+  // ever shows once the form has left the screen, and a launched page has no form.
+  qbar = false,
+  // "" or one of CHANNELS: which channel's watch page the nav's WATCH goes to.
+  channelDir = "",
+  // "watch" on a watch page, which marks its own nav link as the current page.
+  current = "",
+  // Where the logo and the footer's Home link go. A channel's watch page sends them back to
+  // that channel's landing page, so its hidden source field still says where the visitor
+  // came from.
+  homeHref = "/",
 }) {
+  if (!(theme in THEME_COLOR)) throw new Error(`build-site: pageShell() got an unknown theme "${theme}"`);
+  const watchLink = film
+    ? `<a class="nav-watch" href="${channelRoot(channelDir)}watch/"${current === "watch" ? ' aria-current="page"' : ""}>${NAV_PLAY_SVG}Watch</a>
+      `
+    : "";
+  const bar = qbar && PHASE === "waitlist" ? qbarHtml() : "";
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -2420,7 +2583,7 @@ ${canonical ? `<link rel="canonical" href="${canonical}">` : ""}
 ${noindex ? `<meta name="robots" content="noindex">` : ""}
 <link rel="icon" href="/favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="/favicon.png">
-<meta name="theme-color" content="${GROUND.base}">
+<meta name="theme-color" content="${THEME_COLOR[theme]}">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="DuoQueue">
 <meta property="og:title" content="${escapeHtml(title)}">
@@ -2430,15 +2593,15 @@ ${noindex ? `<meta name="robots" content="noindex">` : ""}
 <meta property="og:image:height" content="630">
 ${canonical ? `<meta property="og:url" content="${canonical}">` : ""}
 <meta name="twitter:card" content="summary_large_image">
-<style>${CSS}${extraCss}</style>
+<style>${CSS}${film ? VIEW_TRANSITION_CSS : ""}${extraCss}</style>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
-<header class="site-header">
+${bar}<header class="site-header">
   <div class="wrap">
-    <a class="brand" href="/">${ringsMarkSvg({ size: 26 })}<span>duoqueue</span></a>
+    <a class="brand" href="${homeHref}">${ringsMarkSvg({ size: 26 })}<span>duoqueue</span></a>
     <nav>
-      <a href="/privacy/">Privacy</a>
+      ${watchLink}<a href="/privacy/">Privacy</a>
       <a href="/terms/">Terms</a>
       <a href="/#support">Support</a>
     </nav>
@@ -2451,7 +2614,7 @@ ${bodyHtml}
   <div class="wrap">
     <p>DuoQueue is an 18+ app for finding people to play games with. It is platonic, not dating.${footerNote ? ` ${escapeHtml(footerNote)}` : ""}</p>
     <nav>
-      <a href="/">Home</a> <span aria-hidden="true">&middot;</span>
+      <a href="${homeHref}">Home</a> <span aria-hidden="true">&middot;</span>
       <a href="/privacy/">Privacy Policy</a> <span aria-hidden="true">&middot;</span>
       <a href="/terms/">Terms of Service</a> <span aria-hidden="true">&middot;</span>
       <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>
@@ -2598,10 +2761,7 @@ function momentsHtml() {
  *  that channel's form, so the hidden source field still says where a visitor came from
  *  after a detour through the film. `channelDir` is "" for / and /waitlist/. */
 function trailerLinkHtml(channelDir = "") {
-  if (channelDir && !["tt", "ig", "yt"].includes(channelDir)) {
-    throw new Error(`build-site: trailerLinkHtml() got an unknown channel "${channelDir}"`);
-  }
-  const href = channelDir ? `/${channelDir}/watch/` : "/watch/";
+  const href = `${channelRoot(channelDir)}watch/`;
   return `<a class="trailer" href="${href}"><span class="trailer-play" aria-hidden="true"><svg viewBox="0 0 13 14"><path d="M0 0l13 7L0 14z"/></svg></span><span class="trailer-text">Watch the trailer</span><span class="trailer-time">${FILM.length}</span></a>`;
 }
 
@@ -2619,6 +2779,10 @@ function trailerLinkHtml(channelDir = "") {
 const HERO_LEDE = "DuoQueue is an 18+ app for finding people to play games with. It is not dating.";
 const HERO_SUB =
   "You match on the games you play, the hours you are online, and how you like to play them. Then you talk, and queue up.";
+// The line under the call to action, per phase. The form's and the watch page's are one string,
+// so the promise a visitor reads beside the film is the one they read beside the form.
+const WAITLIST_PROMISE = "One email, on the day it goes live. That is the only one you get.";
+const LAUNCHED_PROMISE = "DuoQueue is live. If you joined the waitlist, the email is already on its way.";
 
 function signupForm(source) {
   return `
@@ -2641,7 +2805,7 @@ function signupForm(source) {
         <input type="hidden" name="source" value="${source}">
         <button class="cta" type="submit">join the waitlist</button>
       </form>
-      <p class="promise">One email, on the day it goes live. That is the only one you get.</p>
+      <p class="promise">${WAITLIST_PROMISE}</p>
       <p class="fineprint">We do not share your address. No analytics, no trackers and no cookies on this page. Submitting the form sets one 30-minute anti-bot cookie on our backend&rsquo;s own domain, and nothing else. See the <a href="/privacy/">Privacy Policy</a>.</p>`;
 }
 
@@ -2650,27 +2814,7 @@ function signupForm(source) {
 function launchedCta() {
   return `
       <p><a class="cta" href="${APP_STORE_URL}" style="max-width:460px;">download on the app store</a></p>
-      <p class="promise">DuoQueue is live. If you joined the waitlist, the email is already on its way.</p>`;
-}
-
-/** The launch film. A plain <video>: native controls, no script (see FILM). The sentence
- * is the figure's caption and comes first in the DOM, so a phone reads it above the film. */
-function filmSection() {
-  return `
-<section class="film" aria-labelledby="film-head">
-  <div class="wrap">
-    <h2 class="eyebrow" id="film-head">The short version</h2>
-    <figure class="film-fig">
-      <figcaption class="film-line" id="film-line">The app, from the first swipe to queueing up.</figcaption>
-      <div class="film-frame">
-        <video src="/${FILM.video}" poster="/${FILM.poster}" controls muted${FILM.autoplay ? " autoplay" : ""} loop playsinline preload="metadata" aria-label="DuoQueue, a short film of the app" aria-describedby="film-line">
-          <a href="/${FILM.video}">Watch the DuoQueue film</a>
-        </video>
-      </div>
-    </figure>
-  </div>
-</section>
-`;
+      <p class="promise">${LAUNCHED_PROMISE}</p>`;
 }
 
 function waitlistBody({ source, film = false, channelDir = "" }) {
@@ -2756,6 +2900,63 @@ function buildWaitlistPage({ source, canonical, includeSupport, film = false, ch
       "DuoQueue is an 18+ app for finding people to play games with. Platonic, not dating. Join the waitlist and get one email the day it goes live.",
     canonical,
     bodyHtml: waitlistBody({ source, film, channelDir }) + (includeSupport ? supportSection() : ""),
+    film,
+    qbar: true,
+    channelDir,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// The watch pages: the film on its own dark page.
+//
+// /watch/, plus /tt/watch/, /ig/watch/ and /yt/watch/, all from this one function and all
+// canonical to /watch/. The film used to sit on the landing page as a dark block that broke
+// the light page's flow and cost every visit 2.9 MB. Here it is the page: up to 400px wide,
+// native controls, muted autoplay (see FILM), played once so it rests on its last frame, with
+// the headline, the 18+ / not dating line and a chartreuse join button beside it.
+//
+// A channel gets its own copy for the same reason it gets its own landing page: the join
+// button (and the logo, and the footer's Home) go back to THAT channel's form, so the hidden
+// source field still says tt, ig or yt after a detour through the film.
+// ---------------------------------------------------------------------------
+
+function buildWatchPage({ channelDir = "" } = {}) {
+  const home = channelRoot(channelDir);
+  // Once launched there is no form to go back to: the button goes to the store instead.
+  const [joinHref, joinLabel, promise] =
+    PHASE === "launched"
+      ? [APP_STORE_URL, "download on the app store", LAUNCHED_PROMISE]
+      : [`${home}#waitlist-form`, "join the waitlist", WAITLIST_PROMISE];
+  const body = `
+<section class="watch" aria-labelledby="watch-head">
+  <div class="wrap watch-grid">
+    <div class="film-frame">
+      <video src="/${FILM.video}" poster="/${FILM.poster}" controls muted${FILM.autoplay ? " autoplay" : ""} playsinline preload="metadata" aria-label="DuoQueue, a short film of the app" aria-describedby="watch-head">
+        <a href="/${FILM.video}">Watch the DuoQueue film</a>
+      </video>
+    </div>
+    <div class="watch-copy">
+      <p class="eyebrow">The trailer &middot; ${FILM.length}</p>
+      <h1 class="display" id="watch-head">from the first swipe to <span class="key">queueing up</span></h1>
+      <p class="lede">${HERO_LEDE}</p>
+      <a class="cta" href="${joinHref}">${joinLabel}</a>
+      <p class="promise">${promise}</p>
+    </div>
+  </div>
+</section>
+`;
+  return pageShell({
+    title: "Watch the trailer | DuoQueue",
+    description:
+      "The DuoQueue trailer, 21 seconds: an 18+ app for finding people to play games with. Platonic, not dating.",
+    canonical: `${SITE_ORIGIN}/watch/`,
+    bodyHtml: body,
+    extraCss: WATCH_CSS,
+    theme: "volt",
+    film: true,
+    channelDir,
+    current: "watch",
+    homeHref: home,
   });
 }
 
@@ -3004,14 +3205,20 @@ function main() {
   // The landing page and its four aliases. `/` carries the support block because
   // it is the URL registered with App Store Connect; the aliases canonicalise to
   // it so five URLs serving one page is not four duplicate-content pages.
-  // The trailer link goes on all five, since they are one page, and each channel's copy links
-  // to its own channel's watch page. Whether the film is on is checked once, before any of
-  // them is written, so the five cannot disagree about it.
+  // The trailer link and the nav's WATCH go on all five, since they are one page, and each
+  // channel's copy links to its own channel's watch page. Whether the film is on is checked
+  // once, before any page is written, so the landing pages and the watch pages cannot disagree
+  // about it: with the film missing there are no watch pages and nothing links to one.
   const film = filmPresent();
   write("index.html", buildWaitlistPage({ source: "direct", canonical: `${SITE_ORIGIN}/`, includeSupport: true, film }));
   write("waitlist/index.html", buildWaitlistPage({ source: "direct", canonical: `${SITE_ORIGIN}/`, includeSupport: false, film }));
-  for (const [dir, source] of [["tt", "tt"], ["ig", "ig"], ["yt", "yt"]]) {
-    write(`${dir}/index.html`, buildWaitlistPage({ source, canonical: `${SITE_ORIGIN}/`, includeSupport: false, film, channelDir: dir }));
+  for (const dir of CHANNELS) {
+    write(`${dir}/index.html`, buildWaitlistPage({ source: dir, canonical: `${SITE_ORIGIN}/`, includeSupport: false, film, channelDir: dir }));
+  }
+  // The watch pages: /watch/ for the unlabelled landing pages, and one per channel.
+  if (film) {
+    write("watch/index.html", buildWatchPage());
+    for (const dir of CHANNELS) write(`${dir}/watch/index.html`, buildWatchPage({ channelDir: dir }));
   }
   write("waitlist/thanks/index.html", buildThanksPage());
   write("waitlist/try-again/index.html", buildTryAgainPage());
@@ -3063,7 +3270,7 @@ function main() {
     written.push(`${FILM.video} (pre-existing)`, `${FILM.poster} (pre-existing)`);
   } else {
     console.warn(
-      `  WARNING: site/${FILM.video} or site/${FILM.poster} is missing, so the film section was left out.\n` +
+      `  WARNING: site/${FILM.video} or site/${FILM.poster} is missing, so the watch pages and every link to them were left out.\n` +
         "  Copy the launch render and its poster there (see FILM in this file) and re-run."
     );
   }
