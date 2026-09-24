@@ -55,6 +55,6 @@ describe("cardNudge", () => {
   it("words the nudge without an em dash", () => {
     const item = cardNudge(completenessItems({ ...FULL, shows: 0 }));
     expect(item && nudgeText(item)).toBe("Finish your card: add a show");
-    expect(item && nudgeText(item)).not.toContain("—");
+    expect(item && nudgeText(item)).not.toContain("\u2014");
   });
 });

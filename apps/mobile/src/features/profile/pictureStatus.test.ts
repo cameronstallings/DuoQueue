@@ -68,7 +68,7 @@ describe("ownPictureState", () => {
 
   it("has no em dash in its copy", () => {
     for (const text of [...Object.values(PICTURE_TAG), ...Object.values(PICTURE_NOTE)]) {
-      expect(text).not.toContain("—");
+      expect(text).not.toContain("\u2014");
     }
   });
 });
