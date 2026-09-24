@@ -13,6 +13,7 @@ import { SectionLabel } from "@/components/SectionLabel";
 import { useMatches, type MatchListItem } from "@/features/chat/useMatches";
 import { PartyInvitesBanner } from "@/features/party/PartyInvitesBanner";
 import { PartyListSection } from "@/features/party/PartyListSection";
+import { initialOf } from "@/lib/initialOf";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
@@ -108,7 +109,9 @@ function MatchRow({ item }: { item: MatchListItem }) {
               justifyContent: "center",
             }}
           >
-            <Text style={[type.title, { color: colors.textMuted }]}>{item.other_display_name[0]}</Text>
+            <Name variant="title" style={{ color: colors.textMuted }}>
+              {initialOf(item.other_display_name)}
+            </Name>
           </View>
         )}
       </Pressable>

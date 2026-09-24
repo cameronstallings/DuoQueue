@@ -333,6 +333,7 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger, index }: Swi
               <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
                 <PresenceAvatar
                   uri={card.profilePhotoUrl}
+                  name={card.display_name}
                   size={44}
                   isActive={card.isRecentlyActive}
                   borderColor="#F5F1E8"

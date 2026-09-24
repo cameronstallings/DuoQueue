@@ -35,7 +35,7 @@ function AdmirerRow({ item }: { item: AdmirerListItem }) {
 
   return (
     <Card style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md, marginBottom: spacing.sm }}>
-      <PresenceAvatar uri={item.photoUrl} size={56} />
+      <PresenceAvatar uri={item.photoUrl} name={item.display_name} size={56} />
       <View style={{ flex: 1 }}>
         <Text style={[type.bodyStrong, { color: colors.text }]}>
           {item.display_name}, {item.age}

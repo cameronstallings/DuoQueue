@@ -215,6 +215,7 @@ export function ProfileDetailContent({ card, onClose, readOnly = false }: Profil
           <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
             <PresenceAvatar
               uri={card.profilePhotoUrl}
+              name={card.display_name}
               size={48}
               isActive={card.isRecentlyActive}
               borderColor={colors.background}

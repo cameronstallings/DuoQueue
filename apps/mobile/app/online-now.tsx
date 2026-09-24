@@ -10,6 +10,7 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { Skeleton } from "@/components/Skeleton";
 import { useLookingNow } from "@/features/online-now/useLookingNow";
 import { type OnlineNowCard, useOnlineNow } from "@/features/online-now/useOnlineNow";
+import { cardPicture } from "@/features/swipe/cardChips";
 import { useSwipeAction } from "@/features/swipe/useSwipeAction";
 import { useRequireSession } from "@/hooks/useRequireSession";
 import { useTheme } from "@/theme/useTheme";
@@ -44,7 +45,7 @@ function OnlineNowRow({ item }: { item: OnlineNowCard }) {
 
   return (
     <Card style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md }}>
-      <PresenceAvatar uri={item.profilePhotoUrl} size={56} isActive />
+      <PresenceAvatar uri={cardPicture(item)} name={item.display_name} size={56} isActive />
       <View style={{ flex: 1 }}>
         <Text style={[type.bodyStrong, { color: colors.text }]}>
           {item.display_name}, {item.age}

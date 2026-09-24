@@ -3,8 +3,12 @@ import { Image } from "expo-image";
 
 import { useTheme } from "@/theme/useTheme";
 
+import { PlayerMark } from "./PlayerMark";
+
 interface PresenceAvatarProps {
   uri: string | null | undefined;
+  /** Whose avatar this is. With no picture, their initial is drawn instead of a blank circle. */
+  name: string;
   size: number;
   isActive?: boolean;
   borderColor?: string;
@@ -13,13 +17,7 @@ interface PresenceAvatarProps {
 
 /** An avatar with a fixed 8px volt presence dot pinned to its bottom-right edge,
  * replacing a separate "Active recently" text badge — the dot alone carries the signal. */
-export function PresenceAvatar({
-  uri,
-  size,
-  isActive,
-  borderColor,
-  borderWidth = 0,
-}: PresenceAvatarProps) {
+export function PresenceAvatar({ uri, name, size, isActive, borderColor, borderWidth = 0 }: PresenceAvatarProps) {
   const { colors } = useTheme();
 
   return (
@@ -38,16 +36,9 @@ export function PresenceAvatar({
           transition={150}
         />
       ) : (
-        <View
-          style={{
-            width: size,
-            height: size,
-            borderRadius: size / 2,
-            backgroundColor: colors.surfaceAlt,
-            borderWidth,
-            borderColor,
-          }}
-        />
+        <View style={{ width: size, height: size, borderRadius: size / 2, borderWidth, borderColor, overflow: "hidden" }}>
+          <PlayerMark name={name} size={size - borderWidth * 2} />
+        </View>
       )}
       {isActive && (
         <View
