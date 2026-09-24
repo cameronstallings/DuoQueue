@@ -5,6 +5,7 @@ import { spacing, type } from "../../theme/tokens";
 import {
   STRIP_FACE_OVERLAP,
   STRIP_FACE_SIZE,
+  STRIP_MAX_FONT_SCALE,
   highlightsCountLabel,
   stripIsCompact,
   stripQuotaLabel,
@@ -51,9 +52,10 @@ describe("highlightsCountLabel", () => {
 });
 
 // IBM Plex Mono is monospaced: every glyph, the \u203a included, advances 600/1000 em, and React
-// Native on iOS adds the letter spacing after every glyph, the last one included.
+// Native on iOS adds the letter spacing after every glyph, the last one included. The strip's
+// text grows with Dynamic Type at most STRIP_MAX_FONT_SCALE, so the sums use that scale.
 function monoWidth(text: string, style: { fontSize: number; letterSpacing: number }): number {
-  return text.length * (style.fontSize * 0.6 + style.letterSpacing);
+  return text.length * (style.fontSize * 0.6 + style.letterSpacing) * STRIP_MAX_FONT_SCALE;
 }
 
 // The Deck insets the strip 24pt each side; inside it are a 1pt border and 8pt of padding each side.
@@ -61,18 +63,15 @@ function rowSpace(windowWidth: number): number {
   return windowWidth - 2 * spacing.lg - 2 * (1 + spacing.sm);
 }
 
-// Three faces with their 1pt rings, overlapping; "HIGHLIGHTS"; the count with its \u203a; the swipes
-// text; and the three 8pt gaps between those four children.
-function rowWidth(count: number, quotaText: string): number {
-  const faces = 3 * (STRIP_FACE_SIZE + 2) - 2 * STRIP_FACE_OVERLAP;
-  return (
-    faces +
-    monoWidth("Highlights", type.label) +
-    monoWidth(`${highlightsCountLabel(count)} \u203a`, type.tick) +
-    monoWidth(quotaText, type.tick) +
-    3 * spacing.sm
-  );
+// The children on the row, with an 8pt gap between each two.
+function rowWidth(children: number[]): number {
+  return children.reduce((sum, width) => sum + width, 0) + (children.length - 1) * spacing.sm;
 }
+
+// Three faces with their 1pt rings, overlapping; the loading skeletons have no ring.
+const FACES = 3 * (STRIP_FACE_SIZE + 2) - 2 * STRIP_FACE_OVERLAP;
+const SKELETON_FACES = 3 * STRIP_FACE_SIZE - 2 * STRIP_FACE_OVERLAP;
+const HIGHLIGHTS = monoWidth("Highlights", type.label);
 
 describe("the strip at phone widths", () => {
   // useStandouts asks for at most 8, so the count is one digit.
@@ -82,20 +81,39 @@ describe("the strip at phone widths", () => {
     { is_premium: false, swipes_limit: 25, swipes_used: 0 },
     { is_premium: false, swipes_limit: 25, swipes_used: 24 },
   ];
-
   // 375: SE and mini. 390/393/402: the common 6.1" phones. 414 up: Plus, Max, Pro Max.
-  it.each([375, 390, 393, 402, 414, 428, 430, 440])("fits without cutting the count at %ipt", (windowWidth) => {
+  const widths = [375, 390, 393, 402, 414, 428, 430, 440];
+
+  it.each(widths)("fits the count and the swipes beside the faces, keeping the \u203a, at %ipt", (windowWidth) => {
+    const count = monoWidth(`${highlightsCountLabel(MOST_HIGHLIGHTS)} \u203a`, type.tick);
     for (const quota of quotas) {
-      const quotaText = stripQuotaLabel(quota, stripIsCompact(windowWidth));
-      expect(rowWidth(MOST_HIGHLIGHTS, quotaText)).toBeLessThanOrEqual(rowSpace(windowWidth));
+      const swipes = monoWidth(stripQuotaLabel(quota, stripIsCompact(windowWidth, true)), type.tick);
+      expect(rowWidth([FACES, HIGHLIGHTS, count, swipes])).toBeLessThanOrEqual(rowSpace(windowWidth));
+    }
+  });
+
+  it.each(widths)("fits the full swipes copy while Highlights load, and with none, at %ipt", (windowWidth) => {
+    for (const quota of quotas) {
+      const quotaText = stripQuotaLabel(quota, stripIsCompact(windowWidth, false));
+      const swipes = monoWidth(quotaText, type.tick);
+      expect(rowWidth([SKELETON_FACES, HIGHLIGHTS, swipes])).toBeLessThanOrEqual(rowSpace(windowWidth));
+      expect(rowWidth([swipes])).toBeLessThanOrEqual(rowSpace(windowWidth));
     }
   });
 
   it("uses the short copy on the 6.1-inch phones and the full copy from 414pt", () => {
-    expect(stripIsCompact(375)).toBe(true);
-    expect(stripIsCompact(393)).toBe(true);
-    expect(stripIsCompact(402)).toBe(true);
-    expect(stripIsCompact(414)).toBe(false);
-    expect(stripIsCompact(440)).toBe(false);
+    expect(stripIsCompact(375, true)).toBe(true);
+    expect(stripIsCompact(393, true)).toBe(true);
+    expect(stripIsCompact(402, true)).toBe(true);
+    expect(stripIsCompact(414, true)).toBe(false);
+    expect(stripIsCompact(440, true)).toBe(false);
+  });
+
+  it("uses the full copy on any phone when no count is beside it", () => {
+    expect(stripIsCompact(375, false)).toBe(false);
+    expect(stripIsCompact(393, false)).toBe(false);
+    const quota = { is_premium: false, swipes_limit: 25, swipes_used: 7 };
+    expect(stripQuotaLabel(quota, stripIsCompact(393, false))).toBe("18 swipes left");
+    expect(stripQuotaLabel({ ...quota, is_premium: true }, stripIsCompact(393, false))).toBe("Unlimited swipes");
   });
 });

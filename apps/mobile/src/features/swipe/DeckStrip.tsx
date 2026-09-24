@@ -13,6 +13,7 @@ import { cardPicture } from "./cardChips";
 import {
   STRIP_FACE_OVERLAP as FACE_OVERLAP,
   STRIP_FACE_SIZE as FACE_SIZE,
+  STRIP_MAX_FONT_SCALE,
   highlightsCountLabel,
   stripIsCompact,
   stripQuotaLabel,
@@ -37,9 +38,14 @@ export function DeckStrip({ quota }: { quota: StripQuota | undefined }) {
   const [sheetVisible, setSheetVisible] = useState(false);
   const [openCard, setOpenCard] = useState<DeckCard | null>(null);
   const hasHighlights = cards.length > 0;
-  const quotaText = stripQuotaLabel(quota, stripIsCompact(width));
-  // VoiceOver gets the full copy even where the strip shows "18 LEFT" or "UNLIMITED".
+  // The short copy only when "4 PICKED TODAY ›" shares the row; alone, the full copy fits.
+  const quotaText = stripQuotaLabel(quota, stripIsCompact(width, hasHighlights));
+  // VoiceOver gets the full copy even where the strip shows "18 LEFT" or "UNLIMITED". A label
+  // replaces the children's text, so with Highlights it carries the swipes left too.
   const quotaSpoken = stripQuotaLabel(quota, false);
+  const spokenLabel = hasHighlights
+    ? `Highlights, ${highlightsCountLabel(cards.length)}${quotaSpoken ? `. ${quotaSpoken}` : ""}`
+    : quotaSpoken || undefined;
 
   // Same hand-off as the chat screen's menu: close the sheet and open the modal in one handler.
   function handlePick(card: DeckCard) {
@@ -49,16 +55,12 @@ export function DeckStrip({ quota }: { quota: StripQuota | undefined }) {
 
   return (
     <>
+      {/* No `disabled` without Highlights: VoiceOver would call the swipes left "dimmed". With no
+          onPress and no role it reads as plain text, and the pressed fade is skipped below. */}
       <Pressable
-        disabled={!hasHighlights}
-        onPress={() => setSheetVisible(true)}
+        onPress={hasHighlights ? () => setSheetVisible(true) : undefined}
         accessibilityRole={hasHighlights ? "button" : undefined}
-        // A label replaces the children's text, so it carries the swipes left too.
-        accessibilityLabel={
-          hasHighlights
-            ? `Highlights, ${highlightsCountLabel(cards.length)}${quotaSpoken ? `. ${quotaSpoken}` : ""}`
-            : undefined
-        }
+        accessibilityLabel={spokenLabel}
         accessibilityHint={hasHighlights ? "Opens today's Highlights" : undefined}
         style={({ pressed }) => ({
           height: STRIP_HEIGHT,
@@ -70,7 +72,7 @@ export function DeckStrip({ quota }: { quota: StripQuota | undefined }) {
           borderWidth: 1,
           borderColor: colors.cardEdge,
           backgroundColor: colors.cardPanel,
-          opacity: pressed ? 0.8 : 1,
+          opacity: pressed && hasHighlights ? 0.8 : 1,
         })}
       >
         {isLoading ? (
@@ -102,15 +104,29 @@ export function DeckStrip({ quota }: { quota: StripQuota | undefined }) {
             ))}
           </View>
         ) : null}
-        {isLoading || hasHighlights ? <Text style={[type.label, { color: colors.voltDim }]}>Highlights</Text> : null}
+        {/* The three texts do not grow with Dynamic Type (STRIP_MAX_FONT_SCALE): the fit sums
+            hold only at 1x and the strip is a fixed 32pt tall. */}
+        {isLoading || hasHighlights ? (
+          <Text style={[type.label, { color: colors.voltDim }]} maxFontSizeMultiplier={STRIP_MAX_FONT_SCALE}>
+            Highlights
+          </Text>
+        ) : null}
         {hasHighlights ? (
-          <Text style={[type.tick, { color: colors.textMuted, flexShrink: 1 }]} numberOfLines={1}>
+          <Text
+            style={[type.tick, { color: colors.textMuted, flexShrink: 1 }]}
+            numberOfLines={1}
+            maxFontSizeMultiplier={STRIP_MAX_FONT_SCALE}
+          >
             {`${highlightsCountLabel(cards.length)} ›`}
           </Text>
         ) : null}
         {/* An auto margin, not a flex spacer: a spacer View would add a fourth 8pt gap. */}
         {quotaText ? (
-          <Text style={[type.tick, { color: colors.textMuted, marginLeft: "auto" }]} numberOfLines={1}>
+          <Text
+            style={[type.tick, { color: colors.textMuted, marginLeft: "auto" }]}
+            numberOfLines={1}
+            maxFontSizeMultiplier={STRIP_MAX_FONT_SCALE}
+          >
             {quotaText}
           </Text>
         ) : null}
