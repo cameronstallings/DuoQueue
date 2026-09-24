@@ -46,7 +46,7 @@ Part 5 is the pre-submit checklist. Do that checklist last, right before you tap
   `public_profiles` view so `?gender=eq.…` is no longer a valid REST predicate — the claim
   holds against a raw API client, not just against the UI), mic permission removed (app only
   requests photo library/camera/
-  notifications). `pnpm typecheck`, `pnpm lint`, and `pnpm audit:contrast` (56/56 WCAG pairs,
+  notifications). `pnpm typecheck`, `pnpm lint`, and `pnpm audit:contrast` (76/76 WCAG pair-checks,
   both color schemes) all pass clean.
 - **No analytics SDK, no ad SDK, no crash-reporting SDK.** Confirmed via `package.json` in
   both the root and `apps/mobile` — nothing to disclose as tracking, and the privacy table in
@@ -92,7 +92,7 @@ shows: a populated deck of 13 fresh demo profiles, one existing match (Priya) wi
 8-message conversation left unread (an indicator on that row in the Matches list — the app
 sets no tab-bar badge), and 3 inbound "who wants to duo" requests
 (Sana, Marcus, Kofi). The review account plays League of Legends at Gold II, so the first
-two cards (Dae, Platinum I, and Devon, Silver I) carry the "Can duo with you" label from the
+two cards (Dae, Platinum I, and Devon, Silver I) carry the lit "CAN DUO" cell from the
 rank picker; Ophelia (Emerald IV) is further down without it. Every demo row is flagged `is_demo = true` and gated server-side across
 9 RPCs and 14 views — real users (verified live, adversarially, across every discovery
 surface) see zero of it, and the reviewer's account is invisible to them too. Photos are
@@ -152,10 +152,9 @@ review is over, even though real users can never see it.
    to check them before you're taking real payments, especially the arbitration clause and
    the DOB-collection language. *~30 min to re-read, longer if you loop in counsel.*
 
-2. **Decide on onboarding gender collection.** Nothing reads `gender` as a match filter
-   anymore. You can leave it collected (future safety/reporting use) or drop the onboarding
-   step — either is fine, neither is a rejection risk. Not blocking; make the call whenever.
-   *5 min decision, follow-up code task if you drop it.*
+2. **Onboarding gender collection: decided (build 12).** The gender step is removed and nothing
+   sends gender. The column stays nullable; older answers are kept and never shown. When build 12
+   ships, update the Gender row in App Privacy (Part 3) and publish privacy policy 1.4.
 
 3. **Push your env vars to EAS — this is not optional and it is easy to miss.**
    `apps/mobile/.env` is matched by `.gitignore` (`*.env`), so **EAS Build never receives
@@ -412,20 +411,27 @@ pricing. Grab that one shot later from a real build once Part 1B step 13 is done
 
 Six shots, in this order (order matters — the first is what search results show):
 
-1. **Deck** (`app/(tabs)/index.tsx`) — the front swipe card: one game chip with skill level,
-   the prompt line, and the shared-overlap label. Shows are *not* on the card; if you want
-   shows in a shot, use the expanded profile or shot 2.
+1. **Deck** (`app/(tabs)/index.tsx`) — Dae's card (build 12): the picture, the page track, the
+   name row, and the three cells with the lit Solo/Duo "CAN DUO" cell. Capture dark and Paper.
    *"Ranked by the games you both play — swipe to duo up."*
-2. **Own profile** (`app/(tabs)/profile.tsx`) — the bento grid: games, schedule, vibe, prompts.
+2. **Own profile** (`app/(tabs)/profile.tsx`) — your card under HOW OTHERS SEE YOU, then the
+   HOW I PLAY tiles.
    *"Your profile is your gamer card — games, playstyle, and vibe."*
 3. **Requests** (`app/admirers.tsx`) — the three seeded rows with the "Duo Up" button.
    *"People who want to duo with you. Say Duo Up if you're in."*
-4. **Match moment** (`app/match/[matchId].tsx`) — "DUO LOCKED" headline.
+4. **Match moment** (`app/match/[matchId].tsx`) — the rings locked inside the brackets, "DUO
+   LOCKED", both players and the reason strip. Match with Dae from the Deck so the strip reads
+   "You can queue Ranked Solo/Duo".
    *"Duo locked. Time to plan a session."*
 5. **Chat** (`app/chat/[matchId].tsx`, open Priya) — the seeded 8-message conversation.
    *"Chat to lock in a time — no small talk required."*
 6. **Matches list** (`app/(tabs)/matches.tsx`) — sectioned list, Priya's row showing unread.
    *"Every duo in one place, sorted by whose turn it is to reply."*
+
+**Build 12 re-shoot.** Re-record and re-render 01-deck (dark and light), 02-profile and
+03-duo-locked in `marketing/store/`, and re-cut the App Preview from new recordings. The
+deleted-persona (Chase, Bea) and Valorant guards in `marketing/video/scripts/validate-content.ts`
+still apply.
 
 One thing to know before you frame shots 2 and 5: there are 14 abstract avatars and 15 demo
 rows, so the review account and Priya both carry `avatar-01-circuit-traces.png`. Your own
@@ -530,11 +536,11 @@ carried over from an earlier draft.
 |---|---|---|---|
 | Email Address | Yes | No | App Functionality (account creation, login, email confirmation) |
 | Display Name | Yes | No | App Functionality (profile identity shown to other users) |
-| Photos | Yes | No | App Functionality (profile photos, moderated before display) |
+| Photos | Yes | No | App Functionality (one optional profile picture, moderated before display) |
 | Other User Content — bio, prompts, game/show/playstyle preferences | Yes | No | App Functionality (profile content, matching) |
 | Other User Content — chat messages (1:1 and party) | Yes | No | App Functionality (core messaging feature) |
 | Date of Birth | Yes | No | App Functionality (18+ age gate, legally required) |
-| Gender (onboarding only, no longer used for filtering) | Yes | No | App Functionality (profile display / future safety use) |
+| Gender (asked by builds up to 11 only; build 12 removes the step, older answers kept and never shown) | Yes | No | Cameron: remove this row from Apple's label when build 12 ships, or keep it for the stored older answers |
 | Discord Username | Yes | No | App Functionality (optional, user-shared contact handle for outside-app contact) |
 | Linked Account Identifiers — Steam ID, display name, rank, playtime | Yes | No | App Functionality (optional verified-stats badge) |
 | Push Notification Token | Yes | No | App Functionality (match/message alerts, re-engagement nudges — user-controlled per-type toggles) |
@@ -660,6 +666,11 @@ with you" order, and the line saying store media shows real people while the rev
 shows abstract art. It drops the 2.1 questionnaire answers, which Apple already accepted when
 it approved build 10.
 
+**Build 12 paste.** Kept at `C:\Users\stall\Documents\DuoQueue-review-notes-build-12.txt`: the
+build 11 paste plus the optional picture, the card (picture then three prompts, text on a solid
+panel), no gender step, and the lit "CAN DUO" cell in place of "Can duo with you". Keep it
+under 4,000 characters.
+
 ```
 WHAT THIS APP IS
 DuoQueue helps people find platonic gaming partners ("duos"): teammates to play games, watch
@@ -678,7 +689,7 @@ DEMO ACCOUNT FOR REVIEW
 This account is pre-confirmed and fully onboarded. Sign in directly, no CAPTCHA or email code.
 On sign-in you will immediately see:
   - A populated Deck of 13 candidate profiles, each with a display name, age, bio, prompt
-    answers, games with skill levels, shows, platforms, playstyle tags, and an approved photo.
+    answers, games with skill levels, shows, platforms, playstyle tags, and an approved picture.
   - One existing match (with "Priya") already containing an 8-message conversation about
     scheduling a Valorant session, with the newest message left unread, so Priya's row in the
     Matches list shows as unread the moment you sign in.
@@ -709,8 +720,8 @@ HOW TO EXERCISE EACH FEATURE
    duo with any of the 13 candidate profiles.
 2. Open the existing conversation: Matches tab → tap "Priya" to open the 8-message conversation.
    Sending a new message works normally.
-3. View a full profile: tap any card in the Deck (or a name in Matches) to open full profile
-   detail, showing photos, prompts, games, schedule, and vibe tags.
+3. View a full profile: tap the panel under a card's picture in the Deck (or a name in Matches)
+   to open full profile detail, showing the picture, prompts, games, schedule, and vibe tags.
 4. Try the paywall: Settings tab -> "Subscription" section -> "DuoQueue+". It lists four
    auto-renewing plans (Weekly / Monthly / 3-Month / 6-Month) plus a one-time Power-Up
    consumable, and always offers "Continue with Free" so it never traps you. The same screen
@@ -793,6 +804,10 @@ Submit, not before.
       rating for an adults-only app.
 - [ ] The build is **attached to the 1.0 version** (Build → + → select). Uploading via
       `eas submit` puts it in App Store Connect but does not attach it to the version.
+- [ ] **Build 12:** build 11 is developer-rejected from the 1.0 version first, and build 12 is
+      the one attached. The build 12 review notes paste is in.
+- [ ] **Privacy policy 1.4** (draft at `C:\Users\stall\Documents\DuoQueue-privacy-1.4-draft.txt`)
+      is published the day build 12 goes live.
 - [ ] Optional: link your own Steam account once from Settings → Connections, so the
       Steam-linking claim in the description has been exercised end-to-end at least once by a
       human before a reviewer tries it (the key and functions are already live — see Part 2.5).
