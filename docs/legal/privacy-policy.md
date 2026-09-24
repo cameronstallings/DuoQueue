@@ -29,7 +29,7 @@
   poster, which scripts/build-site.mjs serves from site/assets/ on duoqueue.io itself and
   plays with a plain <video> element, no script.
 
-  TRAILER PAGE AND GENDER (version 1.3, effective date September 23, 2026; design:
+  TRAILER PAGE AND GENDER (version 1.3, published 2026-09-24, effective date September 24, 2026; design:
   docs/superpowers/specs/2026-09-23-duoqueue-io-watch-page-design.md): the "No cookies" bullet of the
   website section in Section 2 now says the film and its poster are on the trailer page
   (duoqueue.io/watch/, and its /tt/, /ig/ and /yt/ copies), because the home page no longer
@@ -52,7 +52,7 @@
 -->
 # DuoQueue Privacy Policy
 
-**Effective date:** September 23, 2026
+**Effective date:** September 24, 2026
 **Version:** 1.3
 
 This policy explains what DuoQueue collects, why, who we share it with, and what control you have over it. It's written in plain language on purpose. If anything here is unclear, contact us using the details below.
