@@ -12,8 +12,9 @@ import { KeyboardAwareScrollView } from "./KeyboardAwareScrollView";
 import { GrainOverlay } from "./GrainOverlay";
 
 // A screen opened as the app's cold-start/deep-link entry has no history to pop —
-// router.back() would be a silent no-op, stranding the user with a dead button.
-function goBack() {
+// router.back() would be a silent no-op, stranding the user with a dead button. Exported for
+// every custom close or back control (the paywall's bar, filters.tsx) so none keeps its own copy.
+export function goBack() {
   if (router.canGoBack()) router.back();
   else router.replace("/(tabs)");
 }
