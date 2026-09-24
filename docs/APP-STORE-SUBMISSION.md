@@ -413,10 +413,10 @@ Six shots, in this order (order matters — the first is what search results sho
 
 1. **Deck** (`app/(tabs)/index.tsx`) — Dae's card (build 12): the picture, the page track, the
    name row, and the three cells with the lit Solo/Duo "CAN DUO" cell. Capture dark and Paper.
-   *"Ranked by the games you both play — swipe to duo up."*
+   *"Ranked by the games you both play. Swipe to duo up."*
 2. **Own profile** (`app/(tabs)/profile.tsx`) — your card under HOW OTHERS SEE YOU, then the
    HOW I PLAY tiles.
-   *"Your profile is your gamer card — games, playstyle, and vibe."*
+   *"Your profile is your gamer card: games, playstyle, and vibe."*
 3. **Requests** (`app/admirers.tsx`) — the three seeded rows with the "Duo Up" button.
    *"People who want to duo with you. Say Duo Up if you're in."*
 4. **Match moment** (`app/match/[matchId].tsx`) — the rings locked inside the brackets, "DUO
@@ -424,7 +424,7 @@ Six shots, in this order (order matters — the first is what search results sho
    "You can queue Ranked Solo/Duo".
    *"Duo locked. Time to plan a session."*
 5. **Chat** (`app/chat/[matchId].tsx`, open Priya) — the seeded 8-message conversation.
-   *"Chat to lock in a time — no small talk required."*
+   *"Chat to lock in a time. No small talk required."*
 6. **Matches list** (`app/(tabs)/matches.tsx`) — sectioned list, Priya's row showing unread.
    *"Every duo in one place, sorted by whose turn it is to reply."*
 

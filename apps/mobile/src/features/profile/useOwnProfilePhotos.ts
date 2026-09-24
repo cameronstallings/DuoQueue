@@ -24,6 +24,39 @@ interface ProfileMediaRow {
 const REVIEW_POLL_MS = 5_000;
 const REVIEW_POLL_LIMIT = 60;
 
+/** Signed URLs are reused while the path and status are unchanged. Every signing mints a new
+ * token, and expo-image caches by URL, so re-signing on each poll would reload and cross-fade the
+ * picture every 5s on the card, the Edit slot and the DUO LOCKED chip. The status is part of the
+ * key because moderate-photo overwrites the file in place when it rules, so the URL changes once
+ * then. Reused for 50 minutes of the 60-minute signature (lib/storage.ts). */
+const SIGNED_URL_REUSE_MS = 50 * 60 * 1000;
+const signedUrlCache = new Map<string, { url: string; signedAt: number }>();
+
+function signedUrlKey(row: ProfileMediaRow): string {
+  return `${row.storage_path}|${row.moderation_status}`;
+}
+
+async function stableSignedUrls(rows: ProfileMediaRow[]): Promise<Map<string, string>> {
+  const now = Date.now();
+  const urls = new Map<string, string>();
+  const toSign: ProfileMediaRow[] = [];
+  for (const row of rows) {
+    const cached = signedUrlCache.get(signedUrlKey(row));
+    if (cached && now - cached.signedAt < SIGNED_URL_REUSE_MS) urls.set(row.storage_path, cached.url);
+    else toSign.push(row);
+  }
+  if (toSign.length === 0) return urls;
+
+  const fresh = await signPhotoUrls(toSign.map((r) => r.storage_path));
+  for (const row of toSign) {
+    const url = fresh.get(row.storage_path);
+    if (!url) continue;
+    urls.set(row.storage_path, url);
+    signedUrlCache.set(signedUrlKey(row), { url, signedAt: now });
+  }
+  return urls;
+}
+
 async function fetchOwnProfilePhotos(profileId: string): Promise<OwnProfilePhotos> {
   const { data, error } = await supabase
     .from("profile_media")
@@ -33,7 +66,7 @@ async function fetchOwnProfilePhotos(profileId: string): Promise<OwnProfilePhoto
   if (error) throw error;
 
   const rows = (data ?? []) as ProfileMediaRow[];
-  const signedUrls = await signPhotoUrls(rows.map((r) => r.storage_path));
+  const signedUrls = await stableSignedUrls(rows);
   const profileRow = rows.find((r) => r.photo_role === "profile");
   const headerRow = rows.find((r) => r.photo_role === "header");
 

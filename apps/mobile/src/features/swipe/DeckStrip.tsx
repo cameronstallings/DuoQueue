@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
+import { useRef, useState } from "react";
+import { Platform, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 
 import { Name } from "@/components/Name";
 import { PresenceAvatar } from "@/components/PresenceAvatar";
@@ -46,11 +46,27 @@ export function DeckStrip({ quota }: { quota: StripQuota | undefined }) {
   const spokenLabel = hasHighlights
     ? `Highlights, ${highlightsCountLabel(cards.length)}${quotaSpoken ? `. ${quotaSpoken}` : ""}`
     : quotaSpoken || undefined;
+  // No Highlights and no swipes count (its query failed): no empty bordered bar.
+  const showStrip = isLoading || hasHighlights || !!quotaText;
 
-  // Same hand-off as the chat screen's menu: close the sheet and open the modal in one handler.
+  // iOS drops a modal presented while another is still sliding out, so the picked card waits
+  // for the sheet's onDismiss (iOS only). Android stacks its dialogs and has no onDismiss, so
+  // there the card opens at once.
+  const pendingCardRef = useRef<DeckCard | null>(null);
+
   function handlePick(card: DeckCard) {
     setSheetVisible(false);
-    setOpenCard(card);
+    if (Platform.OS === "ios") {
+      pendingCardRef.current = card;
+    } else {
+      setOpenCard(card);
+    }
+  }
+
+  function handleSheetDismissed() {
+    const card = pendingCardRef.current;
+    pendingCardRef.current = null;
+    if (card) setOpenCard(card);
   }
 
   return (
@@ -63,6 +79,7 @@ export function DeckStrip({ quota }: { quota: StripQuota | undefined }) {
         accessibilityLabel={spokenLabel}
         accessibilityHint={hasHighlights ? "Opens today's Highlights" : undefined}
         style={({ pressed }) => ({
+          display: showStrip ? "flex" : "none",
           height: STRIP_HEIGHT,
           flexDirection: "row",
           alignItems: "center",
@@ -132,7 +149,12 @@ export function DeckStrip({ quota }: { quota: StripQuota | undefined }) {
         ) : null}
       </Pressable>
 
-      <Sheet visible={sheetVisible} onClose={() => setSheetVisible(false)} title="Highlights">
+      <Sheet
+        visible={sheetVisible}
+        onClose={() => setSheetVisible(false)}
+        onDismiss={handleSheetDismissed}
+        title="Highlights"
+      >
         <Text style={[type.caption, { color: colors.textMuted, marginTop: -spacing.sm, marginBottom: spacing.md }]}>
           Picked for you today.
         </Text>

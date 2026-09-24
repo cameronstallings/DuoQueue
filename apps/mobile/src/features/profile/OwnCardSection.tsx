@@ -10,7 +10,7 @@ import { cardCells, cardDetailsLine, cardPages, cardPicture } from "@/features/s
 import { useTheme } from "@/theme/useTheme";
 
 import { cardNudge, completenessItems, nudgeText } from "./completeness";
-import { ownPictureState } from "./pictureStatus";
+import { PICTURE_TAG, ownPictureState } from "./pictureStatus";
 import { OWN_CARD_CAPTION, OWN_CARD_HEIGHT, PAUSED_CARD_LINE, leagueRuleLine } from "./profileTab";
 import { useEditableProfileDetails } from "./useEditableProfileDetails";
 import { useOwnProfilePhotos } from "./useOwnProfilePhotos";
@@ -19,6 +19,16 @@ import { useProfileCard } from "./useProfileCard";
 
 interface OwnCardSectionProps {
   profile: { id: string; is_active: boolean };
+}
+
+/** "ADD A PICTURE" and "PICTURE NOT APPROVED" open Edit, where the picture slot is. The nudge row
+ * below leaves the picture out on purpose, so the tag is the way there. */
+function pictureTagAction(tag: string | null) {
+  if (tag === PICTURE_TAG.add) return { accessibilityLabel: "Add a picture", onPress: () => router.push("/edit-details") };
+  if (tag === PICTURE_TAG.rejected) {
+    return { accessibilityLabel: "Picture not approved. Pick another one", onPress: () => router.push("/edit-details") };
+  }
+  return null;
 }
 
 /**
@@ -99,6 +109,7 @@ export function OwnCardSection({ profile }: OwnCardSectionProps) {
           interactive
           profileRow={false}
           statusTag={picture?.tag ?? null}
+          statusTagAction={pictureTagAction(picture?.tag ?? null)}
         />
       </View>
     );

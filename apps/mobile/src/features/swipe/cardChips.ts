@@ -210,6 +210,25 @@ export function cardPages(picture: string | null, prompts: DeckCardPrompt[]): Ca
   return pages.length > 0 ? pages : [{ kind: "blank" }];
 }
 
+/** Where a card's pages are, for VoiceOver: "Page 2 of 4". */
+export function cardPagePosition(index: number, count: number): string {
+  return `Page ${index + 1} of ${count}`;
+}
+
+/**
+ * What VoiceOver hears after a page turn: "Page 2 of 4. My comfort game is Stardew Valley."
+ * The questions are sentence stems, so question and answer join with a space.
+ */
+export function cardPageSpoken(page: CardPage, name: string, index: number, count: number): string {
+  const content =
+    page.kind === "picture"
+      ? `${name}'s picture`
+      : page.kind === "prompt"
+        ? [page.question.trim(), page.answer.trim()].filter(Boolean).join(" ")
+        : name;
+  return `${cardPagePosition(index, count)}. ${content}`;
+}
+
 /** "27 · NA West · en fr". The card renders it uppercase (type.cardMeta). */
 export function cardDetailsLine(
   card: Pick<DeckCard, "age" | "region" | "languages">,

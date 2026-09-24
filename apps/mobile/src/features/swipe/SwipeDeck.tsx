@@ -49,6 +49,10 @@ export const SwipeDeck = forwardRef<SwipeDeckHandle, SwipeDeckProps>(function Sw
               { zIndex: visibleCards.length - indexFromTop, transform: [{ scale }, { translateY }] },
             ]}
             pointerEvents={indexFromTop === 0 ? "auto" : "none"}
+            // The two cards peeking under the top one are scenery: VoiceOver and TalkBack skip
+            // them, or they read two more names and two dimmed "See full profile" buttons.
+            accessibilityElementsHidden={indexFromTop !== 0}
+            importantForAccessibility={indexFromTop === 0 ? "auto" : "no-hide-descendants"}
           >
             <SwipeCard
               card={card}

@@ -103,7 +103,13 @@ export async function uploadProfilePhoto(
  * so the build 11 rule above is one switch. */
 export async function uploadPicture(profileId: string, uri: string, onReviewed?: () => void): Promise<void> {
   await uploadProfilePhoto(profileId, uri, "profile", onReviewed);
-  if (ALSO_WRITE_HEADER) await uploadProfilePhoto(profileId, uri, "header");
+  if (!ALSO_WRITE_HEADER) return;
+  // The picture is saved by now; a failed build 11 copy must not report it as failed.
+  try {
+    await uploadProfilePhoto(profileId, uri, "header");
+  } catch (err: unknown) {
+    console.warn("header copy of the picture failed:", err);
+  }
 }
 
 export function useUpdatePhoto(profileId: string | undefined) {

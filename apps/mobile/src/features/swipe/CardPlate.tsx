@@ -20,7 +20,11 @@ import type { CardCell } from "./cardChips";
 /** Cell widths from the design (124 / 98 / 85 at 345pt), as flex ratios so an SE still fits. */
 const CELL_FLEX = [124, 98, 85] as const;
 const CELL_STAGGER_MS = 40;
+/** A minimum: at larger text sizes the row grows and the picture area gives up the room. */
 const CELLS_HEIGHT = 40;
+const MENU_TARGET = 44;
+/** How far the "•••" target reaches past its 28pt slot on each side. */
+const MENU_OVERHANG = (MENU_TARGET - 28) / 2;
 const PLATE_INSET = 14;
 const TRACK_GAP = 4;
 /** Full spring config on purpose: Reanimated 4 merges a partial config over mass 4 /
@@ -141,13 +145,15 @@ export function CardPlate({
             />
           ) : null}
           <View style={{ flex: 1 }} />
+          {/* A real 44pt target: hitSlop cannot reach past the 28pt row, so the button is 44x44
+              and a -8 margin keeps it laid out as 28x28 (same centre). Fabric hit-tests the
+              overflow, so a tap just under the dots is Report/Block, not the full profile. */}
           {onMenu ? (
             <Pressable
               onPress={onMenu}
               accessibilityRole="button"
               accessibilityLabel="Report or block"
-              hitSlop={8}
-              style={{ width: 28, height: 28, alignItems: "center", justifyContent: "center" }}
+              style={{ width: MENU_TARGET, height: MENU_TARGET, margin: -MENU_OVERHANG, alignItems: "center", justifyContent: "center" }}
             >
               <Ionicons name="ellipsis-horizontal" size={18} color={colors.textMuted} />
             </Pressable>
@@ -158,7 +164,7 @@ export function CardPlate({
           {details}
         </Text>
 
-        <View style={{ flexDirection: "row", height: CELLS_HEIGHT, marginTop: spacing.tight }}>
+        <View style={{ flexDirection: "row", minHeight: CELLS_HEIGHT, marginTop: spacing.tight }}>
           {showCells
             ? cells.map((cell, i) => {
                 const edgeWidth = cell.lit ? 2 : i === 0 ? 0 : 1;

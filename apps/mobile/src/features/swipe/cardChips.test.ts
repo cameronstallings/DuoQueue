@@ -10,6 +10,8 @@ import {
   type CellLabels,
   cardCells,
   cardDetailsLine,
+  cardPagePosition,
+  cardPageSpoken,
   cardPages,
   cardPicture,
   detailGames,
@@ -212,6 +214,34 @@ describe("cardPages", () => {
 
   it("is one blank page with neither a picture nor a prompt", () => {
     expect(cardPages(null, [])).toEqual([{ kind: "blank" }]);
+  });
+});
+
+describe("cardPageSpoken", () => {
+  it("counts pages from one", () => {
+    expect(cardPagePosition(0, 4)).toBe("Page 1 of 4");
+    expect(cardPagePosition(3, 4)).toBe("Page 4 of 4");
+  });
+
+  it("names the picture", () => {
+    expect(cardPageSpoken({ kind: "picture", url: "p" }, "Rae", 0, 4)).toBe("Page 1 of 4. Rae's picture");
+  });
+
+  it("reads a prompt's stem and answer as one sentence", () => {
+    expect(cardPageSpoken({ kind: "prompt", question: "My comfort game is", answer: "Stardew Valley." }, "Rae", 1, 4)).toBe(
+      "Page 2 of 4. My comfort game is Stardew Valley.",
+    );
+  });
+
+  it("reads only the answer when there is no question", () => {
+    expect(cardPageSpoken({ kind: "prompt", question: " ", answer: "Stardew Valley." }, "Rae", 1, 2)).toBe(
+      "Page 2 of 2. Stardew Valley.",
+    );
+  });
+
+  it("has no em dash", () => {
+    const spoken = cardPageSpoken({ kind: "prompt", question: "Q", answer: "A" }, "Rae", 0, 1);
+    expect(spoken).not.toContain("—");
   });
 });
 
