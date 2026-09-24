@@ -207,9 +207,10 @@ describe("planCopy", () => {
   });
 
   it("has no em or en dash in any plan's words", () => {
+    const dashes = new RegExp(`[${String.fromCharCode(0x2013, 0x2014)}]`);
     for (const plan of plans) {
       for (const trial of [null, "7 days"]) {
-        expect(JSON.stringify(planCopy(plan, { ...ctx, trial }))).not.toMatch(/[–—]/);
+        expect(JSON.stringify(planCopy(plan, { ...ctx, trial }))).not.toMatch(dashes);
       }
     }
   });
