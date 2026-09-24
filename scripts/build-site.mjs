@@ -1947,7 +1947,10 @@ const CSS = `
      returns and it slides away again. Chrome and Safari 26+; elsewhere the bar is absent.
 
      scroll-padding keeps what a keyboard focuses, or an in-page link jumps to, out from
-     under the bar. It has a side effect that every view timeline on the page has to undo:
+     under the bar. It is scoped with :has(.qbar) to the pages that carry the bar, so the
+     privacy, terms and waitlist result pages (which share this CSS and have no bar) keep
+     their jumps at the real top of the screen; every browser with timeline-scope also has
+     :has. It has a side effect that every view timeline on the page has to undo:
      a view timeline's default inset ("auto") IS the scroll-padding, so without an explicit
      view-timeline-inset of 0 the form's exit 100% would fall 72px early, with the form's
      button still on screen, and the bar would slide over it. That is why the form, the
@@ -1964,7 +1967,7 @@ const CSS = `
   @supports (timeline-scope: --form) and (animation-timeline: view()) and (animation-range: exit) {
     body { timeline-scope: --form; }
     #waitlist-form { view-timeline: --form; view-timeline-inset: 0; }
-    html { scroll-padding-top: 72px; }
+    html:has(.qbar) { scroll-padding-top: 72px; }
     .qbar {
       display: block; position: fixed; z-index: 30; top: 0; left: 0; right: 0;
       background: rgba(${hexToRgb(GROUND.base).join(",")},0.9);
