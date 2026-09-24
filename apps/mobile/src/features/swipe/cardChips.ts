@@ -10,8 +10,8 @@ import {
 import type { DeckCard, DeckCardPrompt } from "./types";
 
 /**
- * Which chips a deck card shows, and what the profile detail's Games section lists. Pure, so the
- * rule is unit-tested (cardChips.test.ts) rather than living in JSX.
+ * What a card shows (its picture, pages and fact cells) and what the profile detail's Games
+ * section lists. Pure, so the rules are unit-tested (cardChips.test.ts) rather than living in JSX.
  *
  * "Can duo with you" means exactly one thing: get_deck checked this pair against Riot's published
  * Solo/Duo table and said true (0069_league_rank_duo.sql). It never shows for false or null, never
@@ -20,51 +20,15 @@ import type { DeckCard, DeckCardPrompt } from "./types";
  */
 
 export const LEAGUE_GAME_NAME = "League of Legends";
-export const DUO_LABEL = "Can duo with you";
 export const DUO_ACCESSIBILITY_LABEL = "Can duo with you in Ranked Solo/Duo";
 export const DUO_DETAIL_CAPTION =
   "Can duo with you in Ranked Solo/Duo, based on the ranks you both listed and League's published duo rules. The League client has the final say.";
 
 type CardFacts = Pick<DeckCard, "topGames" | "lolRank" | "lol_duo_eligible">;
 
-export interface CardChip {
-  key: string;
-  label: string;
-  detail?: string;
-  tone?: "success";
-  /** The 13px Ionicon the chip carries, if any. */
-  icon?: "people";
-  accessibilityLabel?: string;
-}
-
 /** True only when the server said this pair can duo AND the rank it is about can be shown. */
 export function showsDuoLabel(card: CardFacts): boolean {
   return card.lol_duo_eligible === true && !!card.lolRank;
-}
-
-function leagueName(card: CardFacts): string {
-  return card.topGames.find((g) => g.isLeague)?.name ?? LEAGUE_GAME_NAME;
-}
-
-/**
- * The deck card's chip row.
- *   - Eligible (and the rank is showable): the League chip with the rank, then the label. League
- *     is promoted even when it is not the top game, so the label sits next to the rank it is about.
- *   - Otherwise: today's single chip for the top game. If that game is League and the rank is
- *     showable, the rank is its detail instead of the skill level.
- */
-export function deckCardChips(card: CardFacts, skillLabels: Record<SkillLevel, string>): CardChip[] {
-  if (showsDuoLabel(card) && card.lolRank) {
-    return [
-      { key: "league", label: leagueName(card), detail: card.lolRank },
-      { key: "duo", label: DUO_LABEL, tone: "success", icon: "people", accessibilityLabel: DUO_ACCESSIBILITY_LABEL },
-    ];
-  }
-
-  const top = card.topGames[0];
-  if (!top) return [];
-  const detail = top.isLeague && card.lolRank ? card.lolRank : skillLabels[top.skillLevel];
-  return [{ key: top.name, label: top.name, detail }];
 }
 
 /**

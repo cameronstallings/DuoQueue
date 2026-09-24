@@ -1,7 +1,7 @@
 import { forwardRef, useImperativeHandle, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
-import { SwipeCard, type SwipeCardTrigger } from "./SwipeCard";
+import { SwipeCard, type SwipeCardContext, type SwipeCardTrigger } from "./SwipeCard";
 import type { DeckCard, SwipeDirection } from "./types";
 
 const STACK_DEPTH = 3;
@@ -14,10 +14,12 @@ export interface SwipeDeckHandle {
 interface SwipeDeckProps {
   cards: DeckCard[];
   onSwiped: (card: DeckCard, direction: SwipeDirection) => void;
+  /** "party" for the party deck, whose pair counts are not about you. Defaults to "deck". */
+  context?: SwipeCardContext;
 }
 
 export const SwipeDeck = forwardRef<SwipeDeckHandle, SwipeDeckProps>(function SwipeDeck(
-  { cards, onSwiped },
+  { cards, onSwiped, context = "deck" },
   ref,
 ) {
   const [trigger, setTrigger] = useState<SwipeCardTrigger | null>(null);
@@ -53,7 +55,7 @@ export const SwipeDeck = forwardRef<SwipeDeckHandle, SwipeDeckProps>(function Sw
               isTop={indexFromTop === 0}
               onSwiped={handleTopSwiped}
               externalTrigger={indexFromTop === 0 ? trigger : null}
-              index={indexFromTop}
+              context={context}
             />
           </View>
         );

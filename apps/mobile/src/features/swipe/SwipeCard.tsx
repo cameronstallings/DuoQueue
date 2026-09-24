@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
-import { Alert, Modal, Pressable, StyleSheet, Text, View } from "react-native";
-import { Image } from "expo-image";
-import { Ionicons } from "@expo/vector-icons";
+import { Alert, Modal, StyleSheet, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   interpolate,
@@ -13,19 +11,14 @@ import Animated, {
 } from "react-native-reanimated";
 import type { ReportReason } from "@duoqueue/shared-types";
 
-import { LinearGradient } from "expo-linear-gradient";
-
-import { Chip } from "@/components/Chip";
-import { Name } from "@/components/Name";
-import { PageDots } from "@/components/PageDots";
-import { PresenceAvatar } from "@/components/PresenceAvatar";
 import { ReportModal } from "@/components/ReportModal";
 import { useBlockUser, useReportUser } from "@/features/chat/useMatchActions";
-import { REGION_LABELS, SKILL_LABELS } from "@/features/onboarding/profile-labels";
+import { REGION_LABELS } from "@/features/onboarding/profile-labels";
 import { hapticLight } from "@/lib/haptics";
 import { useTheme } from "@/theme/useTheme";
 
-import { cardPicture, deckCardChips } from "./cardChips";
+import { CARD_CELL_LABELS, CardFace } from "./CardFace";
+import { type CardCellsMode, cardCells, cardDetailsLine, cardPages, cardPicture } from "./cardChips";
 import { ProfileDetailContent } from "./ProfileDetailContent";
 import type { DeckCard, SwipeDirection } from "./types";
 
@@ -37,58 +30,31 @@ export interface SwipeCardTrigger {
   nonce: number;
 }
 
+/** Which deck the card sits in. The party deck's shared_games_count is counted against every
+ * party member (get_party_deck), so it is not "games in common with you" and is not shown. */
+export type SwipeCardContext = "deck" | "party";
+
 interface SwipeCardProps {
   card: DeckCard;
   isTop: boolean;
   onSwiped: (direction: SwipeDirection) => void;
   externalTrigger: SwipeCardTrigger | null;
-  /** Position in the deck queue (0-based) — renders as a mono "NO.00X" serial mark
-   *  over the photo when provided; omitted hides the mark entirely. */
-  index?: number;
+  context: SwipeCardContext;
 }
 
-/** How many games you and this person both play, bucketed for the shared-games chip
- *  ink. This is a property of the pair, not a rating of the person — the same profile
- *  is a strong overlap to one viewer and a weak one to another, which is why it never
- *  appears on your own profile and there is nothing to game. */
-function overlapBucket(count: number): "none" | "one" | "two" | "many" {
-  if (count <= 0) return "none";
-  if (count === 1) return "one";
-  if (count === 2) return "two";
-  return "many";
-}
-
-function overlapLabel(count: number): string {
-  if (count <= 0) return ">> NO GAMES IN COMMON";
-  if (count === 1) return ">> 1 GAME IN COMMON";
-  return `>> ${count} GAMES IN COMMON`;
-}
-
-export function SwipeCard({ card, isTop, onSwiped, externalTrigger, index }: SwipeCardProps) {
-  const { colors, radius, spacing, type, scrimRgb } = useTheme();
-  const bucket = overlapBucket(card.shared_games_count);
-  const overlapColor = colors.overlap[bucket];
+export function SwipeCard({ card, isTop, onSwiped, externalTrigger, context }: SwipeCardProps) {
+  const { colors, radius, type } = useTheme();
   const [reportVisible, setReportVisible] = useState(false);
   const [detailVisible, setDetailVisible] = useState(false);
   const blockUser = useBlockUser();
   const reportUser = useReportUser();
 
-  // One picture: the profile picture, else an old cover (cardChips.ts). No gallery.
-  const photos = [cardPicture(card)].filter((url): url is string => !!url);
-  const [photoIndex, setPhotoIndex] = useState(0);
-  const currentPhoto = photos[Math.min(photoIndex, photos.length - 1)] ?? null;
-  // The top game's chip, or League's rank plus "Can duo with you" when get_deck said this pair
-  // can duo in Solo/Duo. The rule is in cardChips.ts.
-  const chips = deckCardChips(card, SKILL_LABELS);
-
-  // Tap-to-page rather than a scroll gesture — a horizontal FlatList/ScrollView here
-  // would fight the card's own Pan gesture (used for the like/pass swipe), since both
-  // want to own horizontal drags. Left/right thirds is the standard dating-app idiom;
-  // the middle third is inert so it doesn't collide with taps meant for the like/pass
-  // gesture area.
-  function goToPhoto(next: number) {
-    setPhotoIndex(Math.min(Math.max(next, 0), photos.length - 1));
-  }
+  // This SwipeCard instance is keyed by profile_id in SwipeDeck, so each new card mounts on its
+  // first page. The rules for pages and cells are in cardChips.ts.
+  const mode: CardCellsMode =
+    context === "deck" ? { kind: "deck", sharedGames: card.shared_games_count } : { kind: "party" };
+  const pages = cardPages(cardPicture(card), card.prompts);
+  const cells = cardCells(card, mode, CARD_CELL_LABELS);
 
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -173,11 +139,7 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger, index }: Swi
   const cardStyle = useAnimatedStyle(() => {
     const rotate = interpolate(translateX.value, [-300, 300], [-15, 15]);
     return {
-      transform: [
-        { translateX: translateX.value },
-        { translateY: translateY.value },
-        { rotate: `${rotate}deg` },
-      ],
+      transform: [{ translateX: translateX.value }, { translateY: translateY.value }, { rotate: `${rotate}deg` }],
     };
   });
 
@@ -188,233 +150,57 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger, index }: Swi
     opacity: interpolate(translateX.value, [-SWIPE_THRESHOLD, -20], [1, 0]),
   }));
 
+  // The drag stamps are the only things ever drawn on the picture. Both are solid, so they read
+  // on any image.
+  const stamps = (
+    <>
+      <Animated.View pointerEvents="none" style={[styles.stamp, styles.likeStamp, likeStampStyle]}>
+        <Text
+          style={[
+            type.screenTitle,
+            styles.stampPill,
+            { borderRadius: radius.chip, color: colors.volt, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.volt },
+          ]}
+        >
+          DUO
+        </Text>
+      </Animated.View>
+      <Animated.View pointerEvents="none" style={[styles.stamp, styles.passStamp, passStampStyle]}>
+        <Text
+          style={[
+            type.screenTitle,
+            styles.stampPill,
+            {
+              borderRadius: radius.chip,
+              color: colors.textMuted,
+              backgroundColor: colors.surface,
+              borderWidth: 1,
+              borderColor: colors.textMuted,
+            },
+          ]}
+        >
+          PASS
+        </Text>
+      </Animated.View>
+    </>
+  );
+
   return (
     <>
       <GestureDetector gesture={pan}>
-        <Animated.View
-          style={[
-            styles.card,
-            {
-              borderRadius: radius.card,
-              backgroundColor: colors.surface,
-              borderWidth: 1,
-              borderColor: colors.border,
-              padding: spacing.xs,
-            },
-            cardStyle,
-          ]}
-        >
-          {/* A solid surface + 1px seam border — the luminous gradient edge is gone,
-              so every card now shares the same plain frame regardless of overlap. */}
-          <View style={[styles.window, { borderRadius: radius.window, backgroundColor: colors.surfaceAlt }]}>
-            {currentPhoto ? (
-              <Image
-                source={{ uri: currentPhoto }}
-                style={styles.photo}
-                contentFit="cover"
-                cachePolicy="memory-disk"
-                transition={200}
-              />
-            ) : (
-              <View style={[styles.photo, { alignItems: "center", justifyContent: "center" }]}>
-                <Text style={[type.label, { color: colors.textMuted }]}>No photo</Text>
-              </View>
-            )}
-
-            {/* A real scrim rather than a flat 55% black bar — the type sits in a
-                gradient so the photo stays visible right up to the copy. */}
-            <LinearGradient
-              colors={[`rgba(${scrimRgb},0)`, `rgba(${scrimRgb},0.72)`, `rgba(${scrimRgb},0.94)`]}
-              locations={[0, 0.55, 1]}
-              style={styles.scrim}
-              pointerEvents="none"
-            />
-
-            {/* The serial mark — this card's position in the queue, printed like a
-                frame counter. Sits under the menu button so the two corner marks
-                don't collide on the top card. */}
-            {index !== undefined && (
-              <Text
-                pointerEvents="none"
-                style={[type.tick, styles.indexMark, { color: colors.voltRaw, opacity: 0.9 }]}
-              >
-                {`NO.${String(index + 1).padStart(3, "0")}`}
-              </Text>
-            )}
-
-            {isTop && photos.length > 1 && (
-              <>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Previous photo"
-                  onPress={() => goToPhoto(photoIndex - 1)}
-                  style={styles.tapZoneLeft}
-                />
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Next photo"
-                  onPress={() => goToPhoto(photoIndex + 1)}
-                  style={styles.tapZoneRight}
-                />
-              </>
-            )}
-
-            {isTop && (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Report or block"
-                onPress={handleMenu}
-                style={[
-                  styles.menuButton,
-                  { borderRadius: radius.round, backgroundColor: `rgba(${scrimRgb},0.7)` },
-                ]}
-              >
-                {/* includeFontPadding/lineHeight neutralize the icon font's own vertical
-                    padding — ellipsis-horizontal's glyph box isn't symmetric, so flex
-                    centering alone leaves it visibly off-center in a tight circle. */}
-                <Ionicons
-                  name="ellipsis-horizontal"
-                  size={18}
-                  color="#F5F1E8"
-                  style={{ textAlign: "center", lineHeight: 18, includeFontPadding: false }}
-                />
-              </Pressable>
-            )}
-
-            {/* DUO and PASS both read as plain outlined mono tags now — volt ink for
-                the "yes" stamp, muted ink for the "no" one. No gradient fill, no
-                glass pill. */}
-            <Animated.View style={[styles.stamp, styles.likeStamp, likeStampStyle]}>
-              <Text
-                style={[
-                  type.screenTitle,
-                  styles.stampPill,
-                  {
-                    borderRadius: radius.chip,
-                    color: colors.volt,
-                    backgroundColor: colors.surface,
-                    borderWidth: 1,
-                    borderColor: colors.volt,
-                  },
-                ]}
-              >
-                DUO
-              </Text>
-            </Animated.View>
-            <Animated.View style={[styles.stamp, styles.passStamp, passStampStyle]}>
-              <Text
-                style={[
-                  type.screenTitle,
-                  styles.stampPill,
-                  {
-                    borderRadius: radius.chip,
-                    color: colors.textMuted,
-                    backgroundColor: colors.surface,
-                    borderWidth: 1,
-                    borderColor: colors.textMuted,
-                  },
-                ]}
-              >
-                PASS
-              </Text>
-            </Animated.View>
-
-            <View style={[styles.infoOverlay, { padding: spacing.md, gap: spacing.xs }]}>
-              {photos.length > 1 && (
-                <View style={{ marginBottom: spacing.xs }}>
-                  <PageDots
-                    count={photos.length}
-                    activeIndex={photoIndex}
-                    color="#FFFFFF"
-                    inactiveColor="rgba(255,255,255,0.4)"
-                  />
-                </View>
-              )}
-              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
-                <PresenceAvatar
-                  uri={card.profilePhotoUrl}
-                  name={card.display_name}
-                  size={44}
-                  isActive={card.isRecentlyActive}
-                  borderColor="#F5F1E8"
-                  borderWidth={2}
-                />
-                <View style={{ flex: 1 }}>
-                  <Name variant="cardName" style={{ color: "#F5F1E8" }} numberOfLines={1}>
-                    {card.display_name}
-                  </Name>
-                  <Text style={[type.caption, { color: "rgba(245,241,232,0.75)" }]}>
-                    {card.age} · {REGION_LABELS[card.region] ?? card.region}
-                    {card.languages.length > 0 ? ` · ${card.languages.join(" ").toUpperCase()}` : ""}
-                  </Text>
-                </View>
-              </View>
-
-              {chips.length > 0 && (
-                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
-                  {chips.map((chip) => (
-                    <Chip
-                      key={chip.key}
-                      label={chip.label}
-                      detail={chip.detail}
-                      tone={chip.tone}
-                      accessibilityLabel={chip.accessibilityLabel}
-                      icon={chip.icon ? <Ionicons name={chip.icon} size={13} color={colors.success} /> : undefined}
-                    />
-                  ))}
-                </View>
-              )}
-
-              {card.prompts[0] && (
-                <View style={{ marginTop: 2 }}>
-                  <Text style={[type.label, { color: "rgba(245,241,232,0.6)" }]} numberOfLines={1}>
-                    {card.prompts[0].question}
-                  </Text>
-                  <Text style={[type.quote, { color: "#F5F1E8" }]} numberOfLines={2}>
-                    {card.prompts[0].answer}
-                  </Text>
-                </View>
-              )}
-
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="See full profile"
-                onPress={() => setDetailVisible(true)}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 4,
-                  marginTop: 4,
-                }}
-              >
-                <Text style={[type.label, { color: "rgba(245,241,232,0.85)" }]}>See full profile</Text>
-                <Ionicons name="chevron-up" size={13} color="rgba(245,241,232,0.85)" />
-              </Pressable>
-            </View>
-          </View>
-
-          {/* The overlap read. Always spelled out in words so the ink is never the
-              only thing carrying the meaning — now a mono console line instead of a
-              tinted chip, but still keyed to the pair's none/one/two/many tier ink,
-              not a flat accent color. */}
-          <View style={[styles.frameLabel, { paddingHorizontal: spacing.sm }]}>
-            <View
-              style={{
-                flexDirection: "row",
-                borderRadius: radius.chip,
-                borderWidth: 1,
-                borderColor: overlapColor,
-                backgroundColor: colors.surface,
-                paddingVertical: spacing.sm - 1,
-                paddingHorizontal: spacing.md - 2,
-              }}
-            >
-              <Text style={[type.tick, { color: overlapColor }]} numberOfLines={1}>
-                {overlapLabel(card.shared_games_count)}
-              </Text>
-            </View>
-          </View>
+        <Animated.View style={[styles.card, cardStyle]}>
+          <CardFace
+            name={card.display_name}
+            details={cardDetailsLine(card, REGION_LABELS)}
+            isActive={card.isRecentlyActive}
+            pages={pages}
+            cells={cells}
+            interactive={isTop}
+            profileRow
+            onOpenProfile={() => setDetailVisible(true)}
+            onMenu={handleMenu}
+            pictureOverlay={stamps}
+          />
         </Animated.View>
       </GestureDetector>
 
@@ -438,69 +224,6 @@ const styles = StyleSheet.create({
   card: {
     ...StyleSheet.absoluteFillObject,
   },
-  /** The inset photo window. Clipping lives here, not on the outer card, so the
-   *  printed overlap label stays visible outside it, sitting on the card's own
-   *  padding inside its seam border. */
-  window: {
-    flex: 1,
-    overflow: "hidden",
-  },
-  photo: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  /** Tap targets for paging photos — left/right thirds of the window, full height so
-   *  they're easy to hit, sitting under the menu button/stamps/info overlay (all
-   *  rendered later, so their smaller hit areas take priority over these). */
-  tapZoneLeft: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    left: 0,
-    width: "34%",
-  },
-  tapZoneRight: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    right: 0,
-    width: "34%",
-  },
-  scrim: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: "58%",
-  },
-  menuButton: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    width: 30,
-    height: 30,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  /** The mono serial mark — parked below the menu button's 30px badge so the two
-   *  corner marks never overlap on the top card. */
-  indexMark: {
-    position: "absolute",
-    top: 48,
-    right: 10,
-  },
-  infoOverlay: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  frameLabel: {
-    position: "absolute",
-    left: 4,
-    right: 4,
-    bottom: 6,
-    alignItems: "center",
-  },
   stamp: {
     position: "absolute",
     top: 32,
@@ -513,7 +236,6 @@ const styles = StyleSheet.create({
     right: 18,
     transform: [{ rotate: "8deg" }],
   },
-  /** DUO/PASS pill geometry — an outlined mono tag now, not a stamped block. */
   stampPill: {
     paddingHorizontal: 9,
     paddingVertical: 2,
