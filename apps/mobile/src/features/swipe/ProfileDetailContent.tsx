@@ -35,7 +35,7 @@ import { useVerifiedStats } from "@/features/profile/useVerifiedStats";
 import { usePublicReputation } from "@/features/reputation/useReputation";
 import { useTheme } from "@/theme/useTheme";
 
-import { DUO_DETAIL_CAPTION, detailGames, showsDuoLabel } from "./cardChips";
+import { DUO_DETAIL_CAPTION, cardPicture, detailGames, showsDuoLabel } from "./cardChips";
 import type { DeckCard } from "./types";
 
 const PROVIDER_LABELS = { steam: "Steam", riot: "Riot Games", xbox: "Xbox" } as const;
@@ -71,11 +71,10 @@ export function ProfileDetailContent({ card, onClose, readOnly = false }: Profil
   const reputationTags = reputation ?? [];
   const showReputation = reputationLoading || reputationTags.length > 0;
 
-  // Header photo first, then approved gallery photos by position — falls back to the
-  // plain blank photo box below when both are empty. Unlike the deck card, this pager
-  // uses a real horizontal FlatList: it sits in its own Modal with no competing pan
-  // gesture, so there's nothing for the scroll to fight.
-  const photos = [card.headerPhotoUrl, ...card.galleryUrls].filter((url): url is string => !!url);
+  // One picture: the profile picture, else an old cover (cardChips.ts). No gallery.
+  // Unlike the deck card, this pager uses a real horizontal FlatList: it sits in its own
+  // Modal with no competing pan gesture, so there's nothing for the scroll to fight.
+  const photos = [cardPicture(card)].filter((url): url is string => !!url);
   const [photoIndex, setPhotoIndex] = useState(0);
   const photoHeight = windowWidth / PHOTO_ASPECT;
 

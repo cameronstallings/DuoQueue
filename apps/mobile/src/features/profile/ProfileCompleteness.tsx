@@ -3,15 +3,11 @@ import Animated, { FadeIn } from "react-native-reanimated";
 
 import { useTheme } from "@/theme/useTheme";
 
-export interface CompletenessItem {
-  label: string;
-  done: boolean;
-}
+import type { CompletenessItem } from "./completeness";
 
 /**
- * A single thin progress bar plus one hint sentence — the completeness meter used
- * to spend a whole row on a "PROFILE STRENGTH" label and a separate percentage
- * before saying anything useful. Self-hides once nothing is missing.
+ * A single thin progress bar plus one hint sentence. Self-hides once nothing is missing.
+ * The items come from completenessItems() (completeness.ts).
  */
 export function ProfileCompleteness({ items }: { items: CompletenessItem[] }) {
   const { colors, spacing, radius, type } = useTheme();
@@ -30,7 +26,7 @@ export function ProfileCompleteness({ items }: { items: CompletenessItem[] }) {
         />
       </View>
       <Text style={[type.caption, { color: colors.textMuted }]}>
-        {pct}% complete. Add {missing.join(", ")} to finish your profile.
+        {pct}% complete. Add {missing.join(", ")} to finish your card.
       </Text>
     </View>
   );

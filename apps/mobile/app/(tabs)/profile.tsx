@@ -17,7 +17,6 @@ import Animated, {
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
-import { PROMPT_COUNT, type PhotoRole } from "@duoqueue/shared-types";
 
 import { GraticuleBackground } from "@/components/GraticuleBackground";
 import { Button } from "@/components/Button";
@@ -34,7 +33,8 @@ import {
   SKILL_LABELS,
   formatPlayWindow,
 } from "@/features/onboarding/profile-labels";
-import { GalleryPanel } from "@/features/profile/GalleryPanel";
+import { completenessItems } from "@/features/profile/completeness";
+import { ownPictureState } from "@/features/profile/pictureStatus";
 import { ProfileCompleteness } from "@/features/profile/ProfileCompleteness";
 import { HowIPlaySection, MetaLine, PromptsSection, ShowsSection, VibeSection } from "@/features/profile/sections";
 import { useEditableProfileDetails } from "@/features/profile/useEditableProfileDetails";
@@ -143,23 +143,23 @@ export default function ProfileScreen() {
   // course *after* everything else is already on screen. Prefetching in parallel with
   // the other two queries means the image is often already cached by the time the
   // page reveals, instead of visibly popping in late.
+  const picture = photos ? ownPictureState(photos) : null;
   useEffect(() => {
-    const urls = [photos?.profileUrl, photos?.headerUrl].filter((u): u is string => !!u);
-    if (urls.length > 0) void Image.prefetch(urls, "memory-disk");
-  }, [photos?.profileUrl, photos?.headerUrl]);
+    if (picture?.url) void Image.prefetch([picture.url], "memory-disk");
+  }, [picture?.url]);
 
-  async function handlePick(role: PhotoRole) {
+  async function handlePick() {
     if (!(await ensurePhotoLibraryAccess())) return;
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       quality: 0.8,
       allowsEditing: true,
-      aspect: role === "profile" ? [1, 1] : [3, 4],
+      aspect: [1, 1],
     });
     if (result.canceled) return;
     const asset = result.assets[0];
-    if (asset) updatePhoto.mutate({ uri: asset.uri, role });
+    if (asset) updatePhoto.mutate({ uri: asset.uri });
   }
 
   // Gate the whole page behind one combined flag instead of independent
@@ -167,8 +167,7 @@ export default function ProfileScreen() {
   // and popped in one after another, which read as choppy. Waiting for all of them and
   // revealing once, together, feels like a single load.
   const pageReady = !isLoading && !promptsLoading && !detailsLoading && !vibeLoading;
-  const uploadingProfile = updatePhoto.isPending && updatePhoto.variables?.role === "profile";
-  const uploadingHeader = updatePhoto.isPending && updatePhoto.variables?.role === "header";
+  const uploadingProfile = updatePhoto.isPending;
 
   // Read (never write) the latch during render so this render's entering decision is
   // correct immediately; the effect below flips it for every render after.
@@ -200,16 +199,15 @@ export default function ProfileScreen() {
       .filter((part): part is string => !!part)
       .join(" · ") || null;
 
-  const completenessItems = [
-    { label: "a profile picture", done: !!photos?.profileUrl },
-    { label: "a cover photo", done: !!photos?.headerUrl },
-    { label: "a game", done: (details?.games.length ?? 0) > 0 },
-    { label: "a show", done: (details?.shows.length ?? 0) > 0 },
-    { label: "a platform", done: (details?.platforms.length ?? 0) > 0 },
-    { label: "a playstyle", done: (details?.playstyles.length ?? 0) > 0 },
-    { label: "your prompts", done: (prompts?.length ?? 0) >= PROMPT_COUNT },
-  ];
-  const isProfileComplete = completenessItems.every((item) => item.done);
+  const completeness = completenessItems({
+    hasPicture: picture?.hasPicture ?? false,
+    games: details?.games.length ?? 0,
+    shows: details?.shows.length ?? 0,
+    platforms: details?.platforms.length ?? 0,
+    playstyles: details?.playstyles.length ?? 0,
+    prompts: prompts?.length ?? 0,
+  });
+  const isProfileComplete = completeness.every((item) => item.done);
 
   // Assigns each rendered tile the next slot in the cascade, in JSX source order —
   // conditional tiles that don't render simply never consume a slot, so the stagger
@@ -265,9 +263,8 @@ export default function ProfileScreen() {
               </View>
 
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
-                {/* Mirrors the real grid's shape: Photos (span 2), Games + Vibe,
-                    How I Play + Voice, Shows (span 2) — so loading doesn't jump. */}
-                <Skeleton width="100%" height={120} borderRadius={radius.card} />
+                {/* Mirrors the real grid's shape: Games, How I Play + Schedule, Vibe,
+                    Shows, so loading doesn't jump. */}
                 <Skeleton width={HALF_TILE_WIDTH} height={110} borderRadius={radius.card} />
                 <Skeleton width={HALF_TILE_WIDTH} height={110} borderRadius={radius.card} />
                 <Skeleton width="100%" height={120} borderRadius={radius.card} />
@@ -291,7 +288,7 @@ export default function ProfileScreen() {
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel="Change profile picture"
-                      onPress={() => void handlePick("profile")}
+                      onPress={() => void handlePick()}
                       disabled={updatePhoto.isPending}
                       style={{ width: AVATAR_SIZE, height: AVATAR_SIZE }}
                     >
@@ -305,9 +302,9 @@ export default function ProfileScreen() {
                           overflow: "hidden",
                         }}
                       >
-                        {photos?.profileUrl && (
+                        {picture?.url && (
                           <Image
-                            source={{ uri: photos.profileUrl }}
+                            source={{ uri: picture.url }}
                             style={{ width: "100%", height: "100%" }}
                             contentFit="cover"
                             cachePolicy="memory-disk"
@@ -331,26 +328,13 @@ export default function ProfileScreen() {
 
                 {!isProfileComplete && (
                   <Animated.View entering={revealEntering()}>
-                    <ProfileCompleteness items={completenessItems} />
+                    <ProfileCompleteness items={completeness} />
                   </Animated.View>
                 )}
 
                 {/* The bento grid: every tile renders only when its own data is
                     non-empty, same gates as the old panel-per-section layout. */}
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
-                  {/* Photos — span 2. The gallery panel now also owns the Cover tile
-                      (the header photo), wired to the same handlePick("header") the old
-                      banner used. */}
-                  <Animated.View entering={revealEntering()} style={{ width: "100%" }}>
-                    <GalleryPanel
-                      profileId={profile.id}
-                      headerUrl={photos?.headerUrl ?? null}
-                      onPressCover={() => void handlePick("header")}
-                      coverUploading={uploadingHeader}
-                      coverDisabled={updatePhoto.isPending}
-                    />
-                  </Animated.View>
-
                   {/* Games — span 2 so full titles + ranks are always visible ("League
                       of Legends · Unranked" truncated in a half-tile). Chips wrap. Same
                       data mapping (verified stat wins over self-reported) as GamesSection. */}

@@ -25,7 +25,7 @@ import { REGION_LABELS, SKILL_LABELS } from "@/features/onboarding/profile-label
 import { hapticLight } from "@/lib/haptics";
 import { useTheme } from "@/theme/useTheme";
 
-import { deckCardChips } from "./cardChips";
+import { cardPicture, deckCardChips } from "./cardChips";
 import { ProfileDetailContent } from "./ProfileDetailContent";
 import type { DeckCard, SwipeDirection } from "./types";
 
@@ -73,11 +73,8 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger, index }: Swi
   const blockUser = useBlockUser();
   const reportUser = useReportUser();
 
-  // Header photo first, then approved gallery photos by position — falls back to the
-  // single-photo "No photo" placeholder below when both are empty. This SwipeCard
-  // instance is keyed by profile_id in SwipeDeck, so a fresh card always mounts with
-  // photoIndex reset to 0 rather than carrying over the previous card's page.
-  const photos = [card.headerPhotoUrl, ...card.galleryUrls].filter((url): url is string => !!url);
+  // One picture: the profile picture, else an old cover (cardChips.ts). No gallery.
+  const photos = [cardPicture(card)].filter((url): url is string => !!url);
   const [photoIndex, setPhotoIndex] = useState(0);
   const currentPhoto = photos[Math.min(photoIndex, photos.length - 1)] ?? null;
   // The top game's chip, or League's rank plus "Can duo with you" when get_deck said this pair

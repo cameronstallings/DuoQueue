@@ -18,7 +18,6 @@ interface PublicProfileMediaRow {
   profile_id: string;
   storage_path: string;
   photo_role: PhotoRole;
-  position: number | null;
 }
 interface PublicProfileGameRow {
   profile_id: string;
@@ -88,7 +87,8 @@ export async function enrichCandidates(rows: DeckCandidate[]): Promise<DeckCard[
     scheduleRes,
     leagueGameId,
   ] = await Promise.all([
-    supabase.from("public_profile_media").select("*").in("profile_id", ids),
+    // The picture and an old cover only. Gallery rows stay in the database, unread and unsigned.
+    supabase.from("public_profile_media").select("*").in("profile_id", ids).in("photo_role", ["profile", "header"]),
     supabase.from("public_profile_games").select("*").in("profile_id", ids).order("priority"),
     supabase.from("public_profile_shows").select("*").in("profile_id", ids).order("priority"),
     supabase.from("public_profile_platforms").select("*").in("profile_id", ids),
@@ -133,11 +133,6 @@ export async function enrichCandidates(rows: DeckCandidate[]): Promise<DeckCard[
     const ownMedia = media.filter((m) => m.profile_id === candidate.profile_id);
     const profilePhotoUrl = ownMedia.find((m) => m.photo_role === "profile");
     const headerPhotoUrl = ownMedia.find((m) => m.photo_role === "header");
-    const galleryUrls = ownMedia
-      .filter((m) => m.photo_role === "gallery")
-      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
-      .map((m) => signedUrls.get(m.storage_path))
-      .filter((url): url is string => !!url);
 
     const ownGames = games.filter((g) => g.profile_id === candidate.profile_id);
     const topGames = ownGames.slice(0, 3).map((g) => ({
@@ -168,7 +163,6 @@ export async function enrichCandidates(rows: DeckCandidate[]): Promise<DeckCard[
       ...candidate,
       profilePhotoUrl: profilePhotoUrl ? (signedUrls.get(profilePhotoUrl.storage_path) ?? null) : null,
       headerPhotoUrl: headerPhotoUrl ? (signedUrls.get(headerPhotoUrl.storage_path) ?? null) : null,
-      galleryUrls,
       topGames,
       topShows,
       prompts: cardPrompts,

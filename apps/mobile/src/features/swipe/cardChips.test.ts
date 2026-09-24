@@ -1,7 +1,7 @@
 import type { SkillLevel } from "@duoqueue/shared-types";
 import { describe, expect, it } from "vitest";
 
-import { DUO_ACCESSIBILITY_LABEL, DUO_DETAIL_CAPTION, DUO_LABEL, deckCardChips, detailGames, showsDuoLabel } from "./cardChips";
+import { DUO_ACCESSIBILITY_LABEL, DUO_DETAIL_CAPTION, DUO_LABEL, cardPicture, deckCardChips, detailGames, showsDuoLabel } from "./cardChips";
 import type { DeckCardGame } from "./types";
 
 /**
@@ -99,5 +99,19 @@ describe("copy", () => {
     for (const text of [DUO_LABEL, DUO_ACCESSIBILITY_LABEL, DUO_DETAIL_CAPTION]) {
       expect(text).not.toContain("\u2014");
     }
+  });
+});
+
+describe("cardPicture", () => {
+  it("prefers the picture over an old cover", () => {
+    expect(cardPicture({ profilePhotoUrl: "p", headerPhotoUrl: "h" })).toBe("p");
+  });
+
+  it("falls back to an old cover, which is all build 11 ever uploaded", () => {
+    expect(cardPicture({ profilePhotoUrl: null, headerPhotoUrl: "h" })).toBe("h");
+  });
+
+  it("is null with neither", () => {
+    expect(cardPicture({ profilePhotoUrl: null, headerPhotoUrl: null })).toBeNull();
   });
 });

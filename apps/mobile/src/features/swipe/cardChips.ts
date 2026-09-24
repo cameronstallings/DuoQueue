@@ -80,3 +80,12 @@ export function detailGames(
   }
   return games;
 }
+
+/**
+ * The one picture a card, pager or avatar shows: the square `profile` picture, else an old
+ * `header` cover (build 11 and earlier uploaded one; build 12 stops asking). Never a gallery
+ * photo: build 12 shows none anywhere.
+ */
+export function cardPicture(card: Pick<DeckCard, "profilePhotoUrl" | "headerPhotoUrl">): string | null {
+  return card.profilePhotoUrl ?? card.headerPhotoUrl ?? null;
+}
