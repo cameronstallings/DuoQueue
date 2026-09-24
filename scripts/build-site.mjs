@@ -1663,6 +1663,37 @@ const CSS = `
   footer.site-footer a { color: var(--muted); }
   footer.site-footer a:hover { color: var(--accent); }
 
+  /* ---- the queue bar ----------------------------------------------------- */
+  /* THE CLOSING LOCKUP'S ONE JOB, DONE FROM THE TOP OF THE SCREEN. The lockup's only working
+     part was a second button that jumped back to the form, once, at the bottom of the page.
+     This slim bar does that job at every scroll position after the form has left the screen:
+     the logo, and "join the waitlist" in the app's own primary button (volt fill, onVolt
+     label, radius.button, the scale(0.97) press, the button's contact shadow).
+
+     It is display:none here, and it only exists inside the scroll-timeline block in MOTION
+     below. Without a scroll timeline there is no way to show it only once the form has gone
+     (there is no script to watch the scroll), and a bar that sat over the form's own button
+     would be worse than no bar, so where the timeline is missing it is simply absent and the
+     form and the outlined link after the plain version are the page's calls to action. Its
+     markup is emitted on the landing pages only (pageShell's qbar option). */
+  .qbar { display: none; }
+  .qbar-in { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 58px; }
+  .qbar .brand span { font-size: 17px; }
+  .qbar-cta {
+    display: inline-flex; align-items: center; gap: 8px;
+    min-height: 40px; padding: 0 14px;
+    background: var(--app-volt); color: var(--app-on-volt); border-radius: 6px; /* radius.button */
+    text-decoration: none;
+    font-family: ${SANS}; font-weight: 800; font-size: 15px; line-height: 1.2; letter-spacing: -0.01em;
+    box-shadow: ${shadowCss(CTA_SHADOW_LAYERS.slice(0, 1), FRAG_SHADOW_INK)};
+    transition:
+      background-color var(--t-quick) ease,
+      transform var(--t-base) var(--ease-out);
+  }
+  .qbar-cta:hover { background: var(--app-volt-dim); text-decoration: none; }
+  .qbar-cta:active { background: var(--app-volt-dim); transform: scale(0.97); transition-duration: var(--t-instant); }
+  .qbar-cta svg { width: 15px; height: 15px; display: block; }
+
   /* =======================================================================
      MOTION
      =======================================================================
@@ -1684,16 +1715,49 @@ const CSS = `
          thing the campaign holds absolutely constant across every deliverable, and a
          full-viewport moving background is on the short list of things that reliably
          provoke motion sickness.
-       * THE PLAIN VERSION DOES NOT REVEAL ON SCROLL. It is three paragraphs about 18+,
-         platonic, and everyone starting together. The whole point of that block is that
-         it is plain.
+       * THE PLAIN VERSION'S WORDS DO NOT REVEAL ON SCROLL. They are three paragraphs about
+         18+, platonic, and everyone starting together, and the whole point of that block is
+         that it is plain, so its type is simply there. Only its rules move: each hairline
+         draws across as its item comes up the screen, then its short olive tick. Those are
+         graphics, not words.
+     And nothing loops: every piece below plays once, settles, and then stays still.
 
      THE RULE THAT MAKES ALL OF IT SAFE: every animation below is fill-mode BACKWARDS, and
      every to-state is identical to the element's resting style. So the resting style is
      the truth and the animation is a displacement in front of it, which means an element
      that is never animated - reduced motion, an older browser, a scroll timeline that
      never runs - renders correct and complete. Nothing on this page is hidden by a base
-     rule waiting for an animation to reveal it. */
+     rule waiting for an animation to reveal it.
+
+     The one refinement: the SCROLL-SCRUBBED animations (the cards below 860px, the plain
+     version's rules, the queue bar) fill BOTH ways. Their forwards fill is their 100%
+     keyframe, which is the resting style, so it changes nothing a reader can see except one
+     thing, measured: with backwards only, Chrome can leave a stale composited value behind
+     when a scrubbed opacity animation passes into its after phase. Scrolled past card 02, its
+     "both queued up" line stayed at about a third of its opacity while its computed style
+     said 1; loaded at the same scroll position it was solid. Filling forwards means the
+     animation itself holds the finished value, so there is no hand-off to go stale.
+
+     The moment cards' in-between states (the badge's lower counts, the half-typed message)
+     are the other way round: hidden and aria-hidden at rest, and only ever shown by an
+     animation passing through them.
+
+     THE MOMENT CARDS HAVE TWO DRIVERS, split at 860px:
+       * BELOW 860 (phones, and tablets where the cards stack under the hero) each card's
+         moment is scrubbed by that card's own passage up the screen, on a view timeline, so
+         it plays while the reader is looking at it and a fast flick plays it fast. Every
+         range ends at cover 40%, while the card's middle is still below the middle of the
+         screen (cover 50% is the exact moment the two middles meet), so a reader who stops
+         with a card in front of them sees it finished. And the whole moment spans about a
+         third of a screen of scrolling, so a half-typed message is a short band a thumb
+         passes through rather than a place the page can rest.
+       * FROM 860 the cards are on or near the first screen, where a scroll timeline would sit
+         half-played at scroll 0 and a visitor who never scrolls would see "NO GAMES IN
+         COMMON", two rings apart and an empty chat. So there the moments play once, on
+         load, on a clock: the three cards rise at 300, 360 and 420ms, then 01, 02 and 03
+         play in order, and the page is finished and still at 3.0s.
+     Scroll timelines are Chrome 115+ and Safari 26+. Below 860, a browser without them shows
+     the cards finished; under Reduce Motion, every width does. */
 
   /* Type, and blocks of it. The film spends a word's travel on Z rather than Y: "the word
      comes FORWARD out of the page, which is what a scale from 0.35 under a blur reads as,
@@ -1706,44 +1770,254 @@ const CSS = `
 
   /* ---- the hero, on load ------------------------------------------------- */
   /* 60ms between blocks. The film's own cadence is 4.5 frames, 150ms, which is right for
-     four words of a headline arriving one at a time and far too slow for five stacked
-     blocks: it would put the button 750ms behind the eyebrow. 60ms is inside the 30-80ms
-     a group entrance is allowed, and the whole hero has landed 507ms after first paint.
-     The button is usable for every one of those milliseconds - an element at opacity 0
-     still takes the pointer, and nothing here is display:none or visibility:hidden. */
+     four words of a headline arriving one at a time and far too slow for six stacked
+     blocks: it would put the trailer link 900ms behind the eyebrow. 60ms is inside the
+     30-80ms a group entrance is allowed, and the whole hero has landed 567ms after first
+     paint. The button is usable for every one of those milliseconds - an element at
+     opacity 0 still takes the pointer, and nothing here is display:none or
+     visibility:hidden. */
   .hero-copy .eyebrow,
   .hero-copy h1.display,
   .hero-copy .lede,
   .hero-copy .sub,
-  .hero-act {
+  .hero-act,
+  .hero-watch {
     animation: rise var(--t-arrival) var(--ease-out) backwards;
   }
   .hero-copy h1.display { animation-delay: 60ms; }
   .hero-copy .lede      { animation-delay: 120ms; }
   .hero-copy .sub       { animation-delay: 180ms; }
   .hero-act             { animation-delay: 240ms; }
+  .hero-watch           { animation-delay: 300ms; }
+
+  /* The highlighter goes on after the headline has landed (60 + 267 = 327ms): one stroke
+     from the left end, 460ms on the in-out curve a hand-drawn mark has, starting at 360ms.
+     At rest the stroke is simply there. */
+  @keyframes mark-swipe {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+  }
+  .hero .display .key::after { animation: mark-swipe 460ms cubic-bezier(0.65, 0, 0.35, 1) 360ms backwards; }
+
+  /* ---- the moment cards -------------------------------------------------- */
+  /* Every keyframe below is written as a share of ONE window per card, so a card's pieces
+     keep their choreography whichever driver stretches that window: a scroll range on a
+     phone, a duration on a desktop. The timing inside each window is carried by the
+     keyframes (each step's own curve), and the window itself runs linear. */
+  @keyframes card-in {
+    from { opacity: 0; transform: translateY(32px); }
+    to   { opacity: 1; transform: none; }
+  }
+  /* The load version travels less: it is an entrance on a still page, not a card being
+     carried up the screen by a thumb. */
+  @keyframes card-rise {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* 01. The three game rows land from alternating sides, and the badge counts up in the
+     app's own words and overlap inks as each one lands. The chips ease out, so each reads
+     as landed about 60% of the way through its own slot, and that is where the count
+     steps: 20%, 40%, 60%. Then the badge stamps once. */
+  @keyframes chip-a { 0%, 4%  { opacity: 0; transform: translateX(-40px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); } 28%, 100% { opacity: 1; transform: none; } }
+  @keyframes chip-b { 0%, 24% { opacity: 0; transform: translateX(40px);  animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); } 48%, 100% { opacity: 1; transform: none; } }
+  @keyframes chip-c { 0%, 44% { opacity: 0; transform: translateX(-40px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); } 68%, 100% { opacity: 1; transform: none; } }
+  @keyframes t0 { 0%, 19.9% { opacity: 1; } 20%, 100% { opacity: 0; } }
+  @keyframes t1 { 0%, 19.9% { opacity: 0; } 20%, 39.9% { opacity: 1; } 40%, 100% { opacity: 0; } }
+  @keyframes t2 { 0%, 39.9% { opacity: 0; } 40%, 59.9% { opacity: 1; } 60%, 100% { opacity: 0; } }
+  @keyframes t3 { 0%, 59.9% { opacity: 0; } 60%, 100% { opacity: 1; } }
+  @keyframes tier {
+    0%, 19.9%   { border-color: ${APP.overlapNone}; }
+    20%, 39.9%  { border-color: ${APP.overlapOne}; }
+    40%, 59.9%  { border-color: ${APP.overlapTwo}; }
+    60%, 100%   { border-color: ${APP.amber}; }
+  }
+  @keyframes stamp { 0%, 60% { transform: none; } 66% { transform: scale(1.05); } 78%, 100% { transform: none; } }
+
+  /* 02. The logo's two rings slide in from either side and interlock, the brackets snap shut
+     with a small overshoot, DUO LOCKED stamps in, then its line comes up. The rings travel
+     190 user units, about 21px at the mark's 98px. */
+  @keyframes ring-ink { 0%, 4% { transform: translateX(-190px); animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1); } 46%, 100% { transform: none; } }
+  @keyframes ring-duo { 0%, 4% { transform: translateX(190px);  animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1); } 46%, 100% { transform: none; } }
+  @keyframes br-l { 0%, 40% { opacity: 0; transform: translateX(-0.7em); animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); } 60%, 100% { opacity: 1; transform: none; } }
+  @keyframes br-r { 0%, 40% { opacity: 0; transform: translateX(0.7em);  animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); } 60%, 100% { opacity: 1; transform: none; } }
+  @keyframes lock-in { 0%, 52% { opacity: 0; transform: scale(1.25); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); } 68%, 100% { opacity: 1; transform: none; } }
+  @keyframes line-in { 0%, 62% { opacity: 0; transform: translateY(6px); } 80%, 100% { opacity: 1; transform: none; } }
+
+  /* 03. "you on tonight?" arrives, the reply types into the box in fifteen steps (one per
+     character of "yep, queue at 9"), send presses, the sent bubble comes up and the box
+     goes back to its placeholder. */
+  @keyframes bubble-in { 0%, 4% { opacity: 0; transform: translateY(10px) scale(0.96); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); } 20%, 100% { opacity: 1; transform: none; } }
+  @keyframes ph { 0%, 23.9% { opacity: 1; } 24%, 61.9% { opacity: 0; } 62%, 100% { opacity: 1; } }
+  @keyframes typing {
+    0%, 24%    { opacity: 1; clip-path: inset(0 100% 0 0); animation-timing-function: steps(15, end); }
+    50%, 59.9% { opacity: 1; clip-path: inset(0 0 0 0); }
+    60%, 100%  { opacity: 0; clip-path: inset(0 0 0 0); }
+  }
+  @keyframes press { 0%, 53% { transform: none; } 57% { transform: scale(0.84); } 62%, 100% { transform: none; } }
+  @keyframes bubble-out { 0%, 60% { opacity: 0; transform: translateY(12px) scale(0.94); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); } 76%, 100% { opacity: 1; transform: none; } }
+
+  /* The plain version's rules. */
+  @keyframes rule-draw {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+  }
+
+  /* Which moment each moving piece (class sd) plays. A name on its own does nothing: its
+     duration is 0s and it has no fill until one of the two drivers below gives it a clock or
+     a scroll range, so a browser that meets neither driver shows the cards at rest. */
+  @media (prefers-reduced-motion: no-preference) {
+    .m1 .chip:nth-child(1) { animation-name: chip-a; }
+    .m1 .chip:nth-child(2) { animation-name: chip-b; }
+    .m1 .chip:nth-child(3) { animation-name: chip-c; }
+    .m1 .overlap { animation-name: tier, stamp; }
+    .m1 .t0 { animation-name: t0; }
+    .m1 .t1 { animation-name: t1; }
+    .m1 .t2 { animation-name: t2; }
+    .m1 .t3 { animation-name: t3; }
+    .m2 .ring-ink { animation-name: ring-ink; }
+    .m2 .ring-duo { animation-name: ring-duo; }
+    .m2 .br-l { animation-name: br-l; }
+    .m2 .br-r { animation-name: br-r; }
+    .m2 .lock { animation-name: lock-in; }
+    .m2 .both { animation-name: line-in; }
+    .m3 .bubble.in { animation-name: bubble-in; }
+    .m3 .ph { animation-name: ph; }
+    .m3 .typed { animation-name: typing; }
+    .m3 .send { animation-name: press; }
+    .m3 .bubble.out { animation-name: bubble-out; }
+  }
+
+  /* DRIVER ONE, below 860px: the card's own passage up the screen. The card rises in over the
+     first 65% of its entry. Its moment starts once 55% of the card is on screen, which is
+     most of its app screen (the screen is the card's top 214px), and ends at cover 40%.
+     Measured on a 390x760 phone: 256px of scrolling for the whole moment, of which the
+     half-typed message is 64px, and each card is finished while its middle is still about
+     107px below the middle of the screen (95px at 390x664, 123px at 768x1024). */
+  @supports (animation-timeline: view()) and (animation-range: entry) {
+    @media (prefers-reduced-motion: no-preference) and (max-width: 859.98px) {
+      .moment { view-timeline: --moment; view-timeline-inset: 0; }
+      .moment-card {
+        animation-name: card-in; animation-fill-mode: both; animation-timing-function: var(--ease-out);
+        animation-timeline: --moment; animation-range: entry 0% entry 65%;
+      }
+      .sd {
+        animation-fill-mode: both; animation-timing-function: linear;
+        animation-timeline: --moment; animation-range: entry 55% cover 40%;
+      }
+    }
+    /* The plain version's hairlines draw across as each item comes up, then the olive tick,
+       at every width: they are below the first screen everywhere. */
+    @media (prefers-reduced-motion: no-preference) {
+      .plain-list li { view-timeline: --plain; view-timeline-inset: 0; }
+      .plain-list li::before {
+        animation: rule-draw linear both;
+        animation-timeline: --plain; animation-range: entry 30% contain 25%;
+      }
+      .plain-list li::after {
+        animation: rule-draw linear both;
+        animation-timeline: --plain; animation-range: entry 70% contain 40%;
+      }
+    }
+  }
+
+  /* DRIVER TWO, from 860px: once, on load, on a clock. Each card's window is placed so the
+     three moments follow one another left to right, each one starting while the one before
+     it makes its last small move (01's stamp, 02's line coming up): 01 runs from 600ms,
+     02 from 1250ms, 03 from 1800ms. The sent bubble, the last thing that moves, settles at
+     2.71s, and every animation on the page has ended at 3.0s. The chat gets the longest
+     window because it holds the typing. */
+  @media (prefers-reduced-motion: no-preference) and (min-width: 860px) {
+    .moment-card { animation: card-rise var(--t-arrival) var(--ease-out) backwards; }
+    .moment:nth-child(1) .moment-card { animation-delay: 300ms; }
+    .moment:nth-child(2) .moment-card { animation-delay: 360ms; }
+    .moment:nth-child(3) .moment-card { animation-delay: 420ms; }
+    .sd { animation-fill-mode: backwards; animation-timing-function: linear; }
+    .m1 .sd { animation-delay: 600ms;  animation-duration: 950ms; }
+    .m2 .sd { animation-delay: 1250ms; animation-duration: 950ms; }
+    .m3 .sd { animation-delay: 1800ms; animation-duration: 1200ms; }
+  }
+
+  /* ---- the queue bar, on the form's own timeline -------------------------- */
+  /* The bar watches the form. body's timeline-scope lifts the form's view timeline up to
+     where a bar outside <main> can see it, and the range starts at exit 100%: the scroll
+     position at which the form's last pixel has gone off the top of the screen. So the bar
+     can never sit over the form's button, and it slides down over the next 72px of
+     scrolling, a little more than its own height. Scroll back until the form's bottom edge
+     returns and it slides away again. Chrome and Safari 26+; elsewhere the bar is absent.
+
+     scroll-padding keeps what a keyboard focuses, or an in-page link jumps to, out from
+     under the bar. It has a side effect that every view timeline on the page has to undo:
+     a view timeline's default inset ("auto") IS the scroll-padding, so without an explicit
+     view-timeline-inset of 0 the form's exit 100% would fall 72px early, with the form's
+     button still on screen, and the bar would slide over it. That is why the form, the
+     moment cards and the plain version's items all declare view-timeline-inset: 0: their
+     ranges are measured against the real edges of the screen. */
+  @keyframes qbar-in {
+    from { transform: translateY(-100%); visibility: hidden; }
+    to   { transform: none; visibility: visible; }
+  }
+  @keyframes qbar-show {
+    from { visibility: hidden; }
+    to   { visibility: visible; }
+  }
+  @supports (timeline-scope: --form) and (animation-timeline: view()) and (animation-range: exit) {
+    body { timeline-scope: --form; }
+    #waitlist-form { view-timeline: --form; view-timeline-inset: 0; }
+    html { scroll-padding-top: 72px; }
+    .qbar {
+      display: block; position: fixed; z-index: 30; top: 0; left: 0; right: 0;
+      background: rgba(${hexToRgb(GROUND.base).join(",")},0.9);
+      -webkit-backdrop-filter: saturate(1.4) blur(14px); backdrop-filter: saturate(1.4) blur(14px);
+      border-bottom: 1px solid var(--rule);
+      animation-name: qbar-in; animation-fill-mode: both; animation-timing-function: linear;
+      animation-timeline: --form; animation-range: exit 100% exit calc(100% + 72px);
+    }
+    /* Reduce Motion: no slide and no half-shown bar. It is simply there once the form has
+       gone, and gone once the form is back: one step, at the start of the same range. */
+    @media (prefers-reduced-motion: reduce) {
+      .qbar { animation-name: qbar-show; animation-timing-function: steps(1, start); }
+    }
+  }
 
   /* ---- reduced motion ---------------------------------------------------- */
-  /* Not a blanket kill. Everything that MOVES stops - every entrance, the hover lifts, the
-     presses - and everything that is COLOUR stays, because a button
-     that deepens under the pointer and a field whose border answers focus are feedback
-     rather than motion, and removing them makes the page harder to use rather than calmer.
-     The page is fully usable with all of it off, because with all of it off the page is
-     simply its resting state, which is the state every to-keyframe equals. */
+  /* REDUCE MOTION MEANS ZERO ANIMATION, and it is said twice. The card and divider drivers
+     above are already gated on no-preference; this block also switches off every animated
+     selector outright, with !important, so no later rule can hand one of them a clock again.
+     With all of it off the page is simply its resting state, which is the finished one:
+     every row in, 3 GAMES IN COMMON, the rings locked, the chat sent, every rule drawn.
+
+     The queue bar is the one exception, and it does not move: under Reduce Motion it is
+     shown or hidden in a single step as the form leaves or returns (see its block above),
+     never slid and never half-shown.
+
+     Not a blanket kill beyond that. Everything that MOVES stops - every entrance, the hover
+     lifts, the presses - and everything that is COLOUR stays, because a button that deepens
+     under the pointer and a field whose border answers focus are feedback rather than
+     motion, and removing them makes the page harder to use rather than calmer. */
   @media (prefers-reduced-motion: reduce) {
     .hero-copy .eyebrow,
     .hero-copy h1.display,
     .hero-copy .lede,
     .hero-copy .sub,
-    .hero-act {
-      animation: none;
+    .hero-act,
+    .hero-watch,
+    .hero .display .key::after,
+    .moment-card,
+    .sd,
+    .plain-list li::before,
+    .plain-list li::after {
+      animation: none !important;
+      transition: none !important;
     }
     .cta { transition-property: background-color, border-color; }
     .cta:hover, .cta:active { transform: none; box-shadow: ${shadowCss(CTA_SHADOW_LAYERS, FRAG_SHADOW_INK)}; }
-    /* The trailer link and the outlined join link keep their colour answers and lose their
-       lift and their press, the same line this block draws for the button. */
+    /* The trailer link, the outlined join link and the queue bar's button keep their colour
+       answers and lose their lift and their press, the same line this block draws for the
+       button. */
     .trailer, .trailer:hover, .trailer:active,
-    .cta-ghost, .cta-ghost:active { transform: none; }
+    .cta-ghost, .cta-ghost:active,
+    .qbar-cta, .qbar-cta:active { transform: none; }
   }
 
   /* ---- wide viewports ---------------------------------------------------- */
