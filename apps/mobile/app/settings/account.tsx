@@ -6,6 +6,8 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { SectionLabel } from "@/components/SectionLabel";
+import { hasAppleIdentity } from "@/features/auth/appleIdentity";
+import { accountDeletionFinalMessage } from "@/features/auth/deleteThisSignIn";
 import { useDeleteAccount } from "@/features/settings/useDeleteAccount";
 import { useRequireSession } from "@/hooks/useRequireSession";
 import { useSessionStore } from "@/store/session-store";
@@ -15,6 +17,7 @@ export default function AccountSettings() {
   useRequireSession();
   const { colors, spacing, type, hairline, radius } = useTheme();
   const signOut = useSessionStore((s) => s.signOut);
+  const session = useSessionStore((s) => s.session);
   const deleteAccount = useDeleteAccount();
   const [deleting, setDeleting] = useState(false);
 
@@ -28,7 +31,10 @@ export default function AccountSettings() {
           text: "Delete",
           style: "destructive",
           onPress: () => {
-            Alert.alert("Are you absolutely sure?", "Your account will be deleted immediately.", [
+            // An Apple account is told about the Apple sheet that comes next (the fresh code
+            // the grant revocation needs); see useDeleteAccount. An email account's copy and
+            // flow are unchanged.
+            Alert.alert("Are you absolutely sure?", accountDeletionFinalMessage(hasAppleIdentity(session?.user)), [
               { text: "Cancel", style: "cancel" },
               { text: "Delete my account", style: "destructive", onPress: () => void confirmDelete() },
             ]);

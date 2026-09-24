@@ -99,6 +99,14 @@ verify_jwt = true
 [functions.delete-account]
 verify_jwt = true
 
+# Called immediately after signInWithIdToken succeeds, by a caller who therefore has a real
+# Supabase JWT. It takes an Apple authorization code and nothing else -- no user id, because
+# the user is re-derived from the JWT with getUser() -- and its only write is one upsert into
+# apple_refresh_tokens, a table with RLS on, zero policies and zero grants to anon or
+# authenticated (0068_apple_refresh_tokens.sql).
+[functions.apple-authorization]
+verify_jwt = true
+
 # External/internal callers authenticate with their own shared secret instead of a
 # Supabase-issued JWT, so the gateway-level JWT check must be off for these two.
 [functions.revenuecat-webhook]

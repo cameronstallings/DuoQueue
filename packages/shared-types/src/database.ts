@@ -13,6 +13,7 @@ import type {
   TiltHandling,
   VerifiedStatKind,
 } from "./enums";
+import type { LolDivision, LolTierChoice } from "./lol-rank";
 
 /**
  * Hand-authored mirror of the Supabase schema (supabase/migrations/0001_init.sql).
@@ -178,7 +179,16 @@ export interface ProfileGameRow {
   profile_id: string;
   game_id: string;
   skill_level: SkillLevel;
+  /** Free text on every game except League. On the League row the sync trigger
+   * (0069_league_rank_duo.sql) rewrites it to the canonical label ("Gold II") whenever a
+   * structured rank exists, so every existing reader keeps working. */
   rank_text: string | null;
+  /** League of Legends Solo/Duo tier. Only ever set on the League row: the sync trigger raises
+   * `lol_rank_not_league` on any other game. Mirrors profile_games.lol_tier_valid. */
+  lol_tier: LolTierChoice | null;
+  /** 1..4 meaning I..IV for Iron..Diamond; null for Unranked, Master and above. Mirrors
+   * profile_games.lol_division_matches_tier. */
+  lol_division: LolDivision | null;
   priority: number;
   created_at: string;
 }

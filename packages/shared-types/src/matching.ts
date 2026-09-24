@@ -11,6 +11,11 @@ export interface DeckCandidate {
   shared_games_count: number;
   shared_shows_count: number;
   score: number;
+  /** get_deck only (0069_league_rank_duo.sql): true when both players listed a League rank
+   * and Riot's published Solo/Duo table lets the pair queue together; false or null
+   * otherwise (null means unknown, and is never shown). Optional because Standouts, the party
+   * deck and the profile card reuse this type and never carry it. */
+  lol_duo_eligible?: boolean | null;
 }
 
 /** Row shape returned by the `perform_swipe` RPC. */

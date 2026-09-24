@@ -14,7 +14,8 @@ export interface ChipProps {
   tone?: ChipTone; // default "default"
   onPress?: () => void; // renders Pressable when given
   /** Screen-reader override for chips whose press action isn't "select" — removable
-   * chips should announce "Remove {label}", not "{label}, selected". */
+   * chips should announce "Remove {label}", not "{label}, selected". On a flat chip it
+   * replaces the visible text as the spoken label. */
   accessibilityLabel?: string;
 }
 
@@ -98,7 +99,13 @@ export function Chip({ label, detail, icon, selected, tone = "default", onPress,
     );
   }
 
-  return <View style={containerStyle}>{content}</View>;
+  // A flat chip reads as its text unless it names a better label ("Can duo with you" reads as
+  // "Can duo with you in Ranked Solo/Duo"); then the chip is one element with that label.
+  return (
+    <View style={containerStyle} accessible={accessibilityLabel ? true : undefined} accessibilityLabel={accessibilityLabel}>
+      {content}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({

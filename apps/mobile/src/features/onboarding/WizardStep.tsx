@@ -4,10 +4,13 @@ import Animated, { FadeIn } from "react-native-reanimated";
 
 import { Button } from "@/components/Button";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { DELETE_THIS_SIGN_IN_LABEL } from "@/features/auth/deleteThisSignIn";
+import { useDeleteThisSignIn } from "@/features/auth/useDeleteThisSignIn";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
 import { ONBOARDING_STEPS, type OnboardingStep } from "./steps";
+import { WIZARD_EXIT_LINK_LABEL, WIZARD_EXIT_SHEET } from "./wizardExit";
 
 function ProgressBar({ current, total }: { current: number; total: number }) {
   const { colors, radius } = useTheme();
@@ -53,6 +56,7 @@ export function WizardStep({
   const { colors, spacing, type } = useTheme();
   const stepNumber = ONBOARDING_STEPS.indexOf(step) + 1;
   const signOut = useSessionStore((s) => s.signOut);
+  const { confirmDeleteThisSignIn, deleting } = useDeleteThisSignIn();
 
   // The only way out of the wizard. (onboarding)/_layout.tsx sends anyone with a session
   // and an unfinished profile straight back here from every route, so without this a
@@ -60,10 +64,17 @@ export function WizardStep({
   // another account. Someone who abandons onboarding on a borrowed phone, or a reviewer
   // who makes a test account and then wants the demo account back, is otherwise stuck
   // reinstalling the app.
-  function handleSignOut() {
-    Alert.alert("Sign out?", "Your profile is not finished yet. You can sign back in and pick up where you left off.", [
-      { text: "Keep going", style: "cancel" },
-      { text: "Sign out", style: "destructive", onPress: () => void signOut() },
+  //
+  // It is also the only way to DELETE the account from here. Settings > Account is behind
+  // the tabs layout, which is behind a finished profile, so without the third button an
+  // account (an Apple one especially, since it exists before any of this was filled in) could
+  // not be removed until ten steps and two photos had been completed. The delete goes through
+  // its own confirmation before anything happens.
+  function handleExit() {
+    Alert.alert(WIZARD_EXIT_SHEET.title, WIZARD_EXIT_SHEET.message, [
+      { text: WIZARD_EXIT_SHEET.keepGoing, style: "cancel" },
+      { text: WIZARD_EXIT_SHEET.signOut, onPress: () => void signOut() },
+      { text: DELETE_THIS_SIGN_IN_LABEL, style: "destructive", onPress: confirmDeleteThisSignIn },
     ]);
   }
 
@@ -80,10 +91,21 @@ export function WizardStep({
 
       {error ? <Text style={[type.caption, { color: colors.danger }]}>{error}</Text> : null}
 
-      <Button label={continueLabel} onPress={onContinue} disabled={continueDisabled} loading={loading} />
+      <Button
+        label={continueLabel}
+        onPress={onContinue}
+        disabled={continueDisabled || deleting}
+        loading={loading}
+      />
 
-      <Pressable onPress={handleSignOut} hitSlop={12} accessibilityRole="button" style={{ alignSelf: "center" }}>
-        <Text style={[type.caption, { color: colors.textMuted }]}>Sign out</Text>
+      <Pressable
+        onPress={handleExit}
+        disabled={deleting}
+        hitSlop={12}
+        accessibilityRole="button"
+        style={{ alignSelf: "center" }}
+      >
+        <Text style={[type.caption, { color: colors.textMuted }]}>{deleting ? "Deleting..." : WIZARD_EXIT_LINK_LABEL}</Text>
       </Pressable>
     </ScreenContainer>
   );

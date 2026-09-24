@@ -18,6 +18,8 @@ import {
   isInviteCodeShape,
   normalizeInviteCode,
   parseInviteCode,
+  shouldRedeemInvite,
+  type InviteRedemptionGateInput,
   type InviteRouteInput,
 } from "./invite";
 
@@ -205,6 +207,7 @@ describe("inviteRouteAction", () => {
   const base: InviteRouteInput = {
     codeValid: true,
     sessionStatus: "signed_in",
+    profileStatus: "loaded",
     onboardingCompleted: true,
     redemption: "done",
   };
@@ -224,7 +227,33 @@ describe("inviteRouteAction", () => {
   });
 
   it("holds while the profile row is still in flight", () => {
-    expect(inviteRouteAction({ ...base, onboardingCompleted: undefined })).toBe("wait");
+    for (const profileStatus of ["unknown", "error"] as const) {
+      expect(inviteRouteAction({ ...base, profileStatus, onboardingCompleted: undefined })).toBe("wait");
+    }
+  });
+
+  it("sends a signed-in session with no profile row to the age gate at /", () => {
+    // The bug this closes: `onboardingCompleted` is undefined for a MISSING profile too, and
+    // it never becomes defined, because the thing that would define it is the age gate this
+    // screen was standing in front of. A deep link tapped by a half-finished Apple signup
+    // rendered the held Logo frame with no back gesture and no timer that could ever change
+    // the answer -- force-quit was the only way out.
+    expect(inviteRouteAction({ ...base, profileStatus: "missing", onboardingCompleted: undefined })).toBe("home");
+  });
+
+  it("routes on the profile STATUS, not on a stale onboarding flag", () => {
+    // "missing" is authoritative and outranks anything still held in memory, in both
+    // directions -- otherwise a signed-out-and-back-in-as-somebody-else session routes on the
+    // previous account's answer for a frame.
+    expect(inviteRouteAction({ ...base, profileStatus: "missing", onboardingCompleted: true })).toBe("home");
+    expect(inviteRouteAction({ ...base, profileStatus: "missing", onboardingCompleted: false })).toBe("home");
+  });
+
+  it("still holds a link that arrived before the session resolved, whatever the profile says", () => {
+    // Session first. A profileStatus left over from the account that just signed out says
+    // nothing about the one signing in, so it must not be able to answer ahead of the session.
+    expect(inviteRouteAction({ ...base, sessionStatus: "loading", profileStatus: "missing" })).toBe("wait");
+    expect(inviteRouteAction({ ...base, sessionStatus: "signed_out", profileStatus: "missing" })).toBe("sign-in");
   });
 
   it("leaves somebody mid-wizard in the wizard", () => {
@@ -242,6 +271,54 @@ describe("inviteRouteAction", () => {
 
   it("does not strand anyone on a failed redemption", () => {
     expect(inviteRouteAction({ ...base, redemption: "failed" })).toBe("home");
+  });
+});
+
+describe("shouldRedeemInvite", () => {
+  const ready: InviteRedemptionGateInput = {
+    sessionStatus: "signed_in",
+    profileStatus: "loaded",
+    pendingCode: "ABCDE12345",
+    redemption: "idle",
+  };
+
+  it("redeems as soon as there is a profile to attach the attribution to", () => {
+    expect(shouldRedeemInvite(ready)).toBe(true);
+  });
+
+  it("does not fire for a session that has no profile row yet", () => {
+    // THE REGRESSION THIS FILE EXISTS TO STOP. An Apple session arrives before the age gate,
+    // `redeem_invite_code` reads profiles.created_at for its 14 day window, finds nothing, and
+    // raises invite_window_closed. The hook reads any failure as settled and deletes the code
+    // from AsyncStorage, so the invite is gone before the account it belongs to exists.
+    expect(shouldRedeemInvite({ ...ready, profileStatus: "missing" })).toBe(false);
+  });
+
+  it("waits rather than guessing while the profile read is unresolved", () => {
+    // "error" is a read that failed, not an answer. The store retries it on a timer; spending
+    // the code on a guess is not retryable at all.
+    for (const profileStatus of ["unknown", "error"] as const) {
+      expect(shouldRedeemInvite({ ...ready, profileStatus })).toBe(false);
+    }
+  });
+
+  it("needs a session, whatever a stale profile status says", () => {
+    for (const sessionStatus of ["loading", "signed_out"] as const) {
+      expect(shouldRedeemInvite({ ...ready, sessionStatus })).toBe(false);
+    }
+  });
+
+  it("does nothing for an install that did not arrive from a link", () => {
+    expect(shouldRedeemInvite({ ...ready, pendingCode: null })).toBe(false);
+    expect(shouldRedeemInvite({ ...ready, pendingCode: "" })).toBe(false);
+  });
+
+  it("attempts a code exactly once", () => {
+    // The effect re-runs on every store change, and profileStatus now changes under it more
+    // often than status ever did. Only "idle" may start a call.
+    for (const redemption of ["pending", "done", "failed"] as const) {
+      expect(shouldRedeemInvite({ ...ready, redemption })).toBe(false);
+    }
   });
 });
 

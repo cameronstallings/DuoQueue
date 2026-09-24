@@ -163,6 +163,40 @@ const REVIEW_ID = demoId("review-account");
 //
 // Re-measure rather than reason if either list changes: the query is get_deck(50) run under
 // `set local role authenticated` with the review account's id as request.jwt.claims.sub.
+//
+// LEAGUE OF LEGENDS AT INDEX 0 IS THE 0069 DEMO, and it changes the order above in plain mode.
+// supabase/migrations/0069_league_rank_duo.sql orders get_deck by live Power-Up, then by
+// "Riot's Solo/Duo table lets this pair duo", then by score, and the card shows "Can duo with
+// you" on those pairs. The reviewer lists League at Gold II so the feature is on the first two
+// cards: Dae (Platinum I, na_west) and Devon (Silver I, na_east) are eligible both ways with Gold
+// II; Ophelia (Emerald IV, na_west) is not, and stays in the deck further down, which is the
+// other half of the demo (ineligible players are ordered later, never filtered). The rank is
+// plain text: the service role inserts rank_text and 0069's trigger parses it. It sits first so
+// the reviewer's own profile and Edit screen show the League row and its rank picker first.
+//
+// Measured on 2026-09-23 in a ROLLED-BACK transaction on the hosted database (0067, 0068 and
+// 0069 applied inside it, this file's persona changes applied by hand, the reviewer's swipes
+// reset to what this script leaves), as review@duoqueue.io. The seed had NOT been re-run with
+// these changes when this was written, so re-measure after the real re-run:
+//
+//   plain:    1 Dae 36 (can duo)   2 Devon 34 (can duo)   3 Sana 48   4 Kofi 39   5 Chase 35
+//             6 Tobin 26   7 Wren 26   8 Ophelia 25 (cannot)   9 Marcus 24   10 Bea 17
+//             11 Remy 16   12 Yuki 14   13 Nadia 12
+//   --filming: 1 Sana 48   2 Kofi 39   3 Chase 35   4 Dae 26   5 Tobin 26   6 Wren 26
+//             7 Marcus 24   8 Devon 24   9 Bea 17   10 Remy 16   11 Yuki 14   12 Ophelia 13
+//             13 Nadia 12   (identical to the 2026-08-22 table above)
+//
+// Still a deck of 13 in both modes: only the order moved. The shared League title adds 10 to
+// Dae, Devon and Ophelia in plain mode, plus 2 for Ophelia's skill match (both competitive).
+//
+// THIS ACCOUNT IS ALSO THE FILMING ACCOUNT, and Dae and Devon are abstract-art personas, so
+// eligible-first would open every recording on two abstract cards. Under --filming the reviewer
+// therefore gets NO League row (reviewerFor below): no pair is eligible, the League rows on Dae,
+// Devon and Ophelia add nothing to their overlap with the reviewer, and the order is score-only
+// again. Dae's move from sea / Asia/Manila to na_west / America/Los_Angeles is the one change
+// left in filming mode, and it measured as no change to his score (26 before and after). Plain
+// mode, which is what App Review sees, keeps League. Never submit after a --filming run.
+const REVIEWER_LEAGUE_GAME = "League of Legends";
 const REVIEWER = {
   displayName: "App Reviewer",
   age: 29,
@@ -172,6 +206,8 @@ const REVIEWER = {
   bio: "Here to find people to duo up with for relaxed co-op nights and the occasional competitive match.",
   discordUsername: null,
   games: [
+    // The 0069 demo. Plain mode only: reviewerFor(true) drops it. See the note above REVIEWER.
+    { name: REVIEWER_LEAGUE_GAME, skill: "competitive", rank: "Gold II" },
     { name: "Helldivers 2", skill: "intermediate" },
     { name: "Stardew Valley", skill: "casual" },
     { name: "Valorant", skill: "intermediate" },
@@ -201,6 +237,13 @@ const REVIEWER = {
   lastActiveMinutesAgo: 15,
 };
 
+/** The review account as seeded in this mode. --filming leaves out its League game so the filming
+ * deck stays score-ordered (see the note above REVIEWER); plain mode, what App Review sees, keeps
+ * it. */
+function reviewerFor(filming) {
+  return filming ? { ...REVIEWER, games: REVIEWER.games.filter((g) => g.name !== REVIEWER_LEAGUE_GAME) } : REVIEWER;
+}
+
 // =============================================================================
 // 14 demo gaming-partner profiles. Real games/shows from the live catalog (every name below
 // re-verified against the live `games`, `shows` and `prompts` tables before the 2026-08-22
@@ -214,7 +257,8 @@ const REVIEWER = {
 //      card in the deck may print ">> NO GAMES IN COMMON". Sana and Priya by 4, Kofi by 3,
 //      Dae/Marcus/Wren/Tobin/Chase by 2, and Nadia/Yuki/Bea/Remy/Ophelia/Devon by 1 — see
 //      the measured deck order in the note on REVIEWER.games above, which is the thing to
-//      trust rather than this list of counts. The first three games in each list are also
+//      trust rather than this list of counts. Those are the --filming counts. In plain mode the
+//      reviewer also lists League of Legends (0069), so Dae has 3, and Devon and Ophelia have 2. The first three games in each list are also
 //      the three the card renders (enrichCandidates.ts slices to 3), so shared titles are
 //      ordered first where it does not break the persona — and every one of the fourteen
 //      has at least one shared title inside that window.
@@ -277,13 +321,17 @@ const PERSONAS = [
     displayName: "Dae",
     age: 27,
     gender: "non_binary",
-    region: "sea",
-    timezone: "Asia/Manila",
+    // na_west (was sea / Asia/Manila until 0069): League duo labels are claimed only for NA pairs,
+    // because profiles.region is not a League server. The move is what lets his rank be labeled.
+    region: "na_west",
+    timezone: "America/Los_Angeles",
     bio: "Support main who lives for a clean vision game. Been climbing League ranked with the same three friends since season 9. There's always room for one more in the Discord.",
     discordUsername: "dae.lumen",
-    // Shares Valorant + Lethal Company with the reviewer.
+    // Shares Valorant + Lethal Company with the reviewer, and League in plain mode. Platinum I
+    // (was Diamond II until 0069) is eligible both ways with the reviewer's Gold II, so he is one
+    // of the two "Can duo with you" cards.
     games: [
-      { name: "League of Legends", skill: "ranked_grinder", rank: "Diamond II" },
+      { name: "League of Legends", skill: "ranked_grinder", rank: "Platinum I" },
       { name: "Valorant", skill: "intermediate" },
       { name: "Lethal Company", skill: "casual" },
       { name: "Teamfight Tactics", skill: "competitive" },
@@ -624,6 +672,10 @@ const PERSONAS = [
       { name: "Hades II", skill: "competitive" },
       { name: "Balatro", skill: "intermediate" },
       { name: "Path of Exile 2", skill: "casual" },
+      // 0069 demo: Emerald IV is NOT eligible with the reviewer's Gold II, so she shows that an
+      // ineligible player stays in the deck, just later. Last, so it is not one of her three
+      // card chips.
+      { name: "League of Legends", skill: "competitive", rank: "Emerald IV" },
     ],
     shows: ["Community", "Rick and Morty"],
     platforms: ["pc", "switch"],
@@ -652,6 +704,9 @@ const PERSONAS = [
       { name: "Factorio", skill: "competitive" },
       { name: "Cities: Skylines II", skill: "intermediate" },
       { name: "No Man's Sky", skill: "casual" },
+      // 0069 demo: Silver I is eligible both ways with the reviewer's Gold II. Last, so his three
+      // card chips are unchanged; an eligible card promotes the League chip on its own.
+      { name: "League of Legends", skill: "casual", rank: "Silver I" },
     ],
     shows: ["The Office", "Parks and Recreation"],
     platforms: ["pc"],
@@ -1166,8 +1221,14 @@ async function main() {
   }
 
   console.log(`Ensuring review account (${REVIEW_EMAIL})...`);
-  const reviewResult = await ensureAuthUser(REVIEW_ID, REVIEW_EMAIL, REVIEWER, { resetPassword });
-  await seedPersonaTree(REVIEW_ID, REVIEWER, { gameIdByName, showIdByName, promptIdByQuestion, filming });
+  const reviewer = reviewerFor(filming);
+  const reviewResult = await ensureAuthUser(REVIEW_ID, REVIEW_EMAIL, reviewer, { resetPassword });
+  await seedPersonaTree(REVIEW_ID, reviewer, { gameIdByName, showIdByName, promptIdByQuestion, filming });
+  console.log(
+    filming
+      ? "  League of Legends left off the review account (--filming): no \"Can duo with you\" cards, score order."
+      : "  League of Legends on the review account at Gold II: Dae and Devon should be the first two cards.",
+  );
 
   const personaIds = new Map();
   for (const p of PERSONAS) {
@@ -1220,8 +1281,8 @@ async function main() {
   // The count that actually decides whether a card reads ">> NO GAMES IN COMMON". Printed
   // per persona so a bad edit to any game list is visible in the run output rather than
   // three days later in a recording.
-  const reviewerGames = new Set(REVIEWER.games.map((g) => g.name));
-  const reviewerShows = new Set(REVIEWER.shows);
+  const reviewerGames = new Set(reviewer.games.map((g) => g.name));
+  const reviewerShows = new Set(reviewer.shows);
   console.log("");
   console.log("Shared-game count against the review account:");
   for (const p of PERSONAS) {

@@ -22,6 +22,9 @@ import { KeyboardAwareScrollView } from "@/components/KeyboardAwareScrollView";
 import { Skeleton } from "@/components/Skeleton";
 import { Slider } from "@/components/Slider";
 import { TextField } from "@/components/TextField";
+import { LeagueRankPicker } from "@/features/league/LeagueRankPicker";
+import { useLeagueGameId } from "@/features/league/leagueGame";
+import { type LeagueRankValue, validateLolRank, withTypedRankText } from "@/features/league/rankPickerState";
 import { CatalogPicker } from "@/features/onboarding/CatalogPicker";
 import {
   PLATFORM_LABELS,
@@ -39,6 +42,7 @@ import {
 } from "@/features/profile/useEditableProfileDetails";
 import { useSaveProfileDetails } from "@/features/profile/useSaveProfileDetails";
 import { useRequireSession } from "@/hooks/useRequireSession";
+import { toUserMessage } from "@/lib/userMessage";
 import { useSessionStore } from "@/store/session-store";
 import { useToastStore } from "@/store/toast-store";
 import { useTheme } from "@/theme/useTheme";
@@ -52,6 +56,9 @@ export default function EditDetailsScreen() {
   const profile = useSessionStore((s) => s.profile);
   const { data: existing, isLoading: loadingExisting } = useEditableProfileDetails(profile?.id);
   const save = useSaveProfileDetails(profile?.id);
+  // League gets the Solo/Duo rank picker instead of the free-text field. Null while loading or if
+  // the read fails, and then League keeps the text field like every other game.
+  const leagueGameId = useLeagueGameId();
 
   const [games, setGames] = useState<EditableGame[] | null>(null);
   const [shows, setShows] = useState<EditableShow[] | null>(null);
@@ -86,7 +93,14 @@ export default function EditDetailsScreen() {
     setGames((prev) => (prev ?? []).map((g) => (g.gameId === gameId ? { ...g, skillLevel } : g)));
   }
   function updateGameRank(gameId: string, rankText: string) {
-    setGames((prev) => (prev ?? []).map((g) => (g.gameId === gameId ? { ...g, rankText } : g)));
+    setGames((prev) => (prev ?? []).map((g) => (g.gameId === gameId ? withTypedRankText(g, rankText) : g)));
+  }
+  function updateLeagueRank(gameId: string, rank: LeagueRankValue) {
+    setGames((prev) =>
+      (prev ?? []).map((g) =>
+        g.gameId === gameId ? { ...g, lolTier: rank.lolTier, lolDivision: rank.lolDivision, rankText: rank.rankText } : g,
+      ),
+    );
   }
   function removeShow(showId: string) {
     setShows((prev) => (prev ?? []).filter((s) => s.showId !== showId));
@@ -120,10 +134,22 @@ export default function EditDetailsScreen() {
       setError("Select at least one platform.");
       return;
     }
+    const league = leagueGameId === null ? undefined : games.find((g) => g.gameId === leagueGameId);
+    const rankError = league ? validateLolRank(league) : null;
+    if (rankError) {
+      setError(rankError);
+      return;
+    }
     setError(null);
     try {
       await save.mutateAsync({
-        games: games.map((g) => ({ gameId: g.gameId, skillLevel: g.skillLevel, rankText: g.rankText })),
+        games: games.map((g) => ({
+          gameId: g.gameId,
+          skillLevel: g.skillLevel,
+          rankText: g.rankText,
+          lolTier: g.lolTier,
+          lolDivision: g.lolDivision,
+        })),
         shows: shows.map((s) => ({ showId: s.showId })),
         platforms,
         playstyles,
@@ -133,7 +159,9 @@ export default function EditDetailsScreen() {
       useToastStore.getState().showToast("Profile details saved");
       router.back();
     } catch (err) {
-      Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
+      // A RAISE's sentence lives in its hint (P0001); its message is a machine token such as
+      // lol_rank_not_league. Same mapping onboarding uses.
+      Alert.alert("Something went wrong", toUserMessage(err, "Please try again."));
     }
   }
 
@@ -197,7 +225,10 @@ export default function EditDetailsScreen() {
                 profileId={profile.id}
                 selectedIds={games.map((g) => g.gameId)}
                 onSelect={(item) =>
-                  setGames((prev) => [...(prev ?? []), { gameId: item.id, name: item.name, skillLevel: "casual", rankText: "" }])
+                  setGames((prev) => [
+                    ...(prev ?? []),
+                    { gameId: item.id, name: item.name, skillLevel: "casual", rankText: "", lolTier: null, lolDivision: null },
+                  ])
                 }
               />
               <View style={{ gap: spacing.md }}>
@@ -214,13 +245,17 @@ export default function EditDetailsScreen() {
                       selected={[game.skillLevel]}
                       onToggle={(value) => updateGameSkill(game.gameId, value)}
                     />
-                    <TextField
-                      label="Rank (optional)"
-                      value={game.rankText}
-                      onChangeText={(text) => updateGameRank(game.gameId, text)}
-                      placeholder="e.g. Diamond II"
-                      maxLength={RANK_TEXT_MAX_LENGTH}
-                    />
+                    {leagueGameId !== null && game.gameId === leagueGameId ? (
+                      <LeagueRankPicker value={game} onChange={(next) => updateLeagueRank(game.gameId, next)} />
+                    ) : (
+                      <TextField
+                        label="Rank (optional)"
+                        value={game.rankText}
+                        onChangeText={(text) => updateGameRank(game.gameId, text)}
+                        placeholder="e.g. Diamond II"
+                        maxLength={RANK_TEXT_MAX_LENGTH}
+                      />
+                    )}
                   </Card>
                 ))}
               </View>

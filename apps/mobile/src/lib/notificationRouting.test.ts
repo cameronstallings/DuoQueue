@@ -8,10 +8,25 @@ const ready: NotificationTapInput = {
   category: "new_player",
   navigatorReady: true,
   sessionStatus: "signed_in",
+  profileStatus: "loaded",
   onboardingCompleted: true,
 };
 
 describe("notificationTapAction", () => {
+  it("drops a tap held by a session that has no profile row", () => {
+    // Not "wait". For a MISSING profile `onboardingCompleted` is undefined permanently, so a
+    // hold here is a hold forever: the hook re-asks on every store change and nothing it can
+    // observe will ever release it. There is no deck to open for somebody who has not passed
+    // the age gate, so the honest answer is to drop the tap and let routing take them there.
+    expect(notificationTapAction({ ...ready, profileStatus: "missing", onboardingCompleted: undefined })).toBe("ignore");
+  });
+
+  it("still holds while the profile read is merely in flight or failed", () => {
+    for (const profileStatus of ["unknown", "error"] as const) {
+      expect(notificationTapAction({ ...ready, profileStatus, onboardingCompleted: undefined })).toBe("wait");
+    }
+  });
+
   it("opens the deck for a tapped new-player push", () => {
     expect(notificationTapAction(ready)).toBe("open-deck");
   });
@@ -73,6 +88,7 @@ describe("notificationTapAction", () => {
         category: "new_message",
         navigatorReady: false,
         sessionStatus: "loading",
+        profileStatus: "unknown",
         onboardingCompleted: undefined,
       }),
     ).toBe("ignore");

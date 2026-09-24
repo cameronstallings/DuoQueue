@@ -26,6 +26,7 @@ export default function InviteDeepLink() {
   const { code } = useLocalSearchParams<{ code?: string }>();
 
   const status = useSessionStore((s) => s.status);
+  const profileStatus = useSessionStore((s) => s.profileStatus);
   const onboardingCompleted = useSessionStore((s) => s.profile?.onboarding_completed);
   const pendingCode = useInviteStore((s) => s.pendingCode);
   const redemption = useInviteStore((s) => s.redemption);
@@ -44,6 +45,7 @@ export default function InviteDeepLink() {
   const action = inviteRouteAction({
     codeValid,
     sessionStatus: status,
+    profileStatus,
     onboardingCompleted,
     // An arrival already in the store (from this session, or restored from storage after a
     // relaunch) is a redemption that has answered, whatever the status field says.

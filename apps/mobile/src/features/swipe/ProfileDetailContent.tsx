@@ -35,6 +35,7 @@ import { useVerifiedStats } from "@/features/profile/useVerifiedStats";
 import { usePublicReputation } from "@/features/reputation/useReputation";
 import { useTheme } from "@/theme/useTheme";
 
+import { DUO_DETAIL_CAPTION, detailGames, showsDuoLabel } from "./cardChips";
 import type { DeckCard } from "./types";
 
 const PROVIDER_LABELS = { steam: "Steam", riot: "Riot Games", xbox: "Xbox" } as const;
@@ -244,10 +245,12 @@ export function ProfileDetailContent({ card, onClose, readOnly = false }: Profil
           <View style={{ gap: spacing.lg, marginTop: spacing.xs }}>
             {card.topGames.length > 0 && (
               <Animated.View entering={sectionEntering()}>
-                <GamesSection
-                  games={card.topGames.map((g) => ({ name: g.name, skillLevel: SKILL_LABELS[g.skillLevel], rank: undefined }))}
-                  verifiedByName={verifiedByName}
-                />
+                {/* League's detail is its canonical rank; every other game keeps its skill level
+                    and never shows a rank to a stranger. See cardChips.ts. */}
+                <GamesSection games={detailGames(card, SKILL_LABELS)} verifiedByName={verifiedByName} />
+                {showsDuoLabel(card) && (
+                  <Text style={[type.caption, { color: colors.textMuted, marginTop: spacing.sm }]}>{DUO_DETAIL_CAPTION}</Text>
+                )}
               </Animated.View>
             )}
 

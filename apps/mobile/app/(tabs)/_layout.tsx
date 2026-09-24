@@ -3,6 +3,7 @@ import { Redirect, Tabs } from "expo-router";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { sessionRoute } from "@/features/auth/sessionRouting";
 import { useHeartbeat } from "@/features/online-now/useHeartbeat";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
@@ -70,13 +71,28 @@ function TabIcon({ config, focused, color }: { config: TabIconConfig; focused: b
 export default function TabsLayout() {
   const status = useSessionStore((s) => s.status);
   const profile = useSessionStore((s) => s.profile);
+  const profileStatus = useSessionStore((s) => s.profileStatus);
   const { colors, type } = useTheme();
   const insets = useSafeAreaInsets();
 
   useHeartbeat();
 
-  if (status === "signed_out") return <Redirect href="/(auth)/sign-in" />;
-  if (!profile?.onboarding_completed) return <Redirect href="/(onboarding)/display-name" />;
+  /**
+   * The chokepoint for every tab route, which is why the age-gate branch has to be here and
+   * not only in app/index.tsx. A deep link naming a tab (`duoqueue://(tabs)/matches`) and the
+   * notification tap's `router.navigate("/(tabs)")` both arrive here without passing through
+   * index at all, and an age-unverified session landing on the deck is the failure the whole
+   * change exists to prevent.
+   */
+  const route = sessionRoute({ status, profileStatus, onboardingCompleted: profile?.onboarding_completed });
+
+  if (route === "sign-in") return <Redirect href="/(auth)/sign-in" />;
+  if (route === "complete-signup") return <Redirect href="/" />;
+  if (route === "onboarding") return <Redirect href="/(onboarding)/display-name" />;
+  // A profile read that has not landed is not permission to render the app, and it is not
+  // grounds to eject somebody into the signup wizard either, which is what the old
+  // `!profile?.onboarding_completed` did on any failed fetch.
+  if (route === "hold") return null;
 
   return (
     <Tabs

@@ -25,6 +25,7 @@ import { REGION_LABELS, SKILL_LABELS } from "@/features/onboarding/profile-label
 import { hapticLight } from "@/lib/haptics";
 import { useTheme } from "@/theme/useTheme";
 
+import { deckCardChips } from "./cardChips";
 import { ProfileDetailContent } from "./ProfileDetailContent";
 import type { DeckCard, SwipeDirection } from "./types";
 
@@ -79,6 +80,9 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger, index }: Swi
   const photos = [card.headerPhotoUrl, ...card.galleryUrls].filter((url): url is string => !!url);
   const [photoIndex, setPhotoIndex] = useState(0);
   const currentPhoto = photos[Math.min(photoIndex, photos.length - 1)] ?? null;
+  // The top game's chip, or League's rank plus "Can duo with you" when get_deck said this pair
+  // can duo in Solo/Duo. The rule is in cardChips.ts.
+  const chips = deckCardChips(card, SKILL_LABELS);
 
   // Tap-to-page rather than a scroll gesture — a horizontal FlatList/ScrollView here
   // would fight the card's own Pan gesture (used for the like/pass swipe), since both
@@ -348,9 +352,18 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger, index }: Swi
                 </View>
               </View>
 
-              {card.topGames[0] && (
+              {chips.length > 0 && (
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
-                  <Chip label={card.topGames[0].name} detail={SKILL_LABELS[card.topGames[0].skillLevel]} />
+                  {chips.map((chip) => (
+                    <Chip
+                      key={chip.key}
+                      label={chip.label}
+                      detail={chip.detail}
+                      tone={chip.tone}
+                      accessibilityLabel={chip.accessibilityLabel}
+                      icon={chip.icon ? <Ionicons name={chip.icon} size={13} color={colors.success} /> : undefined}
+                    />
+                  ))}
                 </View>
               )}
 

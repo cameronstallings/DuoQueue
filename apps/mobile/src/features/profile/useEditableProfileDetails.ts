@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { Platform, PlaystyleTag, SkillLevel, TiltHandling } from "@duoqueue/shared-types";
+import type { LolDivision, LolTierChoice, Platform, PlaystyleTag, SkillLevel, TiltHandling } from "@duoqueue/shared-types";
 
 import { supabase } from "@/lib/supabase";
 
@@ -7,7 +7,12 @@ export interface EditableGame {
   gameId: string;
   name: string;
   skillLevel: SkillLevel;
+  /** Free text for every game but League. For League it is the picked rank's canonical label, or
+   * legacy text the server could not parse (the picker shows it in a note). */
   rankText: string;
+  /** League of Legends only (0069); always null on other games' rows. */
+  lolTier: LolTierChoice | null;
+  lolDivision: LolDivision | null;
 }
 
 export interface EditableShow {
@@ -40,7 +45,7 @@ async function fetchEditableProfileDetails(profileId: string): Promise<EditableP
   const [gamesRes, showsRes, platformsRes, playstylesRes, vibeRes, profileRes] = await Promise.all([
     supabase
       .from("profile_games")
-      .select("game_id, skill_level, rank_text, priority")
+      .select("game_id, skill_level, rank_text, lol_tier, lol_division, priority")
       .eq("profile_id", profileId)
       .order("priority"),
     supabase.from("profile_shows").select("show_id, priority").eq("profile_id", profileId).order("priority"),
@@ -96,6 +101,8 @@ async function fetchEditableProfileDetails(profileId: string): Promise<EditableP
       name: gameNameById.get(r.game_id as string) ?? "Unknown game",
       skillLevel: r.skill_level as SkillLevel,
       rankText: (r.rank_text as string | null) ?? "",
+      lolTier: (r.lol_tier as LolTierChoice | null) ?? null,
+      lolDivision: (r.lol_division as LolDivision | null) ?? null,
     })),
     shows: showRows.map((r) => ({
       showId: r.show_id as string,

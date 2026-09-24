@@ -23,6 +23,7 @@ import { useSessionStore } from "@/store/session-store";
  */
 export function useNotificationTapRouting(navigatorReady: boolean): void {
   const status = useSessionStore((s) => s.status);
+  const profileStatus = useSessionStore((s) => s.profileStatus);
   const onboardingCompleted = useSessionStore((s) => s.profile?.onboarding_completed);
   const [pending, setPending] = useState<Notifications.NotificationResponse | null>(null);
   const handled = useRef<Set<string>>(new Set());
@@ -55,6 +56,7 @@ export function useNotificationTapRouting(navigatorReady: boolean): void {
       category: pending.notification.request.content.data?.category,
       navigatorReady,
       sessionStatus: status,
+      profileStatus,
       onboardingCompleted,
     });
 
@@ -71,5 +73,5 @@ export function useNotificationTapRouting(navigatorReady: boolean): void {
     // the whole point of sending it.
     void queryClient.invalidateQueries({ queryKey: ["deck"] });
     router.navigate("/(tabs)");
-  }, [pending, navigatorReady, status, onboardingCompleted]);
+  }, [pending, navigatorReady, status, profileStatus, onboardingCompleted]);
 }

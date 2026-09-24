@@ -4,3 +4,4 @@ export * from "./profile";
 export * from "./matching";
 export * from "./chat";
 export * from "./invite";
+export * from "./lol-rank";

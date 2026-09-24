@@ -3,6 +3,9 @@ import type { DeckCandidate, Platform, SkillLevel, TiltHandling } from "@duoqueu
 export interface DeckCardGame {
   name: string;
   skillLevel: SkillLevel;
+  /** This is the League of Legends catalog row (found by its Riot queue marker, see
+   * features/league/leagueGame.ts). */
+  isLeague: boolean;
 }
 
 export interface DeckCardPrompt {
@@ -33,6 +36,9 @@ export interface DeckCard extends DeckCandidate {
   isRecentlyActive: boolean;
   vibe: DeckCardVibe | null;
   playWindowLabel: string | null;
+  /** Their League of Legends Solo/Duo rank, only when it is one of the canonical labels the
+   * server writes ("Gold II"). Free text is never shown to strangers. */
+  lolRank: string | null;
 }
 
 export type SwipeDirection = "like" | "pass";

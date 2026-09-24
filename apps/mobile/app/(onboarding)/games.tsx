@@ -6,6 +6,9 @@ import { SKILL_LEVELS } from "@duoqueue/shared-types";
 import { Card } from "@/components/Card";
 import { ChipSelect } from "@/components/ChipSelect";
 import { TextField } from "@/components/TextField";
+import { LeagueRankPicker } from "@/features/league/LeagueRankPicker";
+import { useLeagueGameId } from "@/features/league/leagueGame";
+import { validateLolRank } from "@/features/league/rankPickerState";
 import { CatalogPicker } from "@/features/onboarding/CatalogPicker";
 import { nextStepPath } from "@/features/onboarding/steps";
 import { WizardStep } from "@/features/onboarding/WizardStep";
@@ -23,12 +26,21 @@ const SKILL_LABELS: Record<(typeof SKILL_LEVELS)[number], string> = {
 export default function GamesStep() {
   const { colors, spacing, type } = useTheme();
   const session = useSessionStore((s) => s.session);
-  const { games, addGame, removeGame, updateGameSkill, updateGameRank } = useOnboardingStore();
+  const { games, addGame, removeGame, updateGameSkill, updateGameRank, setGameLeagueRank } = useOnboardingStore();
+  // League gets the Solo/Duo rank picker instead of the free-text field. Null while loading or if
+  // the read fails, and then League keeps the text field like every other game.
+  const leagueGameId = useLeagueGameId();
   const [error, setError] = useState<string | null>(null);
 
   function handleContinue() {
     if (games.length === 0) {
       setError("Add at least one favorite game.");
+      return;
+    }
+    const league = leagueGameId === null ? undefined : games.find((g) => g.gameId === leagueGameId);
+    const rankError = league ? validateLolRank(league) : null;
+    if (rankError) {
+      setError(rankError);
       return;
     }
     setError(null);
@@ -67,12 +79,16 @@ export default function GamesStep() {
               selected={[game.skillLevel]}
               onToggle={(value) => updateGameSkill(game.gameId, value)}
             />
-            <TextField
-              label="Rank (optional)"
-              value={game.rankText}
-              onChangeText={(text) => updateGameRank(game.gameId, text)}
-              placeholder="e.g. Diamond II"
-            />
+            {leagueGameId !== null && game.gameId === leagueGameId ? (
+              <LeagueRankPicker value={game} onChange={(next) => setGameLeagueRank(game.gameId, next)} />
+            ) : (
+              <TextField
+                label="Rank (optional)"
+                value={game.rankText}
+                onChangeText={(text) => updateGameRank(game.gameId, text)}
+                placeholder="e.g. Diamond II"
+              />
+            )}
           </Card>
         ))}
       </View>

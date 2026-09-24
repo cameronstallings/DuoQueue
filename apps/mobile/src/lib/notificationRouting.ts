@@ -1,5 +1,11 @@
+import type { ProfileStatus } from "@/features/auth/sessionRouting";
+
 /**
  * What tapping a push should do, decided without React, expo-notifications or a router.
+ *
+ * The one import is type-only and erased at build, so this module still needs nothing at
+ * runtime. `ProfileStatus` is shared with the session store rather than restated here,
+ * because a second copy of that union is a copy that drifts.
  *
  * Same shape `deckQueue.ts` and `emptyDeckDecisions.ts` established: the part that can be
  * wrong is pure and tested, and the hook around it (`useNotificationTapRouting`) is a
@@ -33,6 +39,12 @@ export interface NotificationTapInput {
   /** Whether `RootLayout` is past its font gate and actually rendering the `Stack`. */
   navigatorReady: boolean;
   sessionStatus: "loading" | "signed_out" | "signed_in";
+  /**
+   * What the store knows about the profile row, which `onboardingCompleted` cannot say on its
+   * own: `undefined` covers both "the read has not landed" and "there is no row", and only one
+   * of those is worth holding a tap for.
+   */
+  profileStatus: ProfileStatus;
   /** `profile.onboarding_completed`, or undefined while the profile row is still loading. */
   onboardingCompleted: boolean | undefined;
 }
@@ -56,6 +68,17 @@ export function notificationTapAction(input: NotificationTapInput): Notification
   if (!input.navigatorReady) return "wait";
   if (input.sessionStatus === "loading") return "wait";
   if (input.sessionStatus === "signed_out") return "ignore";
+
+  // Authenticated with no profile row: an Apple signup still sitting on the age gate. There is
+  // no deck to open, and the age gate is where they belong, so this is a DROP and not a hold.
+  // It has to come before the line below, which would otherwise return "wait" forever: for a
+  // missing profile `onboardingCompleted` is undefined permanently, so the tap would be held by
+  // a hook that re-asks on every store change and never released by any of them.
+  //
+  // Unreachable today only by accident — such a session has no push_tokens row, so it cannot be
+  // sent a notification to tap — and an accident is not a guarantee. A tap held from BEFORE the
+  // account changed hands, or from a build where registration happened earlier, arrives here.
+  if (input.profileStatus === "missing") return "ignore";
 
   // Signed in, but the profile row has not arrived yet — we cannot tell whether onboarding is
   // done, and guessing either way is a wrong screen. Hold it; `refreshProfile` is already in

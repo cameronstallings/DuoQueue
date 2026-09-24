@@ -1,5 +1,13 @@
-import type { DeckCandidate, PhotoRole, Platform, SkillLevel, TiltHandling } from "@duoqueue/shared-types";
+import {
+  isCanonicalLolRankLabel,
+  type DeckCandidate,
+  type PhotoRole,
+  type Platform,
+  type SkillLevel,
+  type TiltHandling,
+} from "@duoqueue/shared-types";
 
+import { getLeagueGameId } from "@/features/league/leagueGame";
 import { formatPlayWindow } from "@/features/onboarding/profile-labels";
 import { supabase } from "@/lib/supabase";
 import { signPhotoUrls } from "@/lib/storage";
@@ -14,8 +22,10 @@ interface PublicProfileMediaRow {
 }
 interface PublicProfileGameRow {
   profile_id: string;
+  game_id: string;
   game_name: string;
   skill_level: SkillLevel;
+  rank_text: string | null;
   priority: number;
 }
 interface PublicProfileShowRow {
@@ -65,19 +75,32 @@ export async function enrichCandidates(rows: DeckCandidate[]): Promise<DeckCard[
   if (rows.length === 0) return [];
   const ids = rows.map((c) => c.profile_id);
 
-  const [mediaRes, gamesRes, showsRes, platformsRes, languagesRes, playstylesRes, promptsRes, activityRes, vibeRes, scheduleRes] =
-    await Promise.all([
-      supabase.from("public_profile_media").select("*").in("profile_id", ids),
-      supabase.from("public_profile_games").select("*").in("profile_id", ids).order("priority"),
-      supabase.from("public_profile_shows").select("*").in("profile_id", ids).order("priority"),
-      supabase.from("public_profile_platforms").select("*").in("profile_id", ids),
-      supabase.from("public_profile_languages").select("*").in("profile_id", ids),
-      supabase.from("public_profile_playstyles").select("*").in("profile_id", ids),
-      supabase.from("public_profile_prompts").select("*").in("profile_id", ids).order("position"),
-      supabase.from("public_profile_activity").select("*").in("profile_id", ids),
-      supabase.from("public_profile_vibe").select("*").in("profile_id", ids),
-      supabase.from("public_profile_schedule").select("*").in("profile_id", ids),
-    ]);
+  const [
+    mediaRes,
+    gamesRes,
+    showsRes,
+    platformsRes,
+    languagesRes,
+    playstylesRes,
+    promptsRes,
+    activityRes,
+    vibeRes,
+    scheduleRes,
+    leagueGameId,
+  ] = await Promise.all([
+    supabase.from("public_profile_media").select("*").in("profile_id", ids),
+    supabase.from("public_profile_games").select("*").in("profile_id", ids).order("priority"),
+    supabase.from("public_profile_shows").select("*").in("profile_id", ids).order("priority"),
+    supabase.from("public_profile_platforms").select("*").in("profile_id", ids),
+    supabase.from("public_profile_languages").select("*").in("profile_id", ids),
+    supabase.from("public_profile_playstyles").select("*").in("profile_id", ids),
+    supabase.from("public_profile_prompts").select("*").in("profile_id", ids).order("position"),
+    supabase.from("public_profile_activity").select("*").in("profile_id", ids),
+    supabase.from("public_profile_vibe").select("*").in("profile_id", ids),
+    supabase.from("public_profile_schedule").select("*").in("profile_id", ids),
+    // Null when it cannot be read, and then no League rank is shown (never an error).
+    getLeagueGameId(),
+  ]);
   for (const res of [
     mediaRes,
     gamesRes,
@@ -116,10 +139,20 @@ export async function enrichCandidates(rows: DeckCandidate[]): Promise<DeckCard[
       .map((m) => signedUrls.get(m.storage_path))
       .filter((url): url is string => !!url);
 
-    const topGames = games
-      .filter((g) => g.profile_id === candidate.profile_id)
-      .slice(0, 3)
-      .map((g) => ({ name: g.game_name, skillLevel: g.skill_level }));
+    const ownGames = games.filter((g) => g.profile_id === candidate.profile_id);
+    const topGames = ownGames.slice(0, 3).map((g) => ({
+      name: g.game_name,
+      skillLevel: g.skill_level,
+      isLeague: leagueGameId !== null && g.game_id === leagueGameId,
+    }));
+
+    // The one rank strangers see: League, and only as a canonical label. public_profile_games has
+    // returned every game's rank_text since 0001; the app simply never rendered it. After 0069
+    // every parseable League rank is canonical, so anything else here is unparsed legacy text and
+    // stays unrendered, as do other games' ranks (showing free text would be a new UGC surface).
+    const leagueRankText =
+      leagueGameId === null ? null : (ownGames.find((g) => g.game_id === leagueGameId)?.rank_text ?? null);
+    const lolRank = isCanonicalLolRankLabel(leagueRankText) ? leagueRankText : null;
 
     const topShows = shows
       .filter((s) => s.profile_id === candidate.profile_id)
@@ -155,6 +188,7 @@ export async function enrichCandidates(rows: DeckCandidate[]): Promise<DeckCard[
         const s = schedules.find((row) => row.profile_id === candidate.profile_id);
         return s ? formatPlayWindow(s.usual_play_start_hour, s.usual_play_end_hour) : null;
       })(),
+      lolRank,
     };
   });
 }

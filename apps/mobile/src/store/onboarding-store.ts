@@ -1,15 +1,33 @@
 import { create } from "zustand";
-import type { Gender, LanguageCode, Platform, PlaystyleTag, Region, SkillLevel } from "@duoqueue/shared-types";
+import type {
+  Gender,
+  LanguageCode,
+  LolDivision,
+  LolTierChoice,
+  Platform,
+  PlaystyleTag,
+  Region,
+  SkillLevel,
+} from "@duoqueue/shared-types";
 import { PROMPT_COUNT } from "@duoqueue/shared-types";
 
+import { getLeagueGameId } from "@/features/league/leagueGame";
+import { type LeagueRankValue, toProfileGameRow, withTypedRankText } from "@/features/league/rankPickerState";
+import { displayNameSeed } from "@/features/onboarding/displayNameSeed";
 import { uploadProfilePhoto } from "@/features/profile/usePhotoUpload";
 import { supabase } from "@/lib/supabase";
+import { toUserMessage } from "@/lib/userMessage";
 
 export interface SelectedGame {
   gameId: string;
   name: string;
   skillLevel: SkillLevel;
+  /** Free text for every game but League. For League it holds the picked rank's label, or the
+   * unparseable legacy text the picker's note shows. See features/league/rankPickerState.ts. */
   rankText: string;
+  /** League of Legends only; null on every other game when it is sent (toProfileGameRow). */
+  lolTier: LolTierChoice | null;
+  lolDivision: LolDivision | null;
 }
 
 export interface SelectedShow {
@@ -25,6 +43,8 @@ export interface SelectedPrompt {
 
 interface OnboardingState {
   displayName: string;
+  /** Whether `seedDisplayName` has already had its one chance this pass. See displayNameSeed.ts. */
+  displayNameSeeded: boolean;
   profilePhotoUri: string | null;
   headerPhotoUri: string | null;
   gender: Gender | null;
@@ -40,6 +60,11 @@ interface OnboardingState {
   submitError: string | null;
 
   setDisplayName: (value: string) => void;
+  /**
+   * Prefills the display name from the profile (the name Apple shared, stored by
+   * `complete_signup`) into an empty field, once per pass. Typed input always wins.
+   */
+  seedDisplayName: (suggestion: string | null | undefined) => void;
   setProfilePhotoUri: (uri: string | null) => void;
   setHeaderPhotoUri: (uri: string | null) => void;
   setGender: (value: Gender) => void;
@@ -51,6 +76,8 @@ interface OnboardingState {
   removeGame: (gameId: string) => void;
   updateGameSkill: (gameId: string, skillLevel: SkillLevel) => void;
   updateGameRank: (gameId: string, rankText: string) => void;
+  /** The League rank picker's change. */
+  setGameLeagueRank: (gameId: string, rank: LeagueRankValue) => void;
   addShow: (show: { showId: string; name: string }) => void;
   removeShow: (showId: string) => void;
   setPromptAt: (index: number, prompt: { promptId: string; question: string }) => void;
@@ -65,30 +92,12 @@ function toggleInArray<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
 }
 
-/**
- * PostgREST returns `JSON.parse(body)` — a plain object, not an Error — so a rethrown
- * `{ error }` fails every `err instanceof Error` check downstream and the user gets the
- * generic fallback instead of the real reason.
- *
- * P0001 is a plpgsql RAISE, i.e. a message this codebase authored deliberately, and the
- * human-readable sentence lives in `hint` (`message` is a machine token like
- * `email_not_verified`). Every other code is Postgres or RLS internals — those stay
- * behind the generic string rather than leaking schema details into the UI.
- */
-function toUserMessage(err: unknown, fallback: string): string {
-  if (err && typeof err === "object" && "code" in err) {
-    const e = err as { code?: string; hint?: string | null };
-    if (e.code === "P0001" && e.hint) return e.hint;
-    return fallback;
-  }
-  return err instanceof Error ? err.message : fallback;
-}
-
 /** Re-called on every reset() so a fresh array is created each time, rather than
  * sharing one `prompts` array reference across every onboarding pass. */
 function initialState() {
   return {
     displayName: "",
+    displayNameSeeded: false,
     profilePhotoUri: null,
     headerPhotoUri: null,
     gender: null,
@@ -109,6 +118,10 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
   ...initialState(),
 
   setDisplayName: (value) => set({ displayName: value }),
+  seedDisplayName: (suggestion) => {
+    const patch = displayNameSeed(get(), suggestion);
+    if (patch) set(patch);
+  },
   setProfilePhotoUri: (uri) => set({ profilePhotoUri: uri }),
   setHeaderPhotoUri: (uri) => set({ headerPhotoUri: uri }),
   setGender: (value) => set({ gender: value }),
@@ -121,13 +134,19 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
     set((s) =>
       s.games.some((g) => g.gameId === game.gameId)
         ? s
-        : { games: [...s.games, { ...game, skillLevel: "casual", rankText: "" }] },
+        : { games: [...s.games, { ...game, skillLevel: "casual", rankText: "", lolTier: null, lolDivision: null }] },
     ),
   removeGame: (gameId) => set((s) => ({ games: s.games.filter((g) => g.gameId !== gameId) })),
   updateGameSkill: (gameId, skillLevel) =>
     set((s) => ({ games: s.games.map((g) => (g.gameId === gameId ? { ...g, skillLevel } : g)) })),
   updateGameRank: (gameId, rankText) =>
-    set((s) => ({ games: s.games.map((g) => (g.gameId === gameId ? { ...g, rankText } : g)) })),
+    set((s) => ({ games: s.games.map((g) => (g.gameId === gameId ? withTypedRankText(g, rankText) : g)) })),
+  setGameLeagueRank: (gameId, rank) =>
+    set((s) => ({
+      games: s.games.map((g) =>
+        g.gameId === gameId ? { ...g, lolTier: rank.lolTier, lolDivision: rank.lolDivision, rankText: rank.rankText } : g,
+      ),
+    })),
 
   addShow: (show) =>
     set((s) => (s.shows.some((sh) => sh.showId === show.showId) ? s : { shows: [...s.shows, show] })),
@@ -168,6 +187,10 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
         .single();
       if (existing?.onboarding_completed) throw new Error("Your profile is already set up.");
 
+      // Null when it cannot be read, and then League is written like any other game (its rank as
+      // text, which the server's trigger parses). See features/league/leagueGame.ts.
+      const leagueGameId = await getLeagueGameId();
+
       if (state.profilePhotoUri) await uploadProfilePhoto(profileId, state.profilePhotoUri, "profile");
       if (state.headerPhotoUri) await uploadProfilePhoto(profileId, state.headerPhotoUri, "header");
 
@@ -186,13 +209,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
         },
         {
           table: "profile_games",
-          rows: state.games.map((g, i) => ({
-            profile_id: profileId,
-            game_id: g.gameId,
-            skill_level: g.skillLevel,
-            rank_text: g.rankText || null,
-            priority: i,
-          })),
+          rows: state.games.map((g, i) => toProfileGameRow(g, leagueGameId, { profileId, priority: i })),
         },
         {
           table: "profile_shows",

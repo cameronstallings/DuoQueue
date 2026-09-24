@@ -51,8 +51,27 @@ Part 5 is the pre-submit checklist. Do that checklist last, right before you tap
 - **No analytics SDK, no ad SDK, no crash-reporting SDK.** Confirmed via `package.json` in
   both the root and `apps/mobile` — nothing to disclose as tracking, and the privacy table in
   Part 3 doesn't need a Diagnostics row.
-- **Auth is email-only**, so Guideline 4.8 (Sign in with Apple parity) doesn't apply — the
-  social-login code paths are flag-disabled. Leave them off.
+- **Auth is email and Sign in with Apple (from build 11).** Google stays off
+  (`GOOGLE_SIGN_IN_ENABLED = false` in `apps/mobile/src/features/auth/socialSignIn.ts`, and the
+  Google provider is off on the hosted project), so Guideline 4.8 is satisfied: the only
+  third-party login offered is Apple's own. Builds up to 10 are email-only. Three things about
+  the Apple path that a reviewer will run into, all covered in the Part 4 notes:
+  - **Apple sends no birthdate**, so an Apple signup authenticates first and is then asked for
+    a date of birth on a "Confirm your age" screen before any profile exists
+    (`complete_signup`, migration 0067). Under 18 is refused there exactly as on the email path.
+  - **Deletion revokes the Apple grant** (Guideline 5.1.1(v)): `delete-account` calls Apple's
+    `/auth/revoke` with the refresh token stored at sign-in, and the app also asks Apple for a
+    fresh code at deletion time as a backstop, so DuoQueue disappears from iOS Settings >
+    Apple ID > Sign in with Apple. An account can be deleted before it has a profile ("Delete
+    this sign-in" on the age screen and in the setup wizard's exit sheet).
+  - **An Apple-created account never sees the demo profiles**, which are visible only to the
+    demo account, so its deck holds only real onboarded users: empty or nearly so before launch.
+    The full demo stays on the email review account (Part 1.5).
+  - **Go-live order is not optional**: migrations 0067 then 0068 applied, the four `APPLE_*`
+    function secrets set, `apple-authorization` and `delete-account` deployed, and only then the
+    Apple provider turned on in Supabase Auth (client ID `com.duoqueue.app`), all before the
+    build goes to review. Turning the provider on before 0067 makes every Apple signup fail with
+    "Database error saving new user".
 
 ---
 
@@ -72,7 +91,9 @@ This account is pre-confirmed (no CAPTCHA, no email OTP) and fully onboarded. Si
 shows: a populated deck of 13 fresh demo profiles, one existing match (Priya) with an
 8-message conversation left unread (an indicator on that row in the Matches list — the app
 sets no tab-bar badge), and 3 inbound "who wants to duo" requests
-(Sana, Marcus, Kofi). Every demo row is flagged `is_demo = true` and gated server-side across
+(Sana, Marcus, Kofi). The review account plays League of Legends at Gold II, so the first
+two cards (Dae, Platinum I, and Devon, Silver I) carry the "Can duo with you" label from the
+rank picker; Ophelia (Emerald IV) is further down without it. Every demo row is flagged `is_demo = true` and gated server-side across
 9 RPCs and 14 views — real users (verified live, adversarially, across every discovery
 surface) see zero of it, and the reviewer's account is invisible to them too. Photos are
 abstract generated art (`scripts/generate-demo-avatars.mjs`), never a real or AI-generated
@@ -89,6 +110,7 @@ inferred from the seed file, and re-measured after a full `--filming` → plain 
 | Priya, 8 messages, newest unread | `messages` joined to the one row in `matches` | 8, newest from Priya, `read_at is null` |
 | photos are abstract | md5 of every stored object vs. md5 of every file in `assets/demo` and `assets/demo-filming` | 30/30 in `assets/demo`, 0 in `assets/demo-filming`, 0 unmatched |
 | 9 RPCs / 14 views | functions and views whose definition references `is_demo_viewer` / `is_demo` | 9 and 14 |
+| League "Can duo" order (2026-09-23, after 0069 and a plain re-seed) | `get_deck(20)` as this account, read-only, rolled back | 13 cards, all demo: 1 Dae (true), 2 Devon (true), 3 Sana, 4 Kofi, 5 Chase, 6 Tobin, 7 Wren, 8 Ophelia (false), 9 Marcus, 10 Bea, 11 Remy, 12 Yuki, 13 Nadia (null = no League rank) |
 
 The 14 abstract PNGs were also opened and looked at, not just hashed: circuit traces,
 isometric blocks, hex field, waveform, target rings, dot matrix, radar sweep, scanline
@@ -520,6 +542,14 @@ carried over from an earlier draft.
 | Purchase History | Yes | No | App Functionality (subscription/consumable entitlement) |
 | Reports & Blocks (who reported/blocked whom, and why) | Yes | No | App Functionality (Trust & Safety, abuse prevention) |
 
+**Sign in with Apple adds no new row.** What Apple shares maps onto rows already in the table:
+the email address (or its private relay address, if the user picks Hide My Email) is Email
+Address, the name the user chooses to share is used only to prefill Display Name, and Apple's
+stable user identifier is part of the User ID row. The Apple refresh token kept for revocation
+(`apple_refresh_tokens`, migration 0068) is a credential kept only to revoke the Sign in with
+Apple grant when the account is deleted, it is deleted with the account, and it is used for
+nothing else, so it does not add a data type to the label.
+
 **Not collected** — do not add these: Precise Location, Coarse Location, Contacts, Browsing
 History, Search History, Health & Fitness, Financial Info, Advertising Data, Crash/Performance
 Diagnostics (no crash reporting SDK is integrated — if you add Sentry or similar later,
@@ -617,6 +647,12 @@ Revisit this answer if a future release adds any cryptography beyond HTTPS + thi
 Edit the one bracketed placeholder (subscription prices) once Part 2.5 is done; everything
 else is ready to paste as-is.
 
+**Length.** App Store Connect caps Notes at 4,000 characters, and the notes pasted for build 9
+(these plus the 2.1 questionnaire answers) were already at 3,992. The block below is longer than
+4,000 on its own, so it is a source to cut from, not a single paste. The SIGN IN WITH APPLE
+paragraph is new for build 11 and must go in: trim HOW TO EXERCISE EACH FEATURE or IN-APP
+PURCHASES to make room rather than dropping it.
+
 ```
 WHAT THIS APP IS
 DuoQueue helps people find platonic gaming partners ("duos"): teammates to play games, watch
@@ -649,6 +685,18 @@ into the general pool because that would mean real users occasionally matching w
 nobody is behind, which we consider a worse outcome. All profile photos shown are abstract
 generated artwork (geometric patterns, no faces, real or AI-generated).
 
+SIGN IN WITH APPLE
+Offered on the sign-in and sign-up screens. Apple does not share a date of birth, so a new
+Apple account is asked for one on a "Confirm your age" screen right after signing in, before
+any profile exists; a date under 18 is refused there, the same as on the email path. The name
+you choose to share with Apple is prefilled on the first setup step. An Apple-created account
+does not see the demo profiles above (they are visible only to the email review account), so
+its Deck will be empty or nearly empty before launch; please use the email review account for
+the full demo. Deleting an Apple account revokes the app's Sign in with Apple access with
+Apple (iOS may first ask you to confirm with your Apple ID), and DuoQueue is then removed from
+Settings > Apple ID > Sign in with Apple. An account can also be deleted before it is
+finished: "Delete this sign-in" on the age screen, or "Sign out or delete" on any setup step.
+
 HOW TO EXERCISE EACH FEATURE
 1. Swipe the Deck: from the first tab ("Deck"), swipe or use the on-screen buttons to pass or
    duo with any of the 13 candidate profiles.
@@ -668,7 +716,8 @@ HOW TO EXERCISE EACH FEATURE
 6. Account deletion (Guideline 5.1.1(v)): Settings tab → "Sign out or delete account" → red
    "Delete account" card. Requires two confirmations before permanently deleting the account,
    profile, photos, matches, and messages. Please use a fresh test account of your own to
-   exercise this, since it will remove the review account.
+   exercise this, since it will remove the review account. For an account created with Sign in
+   with Apple, deletion also revokes the app's access with Apple (see SIGN IN WITH APPLE above).
 
 IN-APP PURCHASES
 DuoQueue+ is a subscription (Weekly [$4.99/wk] / Monthly [$7.99/mo] / 3-Month [$17.99] /
@@ -698,7 +747,9 @@ above the rating the questionnaire computed. DuoQueue is adults-only by design a
 Service require users to be 18 or older, so we would rather the store listing say so plainly
 than rely on the computed rating. Sign-up requires a date of birth, the app computes
 whether that date is at least 18 years in the past, and the date picker's own maximum selectable
-date is capped at 18 years ago. There is no account-creation path that skips this.
+date is capped at 18 years ago. With email sign-up the date is asked before the account is
+created; with Sign in with Apple it is asked right after sign-in, and the server will not create
+a profile without it. There is no path to a profile that skips this.
 
 Contact: support@duoqueue.io for anything App Review needs during evaluation. We'll respond quickly.
 ```
@@ -753,6 +804,17 @@ Submit, not before.
       trust that they do.
 - [ ] Age rating questionnaire answers match what the app review notes claim (Part 3.5) — a
       mismatch between your self-reported rating and reviewer observation is its own risk.
+- [ ] **Sign in with Apple is live end to end, in this order, before the build goes to review**
+      (build 11 onward): migrations 0067 then 0068 applied (`scripts/db/apply-migration.ps1`,
+      dry run first); `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` and
+      `APPLE_BUNDLE_ID=com.duoqueue.app` set as function secrets; `apple-authorization` and
+      `delete-account` deployed; then the Apple provider turned on in Supabase Auth with client
+      ID `com.duoqueue.app`. On a real iPhone: a new Apple ID gets "Confirm your age", an
+      `apple_refresh_tokens` row appears for it, and deleting it removes DuoQueue from Settings >
+      Apple ID > Sign in with Apple.
+- [ ] The SIGN IN WITH APPLE paragraph is in the Notes field (Part 4), and the published privacy
+      policy includes the Sign in with Apple additions (`docs/legal/privacy-policy.md`,
+      republished to duoqueue.io).
 
 ---
 

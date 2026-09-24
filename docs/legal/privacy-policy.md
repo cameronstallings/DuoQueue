@@ -6,6 +6,24 @@
   below directed at Cameron or at a lawyer have been resolved, and it has been confirmed
   to match the app's real behavior at the time of publication. This comment is HTML and
   never renders on the published site — keep it here for whoever edits this file next.
+
+  SIGN IN WITH APPLE ADDITIONS (drafted 2026-09-23, not yet published): Section 2 (account
+  information), Section 3 (the Apple sign-in row), Section 5 (deletion revokes the Apple
+  grant, and deletion before a profile exists), Section 6 (the Deletion row) and Section 9
+  (the date of birth is asked after an Apple sign-in). They describe build 11 and later, and are only true once
+  migrations 0067 and 0068, the apple-authorization and delete-account functions and the
+  Apple provider are all live.
+  TODO(Cameron): when publishing these, bump the effective date and the version (1.1 to 1.2)
+  at the top, and publish no earlier than the build that ships Sign in with Apple. This
+  marker is deliberate: scripts/build-site.mjs refuses to build while it is here.
+
+  LEAGUE OF LEGENDS RANK ADDITION (drafted 2026-09-23, not yet published): the last sentence
+  of the Games bullet in Section 2. It becomes true for the deck order as soon as migration
+  0069 is applied (every client, build 10 included), and for the rank shown on other people's
+  cards with the build that ships the League rank picker (design:
+  docs/superpowers/specs/2026-09-23-league-rank-duo-design.md, section 9.2 step 6). Publish it
+  no later than that build's release. No new kind of data is collected: the rank per game was
+  already listed.
 -->
 # DuoQueue Privacy Policy
 
@@ -34,7 +52,13 @@ Wherever this policy says "contact us," use the email above.
 We only collect what the app actually uses. Here's every category, itemized.
 
 ### Account information
-- **Email address and password.** Your password is never stored or seen by us in plain text. Authentication is handled by our infrastructure provider, Supabase Auth, which stores a salted hash. We use your email to let you sign in, confirm your address (a one-time 6-digit code), and send account-related messages.
+- **Email address and password, if you sign up with email.** Your password is never stored or seen by us in plain text. Authentication is handled by our infrastructure provider, Supabase Auth, which stores a salted hash. We use your email to let you sign in, confirm your address (a one-time 6-digit code), and send account-related messages.
+- **What Apple shares, if you sign in with Apple.** Apple signs you in, and we never see your Apple ID password. Apple gives us:
+  - **An email address.** Either your real one, or, if you choose Hide My Email, a private relay address that Apple creates for DuoQueue and forwards to you. We use it the same way we use the address of someone who signed up with email.
+  - **Your name, if you choose to share it.** Apple sends it only the first time you sign in with Apple to DuoQueue, and you can edit or remove it on Apple's screen first. We use only your first name, and only to suggest a display name on the first step of setting up your profile, where you can change it before anyone sees it. We do not store your last name.
+  - **An identifier for your Apple ID.** A stable ID that Apple issues only to apps from our developer account, which is how we recognize you the next time you sign in with Apple. Other companies' apps cannot use it to recognize you.
+  - **Not your date of birth.** Apple does not share it, so we ask for it right after you sign in, before your profile is created. See [Section 9](#9-age-restriction).
+- **An Apple token kept only to revoke access.** When you sign in with Apple, our server exchanges a one-time code from Apple for a token that lets us revoke DuoQueue's access to your Apple ID. We keep it for that one purpose: when you delete your account, we use it to tell Apple to remove DuoQueue from the apps using Sign in with Apple in your Apple ID settings, and then it is deleted with the rest of your account. It is stored where only our servers can read it, it is never shown to anyone, and it is never used for anything else.
 
 ### Profile information
 - **Display name:** shown on your profile and in chat.
@@ -44,7 +68,7 @@ We only collect what the app actually uses. Here's every category, itemized.
 - **Spoken language(s):** collected at onboarding; used as a premium filter so users can require a shared language, and to favor candidates who share a language with you in ranking.
 - **Photos:** a profile photo, an optional header photo, and up to six gallery photos. Every uploaded photo is automatically re-processed to strip embedded location and camera metadata (EXIF/GPS data) before it's stored. Every photo also goes through our moderation pipeline before it becomes visible to anyone else. When our automated moderation provider (Sightengine) is configured, most photos are screened automatically and only borderline or undetermined cases go to a human moderator; if the automated provider isn't configured, every photo instead goes straight to human review. See [Section 3](#3-who-we-share-data-with).
 - **Bio and prompt answers:** free-text fields you write about yourself.
-- **Games, shows/movies/anime, and platforms:** what you play or watch, your self-reported skill level and rank per game, and which platforms (PC, PlayStation, Xbox, Switch, mobile) you play on.
+- **Games, shows/movies/anime, and platforms:** what you play or watch, your self-reported skill level and rank per game, and which platforms (PC, PlayStation, Xbox, Switch, mobile) you play on. Your League of Legends rank, if you add one, is shown to other users and used to put players you can duo with in Ranked Solo/Duo nearer the top of your deck.
 - **Playstyle tags and "vibe" answers:** self-reported traits (e.g. chill vs. competitive, mic preference) and three sliders (session intensity, communication style, coaching preference) plus a tilt-handling answer, used to help match you with compatible players.
 - **Schedule/timezone:** your device timezone (detected automatically at signup) and an optional "usual play window" (hours of day you typically play), used to rank candidates who are actually awake and playing when you are.
 - **Discord username (optional):** never shown automatically. It's only revealed to a specific match if and when you tap "Share my Discord" in that conversation.
@@ -109,6 +133,7 @@ We use a small number of specialized service providers ("processors") to run the
 | **GitHub (GitHub Pages)** | Hosts duoqueue.io, our public website — the waitlist page and these legal documents | The IP address, user agent, and requested URL of every visit to duoqueue.io, as any web host receives. We do not receive or keep server logs from GitHub, and there is no analytics on the site | United States / global edge network |
 | **RevenueCat** | Manages subscriptions and in-app purchases | Your app-level user ID and purchase/subscription events from Apple/Google (never your payment details) | United States |
 | **Apple (App Store) / Google (Play Store)** | Processes your payment when you buy a subscription or consumable | Your payment details, handled entirely by Apple/Google; we never receive them | Varies by platform |
+| **Apple (Sign in with Apple)** | Only if you choose to sign in with Apple: signs you in, and later lets us revoke that access | Apple authenticates you itself. Our server sends Apple the one-time code from your sign-in to obtain the revocation token described in Section 2, and, when you delete your account, that token (or a fresh code from the same Apple ID) so Apple can revoke DuoQueue's access | United States |
 | **Cloudflare** | Two separate roles: the Turnstile bot-protection challenge at signup in the app, and the network in front of our Supabase backend, which every waitlist form submission passes through | Device/browser signals used to distinguish humans from bots. Its bot protection sets a 30-minute `__cf_bm` cookie on the `supabase.co` domain when you submit the waitlist form — never on duoqueue.io, and never for advertising | Global network (may include US) |
 | **Steam** | Only if you choose to link an account | We send your account link request to Steam and receive back the public profile fields listed in Section 2 | United States (approximate, platform-dependent) |
 
@@ -136,6 +161,8 @@ DuoQueue is currently offered only in the United States and is not directed to u
 - **Deleted accounts.** DuoQueue has in-app account deletion (Settings → Delete Account). When you delete your account:
   - Your profile, photos, messages, matches, swipe history, preferences, linked accounts, and push tokens are **permanently deleted**, including the underlying stored files (not just hidden). Because a conversation is tied to the match between you and your match partner, deleting your account also deletes your match partner's copy of any conversation you shared with them, not just yours.
   - This is irreversible. There is no "undo" or account-recovery grace period once deletion completes.
+  - **If you signed in with Apple**, deleting your account also tells Apple to revoke DuoQueue's access to your Apple ID, so DuoQueue is removed from the apps using Sign in with Apple in your Apple ID settings. Your iPhone may ask you to confirm with your Apple ID first. If you dismiss that, your account is still deleted, and we revoke access using the token kept from your sign-in, provided we were able to keep one then; if we were not, you can remove DuoQueue yourself in your Apple ID settings under Sign in with Apple. That token is deleted with your account either way.
+  - **Before your profile is finished.** If you signed in but have not finished setting up your profile (for example, you signed in with Apple and stopped at the date of birth screen), you can delete the account from that screen or from any setup step with "Delete this sign-in". It goes through the same deletion described here.
   - **Exception:** if someone else's report about you is on file when you delete your account, the report record itself, and an internal reference id, are retained after your profile and identifying data are otherwise deleted, so we can maintain a history of safety actions (e.g. confirming a pattern of reported behavior) without your profile continuing to exist. This is a reference id, not an anonymization process: it is not linked to your profile once your profile is gone, but it isn't scrubbed of the report's own content (e.g. the reason and details given) either. This retention currently only works in one direction: **if you are the one who filed a report and you delete your own account, that report record is deleted along with your account, not retained.** We don't yet have a way to preserve a report you filed after you leave.
 - **Invites.** Your invite code and any record of who invited you are attached to your account and are deleted with it. The same is true in the other direction: if somebody you invited deletes their account, the record of you having invited them goes with theirs. This means an invite record only ever exists while both accounts do, and neither of you can be left in a record the other has deleted.
 - **Waitlist signups (duoqueue.io).** The salted hash of the IP address that submitted the form is deleted automatically 48 hours after it was created. Your email address and the link you arrived from are kept until you ask us to delete them, or until we delete the list, whichever comes first. Waitlist rows are stored separately from app accounts and are not connected to one: joining the waitlist does not create an account, and deleting your DuoQueue account does not remove your address from the waitlist. If you want both gone, tell us and we will do both.
@@ -152,7 +179,7 @@ You have the following rights over your data. Most are available directly in the
 |---|---|---|
 | **Access** | See what we hold about you | View it directly in the app (profile, matches, messages, settings), or email us for a full export |
 | **Correction** | Fix inaccurate data | Edit your profile directly in the app for anything editable; email us for anything you can't change yourself (e.g. date of birth) |
-| **Deletion** | Delete your account and data | Settings → Delete Account, or email us if you'd rather we do it |
+| **Deletion** | Delete your account and data | Settings → Delete Account ("Delete this sign-in" if your profile isn't finished yet), or email us if you'd rather we do it |
 | **Portability** | Get a copy of your data in a portable format | Email us. There's no self-service export button in the app yet, so this is handled manually, within a reasonable turnaround (GDPR: 30 days; CCPA: 45 days) |
 | **Objection** | Object to processing based on legitimate interests | Email us with what you're objecting to |
 | **Withdraw consent** | Revoke any consent-based processing at any time | Unlink a gaming account, stop sharing Discord in a chat, or turn off notification permissions (all directly in the app) |
@@ -197,7 +224,7 @@ When you upload a photo, and our automated moderation provider (Sightengine) is 
 
 DuoQueue is for adults only: you must be 18 or older to create an account.
 
-We ask for your date of birth at signup, and we enforce the 18+ rule on the date you give us: a date of birth under 18 is rejected by the app and again by our database, which will not store a profile with one, so an under-18 date cannot complete a profile. What we do **not** do is verify that the date is true. We do not check identity documents and we do not use a third-party age-assurance service. It is a self-declaration that we then enforce, and we describe it that way here rather than calling it verification, which would imply a check we do not perform. The 18-or-older box on our website's waitlist form ([Section 2](#2-what-we-collect-and-why)) is a self-declaration in the same sense, with no profile behind it to enforce against.
+We ask for your date of birth at signup, and we enforce the 18+ rule on the date you give us: a date of birth under 18 is rejected by the app and again by our database, which will not store a profile with one, so an under-18 date cannot complete a profile. If you sign in with Apple, which does not share a date of birth, we ask for it right after you sign in instead, and no profile is created until you give one that is 18 or older. Until then the account can see no one's profile and no one can see it, and you can delete it from that screen. What we do **not** do is verify that the date is true. We do not check identity documents and we do not use a third-party age-assurance service. It is a self-declaration that we then enforce, and we describe it that way here rather than calling it verification, which would imply a check we do not perform. The 18-or-older box on our website's waitlist form ([Section 2](#2-what-we-collect-and-why)) is a self-declaration in the same sense, with no profile behind it to enforce against.
 
 If we learn that someone under 18 has created an account (for example, through a report using the "underage" report reason, or otherwise), we will terminate that account and delete the associated data as described in Section 5. If you believe a minor is using DuoQueue, please report that profile in the app (profile → Report) or contact us directly using the email in Section 1.
 

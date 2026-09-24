@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { InviteAcceptance, InviteRedemption, ResolvedInviter } from "@duoqueue/shared-types";
 
-import { inviteUrl, isInviteCodeShape, normalizeInviteCode } from "@/lib/invite";
+import { inviteUrl, isInviteCodeShape, normalizeInviteCode, shouldRedeemInvite } from "@/lib/invite";
 import { supabase } from "@/lib/supabase";
 import { useInviteStore } from "@/store/invite-store";
 import { useSessionStore } from "@/store/session-store";
@@ -81,13 +81,31 @@ export function useResolveInviteCode(rawCode: string | null | undefined) {
 }
 
 /**
- * Redeems a pending code the moment there is a session to attach it to.
+ * Redeems a pending code the moment there is a PROFILE to attach it to.
  *
  * Mounted once, from `RootLayout`, and deliberately NOT at the point of sign-up. The
  * attribution row has to be written as early as it possibly can be: the invited person is
  * about to walk through a ten-step wizard, and if they abandon it halfway the fact that an
  * invite brought them is exactly the thing the growth loop most needs to have recorded.
- * `redeem_invite_code` is idempotent, so running this on every session change is safe.
+ * `redeem_invite_code` is idempotent, so running this on every store change is safe.
+ *
+ * WHY IT WAITS ON `profileStatus` AND NOT ON `status`. It used to fire on `status ===
+ * "signed_in"` alone, which was correct only while a session implied a profile. Sign in with
+ * Apple broke that: the account authenticates first and the age gate runs after, so there is
+ * a real window where the session exists and `profiles` has no row for it. Firing in that
+ * window did not merely fail, it destroyed the invite. `redeem_invite_code` reads
+ * `profiles.created_at` to check the 14 day window (0066), gets NULL, and raises
+ * 'invite_window_closed' -- a verdict that is exactly backwards for the newest account
+ * possible. The hook below treats every failure as a settled answer, so `settleRedemption(null)`
+ * cleared `pendingCode` from the store AND from AsyncStorage, and the effect never ran again
+ * because there was nothing left to run on. Every invited Apple install lost its attribution
+ * silently: no invite_redemptions row, no credit to the inviter, no arrival screen.
+ *
+ * Gating on "loaded" fixes the ordering rather than papering over the symptom. It is also
+ * self-timing: `completeSignup` ends in a `refreshProfile()` that flips profileStatus to
+ * "loaded", which re-runs this effect at precisely the first moment the RPC can succeed. The
+ * email path is unchanged, because `initialize()` reads the profile before it flips `status`,
+ * so both facts land in the same set().
  *
  * FAILURE IS A NORMAL OUTCOME, NOT AN ERROR TO SURFACE. The window closed, they were
  * already invited by somebody else, the code was revoked. None of those are worth an alert
@@ -96,14 +114,17 @@ export function useResolveInviteCode(rawCode: string | null | undefined) {
  */
 export function useInviteRedemption(): void {
   const status = useSessionStore((s) => s.status);
+  const profileStatus = useSessionStore((s) => s.profileStatus);
   const pendingCode = useInviteStore((s) => s.pendingCode);
   const redemption = useInviteStore((s) => s.redemption);
   const markRedeeming = useInviteStore((s) => s.markRedeeming);
   const settleRedemption = useInviteStore((s) => s.settleRedemption);
 
   useEffect(() => {
-    if (status !== "signed_in") return;
-    if (!pendingCode || redemption !== "idle") return;
+    // The gate itself lives in `@/lib/invite` with tests, for the same reason
+    // `inviteRouteAction` does: it is the part of this hook that can be wrong, it was wrong,
+    // and being wrong cost every invited Apple install its attribution without saying so.
+    if (!shouldRedeemInvite({ sessionStatus: status, profileStatus, pendingCode, redemption })) return;
 
     let cancelled = false;
     markRedeeming();
@@ -129,7 +150,7 @@ export function useInviteRedemption(): void {
     return () => {
       cancelled = true;
     };
-  }, [status, pendingCode, redemption, markRedeeming, settleRedemption]);
+  }, [status, profileStatus, pendingCode, redemption, markRedeeming, settleRedemption]);
 }
 
 /**

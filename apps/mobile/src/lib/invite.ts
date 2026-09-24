@@ -1,7 +1,14 @@
+import type { ProfileStatus } from "@/features/auth/sessionRouting";
+
 /**
  * Everything about invites that can be WRONG without a component being involved: the code
  * format, what a shared link looks like, what the share message says, and where a tapped
  * invite link should send somebody.
+ *
+ * The one import is type-only, so it is erased before this file ever runs and the module
+ * stays as free-standing as the rest of its family. `ProfileStatus` is shared rather than
+ * restated because a copy of a four-member union is a copy that drifts, and the member that
+ * matters here ("missing") is the one an 18+ gate is built on.
  *
  * Same shape `deckQueue.ts`, `emptyDeckDecisions.ts` and `notificationRouting.ts`
  * established. What is left in the hooks and screens after this is queries and JSX.
@@ -145,6 +152,12 @@ export interface InviteRouteInput {
   /** Whether the tapped URL yielded a code-shaped string at all. */
   codeValid: boolean;
   sessionStatus: "loading" | "signed_out" | "signed_in";
+  /**
+   * What the store actually knows about the profile row. `onboardingCompleted` alone cannot
+   * say: it is `undefined` both while a read is in flight and when the read came back and
+   * there is no row, and those two need opposite answers.
+   */
+  profileStatus: ProfileStatus;
   /** `profile.onboarding_completed`, or undefined while the profile row is still loading. */
   onboardingCompleted: boolean | undefined;
   /**
@@ -173,8 +186,22 @@ export function inviteRouteAction(input: InviteRouteInput): InviteRouteAction {
   if (input.sessionStatus === "loading") return "wait";
   if (input.sessionStatus === "signed_out") return "sign-in";
 
+  // Authenticated with no profile row: an Apple signup that has not passed the age gate yet.
+  // "home" is not a shrug here, it is the address. Every layout guard in the app redirects a
+  // profile-less session to "/", and app/index.tsx renders the age gate there, so this link
+  // hands the user to exactly the same routing as any other entry point. The pending code was
+  // already stored by the effect on the screen above, and the redemption hook now waits for a
+  // profile, so nothing is lost by walking away from this screen.
+  //
+  // It must be checked BEFORE the line below, which is the bug it exists to close: for a
+  // missing profile `onboardingCompleted` is undefined forever, so a deep link tapped by a
+  // half-signed-up Apple user rendered the held Logo frame with no timer that could ever
+  // change the answer, no back gesture on a deep-link entry, and no way out but force-quit.
+  if (input.profileStatus === "missing") return "home";
+
   // Signed in, but the profile row has not landed. We cannot tell whether they are
-  // mid-wizard, and both guesses are a wrong screen.
+  // mid-wizard, and both guesses are a wrong screen. Reachable now only for "unknown" and
+  // "error", both of which a retry resolves.
   if (input.onboardingCompleted === undefined) return "wait";
   if (!input.onboardingCompleted) return "onboarding";
 
@@ -191,6 +218,47 @@ export function inviteRouteAction(input: InviteRouteInput): InviteRouteAction {
       // the user merely tapped.
       return "home";
   }
+}
+
+/**
+ * Whether it is time to spend a pending invite code, which is a question with one wrong
+ * answer and the wrong answer is expensive.
+ *
+ * PURE AND TESTED BECAUSE IT IS THE LINE THAT BROKE. `useInviteRedemption` used to ask
+ * `status === "signed_in"` and nothing else, which was correct for exactly as long as a
+ * session implied a profile. Sign in with Apple ended that: the account authenticates first,
+ * the age gate runs after, and in between `redeem_invite_code` reads `profiles.created_at`
+ * for its 14 day window (0066), finds no row, and raises `invite_window_closed` -- the one
+ * verdict that is flatly untrue of the newest account it is possible to have. The hook reads
+ * every failure as settled, so the code was deleted from the store AND from AsyncStorage
+ * before the profile existed. Silently, on every invited Apple install: no attribution row,
+ * no credit to the inviter, no arrival screen, and nothing left to retry with.
+ *
+ * So the gate is the PROFILE, not the session. Three consequences worth naming:
+ *
+ *  - "loaded" only. An "error" read says nothing about whether a row exists, and a "missing"
+ *    one says the age gate has not been passed; both come back around on their own, and
+ *    guessing costs the invite permanently while waiting costs seconds.
+ *  - It is self-timing. `completeSignup` finishes with a `refreshProfile()`, which flips the
+ *    status to "loaded", which re-runs the effect at exactly the first moment the RPC can
+ *    succeed. Nothing has to remember to retry.
+ *  - The email path is untouched: `initialize()` reads the profile before it flips `status`,
+ *    so both facts arrive in the same store update.
+ */
+export interface InviteRedemptionGateInput {
+  sessionStatus: "loading" | "signed_out" | "signed_in";
+  profileStatus: ProfileStatus;
+  /** The code held by the invite store, or null when this install did not arrive from a link. */
+  pendingCode: string | null;
+  /** How far redemption has got. Anything but "idle" means it has already been attempted. */
+  redemption: "idle" | "pending" | "done" | "failed";
+}
+
+export function shouldRedeemInvite(input: InviteRedemptionGateInput): boolean {
+  if (input.sessionStatus !== "signed_in") return false;
+  if (input.profileStatus !== "loaded") return false;
+  if (!input.pendingCode) return false;
+  return input.redemption === "idle";
 }
 
 /**

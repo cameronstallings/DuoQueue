@@ -1,11 +1,13 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Platform, PlaystyleTag, SkillLevel } from "@duoqueue/shared-types";
+import type { Platform, PlaystyleTag } from "@duoqueue/shared-types";
 
+import { getLeagueGameId } from "@/features/league/leagueGame";
+import { type RankedGame, toProfileGameRow } from "@/features/league/rankPickerState";
 import { supabase } from "@/lib/supabase";
 import type { EditablePlayWindow, EditableVibe } from "./useEditableProfileDetails";
 
 export interface SaveProfileDetailsInput {
-  games: { gameId: string; skillLevel: SkillLevel; rankText: string }[];
+  games: RankedGame[];
   shows: { showId: string }[];
   platforms: Platform[];
   playstyles: PlaystyleTag[];
@@ -20,16 +22,14 @@ export function useSaveProfileDetails(profileId: string | undefined) {
     mutationFn: async (input: SaveProfileDetailsInput) => {
       if (!profileId) throw new Error("No profile loaded.");
 
+      // Null when it cannot be read, and then League is written like any other game (its rank as
+      // text, which the server's trigger parses). See features/league/leagueGame.ts.
+      const leagueGameId = await getLeagueGameId();
+
       const tablesToReplace: { table: string; rows: Record<string, unknown>[] }[] = [
         {
           table: "profile_games",
-          rows: input.games.map((g, i) => ({
-            profile_id: profileId,
-            game_id: g.gameId,
-            skill_level: g.skillLevel,
-            rank_text: g.rankText || null,
-            priority: i,
-          })),
+          rows: input.games.map((g, i) => toProfileGameRow(g, leagueGameId, { profileId, priority: i })),
         },
         {
           table: "profile_shows",

@@ -1,13 +1,13 @@
 import { useState } from "react";
-import { Platform, Text } from "react-native";
+import { Text } from "react-native";
 import { router } from "expo-router";
-import * as AppleAuthentication from "expo-apple-authentication";
 
 import { Button } from "@/components/Button";
 import { Logo } from "@/components/Logo";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { TextField } from "@/components/TextField";
-import { signInWithApple } from "@/features/auth/appleSignIn";
+import { AppleSignInButton } from "@/features/auth/AppleSignInButton";
+import { GOOGLE_SIGN_IN_ENABLED } from "@/features/auth/socialSignIn";
 import { isCaptchaConfigured, TurnstileCaptcha } from "@/features/auth/TurnstileCaptcha";
 import { useGoogleSignIn } from "@/features/auth/useGoogleSignIn";
 import { InviteBanner } from "@/features/invite/InviteBanner";
@@ -15,7 +15,7 @@ import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/theme/useTheme";
 
 export default function SignIn() {
-  const { colors, spacing, type, radius } = useTheme();
+  const { colors, spacing, type } = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
@@ -61,19 +61,6 @@ export default function SignIn() {
     }
   }
 
-  /** Email-only for the first release — see the note at the buttons below. */
-  const SOCIAL_SIGN_IN_ENABLED = false;
-
-  async function handleAppleSignIn() {
-    setError(null);
-    try {
-      await signInWithApple();
-    } catch (err) {
-      if (err instanceof Error && err.message.includes("ERR_REQUEST_CANCELED")) return;
-      setError(err instanceof Error ? err.message : "Apple sign-in failed.");
-    }
-  }
-
   return (
     <ScreenContainer>
       <Logo width={56} />
@@ -111,33 +98,30 @@ export default function SignIn() {
 
       <Button label="Sign in" onPress={() => void handleSignIn()} loading={loading} />
 
-      {/* Social sign-in is built (appleSignIn.ts, useGoogleSignIn.ts) but OFF for the
-          first release: neither provider returns a date of birth, and handle_new_user
-          requires one to create a profile at all — so an OAuth signup fails outright
-          until the age gate is moved to run after authentication. Launching email-only
-          also keeps us clear of Guideline 4.8, which only compels Sign in with Apple
-          when some OTHER third-party login is offered. Flip SOCIAL_SIGN_IN_ENABLED once
-          the post-auth age gate lands and the provider credentials exist. */}
-      {SOCIAL_SIGN_IN_ENABLED && (
-        <>
-          {Platform.OS === "ios" && (
-            <AppleAuthentication.AppleAuthenticationButton
-              buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-              cornerRadius={radius.button}
-              style={{ height: 48 }}
-              onPress={() => void handleAppleSignIn()}
-            />
-          )}
+      {/* SIGN IN WITH APPLE IS ON. What kept it off was the order of the age gate, not the
+          code: Apple's identity token carries no date of birth, handle_new_user refuses to
+          create an account without one, and an Apple signup therefore failed outright. The gate
+          runs AFTER authentication now — a session with no profile row is routed to it, and
+          complete_signup is the one thing that can create a profile — so the reason is gone.
+          The button renders itself only where it can actually work (iOS, Apple ID present),
+          which is what AppleSignInButton is for.
 
-          <Button
-            label="Continue with Google"
-            variant="secondary"
-            disabled={!google.request}
-            loading={google.signingIn}
-            onPress={() => void google.promptAsync()}
-          />
-        </>
+          GOOGLE STAYS OFF, and they are separate flags for that reason. Guideline 4.8 is
+          triggered by a third-party login service, and Google Sign-In is one of the ones Apple
+          names: offering it obliges an equivalent option, and a first-party email and password
+          form is not one. Apple alone is compliant; Google without Apple is a rejection. The
+          Google credentials are not set either. Both flags, and the full argument, live in
+          features/auth/socialSignIn.ts, because the create-an-account path reads them too. */}
+      <AppleSignInButton intent="sign-in" />
+
+      {GOOGLE_SIGN_IN_ENABLED && (
+        <Button
+          label="Continue with Google"
+          variant="secondary"
+          disabled={!google.request}
+          loading={google.signingIn}
+          onPress={() => void google.promptAsync()}
+        />
       )}
 
       <Button
