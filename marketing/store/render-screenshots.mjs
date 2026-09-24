@@ -1,23 +1,36 @@
 /**
- * DuoQueue App Store screenshots for build 15 (commit 22ce7b9), two sets from one copy deck.
+ * DuoQueue App Store screenshots for build 16 (commit 371525f), two sets from one copy deck.
  *
  *   Set DARK   Volt off-black ground, the dark-theme screens. The recommended default page.
- *   Set LIGHT  Paper ground, the same six screens in Paper. An alternate.
+ *   Set LIGHT  Paper ground, the same seven screens in Paper. An alternate. Its DUO LOCKED
+ *              (duo-locked-store-paper) is not rendered for build 16 yet, so a light run stops at
+ *              slide 04 until it is.
  *
  * The frame is Previously's store frame rebuilt in the Volt identity: a headline at the top, a
  * short line under it, then a REAL app screen presented as one rounded panel on the brand ground.
  * Nothing inside a panel is drawn here: every panel is a window on a PNG that the screen renderer
- * (a port of Previously's tools/render) drew from build 15's own screen code, from a clean,
- * detached checkout pinned at 22ce7b9, told with the review account's seed. Build 10's set came
- * from screen-recording stills, composed by an earlier version of this script that was never
- * committed: this file first entered git in fd93d4b, already the renderer-based composer, so
- * the stills-based one is NOT in git history.
+ * (a port of Previously's tools/render) drew from the app's own screen code, told with the review
+ * account's seed. Build 16 changed only DUO LOCKED's brackets and the launch intro (CARRIED), so
+ * slide 04 is rendered from build 16 and the other six keep build 15's renders, from a clean,
+ * detached checkout pinned at 22ce7b9. Build 10's set came from screen-recording stills, composed
+ * by an earlier version of this script that was never committed: this file first entered git in
+ * fd93d4b, already the renderer-based composer, so the stills-based one is NOT in git history.
  *
  * THE SOURCES AND WHAT IS CHECKED BEFORE ONE IS USED
- *   The renderer writes shots/<key>.png plus shots/report.json. `--import <that folder>` copies
- *   the shots a slide needs, and the report, into out/shots-b15/<scale>x/ (git-excluded), so later
- *   runs need no flag. Every run then refuses a source unless its report says:
- *     - the checkout is PINNED (detached, clean, its own node_modules) at BUILD.commit;
+ *   The renderer writes shots/<key>.png plus shots/report.json. `--import <that folder>` works out
+ *   which build the report is of, then copies the shots that build's slides need, and the report,
+ *   into out/shots-b<build>/<scale>x/ (git-excluded), so later runs need no flag. Every run then
+ *   refuses a source unless its report says:
+ *     - the checkout is the build the slide names (`from`): PINNED (detached, clean, its own
+ *       node_modules) at that build's commit, or, where no pinned checkout of the build exists
+ *       (build 16), the main checkout on its branch with nothing else against it: no uncommitted
+ *       reads, its own node_modules, and a commit that git says is the build's own or a later one
+ *       that changed none of the files the renderer reads. A pinned checkout is still the stronger
+ *       source (a branch can move during a render); the manifest and the contact sheet say which
+ *       one each slide had;
+ *     - a slide from an EARLIER build than the set's shows a screen the set's build left alone
+ *       (CARRIED: every run checks its list of changed files against git, and the slide's own
+ *       screen file must not be on it);
  *     - the shot rendered with no problems, at 393 x 852 pt, in the theme the set asks for;
  *     - the PNG is exactly 393 x 852 pt at the report's scale (1179 x 2556 at 3x, 1769 x 3834
  *       at 4.5x); build 10's 1180 x 2556 recordings are no longer accepted;
@@ -33,7 +46,7 @@
  *       slide showed "free most evenings after 7pm" and "Still on for tonight?" in its largest
  *       text while only the headlines were checked.
  *   What the renderer says Cameron must confirm before upload (`confirm`) is printed per slide,
- *   written to out/manifest-<set>-b15.json and shown on the contact sheet. A slide whose source
+ *   written to out/manifest-<set>-b16.json and shown on the contact sheet. A slide whose source
  *   shows the Deck's subscriber strip (confirm "strip shows a subscriber": UNLIMITED, Ping and
  *   the Power-Ups count are all on that screen) must carry the in-app purchase note NOTE_PLUS
  *   (Guideline 2.3.2), or the run stops.
@@ -45,8 +58,8 @@
  * upscaled: a window narrower than PW source pixels is refused. The chat tools slide is a zoomed
  * window (251 pt wide), so its source is the same screen rendered at 4.5x, where 251 pt is
  * exactly PW pixels and the panel is the render's own pixels, 1:1. Its text is then about 1.57x
- * the size of every other panel's; `--variant tools-3x` renders the whole set with slide 05 at
- * the other panels' scale instead (the sheet's full width at 3x), into set-<theme>-b15-tools-3x,
+ * the size of every other panel's; `--variant tools-3x` renders the whole set with slide 06 at
+ * the other panels' scale instead (the sheet's full width at 3x), into set-<theme>-b16-tools-3x,
  * for Cameron to choose between (see VARIANTS).
  *
  * WHAT IS RETOUCHED, AND ONLY THIS:
@@ -66,15 +79,18 @@
  * Run:  node --no-warnings marketing/store/render-screenshots.mjs --import <renderer>/shots \
  *         --import <renderer>/shots-4x5 [--set dark|light] [--only 01,03] [--variant tools-3x]
  *         [--profile-dir <dir>]
- * Out:  marketing/store/out/set-dark-b15/NN-slug.png            1320x2868 (6.9-inch slot, upload these)
- *       marketing/store/out/set-dark-b15/1290x2796/NN-slug.png  the same at 1290x2796 (6.9-inch)
- *       marketing/store/out/set-dark-b15/1284x2778/NN-slug.png  6.5-inch
- *       marketing/store/out/set-dark-b15/1242x2688/NN-slug.png  6.5-inch
- *       marketing/store/out/set-light-b15/...                   the same for Paper
- *       marketing/store/out/contact-{dark,light}-b15.jpg        the whole set, with what to confirm
- *       marketing/store/out/thumbs-{dark,light}-b15.jpg         first three at search-result sizes
- *       marketing/store/out/manifest-{dark,light}-b15.json      sources (sha256), windows, panels, confirms
- *       (with --variant V, every name above ends -b15-V instead of -b15)
+ *       (one --import per renderer folder: build 15's pinned render-dq shots and shots-4x5, and
+ *       build 16's render-b16 shots, which hold duo-locked-store)
+ * Out:  marketing/store/out/set-dark-b16/NN-slug.png            1320x2868 (6.9-inch slot, upload these)
+ *       marketing/store/out/set-dark-b16/1290x2796/NN-slug.png  the same at 1290x2796 (6.9-inch)
+ *       marketing/store/out/set-dark-b16/1284x2778/NN-slug.png  6.5-inch
+ *       marketing/store/out/set-dark-b16/1242x2688/NN-slug.png  6.5-inch
+ *       marketing/store/out/set-light-b16/...                   the same for Paper
+ *       marketing/store/out/contact-{dark,light}-b16.jpg        the whole set, with what to confirm
+ *       marketing/store/out/thumbs-{dark,light}-b16.jpg         first three at search-result sizes
+ *       marketing/store/out/manifest-{dark,light}-b16.json      sources (sha256), windows, panels, confirms
+ *       (with --variant V, every name above ends -b16-V instead of -b16; build 15's set, in the
+ *       -b15 names, came from this file at 9d6c591)
  * Every smaller size is scaled to its width (lanczos), then the few leftover rows are trimmed
  * evenly off the plain ground at top and bottom (checked to be ground), never stretched. Every
  * file is flattened to RGB (no alpha), sRGB, 72 dpi.
@@ -91,13 +107,39 @@ import sharp from "sharp";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(HERE, "..", "..");
 const OUT = path.join(HERE, "out");
-const IN = path.join(OUT, "shots-b15");
 const WORK = path.join(OUT, "_work");
 const CHROME = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
-const CHROME_TIMEOUT_MS = 120_000;
+const CHROME_TIMEOUT_MS = 60_000;
 
-/** The build these pictures are of: every source must be rendered from a pinned checkout of it. */
-const BUILD = { n: 15, commit: "22ce7b9" };
+/** The builds a source can be rendered from. Each slide names its own (`from`). */
+const BUILDS = {
+  15: { n: 15, commit: "22ce7b9" },
+  16: { n: 16, commit: "371525f" },
+};
+/** The build these pictures are for: the set's name, and the build every slide must show. */
+const BUILD = BUILDS[16];
+/** What the renderer reads from a checkout (render-dq report.json `source.reads`). */
+const RENDER_READS = ["apps/mobile", "packages", "scripts/seed-review-demo.mjs", "assets/demo", "assets/demo-filming"];
+
+/**
+ * An earlier build's render may stand for BUILD only on a screen BUILD left alone. Build 16
+ * changed, against build 15, only these of the files the renderer reads: DUO LOCKED's brackets
+ * (the match screen, LockBrackets.tsx, launchBrackets.ts and its test, a comment in
+ * matchMoment.ts) and the launch intro, which no slide draws. Every run compares the list with
+ * `git diff --name-only` between the two commits and stops if build 16 changed anything else,
+ * and a carried slide's own screen file must not be on it. On 2026-09-24 the six carried slides
+ * were also rendered from build 16 (render-b16) and came out pixel-identical to build 15's.
+ */
+const CARRIED = {
+  15: [
+    "apps/mobile/app/match/[matchId].tsx",
+    "apps/mobile/src/features/launch/LaunchIntro.tsx",
+    "apps/mobile/src/features/launch/launchBrackets.test.ts",
+    "apps/mobile/src/features/launch/launchBrackets.ts",
+    "apps/mobile/src/features/match/LockBrackets.tsx",
+    "apps/mobile/src/features/match/matchMoment.ts",
+  ],
+};
 
 const { darkColors, lightColors } = await import(
   pathToFileURL(path.join(REPO, "apps", "mobile", "src", "theme", "tokens.ts")).href
@@ -136,6 +178,7 @@ const SIZES = [
  * Keys are the renderer's shot keys (render-dq screens.mjs). The dark set uses `key`, the light
  * set `key-paper`. A slide's `scale` is the device scale its shot was rendered at (report.json),
  * 3 unless it says otherwise; the same key can be needed at two scales (tools, see VARIANTS).
+ * A slide's `from` is the build its shot was rendered from (BUILDS).
  */
 const scaleOf = (slide) => slide.scale ?? 3;
 const sourceKey = (theme, key) => (theme === "light" ? `${key}-paper` : key);
@@ -147,8 +190,9 @@ const sourceKey = (theme, key) => (theme === "light" ? `${key}-paper` : key);
  * shows, not merely what is true of the app.
  *
  * Windows are [left, top, right, bottom] in POINTS on the 393 x 852 pt source; `pad` (points)
- * adds plain rows above. Each was measured on the build 15 renders so that the first content
- * sits about 80 panel px under the panel's top and the panel ends on content.
+ * adds plain rows above. Each was measured on the build 15 renders (DUO LOCKED's on build 16's)
+ * so that the first content sits about 80 panel px under the panel's top and the panel ends on
+ * content.
  */
 const NOTE_PLUS = ["Unlimited swipes and Ping need DuoQueue+.", "Power-Ups are an in-app purchase."];
 
@@ -160,14 +204,18 @@ const DECK = { win: [0, 60, PHONE.w, 757] };
 // nothing under it on this screen, and the card plus HOW I PLAY (132-937 pt) is taller than a
 // panel can be (PMAX is 711 pt of a full-width window).
 const PROFILE = { win: [0, 60, PHONE.w, 742], pad: 13 };
-// DUO LOCKED is OUT of the set until a device recording of build 15's DUO LOCKED is checked
-// (render-dq device/bracket_check.py). The renderer holds every DUO LOCKED at "no, until
-// verified": build 15's match/[matchId].tsx gives BracketGlyph fontSize and lineHeight both
-// BRACKET_SIZE, so iOS is predicted to clip each bracket's top arm (4.3 pt against 8.3 at the
-// bottom), and the moment sits high in the sheet with its lower ~45% empty (its window here was
-// 114-642 pt, a 1518 px panel over 750 px of bare ground). If the prediction holds, the listing
-// shows an app defect; if not, the picture is not the app. It comes back only when the renderer
-// says "yes".
+// DUO LOCKED, from build 16 (duo-locked-store: the store story's Kofi, "You can queue Ranked
+// Solo/Duo"). Build 15's set left it out: its match/[matchId].tsx set each bracket as Text with
+// fontSize and lineHeight both BRACKET_SIZE, so iOS was predicted to clip each top arm (4.3 pt
+// against 8.3 at the bottom), and the renderer held every DUO LOCKED at "no, until verified".
+// Build 16 draws the brackets from the font's own outlines (LockBrackets.tsx), and the renderer
+// says "yes" for a checkout that does (render-b16 screens.mjs BRACKETS_ARE_OUTLINES; both arms
+// 25 / 24 px at 3x, the ink centred on the rings), allowing 92-642 pt. The moment still sits
+// high in the sheet, so the window runs from plain sheet ground 28.7 pt above the rings (ink from
+// 142.7 pt) to 27.4 pt under Keep swiping (ink to 614.6 pt) and ends on content: a 1518 px panel,
+// shorter than the others (about 2000), so this slide carries ~750 px of bare ground under it, as
+// TOOLS_3X does. Its first 4 pt are the sheet's ground above where the graticule starts (118 pt).
+const DUO_LOCKED = { win: [0, 114, PHONE.w, 642] };
 // The chat, told in the store story (chat-store: the renderer's STORE_STORY change 5, a League
 // thread that agrees a time and ends on Priya confirming it). The whole thread sits under the
 // glass bar (its first bubble's edge at 225.8 pt, text from 235.8), so the window opens in the
@@ -188,12 +236,13 @@ const TOOLS_3X = { win: [0, 308, PHONE.w, 752], pad: 2 };
 const SAFETY = { win: [0, 60, PHONE.w, 716], pad: 9 };
 
 /*
- * Six slides. Build 15's first set had seven, with DUO LOCKED fourth (see DUO LOCKED above);
- * the chat, tools and safety slides moved up one.
+ * Seven slides. Build 15's first set had seven, with DUO LOCKED fourth, and its final set six
+ * without it (see DUO LOCKED above); build 16 puts it back fourth, between your card and the
+ * chat, and the chat, tools and safety slides move down one again.
  */
 const COPY = [
   {
-    n: "01", slug: "deck",
+    n: "01", slug: "deck", from: 15,
     lines: ["See who can", "*duo* with you"],
     // Was "Rank, games and hours, before you swipe": the card shows no hours (they only order the
     // Deck); it shows League rank, games in common and NA EAST.
@@ -203,7 +252,7 @@ const COPY = [
     key: "deck-store", ...DECK,
   },
   {
-    n: "02", slug: "prompt",
+    n: "02", slug: "prompt", from: 15,
     // The lit word carries the message (was "*Photo* optional.", which lit what the line plays
     // down, on a panel that shows no photo). A comma and no full stops, as every other headline
     // ("Your card, as / others see it", "Safety tools, / built in"); it was the only one with
@@ -222,7 +271,7 @@ const COPY = [
     key: "deck-prompt-dae-store", ...DECK,
   },
   {
-    n: "03", slug: "profile",
+    n: "03", slug: "profile", from: 15,
     lines: ["Your *card*, as", "others see it"],
     // Was "Rank, platforms and games in common": the card's third cell is GAMES 14, your own
     // total; "games in common" is only in the caption under the card.
@@ -232,7 +281,17 @@ const COPY = [
     key: "profile-store", ...PROFILE,
   },
   {
-    n: "04", slug: "chat",
+    n: "04", slug: "duo-locked", from: 16,
+    // The lit word is "locked" alone: its full stop stays ink, as every lit word's punctuation.
+    // The only headline with full stops; the others use a comma or none (see 02).
+    lines: ["Both queued up.", "Duo *locked*."],
+    // The panel's button is "Send a message" under "You can queue Ranked Solo/Duo" (League, a
+    // game they both play); slide 05 is a chat like the one it opens (Priya's League thread).
+    sub: "Then chat about a game you both play",
+    key: "duo-locked-store", ...DUO_LOCKED,
+  },
+  {
+    n: "05", slug: "chat", from: 15,
     lines: ["Plan the *session*", "in chat"],
     // Was "Pick a night, then queue up": "a night" next to photo cards with ages leans dating.
     sub: "Pick a time, then queue up",
@@ -245,7 +304,7 @@ const COPY = [
     key: "chat-store", ...CHAT,
   },
   {
-    n: "05", slug: "tools",
+    n: "06", slug: "tools", from: 15,
     // Was "Invite a *third* / to the party": in a swipe app with photos and ages, "a third" is
     // dating-app slang for a threesome partner, and lighting it made that worse.
     lines: ["Grow the duo", "into a *trio*"],
@@ -258,7 +317,7 @@ const COPY = [
     panelAllow: [[/^Invite a third$/, "the app's own menu row, under a headline that makes it a trio; Cameron's call"]],
   },
   {
-    n: "06", slug: "safety",
+    n: "07", slug: "safety", from: 15,
     lines: ["*Safety* tools,", "built in"],
     // Was "18+ only. Block people, hide words": nothing on this panel shows an age or 18+ (the
     // age gate is true of the app, MIN_AGE, but not of this screen), and an age next to photo
@@ -270,14 +329,15 @@ const COPY = [
 
 /**
  * A variant replaces some slides' source and window, keeps every word, and writes a whole set of
- * its own (set-<theme>-b15-<variant>, with its own manifest, contact sheet and thumbs), so it can
+ * its own (set-<theme>-b16-<variant>, with its own manifest, contact sheet and thumbs), so it can
  * be laid next to the default and chosen between. Nothing in it is uploaded unless Cameron picks
  * it.
  */
 const VARIANTS = {
-  // Slide 05 at the other panels' scale (build 15 set review): the zoomed sheet draws its text
-  // about 1.57x every other panel's and makes "Invite a third" the panel's second-largest line.
-  "tools-3x": { "05": { key: "tools", ...TOOLS_3X, scale: undefined } },
+  // The tools slide (06; 05 in build 15's set) at the other panels' scale (build 15 set review):
+  // the zoomed sheet draws its text about 1.57x every other panel's and makes "Invite a third"
+  // the panel's second-largest line.
+  "tools-3x": { "06": { key: "tools", ...TOOLS_3X, scale: undefined } },
 };
 
 /* ---- the two looks -------------------------------------------------------------------------- */
@@ -368,49 +428,115 @@ for (const s of COPY) {
 
 /* ---- sources: import and verify --------------------------------------------------------------- */
 
-/** "<key>@<scale>" for every shot a run can use, in both looks. */
-const needed = new Set(Object.keys(LOOKS).flatMap((t) => ALL_SLIDES.map((s) => `${sourceKey(t, s.key)}@${scaleOf(s)}`)));
-const scaleDir = (scale) => path.join(IN, `${scale}x`);
+for (const s of ALL_SLIDES) {
+  const from = BUILDS[s.from];
+  if (!from) throw new Error(`${s.n}: from build ${s.from}, which is not in BUILDS`);
+  if (from.n > BUILD.n) throw new Error(`${s.n}: from build ${from.n}, later than the set's build ${BUILD.n}`);
+  if (from.n < BUILD.n && !CARRIED[from.n]) throw new Error(`${s.n}: from build ${from.n}, and CARRIED does not say what build ${BUILD.n} changed against it`);
+}
 
-const checkSource = (src, where) => {
+const git = (...a) => {
+  const r = spawnSync("git", ["-C", REPO, ...a], { encoding: "utf8", windowsHide: true });
+  if (r.error) throw new Error(`git ${a.join(" ")}: ${r.error.message}`);
+  return r;
+};
+const fullCommit = (c) => {
+  const r = git("rev-parse", "--verify", "--quiet", `${c}^{commit}`);
+  if (r.status !== 0) throw new Error(`git cannot find commit ${c} in ${REPO}`);
+  return r.stdout.trim();
+};
+
+// What BUILD changed against every build a slide is carried from, checked against git.
+for (const [n, listed] of Object.entries(CARRIED)) {
+  const r = git("diff", "--name-only", fullCommit(BUILDS[n].commit), fullCommit(BUILD.commit), "--", ...RENDER_READS);
+  if (r.status !== 0) throw new Error(`git diff ${BUILDS[n].commit} ${BUILD.commit}: ${r.stderr}`);
+  const actual = r.stdout.split("\n").map((l) => l.trim()).filter(Boolean).sort();
+  const want = [...listed].sort();
+  if (actual.join("\n") !== want.join("\n")) {
+    throw new Error(`build ${BUILD.n} changed, against build ${n}, ${actual.join(", ")}; CARRIED lists ${want.join(", ")}. Re-render the slides carried from build ${n} from build ${BUILD.n}, or correct the list`);
+  }
+}
+
+/** "<build>:<key>@<scale>" for every shot a run can use, in both looks. */
+const needed = new Set(Object.keys(LOOKS).flatMap((t) => ALL_SLIDES.map((s) => `${s.from}:${sourceKey(t, s.key)}@${scaleOf(s)}`)));
+const shotsDir = (build) => path.join(OUT, `shots-b${build.n}`);
+const scaleDir = (build, scale) => path.join(shotsDir(build), `${scale}x`);
+
+/**
+ * Why a renderer source is NOT `build`, or [] when it is: pinned at the build's commit, or the
+ * main checkout on a branch (the only reason it is not pinned) at a commit whose reads git says
+ * are the build's own.
+ */
+const notBuild = (src, build) => {
   const why = [];
-  if (!src?.pinned) why.push(`not pinned (${(src?.notPinnedBecause ?? []).join("; ") || "no source block"})`);
-  if (!String(src?.commit ?? "").startsWith(BUILD.commit)) why.push(`commit ${src?.commit}, expected ${BUILD.commit}`);
+  const commit = String(src?.commit ?? "");
+  const reasons = src?.notPinnedBecause ?? [];
+  const onBranchOnly = !src?.pinned && reasons.length > 0 && reasons.every((r) => /^on branch /.test(r));
+  if (src?.pinned) {
+    if (!commit.startsWith(build.commit)) why.push(`commit ${commit || "none"}, expected ${build.commit}`);
+  } else if (!onBranchOnly) {
+    why.push(`not pinned (${reasons.join("; ") || "no source block"})`);
+  } else if (path.resolve(String(src.toplevel ?? "")) !== path.resolve(REPO)) {
+    why.push(`on a branch in ${src.toplevel}, not this repo, so git here cannot check its commit`);
+  } else if (!commit.startsWith(build.commit)) {
+    const full = fullCommit(build.commit);
+    if (git("merge-base", "--is-ancestor", full, commit).status !== 0) {
+      why.push(`commit ${commit.slice(0, 7)} does not descend from ${build.commit}`);
+    } else {
+      const d = git("diff", "--name-only", full, commit, "--", ...RENDER_READS);
+      const changed = d.stdout.split("\n").filter(Boolean);
+      if (d.status !== 0 || changed.length) why.push(`commit ${commit.slice(0, 7)} changed what the renderer reads since ${build.commit}: ${changed.join(", ") || d.stderr}`);
+    }
+  }
+  const extra = (src?.reads ?? []).filter((r) => !RENDER_READS.includes(r));
+  if (extra.length) why.push(`the renderer read ${extra.join(", ")}, which RENDER_READS does not cover`);
   if (src?.dirtyReads?.length) why.push(`uncommitted reads: ${src.dirtyReads.join(", ")}`);
   if (src?.modules && (!src.modules.own || !src.modules.lockfileSame)) why.push("node_modules are not the checkout's own");
-  if (why.length) throw new Error(`${where}: the renderer's source is not build ${BUILD.n}: ${why.join("; ")}`);
+  return why;
 };
+const checkSource = (src, where, build) => {
+  const why = notBuild(src, build);
+  if (why.length) throw new Error(`${where}: the renderer's source is not build ${build.n}: ${why.join("; ")}`);
+};
+/** How a source stands for its build, for the manifest and the contact sheet. */
+const routeOf = (src) => (src.pinned ? "pinned" : `branch ${src.branch} at ${String(src.commit).slice(0, 7)}`);
 
 /** Copy the shots the slides need, and their report, out of a renderer shots folder. */
 const importShots = (dir) => {
   const report = JSON.parse(fs.readFileSync(path.join(dir, "report.json"), "utf8"));
-  checkSource(report.source, path.join(dir, "report.json"));
+  const builds = Object.values(BUILDS).filter((b) => notBuild(report.source, b).length === 0);
+  if (builds.length !== 1) {
+    const whyNot = Object.values(BUILDS).map((b) => `build ${b.n}: ${notBuild(report.source, b).join("; ") || "yes"}`).join(" | ");
+    throw new Error(`${path.join(dir, "report.json")}: the renderer's source is ${builds.length ? "more than one build" : "no build in BUILDS"} (${whyNot})`);
+  }
+  const build = builds[0];
   const scales = [...new Set(report.rows.map((r) => r.r?.scale).filter(Boolean))];
   if (scales.length !== 1) throw new Error(`${dir}: shots at ${scales.length} scales (${scales.join(", ")})`);
   const scale = scales[0];
-  const dest = scaleDir(scale);
+  const dest = scaleDir(build, scale);
   fs.mkdirSync(dest, { recursive: true });
   const copied = [];
   for (const row of report.rows) {
-    if (!needed.has(`${row.key}@${scale}`)) continue;
+    if (!needed.has(`${build.n}:${row.key}@${scale}`)) continue;
     fs.copyFileSync(path.join(dir, `${row.key}.png`), path.join(dest, `${row.key}.png`));
     copied.push(row.key);
   }
   fs.writeFileSync(path.join(dest, "report.json"), JSON.stringify(report, null, 1));
-  console.log(`imported ${copied.length} shot(s) at ${scale}x from ${dir}: ${copied.join(", ")}`);
+  console.log(`imported ${copied.length} build ${build.n} shot(s) at ${scale}x (${routeOf(report.source)}) from ${dir}: ${copied.join(", ")}`);
 };
 for (const dir of flags("import")) importShots(dir);
 
 const reports = new Map();
-const reportAt = (scale) => {
-  if (!reports.has(scale)) {
-    const f = path.join(scaleDir(scale), "report.json");
-    if (!fs.existsSync(f)) throw new Error(`no ${scale}x shots in ${IN}: run with --import <renderer shots folder>`);
+const reportAt = (build, scale) => {
+  const id = `${build.n}@${scale}`;
+  if (!reports.has(id)) {
+    const f = path.join(scaleDir(build, scale), "report.json");
+    if (!fs.existsSync(f)) throw new Error(`no build ${build.n} shots at ${scale}x in ${shotsDir(build)}: run with --import <renderer shots folder>`);
     const report = JSON.parse(fs.readFileSync(f, "utf8"));
-    checkSource(report.source, f);
-    reports.set(scale, report);
+    checkSource(report.source, f, build);
+    reports.set(id, report);
   }
-  return reports.get(scale);
+  return reports.get(id);
 };
 
 /**
@@ -439,12 +565,19 @@ const panelWords = (slide, r, where) => {
 const sourceFor = (theme, slide) => {
   const key = sourceKey(theme, slide.key);
   const scale = scaleOf(slide);
-  const report = reportAt(scale);
+  const build = BUILDS[slide.from];
+  const report = reportAt(build, scale);
   const row = report.rows.find((r) => r.key === key);
-  const where = `${theme} ${slide.n} (${key} at ${scale}x)`;
-  if (!row) throw new Error(`${where}: not in the renderer's report`);
+  const where = `${theme} ${slide.n} (${key} at ${scale}x, build ${build.n})`;
+  if (!row) throw new Error(`${where}: not in the renderer's report (${scaleDir(build, scale)}): render it from build ${build.n} and --import it`);
   const r = row.r;
   if (!row.ok || !r) throw new Error(`${where}: the renderer did not render it`);
+  if (build.n !== BUILD.n) {
+    const screen = `apps/mobile/${String(r.file ?? "").replace(/\\/g, "/")}`;
+    if (!r.file || CARRIED[build.n].includes(screen)) {
+      throw new Error(`${where}: its screen (${r.file ?? "unknown"}) is one build ${BUILD.n} changed, so it must be rendered from build ${BUILD.n}`);
+    }
+  }
   if (r.problems?.length) throw new Error(`${where}: the renderer lists problems: ${r.problems.join("; ")}`);
   if (r.width !== PHONE.w || r.height !== PHONE.h || r.scale !== scale) {
     throw new Error(`${where}: rendered at ${r.width}x${r.height} pt @${r.scale}x, expected ${PHONE.w}x${PHONE.h} @${scale}x`);
@@ -457,10 +590,13 @@ const sourceFor = (theme, slide) => {
     throw new Error(`${where}: the panel shows the Deck's subscriber strip (UNLIMITED, Ping, Power-Ups), so the slide needs note: NOTE_PLUS (Guideline 2.3.2)`);
   }
   const words = panelWords(slide, r, where);
-  const file = path.join(scaleDir(scale), `${key}.png`);
+  const file = path.join(scaleDir(build, scale), `${key}.png`);
   if (!fs.existsSync(file)) throw new Error(`${where}: ${file} is missing: run with --import`);
   return {
     key, scale, file, store, report,
+    build: build.n,
+    commit: report.source.commit,
+    route: routeOf(report.source),
     window: r.window ?? null,
     confirm,
     words,
@@ -827,7 +963,7 @@ try {
       made.push({
         name, files, big: files[`${W}x${H}`],
         headline: slide.lines.map(plain).join(" / "), sub: slide.sub, note: slide.note ?? null,
-        source: { key: src.key, scale: src.scale, mode: src.mode, sha256: src.sha256, store: src.store.slice(0, 160) },
+        source: { key: src.key, scale: src.scale, build: src.build, commit: src.commit, route: src.route, mode: src.mode, sha256: src.sha256, store: src.store.slice(0, 160) },
         windowPt: slide.win.map((v) => Math.round(v * 100) / 100), padPt: slide.pad ?? 0, windowPx: panel.windowPx,
         panel: { width: PW, height: panel.height, scale: Number(panel.scale.toFixed(4)), insetTop: panel.insetTop, insetBottom: panel.insetBottom },
         confirm: src.confirm,
@@ -838,19 +974,30 @@ try {
     report.push({ theme, setDir, size, widest: Math.round(widest), subs: m.subs, made });
 
     if (!only) {
-      const renderSrc = reportAt(3).source;
+      // Every renderer source the set used: its build, how it stands for that build, and its slides.
+      const renderedFrom = {};
+      for (const x of made) {
+        const at = `b${x.source.build} ${x.source.route}`;
+        const src = reportAt(BUILDS[x.source.build], x.source.scale).source;
+        renderedFrom[at] ??= { build: BUILDS[x.source.build], commit: src.commit, real: src.real, pinned: src.pinned, route: x.source.route, slides: [] };
+        if (!renderedFrom[at].slides.includes(x.name.slice(0, 2))) renderedFrom[at].slides.push(x.name.slice(0, 2));
+      }
       fs.writeFileSync(
         path.join(OUT, `manifest-${setName}.json`),
-        JSON.stringify({ build: BUILD, variant: variant ?? null, renderedFrom: { commit: renderSrc.commit, real: renderSrc.real, pinned: renderSrc.pinned }, headline: size, slides: made }, null, 1),
+        JSON.stringify({ build: BUILD, variant: variant ?? null, carried: CARRIED, renderedFrom: Object.values(renderedFrom), headline: size, slides: made }, null, 1),
       );
+      const fromLine = Object.values(renderedFrom)
+        .map((f) => `${f.slides.join(",")} from build ${f.build.n} (${f.pinned ? `pinned ${String(f.commit).slice(0, 7)}` : f.route})`)
+        .join("; ");
       await thumbs(made.slice(0, 3).map((x) => x.big), path.join(OUT, `thumbs-${setName}.jpg`));
       await contact(
         made.map((x) => x.big),
         {
-          title: `DuoQueue App Store screenshots / set ${theme.toUpperCase()}${variant ? ` / variant ${variant}` : ""} / 1320x2868 / build ${BUILD.n} (${BUILD.commit}), rendered from the pinned checkout`,
+          title: `DuoQueue App Store screenshots / set ${theme.toUpperCase()}${variant ? ` / variant ${variant}` : ""} / 1320x2868 / build ${BUILD.n} (${BUILD.commit}): ${fromLine}`,
           items: made.map((x) => [
             [x.name],
             [`${x.source.key} @${x.source.scale}x, panel ${x.panel.height}px`],
+            [`build ${x.source.build}, ${x.source.route === "pinned" ? `pinned ${String(x.source.commit).slice(0, 7)}` : x.source.route.replace(/^branch \S+ at /, "branch at ")}`],
             ...x.confirm.map((c) => [`confirm: ${c}`, true]),
             ...x.panelAllowed.map((a) => [`kept in panel: "${a.text}"`, true]),
           ]),
@@ -868,7 +1015,7 @@ for (const r of report) {
   console.log(`\nset ${r.theme}: headline ${r.size}px, widest line ${r.widest}px at 100px; widest sub ${Math.round(Math.max(...r.subs.map(([, w]) => w)))}px -> ${r.setDir}`);
   for (const x of r.made) {
     console.log(
-      `  ${x.name}.png  ${x.source.key} @${x.source.scale}x  window ${x.windowPt[1]}-${x.windowPt[3]} pt  panel ${PW}x${x.panel.height} at ${x.panel.scale}x  inset top ${x.panel.insetTop} bottom ${x.panel.insetBottom}`,
+      `  ${x.name}.png  ${x.source.key} @${x.source.scale}x  build ${x.source.build} (${x.source.route})  window ${x.windowPt[1]}-${x.windowPt[3]} pt  panel ${PW}x${x.panel.height} at ${x.panel.scale}x  inset top ${x.panel.insetTop} bottom ${x.panel.insetBottom}`,
     );
     for (const c of x.confirm) console.log(`      confirm: ${c}`);
     for (const a of x.panelAllowed) console.log(`      kept in panel: "${a.text}" (${a.what}): ${a.why}`);
