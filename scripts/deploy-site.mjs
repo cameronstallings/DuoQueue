@@ -121,9 +121,14 @@ const LIVE_CHECKS = [
 ];
 
 // check() treats a falsy sentinel AND a falsy absent as "headers only". An empty string is
-// falsy, so `absent: ""` or `sentinel: ""` would silently skip the body check and pass.
-// Only `sentinel: null` means a binary; anything else given must be a non-empty string.
+// falsy, so `absent: ""` or `sentinel: ""` would silently skip the body check and pass, and
+// a check with neither key (`{ url }`) would quietly become a binary check. So every check
+// must name a `sentinel` or an `absent`, `sentinel: null` is the only way to ask for a
+// headers-only (binary) check, and any other value given must be a non-empty string.
 for (const c of LIVE_CHECKS) {
+  if (!("sentinel" in c) && !("absent" in c)) {
+    die(`live check ${c.url} has neither sentinel nor absent; give one (or sentinel: null for a binary).`);
+  }
   for (const key of ["sentinel", "absent"]) {
     if (!(key in c) || (key === "sentinel" && c[key] === null)) continue;
     if (typeof c[key] !== "string" || c[key] === "") {

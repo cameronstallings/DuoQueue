@@ -35,13 +35,20 @@
   (duoqueue.io/watch/, and its /tt/, /ig/ and /yt/ copies), because the home page no longer
   embeds them. The Gender bullet in Section 2 no longer says gender is shown on your profile
   to other users, because no screen in apps/mobile renders it (GENDER_LABELS is unused). It
-  still says gender reaches other users, because it does: get_deck (0069), get_online_now
-  (0060) and get_profile_card (0067) all return a `gender` column for other people's
-  profiles, and useProfileCard.ts and useOnlineNow.ts load it onto other users' devices, so
-  any signed-in user can read the gender of anyone in their deck with one RPC call. Do not
-  shorten this to "not shown to anyone" unless a migration first removes gender from those
-  three functions. Gender is not used in any filter or in the deck score (0060 removed the
-  filter; 0069's get_deck only passes the column through).
+  still says gender reaches other users, because it does. SIX live functions return a
+  `gender` column for other people's profiles: get_deck (last defined in 0069),
+  get_online_now (0060), get_profile_card (0067), and get_standouts, get_admirers and
+  get_party_deck (all three last defined in 0059; 0060 deliberately left them alone). The
+  app calls every one of them (useDeck.ts, useOnlineNow.ts, useProfileCard.ts,
+  useStandouts.ts, useAdmirers.ts, usePartyDeck.ts), so the column lands on other users'
+  devices whether or not a hook keeps it, and any signed-in user can read the gender of
+  anyone in their deck with one RPC call. The places listed in the bullet are examples, not
+  a complete list, and must stay worded that way. Do not shorten this to "not shown to
+  anyone" unless a migration first removes gender from ALL SIX functions (grep
+  supabase/migrations for `gender` in every function that returns other people's profiles,
+  in case a later migration adds a seventh). Gender is not used in any filter or in any
+  score: in all six it is only a returned column (0060 removed the deck and Online Now
+  filter, and 0059's standouts, admirers and party deck never had one).
 -->
 # DuoQueue Privacy Policy
 
@@ -81,7 +88,7 @@ We only collect what the app actually uses. Here's every category, itemized.
 ### Profile information
 - **Display name:** shown on your profile and in chat.
 - **Date of birth:** collected once at signup. We use it for two things: confirming you're 18 or older (DuoQueue is not available to anyone younger; see [Section 9](#9-age-restriction)) and calculating the age shown on your profile. Your exact birth date is never shown to other users, only your calculated age.
-- **Gender:** collected at onboarding. The current version of the app does not display it to other users, but it is part of the profile information our servers send to another user's app when your card is shown to them (in their deck, in Online Now, or when they open your profile), so it is not private from other signed-in users. It is never used to filter or rank who you're shown.
+- **Gender:** collected at onboarding. The current version of the app does not display it to other users, but it is part of the profile information our servers send to another user's app when your profile is shown to them (for example, in their deck, in Online Now, in the list of people who liked them, or when they open your profile), so it is not private from other signed-in users. It is never used to filter or rank who you're shown.
 - **Region:** collected at onboarding and shown on your profile to other users; also used to filter candidates when someone sets a region preference, and to slightly favor same-region matches in ranking.
 - **Spoken language(s):** collected at onboarding; used as a premium filter so users can require a shared language, and to favor candidates who share a language with you in ranking.
 - **Photos:** a profile photo, an optional header photo, and up to six gallery photos. Every uploaded photo is automatically re-processed to strip embedded location and camera metadata (EXIF/GPS data) before it's stored. Every photo also goes through our moderation pipeline before it becomes visible to anyone else. When our automated moderation provider (Sightengine) is configured, most photos are screened automatically and only borderline or undetermined cases go to a human moderator; if the automated provider isn't configured, every photo instead goes straight to human review. See [Section 3](#3-who-we-share-data-with).
