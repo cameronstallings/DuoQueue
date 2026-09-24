@@ -193,7 +193,9 @@ export function cardCells(card: CellFacts, mode: CardCellsMode, labels: CellLabe
 }
 
 export type CardPage =
-  | { kind: "picture"; url: string }
+  /** `url` is a number for a picture bundled with the app (require()); the tour's example card
+   * is the only one. Everything from the server is a URL string. */
+  | { kind: "picture"; url: string | number }
   | { kind: "prompt"; question: string; answer: string }
   | { kind: "blank" };
 
@@ -229,12 +231,15 @@ export function cardPageSpoken(page: CardPage, name: string, index: number, coun
   return `${cardPagePosition(index, count)}. ${content}`;
 }
 
-/** "27 · NA West · en fr". The card renders it uppercase (type.cardMeta). */
+/** "27 · NA West · en fr". The card renders it uppercase (type.cardMeta). The tour passes
+ * `withAge: false`: no ages on tour pages (build 17). */
 export function cardDetailsLine(
   card: Pick<DeckCard, "age" | "region" | "languages">,
   regionLabels: Record<Region, string>,
+  options: { withAge?: boolean } = {},
 ): string {
-  const parts = [String(card.age), regionLabels[card.region] ?? card.region];
+  const parts = options.withAge === false ? [] : [String(card.age)];
+  parts.push(regionLabels[card.region] ?? card.region);
   if (card.languages.length > 0) parts.push(card.languages.join(" "));
   return parts.join(" · ");
 }

@@ -55,7 +55,7 @@ function CardPageView({ page, name, clearTop }: { page: CardPage; name: string; 
   if (page.kind === "picture") {
     return (
       <Image
-        source={{ uri: page.url }}
+        source={typeof page.url === "number" ? page.url : { uri: page.url }}
         style={StyleSheet.absoluteFill}
         contentFit="cover"
         cachePolicy="memory-disk"

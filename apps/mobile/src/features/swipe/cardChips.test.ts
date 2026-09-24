@@ -253,10 +253,20 @@ describe("cardDetailsLine", () => {
   it("leaves languages out when there are none", () => {
     expect(cardDetailsLine({ age: 27, region: "eu", languages: [] }, REGION_LABELS)).toBe("27 · Europe");
   });
+
+  it("can leave the age out (the tour shows no ages)", () => {
+    expect(cardDetailsLine({ age: 27, region: "na_east", languages: ["en"] }, REGION_LABELS, { withAge: false })).toBe("NA East · en");
+  });
 });
 
 describe("cell copy", () => {
   it("has no em dash", () => {
     for (const text of Object.values(CELL_COPY)) expect(text).not.toContain("\u2014");
+  });
+});
+
+describe("a bundled picture page", () => {
+  it("is spoken like any picture (the tour's example card)", () => {
+    expect(cardPageSpoken({ kind: "picture", url: 12 }, "Kai", 0, 4)).toBe("Page 1 of 4. Kai's picture");
   });
 });
