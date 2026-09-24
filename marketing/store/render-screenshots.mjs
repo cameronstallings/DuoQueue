@@ -24,7 +24,14 @@
  *     - the shot may go in the App Store set ("yes"). There is NO override: build 15's first
  *       set let DUO LOCKED through with one, and the renderer's "no, until verified" meant the
  *       listing would show either a predicted app defect or a picture that is not the app;
- *     - the slide's window lies inside the window the renderer allows for that shot.
+ *     - the slide's window lies inside the window the renderer allows for that shot;
+ *     - the words INSIDE the panel pass the copy bans marked for panels (COPY_BANS, `panel`): the
+ *       renderer reports every text it drew with its box (report.json `texts`), and each one the
+ *       slide's window takes in is held to the listing's dash, dating, slang and night rules, as
+ *       the headlines are. A hit stops the run unless the slide names it in `panelAllow` with
+ *       its reason (printed, in the manifest and on the contact sheet). Build 15's first chat
+ *       slide showed "free most evenings after 7pm" and "Still on for tonight?" in its largest
+ *       text while only the headlines were checked.
  *   What the renderer says Cameron must confirm before upload (`confirm`) is printed per slide,
  *   written to out/manifest-<set>-b15.json and shown on the contact sheet. A slide whose source
  *   shows the Deck's subscriber strip (confirm "strip shows a subscriber": UNLIMITED, Ping and
@@ -37,7 +44,10 @@
  * both be plain ground, so no panel opens or closes through half a UI element. Nothing is ever
  * upscaled: a window narrower than PW source pixels is refused. The chat tools slide is a zoomed
  * window (251 pt wide), so its source is the same screen rendered at 4.5x, where 251 pt is
- * exactly PW pixels and the panel is the render's own pixels, 1:1.
+ * exactly PW pixels and the panel is the render's own pixels, 1:1. Its text is then about 1.57x
+ * the size of every other panel's; `--variant tools-3x` renders the whole set with slide 05 at
+ * the other panels' scale instead (the sheet's full width at 3x), into set-<theme>-b15-tools-3x,
+ * for Cameron to choose between (see VARIANTS).
  *
  * WHAT IS RETOUCHED, AND ONLY THIS:
  *   - no status bar: the renderer draws none, and no window starts above 59 pt.
@@ -54,7 +64,8 @@
  *   2  render: each slide is static HTML with that size baked in, screenshotted at 1320x2868.
  *
  * Run:  node --no-warnings marketing/store/render-screenshots.mjs --import <renderer>/shots \
- *         --import <renderer>/shots-4x5 [--set dark|light] [--only 01,03] [--profile-dir <dir>]
+ *         --import <renderer>/shots-4x5 [--set dark|light] [--only 01,03] [--variant tools-3x]
+ *         [--profile-dir <dir>]
  * Out:  marketing/store/out/set-dark-b15/NN-slug.png            1320x2868 (6.9-inch slot, upload these)
  *       marketing/store/out/set-dark-b15/1290x2796/NN-slug.png  the same at 1290x2796 (6.9-inch)
  *       marketing/store/out/set-dark-b15/1284x2778/NN-slug.png  6.5-inch
@@ -63,6 +74,7 @@
  *       marketing/store/out/contact-{dark,light}-b15.jpg        the whole set, with what to confirm
  *       marketing/store/out/thumbs-{dark,light}-b15.jpg         first three at search-result sizes
  *       marketing/store/out/manifest-{dark,light}-b15.json      sources (sha256), windows, panels, confirms
+ *       (with --variant V, every name above ends -b15-V instead of -b15)
  * Every smaller size is scaled to its width (lanczos), then the few leftover rows are trimmed
  * evenly off the plain ground at top and bottom (checked to be ground), never stretched. Every
  * file is flattened to RGB (no alpha), sRGB, 72 dpi.
@@ -122,10 +134,10 @@ const SIZES = [
 
 /* ---- the sources -----------------------------------------------------------------------------
  * Keys are the renderer's shot keys (render-dq screens.mjs). The dark set uses `key`, the light
- * set `key-paper`. `scale` is the device scale the shot was rendered at (report.json).
+ * set `key-paper`. A slide's `scale` is the device scale its shot was rendered at (report.json),
+ * 3 unless it says otherwise; the same key can be needed at two scales (tools, see VARIANTS).
  */
-const SHOT_SCALE = { tools: 4.5, "tools-paper": 4.5 };
-const scaleOf = (key) => SHOT_SCALE[key] ?? 3;
+const scaleOf = (slide) => slide.scale ?? 3;
 const sourceKey = (theme, key) => (theme === "light" ? `${key}-paper` : key);
 
 /* ---- the copy --------------------------------------------------------------------------------
@@ -156,13 +168,21 @@ const PROFILE = { win: [0, 60, PHONE.w, 742], pad: 13 };
 // 114-642 pt, a 1518 px panel over 750 px of bare ground). If the prediction holds, the listing
 // shows an app defect; if not, the picture is not the app. It comes back only when the renderer
 // says "yes".
-// The chat: from the gap above the first whole bubble (164 pt, the renderer's window, clear of
-// the glass bar and its SF Pro stand-in) to under the message field (802 pt).
-const CHAT = { win: [0, 164, PHONE.w, 830], pad: 24 };
+// The chat, told in the store story (chat-store: the renderer's STORE_STORY change 5, a League
+// thread that agrees a time and ends on Priya confirming it). The whole thread sits under the
+// glass bar (its first bubble's edge at 225.8 pt, text from 235.8), so the window opens in the
+// plain ground 28 pt above that edge, the gap build 15's first chat slide left above its first
+// whole bubble (164 + 24 pad over 168), and ends under the message field.
+const CHAT = { win: [0, 198, PHONE.w, 830] };
 // The chat's ••• sheet, zoomed: 251 pt wide from the left edge (every row's icon and label ends
 // by 193 pt), from under the grab handle (308 pt) to under Block (752 pt), as build 10's slide.
 // At 4.5x that is exactly PW pixels wide, so the panel is the render's own pixels.
-const TOOLS = { win: [0, 308, PW / 4.5, 752], pad: 2 };
+const TOOLS = { win: [0, 308, PW / 4.5, 752], pad: 2, scale: 4.5 };
+// The same rows at the other panels' scale: the sheet's full width at 3x (0.958 source px per
+// panel px, as every other slide), so the set reads as one phone at one size. The renderer
+// allows 308-752 pt on this shot, so the panel is shorter than the others (1282 px against
+// about 2000) and the slide carries more bare ground under it.
+const TOOLS_3X = { win: [0, 308, PHONE.w, 752], pad: 2 };
 // Settings scrolled to its end: the title (79 pt), Safety Center, Blocked people, Hidden words,
 // Account and Legal (to 700 pt), ending at 716 pt as the renderer's window allows.
 const SAFETY = { win: [0, 60, PHONE.w, 716], pad: 9 };
@@ -185,9 +205,14 @@ const COPY = [
   {
     n: "02", slug: "prompt",
     // The lit word carries the message (was "*Photo* optional.", which lit what the line plays
-    // down, on a panel that shows no photo).
-    lines: ["*Games* first.", "Photo optional."],
-    sub: "One picture if you want, then their prompts",
+    // down, on a panel that shows no photo). A comma and no full stops, as every other headline
+    // ("Your card, as / others see it", "Safety tools, / built in"); it was the only one with
+    // periods.
+    lines: ["*Games* first,", "photo optional"],
+    // Was "One picture if you want, then their prompts", which turned from your profile ("you")
+    // to their card ("their") in one line, and would say "optional" twice next to the headline.
+    // The panel is Dae's card after one tap on it, on his first prompt.
+    sub: "Tap a card to read their prompts",
     // The same Deck chrome as 01: UNLIMITED, Ping and the Power-Ups count.
     note: NOTE_PLUS,
     // The store story's NEXT card (Dae, League Platinum I, can duo), reached by passing Kofi, on
@@ -211,7 +236,13 @@ const COPY = [
     lines: ["Plan the *session*", "in chat"],
     // Was "Pick a night, then queue up": "a night" next to photo cards with ages leans dating.
     sub: "Pick a time, then queue up",
-    key: "chat", ...CHAT,
+    // Was `chat`, the seed's thread: Valorant ("Immortal 1", "that new agent") in a League-first
+    // set, "evenings" and "tonight" four times in its largest text, and an ending on the review
+    // account's READ message and two unanswered bumps from Priya, which read as ghosting her
+    // under this sub-line. chat-store is the store story's League thread (typographic
+    // apostrophes throughout; the seed's straight ' came out curled in some words and not in
+    // others). It needs the reseed the other store-story slides need (confirm).
+    key: "chat-store", ...CHAT,
   },
   {
     n: "05", slug: "tools",
@@ -220,6 +251,11 @@ const COPY = [
     lines: ["Grow the duo", "into a *trio*"],
     sub: "Schedule a session, share your handle",
     key: "tools", ...TOOLS,
+    // The panel's own words: the app's menu row, which the headline frames as a third PLAYER.
+    // Kept, and flagged on the contact sheet, until Cameron chooses between this zoomed slide
+    // (the row is the panel's second-largest line) and --variant tools-3x (the same rows at the
+    // other panels' scale).
+    panelAllow: [[/^Invite a third$/, "the app's own menu row, under a headline that makes it a trio; Cameron's call"]],
   },
   {
     n: "06", slug: "safety",
@@ -231,6 +267,18 @@ const COPY = [
     key: "safety", ...SAFETY,
   },
 ];
+
+/**
+ * A variant replaces some slides' source and window, keeps every word, and writes a whole set of
+ * its own (set-<theme>-b15-<variant>, with its own manifest, contact sheet and thumbs), so it can
+ * be laid next to the default and chosen between. Nothing in it is uploaded unless Cameron picks
+ * it.
+ */
+const VARIANTS = {
+  // Slide 05 at the other panels' scale (build 15 set review): the zoomed sheet draws its text
+  // about 1.57x every other panel's and makes "Invite a third" the panel's second-largest line.
+  "tools-3x": { "05": { key: "tools", ...TOOLS_3X, scale: undefined } },
+};
 
 /* ---- the two looks -------------------------------------------------------------------------- */
 
@@ -283,19 +331,30 @@ const flag = (name) => {
 };
 const flags = (name) => args.flatMap((a, i) => (a === `--${name}` && args[i + 1] ? [args[i + 1]] : []));
 
+const variant = flag("variant");
+if (variant && !VARIANTS[variant]) throw new Error(`no variant "${variant}" (${Object.keys(VARIANTS).join(", ")})`);
+/** The slides this run makes: the copy deck, with the variant's sources and windows laid over it. */
+const SLIDES = COPY.map((s) => ({ ...s, ...(variant ? VARIANTS[variant][s.n] ?? {} : {}) }));
+/** Every slide a run can need, the default's and every variant's, so one --import brings them all. */
+const ALL_SLIDES = [...COPY, ...Object.values(VARIANTS).flatMap((v) => COPY.filter((s) => v[s.n]).map((s) => ({ ...s, ...v[s.n] })))];
+
 /* ---- copy checks ------------------------------------------------------------------------------- */
 
+// `panel`: also held against every word the renderer drew inside a slide's window (panelWords).
+// The app's own screens may carry a negation, a price or "best" in their own right; they may not
+// carry a dash or read as dating next to photo cards with ages.
 const COPY_BANS = [
-  [/\u2014|\u2013/, "an em or en dash"],
+  [/\u2014|\u2013/, "an em or en dash", { panel: true }],
   [/\$|€|£|\bprice|\bfree trial|\/mo\b|per month/i, "a price or trial term"],
-  [/\bdat(e|ing)\b|\bsingles?\b|\blove\b|\bromance|\bflirt|\bcrush\b|♥|❤/i, "a dating cue"],
+  [/\bdat(e|ing)\b|\bsingles?\b|\blove\b|\bromance|\bflirt|\bcrush\b|♥|❤/i, "a dating cue", { panel: true }],
   // Next to photo cards with ages and swipe buttons: "a third" / "unicorn" are dating-app slang
   // for a threesome partner, and a night out or an age gate reads as a dating app.
-  [/\bthird\b|\bthreesome|\bunicorns?\b/i, "dating-app slang (a third, unicorn)"],
-  [/\b(to)?nights?\b|\bevenings?\b|\b18\s*\+|\badults? only\b/i, "a night out or an age gate, which reads as dating here"],
+  [/\bthird\b|\bthreesome|\bunicorns?\b/i, "dating-app slang (a third, unicorn)", { panel: true }],
+  [/\b(to)?nights?\b|\bevenings?\b|\b18\s*\+|\badults? only\b/i, "a night out or an age gate, which reads as dating here", { panel: true }],
   [/\bnot\b|n't\b|\bno more\b/i, "a negation"],
   [/#1|\bbest\b|\bnumber one\b/i, "an unverifiable claim"],
 ];
+const PANEL_BANS = COPY_BANS.filter(([, , o]) => o?.panel);
 for (const s of COPY) {
   for (const text of [...s.lines, s.sub, ...(s.note ?? [])]) {
     for (const [re, what] of COPY_BANS) if (re.test(text)) throw new Error(`${s.n}: "${text}" contains ${what}`);
@@ -309,7 +368,8 @@ for (const s of COPY) {
 
 /* ---- sources: import and verify --------------------------------------------------------------- */
 
-const neededKeys = new Set(Object.keys(LOOKS).flatMap((t) => COPY.map((s) => sourceKey(t, s.key))));
+/** "<key>@<scale>" for every shot a run can use, in both looks. */
+const needed = new Set(Object.keys(LOOKS).flatMap((t) => ALL_SLIDES.map((s) => `${sourceKey(t, s.key)}@${scaleOf(s)}`)));
 const scaleDir = (scale) => path.join(IN, `${scale}x`);
 
 const checkSource = (src, where) => {
@@ -332,7 +392,7 @@ const importShots = (dir) => {
   fs.mkdirSync(dest, { recursive: true });
   const copied = [];
   for (const row of report.rows) {
-    if (!neededKeys.has(row.key) || scaleOf(row.key) !== scale) continue;
+    if (!needed.has(`${row.key}@${scale}`)) continue;
     fs.copyFileSync(path.join(dir, `${row.key}.png`), path.join(dest, `${row.key}.png`));
     copied.push(row.key);
   }
@@ -353,10 +413,32 @@ const reportAt = (scale) => {
   return reports.get(scale);
 };
 
+/**
+ * The words a panel carries: every text the renderer drew (report.json `texts`, boxes in points)
+ * that the slide's window takes in, even in part, each held to PANEL_BANS. A hit the slide names
+ * in `panelAllow` ([pattern the whole text matches, reason]) is returned as allowed; any other
+ * stops the run.
+ */
+const panelWords = (slide, r, where) => {
+  if (!Array.isArray(r.texts)) throw new Error(`${where}: the renderer's report lists no texts: render it with the current renderer (render-dq cdp.mjs textBoxes)`);
+  const [l, t, rt, b] = slide.win;
+  const inside = r.texts.filter((x) => x.bottom > t && x.top < b && x.right > l && x.left < rt);
+  const allowed = [];
+  for (const x of inside) {
+    for (const [re, what] of PANEL_BANS) {
+      if (!re.test(x.text)) continue;
+      const allow = (slide.panelAllow ?? []).find(([pat]) => pat.test(x.text));
+      if (!allow) throw new Error(`${where}: the panel shows "${x.text}" (${Math.round(x.top)}-${Math.round(x.bottom)} pt), which contains ${what}; change the story or the window, or name it in panelAllow with the reason`);
+      allowed.push({ text: x.text, what, why: allow[1] });
+    }
+  }
+  return { count: inside.length, allowed };
+};
+
 /** A slide's source, verified against the renderer's own report. */
 const sourceFor = (theme, slide) => {
   const key = sourceKey(theme, slide.key);
-  const scale = scaleOf(key);
+  const scale = scaleOf(slide);
   const report = reportAt(scale);
   const row = report.rows.find((r) => r.key === key);
   const where = `${theme} ${slide.n} (${key} at ${scale}x)`;
@@ -374,12 +456,14 @@ const sourceFor = (theme, slide) => {
   if (confirm.some((c) => /subscriber/.test(c)) && slide.note !== NOTE_PLUS) {
     throw new Error(`${where}: the panel shows the Deck's subscriber strip (UNLIMITED, Ping, Power-Ups), so the slide needs note: NOTE_PLUS (Guideline 2.3.2)`);
   }
+  const words = panelWords(slide, r, where);
   const file = path.join(scaleDir(scale), `${key}.png`);
   if (!fs.existsSync(file)) throw new Error(`${where}: ${file} is missing: run with --import`);
   return {
     key, scale, file, store, report,
     window: r.window ?? null,
     confirm,
+    words,
     mode: r.mode ?? null,
     sha256: crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex"),
   };
@@ -706,7 +790,7 @@ const report = [];
 try {
   for (const theme of themes) {
     const look = LOOKS[theme];
-    const setName = `${theme}-b${BUILD.n}`;
+    const setName = `${theme}-b${BUILD.n}${variant ? `-${variant}` : ""}`;
     const setDir = path.join(OUT, `set-${setName}`);
     const sizeDirs = SIZES.slice(1).map(([w, h]) => path.join(setDir, `${w}x${h}`));
     for (const d of sizeDirs) fs.mkdirSync(d, { recursive: true });
@@ -717,7 +801,7 @@ try {
 
     // Pass 1: one headline size for the whole set, and every sub-line and note must fit the measure.
     const mFile = path.join(HTML_DIR, `measure-${setName}.html`);
-    fs.writeFileSync(mFile, measurePage(look, COPY));
+    fs.writeFileSync(mFile, measurePage(look, SLIDES));
     const m = dumpDom(mFile);
     if (!m.ok) throw new Error("a face did not load in the measure pass");
     const widest = Math.max(...m.widths.map(([, w]) => w));
@@ -725,7 +809,7 @@ try {
     for (const [t, w] of [...m.subs, ...m.notes]) if (w > W - 80) throw new Error(`"${t}" is ${Math.round(w)}px, wider than the canvas`);
 
     const made = [];
-    for (const slide of COPY) {
+    for (const slide of SLIDES) {
       if (only && !only.includes(slide.n)) continue;
       const name = `${slide.n}-${slide.slug}`;
       const src = sourceFor(theme, slide);
@@ -747,6 +831,8 @@ try {
         windowPt: slide.win.map((v) => Math.round(v * 100) / 100), padPt: slide.pad ?? 0, windowPx: panel.windowPx,
         panel: { width: PW, height: panel.height, scale: Number(panel.scale.toFixed(4)), insetTop: panel.insetTop, insetBottom: panel.insetBottom },
         confirm: src.confirm,
+        panelWords: src.words.count,
+        panelAllowed: src.words.allowed,
       });
     }
     report.push({ theme, setDir, size, widest: Math.round(widest), subs: m.subs, made });
@@ -755,17 +841,18 @@ try {
       const renderSrc = reportAt(3).source;
       fs.writeFileSync(
         path.join(OUT, `manifest-${setName}.json`),
-        JSON.stringify({ build: BUILD, renderedFrom: { commit: renderSrc.commit, real: renderSrc.real, pinned: renderSrc.pinned }, headline: size, slides: made }, null, 1),
+        JSON.stringify({ build: BUILD, variant: variant ?? null, renderedFrom: { commit: renderSrc.commit, real: renderSrc.real, pinned: renderSrc.pinned }, headline: size, slides: made }, null, 1),
       );
       await thumbs(made.slice(0, 3).map((x) => x.big), path.join(OUT, `thumbs-${setName}.jpg`));
       await contact(
         made.map((x) => x.big),
         {
-          title: `DuoQueue App Store screenshots / set ${theme.toUpperCase()} / 1320x2868 / build ${BUILD.n} (${BUILD.commit}), rendered from the pinned checkout`,
+          title: `DuoQueue App Store screenshots / set ${theme.toUpperCase()}${variant ? ` / variant ${variant}` : ""} / 1320x2868 / build ${BUILD.n} (${BUILD.commit}), rendered from the pinned checkout`,
           items: made.map((x) => [
             [x.name],
             [`${x.source.key} @${x.source.scale}x, panel ${x.panel.height}px`],
             ...x.confirm.map((c) => [`confirm: ${c}`, true]),
+            ...x.panelAllowed.map((a) => [`kept in panel: "${a.text}"`, true]),
           ]),
         },
         path.join(OUT, `contact-${setName}.jpg`),
@@ -784,5 +871,6 @@ for (const r of report) {
       `  ${x.name}.png  ${x.source.key} @${x.source.scale}x  window ${x.windowPt[1]}-${x.windowPt[3]} pt  panel ${PW}x${x.panel.height} at ${x.panel.scale}x  inset top ${x.panel.insetTop} bottom ${x.panel.insetBottom}`,
     );
     for (const c of x.confirm) console.log(`      confirm: ${c}`);
+    for (const a of x.panelAllowed) console.log(`      kept in panel: "${a.text}" (${a.what}): ${a.why}`);
   }
 }
