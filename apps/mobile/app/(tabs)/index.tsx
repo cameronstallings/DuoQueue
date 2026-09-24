@@ -20,9 +20,9 @@ import {
   useActivateBoost,
   useConsumableCredits,
 } from "@/features/premium/useConsumables";
+import { DeckStrip } from "@/features/swipe/DeckStrip";
 import { EmptyDeck } from "@/features/swipe/EmptyDeck";
 import { LikePassButtons } from "@/features/swipe/LikePassButtons";
-import { StandoutsRow } from "@/features/swipe/StandoutsRow";
 import { SwipeDeck, type SwipeDeckHandle } from "@/features/swipe/SwipeDeck";
 import type { DeckCard, SwipeDirection } from "@/features/swipe/types";
 import { useDeck } from "@/features/swipe/useDeck";
@@ -117,12 +117,6 @@ export default function DeckScreen() {
     }
   }
 
-  const quotaLabel = quota?.is_premium
-    ? "Unlimited swipes"
-    : quota
-      ? `${Math.max((quota.swipes_limit ?? 25) - quota.swipes_used, 0)} swipes left today`
-      : "";
-
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <GraticuleBackground />
@@ -168,19 +162,13 @@ export default function DeckScreen() {
           </Pressable>
         </View>
       </View>
-      {quotaLabel ? (
-        <Text
-          style={[type.caption, { color: colors.textMuted, paddingHorizontal: spacing.lg, paddingTop: spacing.xs }]}
-        >
-          {quotaLabel}
-        </Text>
-      ) : null}
-
       <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm }}>
-        <StandoutsRow />
+        <DeckStrip quota={quota} />
       </View>
 
-      <View style={{ flex: 1, margin: spacing.lg }}>
+      {/* 12pt under the strip; 8pt above the buttons leaves room for the two cards peeking
+          under the top one. */}
+      <View style={{ flex: 1, marginHorizontal: spacing.lg, marginTop: spacing.tight, marginBottom: spacing.sm }}>
         {isLoading ? (
           <Skeleton style={{ flex: 1, borderRadius: radius.card }} />
         ) : error ? (
