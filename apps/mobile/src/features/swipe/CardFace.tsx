@@ -20,7 +20,17 @@ export const CARD_CELL_LABELS: CellLabels = {
 const PROMPT_CHROME = 62;
 const PROMPT_LINE = 30;
 
-function CardPageView({ page, name }: { page: CardPage; name: string }) {
+/** The own-card status tag sits this far in from the picture's top-left corner. */
+const STATUS_TAG_INSET = 10;
+/** The tag's height before it is measured: a 12pt tick line, 5pt padding and a 1pt border each side. */
+const STATUS_TAG_HEIGHT = 24;
+
+/**
+ * `clearTop` is how far down a prompt page's text must start so the status tag (drawn over
+ * every page) never covers the question. 0 when there is no tag. The picture and blank pages
+ * ignore it.
+ */
+function CardPageView({ page, name, clearTop }: { page: CardPage; name: string; clearTop: number }) {
   const { colors, spacing, type } = useTheme();
   const [size, setSize] = useState({ width: 0, height: 0 });
 
@@ -54,7 +64,10 @@ function CardPageView({ page, name }: { page: CardPage; name: string }) {
   }
 
   const markSize = size.height;
-  const answerLines = size.height > 0 ? Math.max(2, Math.min(6, Math.floor((size.height - PROMPT_CHROME) / PROMPT_LINE))) : 6;
+  const pagePadding = spacing.lg - spacing.xs;
+  const paddingTop = Math.max(pagePadding, clearTop);
+  const chrome = PROMPT_CHROME + (paddingTop - pagePadding);
+  const answerLines = size.height > 0 ? Math.max(2, Math.min(6, Math.floor((size.height - chrome) / PROMPT_LINE))) : 6;
   return (
     <View style={StyleSheet.absoluteFill} onLayout={handleLayout}>
       {markSize > 0 && (
@@ -62,7 +75,7 @@ function CardPageView({ page, name }: { page: CardPage; name: string }) {
           <PlayerMark name={name} size={markSize} shape="none" color={colors.cardMark} glyphScale={0.9} />
         </View>
       )}
-      <View style={{ padding: spacing.lg - spacing.xs, gap: spacing.sm }}>
+      <View style={{ padding: pagePadding, paddingTop, gap: spacing.sm }}>
         {page.question ? (
           <Text style={[type.label, { color: colors.cardRecessedMuted }]} numberOfLines={2}>
             {page.question}
@@ -111,9 +124,12 @@ export function CardFace({
 }: CardFaceProps) {
   const { colors, motion, radius, spacing, type } = useTheme();
   const [pageIndex, setPageIndex] = useState(0);
+  // Measured so a larger text size still clears the tag; starts at the default-size height.
+  const [tagHeight, setTagHeight] = useState(STATUS_TAG_HEIGHT);
   const lastIndex = Math.max(pages.length - 1, 0);
   const index = Math.min(pageIndex, lastIndex);
   const page: CardPage = pages[index] ?? { kind: "blank" };
+  const clearTop = statusTag ? STATUS_TAG_INSET + tagHeight + spacing.sm : 0;
 
   function goTo(next: number) {
     setPageIndex(Math.min(Math.max(next, 0), lastIndex));
@@ -135,7 +151,7 @@ export function CardFace({
           exiting={FadeOut.duration(motion.quick).reduceMotion(ReduceMotion.Never)}
           style={StyleSheet.absoluteFill}
         >
-          <CardPageView page={page} name={name} />
+          <CardPageView page={page} name={name} clearTop={clearTop} />
         </Animated.View>
 
         {interactive && pages.length > 1 && (
@@ -158,6 +174,7 @@ export function CardFace({
         {statusTag ? (
           <View
             pointerEvents="none"
+            onLayout={(e) => setTagHeight(e.nativeEvent.layout.height)}
             style={[styles.statusTag, { borderRadius: radius.chip, borderColor: colors.cardEdge, backgroundColor: colors.cardHero }]}
           >
             <Text style={[type.tick, { color: colors.textMuted }]}>{statusTag}</Text>
@@ -208,8 +225,8 @@ const styles = StyleSheet.create({
   },
   statusTag: {
     position: "absolute",
-    top: 10,
-    left: 10,
+    top: STATUS_TAG_INSET,
+    left: STATUS_TAG_INSET,
     borderWidth: 1,
     paddingHorizontal: 8,
     paddingVertical: 5,
