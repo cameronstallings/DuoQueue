@@ -10,16 +10,20 @@ import { useTheme } from "@/theme/useTheme";
 import { cardPicture } from "./cardChips";
 // Not "./deckStrip": that differs from this file's name only in case, and on a case-insensitive
 // disk (Windows, the Mac that builds the app) "@/features/swipe/DeckStrip" would resolve to it.
-import { highlightsCountLabel, stripQuotaLabel, type StripQuota } from "./deckStripCopy";
+import {
+  STRIP_FACE_OVERLAP as FACE_OVERLAP,
+  STRIP_FACE_SIZE as FACE_SIZE,
+  highlightsCountLabel,
+  stripIsCompact,
+  stripQuotaLabel,
+  type StripQuota,
+} from "./deckStripCopy";
 import { StandoutCardModal } from "./StandoutCardModal";
 import type { DeckCard } from "./types";
 import { useStandouts } from "./useStandouts";
 
 const STRIP_HEIGHT = 32;
-const FACE_SIZE = 19;
-const FACE_OVERLAP = 6;
 const SHEET_FACE_SIZE = 64;
-const COMPACT_WIDTH = 380;
 
 /**
  * The Deck's one-line chrome: three Highlights faces, "HIGHLIGHTS", "4 PICKED TODAY ›" and the
@@ -29,12 +33,13 @@ const COMPACT_WIDTH = 380;
 export function DeckStrip({ quota }: { quota: StripQuota | undefined }) {
   const { colors, radius, spacing, type } = useTheme();
   const { width } = useWindowDimensions();
-  const compact = width < COMPACT_WIDTH;
   const { cards, isLoading, removeCard } = useStandouts();
   const [sheetVisible, setSheetVisible] = useState(false);
   const [openCard, setOpenCard] = useState<DeckCard | null>(null);
   const hasHighlights = cards.length > 0;
-  const quotaText = stripQuotaLabel(quota, compact);
+  const quotaText = stripQuotaLabel(quota, stripIsCompact(width));
+  // VoiceOver gets the full copy even where the strip shows "18 LEFT" or "UNLIMITED".
+  const quotaSpoken = stripQuotaLabel(quota, false);
 
   // Same hand-off as the chat screen's menu: close the sheet and open the modal in one handler.
   function handlePick(card: DeckCard) {
@@ -51,7 +56,7 @@ export function DeckStrip({ quota }: { quota: StripQuota | undefined }) {
         // A label replaces the children's text, so it carries the swipes left too.
         accessibilityLabel={
           hasHighlights
-            ? `Highlights, ${highlightsCountLabel(cards.length)}${quotaText ? `. ${quotaText}` : ""}`
+            ? `Highlights, ${highlightsCountLabel(cards.length)}${quotaSpoken ? `. ${quotaSpoken}` : ""}`
             : undefined
         }
         accessibilityHint={hasHighlights ? "Opens today's Highlights" : undefined}
@@ -103,9 +108,9 @@ export function DeckStrip({ quota }: { quota: StripQuota | undefined }) {
             {`${highlightsCountLabel(cards.length)} ›`}
           </Text>
         ) : null}
-        <View style={{ flex: 1 }} />
+        {/* An auto margin, not a flex spacer: a spacer View would add a fourth 8pt gap. */}
         {quotaText ? (
-          <Text style={[type.tick, { color: colors.textMuted }]} numberOfLines={1}>
+          <Text style={[type.tick, { color: colors.textMuted, marginLeft: "auto" }]} numberOfLines={1}>
             {quotaText}
           </Text>
         ) : null}
