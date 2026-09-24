@@ -1268,6 +1268,55 @@
     .cta { font-size: clamp(21px, 3.3vw, 34px); }
     .promise { margin-top: 12px; }
   }
+
+  /* ---- the film ---------------------------------------------------------- */
+  /* THE LAUNCH VIDEO, AS A DARK OBJECT ON THE PAPER.
+     The film is shot on the app's own dark ground, so on this page it is the one large dark
+     element, which is exactly where chartreuse is allowed to live: inside something dark,
+     never on the cream. It sits on the grid's one left edge like every other object, at the
+     fragments' 10px corner, and it casts the button's square-on shadow because, like the
+     button and unlike the plates, it faces the reader untilted.
+
+     G4 above and nothing below: the plain version's own G4 is the gap under it, and two
+     sections cannot each pay for the same boundary.
+
+     THE SENTENCE COMES FIRST IN THE DOM, as the scene's sentences do, so on a phone the line
+     sits above the film and no type is ever set inside its cast shadow. From 900px the film
+     is placed in the first column and the line beside it, centred on the film's band, which
+     is the scene's interleave again: a line of type and an object sharing a line.
+
+     THE WIDTH IS CAPPED TWICE. 360px keeps a 9:16 film the shape of a phone on a desktop,
+     and 43.875% of the window's height (so the film is at most 78% of it) lets a laptop see
+     the whole film without scrolling through it; on a portrait phone that second cap is what
+     keeps the controls on the same screen as the top of the picture. vh first, svh second:
+     the same fallback-then-override pattern as the fragments' cqw lines in CSS. */
+  section.film { padding: clamp(36px, 10.93vw, 118px) 0 0; }
+  .film .eyebrow { margin: 0 0 clamp(16px, 3.70vw, 40px); }
+  .film-fig { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr); }
+  .film-line { font-size: clamp(15px, 1.7vw, 18px); color: var(--muted); margin: 0 0 clamp(16px, 3.70vw, 40px); max-width: 38ch; }
+  .film-frame {
+    width: min(100%, 360px);
+    width: min(100%, 360px, 43.875vh);
+    width: min(100%, 360px, 43.875svh);
+    aspect-ratio: 9 / 16;
+    overflow: hidden; isolation: isolate;
+    background: #0A0B09;
+    border-radius: 10px;
+    box-shadow: 0px 2px 5px rgba(41,34,18,0.16), 0px 12px 26px -8px rgba(41,34,18,0.3);
+  }
+  .film-frame video {
+    display: block; width: 100%; height: 100%; object-fit: cover;
+    background: #0A0B09; border-radius: 10px;
+  }
+
+  @media (min-width: 900px) {
+    /* The film on the left edge, its sentence beside it at the lede's size. The frame
+       drops its 100% term here because an auto track would make it cyclic, and at 900px
+       of window the content box is already wider than 360px. */
+    .film-fig { grid-template-columns: auto minmax(0, 1fr); column-gap: clamp(24px, 5.74vw, 62px); align-items: center; }
+    .film-frame { grid-area: 1 / 1; width: min(360px, 43.875vh); width: min(360px, 43.875svh); }
+    .film-line { grid-area: 1 / 2; margin: 0; font-size: clamp(17px, 2.1vw, 22px); line-height: 1.5; color: var(--ink); max-width: 30ch; }
+  }
 </style>
 </head>
 <body>
@@ -1320,7 +1369,7 @@
         <button class="cta" type="submit">join the waitlist</button>
       </form>
       <p class="promise">One email, on the day it goes live. That is the only one you get.</p>
-      <p class="fineprint">We do not share your address. No analytics, no trackers and no cookies on this page &mdash; submitting the form sets one 30-minute anti-bot cookie on our backend&rsquo;s own domain, and nothing else. See the <a href="/privacy/">Privacy Policy</a>.</p>
+      <p class="fineprint">We do not share your address. No analytics, no trackers and no cookies on this page. Submitting the form sets one 30-minute anti-bot cookie on our backend&rsquo;s own domain, and nothing else. See the <a href="/privacy/">Privacy Policy</a>.</p>
       </div>
       <div class="hero-scene scene">
         <h2 class="eyebrow">What you are joining</h2>
@@ -1344,6 +1393,20 @@
         </div>
       </div>
     </div>
+  </div>
+</section>
+
+<section class="film" aria-labelledby="film-head">
+  <div class="wrap">
+    <h2 class="eyebrow" id="film-head">The short version</h2>
+    <figure class="film-fig">
+      <figcaption class="film-line" id="film-line">The app, from the first swipe to queueing up.</figcaption>
+      <div class="film-frame">
+        <video src="/assets/duoqueue-launch.mp4" poster="/assets/duoqueue-launch-poster.jpg" controls muted autoplay loop playsinline preload="metadata" aria-label="DuoQueue, a short film of the app" aria-describedby="film-line">
+          <a href="/assets/duoqueue-launch.mp4">Watch the DuoQueue film</a>
+        </video>
+      </div>
+    </figure>
   </div>
 </section>
 
