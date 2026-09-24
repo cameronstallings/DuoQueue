@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, View } from "react-native";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { StatusBar } from "expo-status-bar";
@@ -18,7 +18,7 @@ import { IBMPlexMono_500Medium, IBMPlexMono_600SemiBold } from "@expo-google-fon
 
 import { useInviteRedemption } from "@/features/invite/useInvite";
 import { LaunchIntro } from "@/features/launch/LaunchIntro";
-import { endColdStart, isColdStart } from "@/features/launch/launchTiming";
+import { APP_MOUNT_AFTER_LOCK_MS, endColdStart, isColdStart } from "@/features/launch/launchTiming";
 import { useNotificationTapRouting } from "@/hooks/useNotificationTapRouting";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { Toast } from "@/components/Toast";
@@ -60,8 +60,20 @@ export default function RootLayout() {
   // backstop gave up waiting): mounting the whole tree is heavy UI-thread work, and done while the
   // rings moved it made them stutter. The session restore and the data loads below start at once
   // regardless; they are not rendering.
+  // Mounted APP_MOUNT_AFTER_LOCK_MS after the lock rather than at it, so the mount's UI-thread
+  // commit lands after the pop's peak instead of inside it. The first report wins.
   const [introLocked, setIntroLocked] = useState(false);
-  const markIntroLocked = useCallback(() => setIntroLocked(true), []);
+  const mountTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const markIntroLocked = useCallback(() => {
+    if (mountTimer.current) return;
+    mountTimer.current = setTimeout(() => setIntroLocked(true), APP_MOUNT_AFTER_LOCK_MS);
+  }, []);
+  useEffect(
+    () => () => {
+      if (mountTimer.current) clearTimeout(mountTimer.current);
+    },
+    [],
+  );
 
   // The type system carries most of the visual identity, so the app is not mounted (the
   // splash, then the launch intro, stays over it) until the faces are in memory — swapping

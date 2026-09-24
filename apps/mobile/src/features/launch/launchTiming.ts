@@ -111,6 +111,11 @@ export const LAUNCH_DISSOLVE_MS = 200;
  * mid-pop: the rings, the pop and the brackets have all settled to within half an @3x pixel 496ms
  * after the lock. */
 export const LOCKED_HOLD_MS = 500;
+/** The app mounts behind the intro this long after the lock, not at it: mounting the whole tree is
+ * heavy work that commits on the UI thread, and landing it inside the pop's first 60ms (its peak)
+ * would hitch the very moment the pop exists for. 180ms is past the peak and the rings' deepest
+ * overshoot, and still leaves the mount 320ms before the fade starts. */
+export const APP_MOUNT_AFTER_LOCK_MS = 180;
 /** Still loading this long after the lock: the mark starts to breathe so it never looks frozen. */
 export const BREATHE_AFTER_MS = 1500;
 /** The lock is timed from the moment the UI thread reports it, not from the JS clock, so a UI thread

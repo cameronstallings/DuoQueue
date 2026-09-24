@@ -34,6 +34,7 @@ import {
   launchMarkWidth,
   launchOpening,
   launchSchedule,
+  APP_MOUNT_AFTER_LOCK_MS,
   LOCK_LATE_MS,
   LOCKED_HOLD_MS,
   msUntil,
@@ -358,6 +359,20 @@ describe("after the lock", () => {
   it("breathes only well after the hold", () => {
     expect(BREATHE_AFTER_MS).toBe(1500);
     expect(BREATHE_AFTER_MS).toBeGreaterThan(LOCKED_HOLD_MS);
+  });
+
+  it("mounts the app after the pop's peak and the rings' deepest overshoot, well before the fade", () => {
+    let popPeakAt = LAUNCH_LOCK_MS;
+    let deepestAt = LAUNCH_LOCK_MS;
+    for (let ms = LAUNCH_LOCK_MS; ms <= LAUNCH_LOCK_MS + 300; ms += 0.1) {
+      const m = motionAt(ms);
+      if (m.pop > motionAt(popPeakAt).pop) popPeakAt = ms;
+      if (m.rings > motionAt(deepestAt).rings) deepestAt = ms;
+    }
+    expect(APP_MOUNT_AFTER_LOCK_MS).toBe(180);
+    expect(APP_MOUNT_AFTER_LOCK_MS).toBeGreaterThan(popPeakAt - LAUNCH_LOCK_MS);
+    expect(APP_MOUNT_AFTER_LOCK_MS).toBeGreaterThan(deepestAt - LAUNCH_LOCK_MS);
+    expect(LOCKED_HOLD_MS - APP_MOUNT_AFTER_LOCK_MS).toBeGreaterThanOrEqual(300);
   });
 
   it("waits for a late lock report 2s past when it was due, well past the whole opening", () => {
