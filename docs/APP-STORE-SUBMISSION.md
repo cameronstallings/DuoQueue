@@ -308,19 +308,22 @@ is fine and stays as written.
 ### 2.4 Promotional Text (170 char max) — use this:
 
 ```
-DuoQueue finds you a duo, not a date. Match on games, shows, and playstyle, then chat and play. Party mode lets a friend join the swiping. Now live.
+DuoQueue finds you a duo, not a date. See who you can duo with in League of Legends Ranked Solo/Duo, match on games and playstyle, then chat and queue up.
 ```
-148/170 characters. This field is editable without a new build — it's meant to be your
+154/170 characters (build 16: leads with the Can duo cell). This field is editable without a new build — it's meant to be your
 literal launch-day line.
 
 ### 2.5 Description (4000 char max) — use this:
 
-1,912 characters.
+2,288 characters (build 16: adds the one-picture card and the League Can duo paragraph; the
+paste-ready copy is also in `C:\Users\stall\Documents\DuoQueue-listing-build-16.txt`).
 
 ```
 DuoQueue is not a dating app. It's how you find people to actually play with: a duo for co-op, a fourth for the raid, someone equally deep into the same show. No looks-first swiping, no gender filters. Just shared games, shows, and playstyle.
 
-Your deck shows people matched on what you're both into: favorite games (skill level, rank if you've got one), shows you watch, playstyle (chill, competitive, late night, mic required, solo queue, team player), and when you're usually online. Swipe to say you'd duo. Mutual swipe, you match, chat opens up.
+Your deck shows people matched on what you're both into: favorite games (skill level, rank if you've got one), shows you watch, playstyle (chill, competitive, late night, mic required, solo queue, team player), and when you're usually online. Every card is one picture if they added one (them, their setup, their pet, the character they main), then their prompts. Swipe to say you'd duo. Mutual swipe, you match, chat opens up.
+
+Play League of Legends? Add your rank, and the players whose rank can queue Ranked Solo/Duo with yours light up with Can duo and sit nearer the top of your deck.
 
 Want a third? Party mode lets you and a match invite someone else in. Everyone swipes on the same profile, and it takes a unanimous yes before that person's invited to join.
 
