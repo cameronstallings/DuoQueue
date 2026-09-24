@@ -24,6 +24,12 @@ import { Name } from "@/components/Name";
 import { PresenceAvatar } from "@/components/PresenceAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import {
+  BRACKET_FADE_MS,
+  BRACKET_SIDE,
+  BRACKET_SIZE,
+  BRACKET_SPRING,
+  BRACKET_TRAVEL,
+  MATCH_MARK_W as MARK_W,
   type MatchExit,
   matchExitSteps,
   matchReason,
@@ -40,17 +46,10 @@ import { useSessionStore } from "@/store/session-store";
 import { LOGO_MARK_ASPECT } from "@/theme/logo-geometry";
 import { useTheme } from "@/theme/useTheme";
 
-const MARK_W = 168;
 const MARK_H = MARK_W * LOGO_MARK_ASPECT;
-const BRACKET_SIZE = 96;
-/** Room each side of the rings for a bracket glyph. Measured from the Plex Mono SemiBold outlines
- * against the mark's geometry: at 36 the "]" lower arm crosses the Q's tail (the nub) by ~6pt at
- * rest and ~10pt at the spring's peak (10% of BRACKET_TRAVEL). 52 leaves ~9.6pt at rest and
- * ~5.5pt at the peak, and the 272pt box still fits a 320pt-wide iPhone inside the 24pt gutters.
- * Vertical placement is still to confirm on the device. */
-const BRACKET_SIDE = 52;
+/** The bracket numbers live in matchMoment.ts, shared with the launch intro. Vertical placement
+ * is still to confirm on the device. */
 const LOCK_BOX_W = MARK_W + BRACKET_SIDE * 2;
-const BRACKET_TRAVEL = 40;
 const PLAYER_SIZE = 40;
 /** The screen is a modal sheet that is still sliding up for about this long. */
 const START_MS = 250;
@@ -58,13 +57,9 @@ const LOCK_MS = START_MS + RINGS_MS;
 /** The brackets set off late enough that their spring first reaches its target at the lock. */
 const BRACKETS_AT_MS = START_MS + 380;
 const FLASH_MS = 200;
-/** RING_BEZIER (matchMoment.ts), shared with the launch intro. */
+/** RING_BEZIER (matchMoment.ts), shared with duoqueue.io's match card. */
 const RING_EASING = Easing.bezier(...RING_BEZIER);
 const STAMP_EASING = Easing.bezier(0.23, 1, 0.32, 1);
-/** Full config on purpose: Reanimated 4 merges a partial config over mass 4 / stiffness 900,
- * which turned the old { damping: 14 } into a five-second wobble with a late flash. This one is
- * a damping ratio of ~0.59: ~10% overshoot, settled in under a second. */
-const BRACKET_SPRING = { mass: 1, stiffness: 420, damping: 24 } as const;
 
 function BracketGlyph({
   glyph,
@@ -161,7 +156,7 @@ export default function MatchCelebrationScreen() {
         runOnJS(hapticSuccess)();
       }),
     );
-    bracketsOpacity.value = withDelay(BRACKETS_AT_MS, withTiming(1, { duration: 140 }));
+    bracketsOpacity.value = withDelay(BRACKETS_AT_MS, withTiming(1, { duration: BRACKET_FADE_MS }));
     brackets.value = withDelay(BRACKETS_AT_MS, withSpring(1, BRACKET_SPRING));
 
     // "Keep swiping" can close the screen mid-animation.

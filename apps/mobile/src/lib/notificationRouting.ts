@@ -17,10 +17,10 @@ import type { ProfileStatus } from "@/features/auth/sessionRouting";
  * entire promise of the notification is "open your deck and they are in it". But a tap can
  * arrive at a moment when navigating is the wrong move, and there are four of them:
  *
- *  1. NO NAVIGATOR YET. `RootLayout` renders null until the fonts resolve, so for the first
- *     few hundred milliseconds of a cold start there is no root navigator to navigate, and
- *     expo-router says so loudly. A tap is one of the ways to reach that window, because the
- *     tap is what started the app.
+ *  1. NO NAVIGATOR YET. `RootLayout` renders no Stack until the fonts resolve and, on a cold
+ *     start, until the launch intro's rings have locked, so for the first half second or so
+ *     there is no root navigator to navigate, and expo-router says so loudly. A tap is one of
+ *     the ways to reach that window, because the tap is what started the app.
  *  2. COLD START. The tap is delivered before `session-store.initialize()` has resolved a
  *     session. Navigating then races the auth redirect in `app/index.tsx`; ignoring it drops
  *     the deep link entirely. Neither is acceptable, so this returns "wait" and the hook
@@ -36,7 +36,8 @@ export interface NotificationTapInput {
   /** `data.category` from the push payload. Unknown shape by the time it reaches here — it
    *  crossed a network and an OS. */
   category: unknown;
-  /** Whether `RootLayout` is past its font gate and actually rendering the `Stack`. */
+  /** Whether `RootLayout` is past its font and launch-intro gates and actually rendering the
+   *  `Stack`. */
   navigatorReady: boolean;
   sessionStatus: "loading" | "signed_out" | "signed_in";
   /**

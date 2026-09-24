@@ -16,12 +16,40 @@ export function ringTravel(markWidth: number): number {
   return RING_TRAVEL_UNITS * (markWidth / VB_W);
 }
 
-/** How long the rings take to slide together, in DUO LOCKED and in the launch intro. */
+/** How long the rings take to slide together in DUO LOCKED. (The launch intro rushes them on a
+ * spring instead: launchTiming.ts.) */
 export const RINGS_MS = 520;
-/** The rings' curve, as Easing.bezier's four arguments: ease-in-out with no overshoot, because
- * the weave only reads right from 1.3R to 1.52R apart, so the rings must never rebound past their
- * place (DUO LOCKED's brackets carry the overshoot). Matches the site. */
+/** DUO LOCKED's ring curve, as Easing.bezier's four arguments: ease-in-out with no overshoot, so
+ * there the brackets carry all the overshoot. Matches the site. The weave only reads right while
+ * the rings' centres are 1.3R to 1.52R apart, which is the limit on any overshoot: the launch
+ * intro's spring does rebound past the lock, to 1.32R at its deepest, and settles back through
+ * 1.52R no further out than 1.517R (launchTiming.test.ts holds it to both). */
 export const RING_BEZIER = [0.65, 0, 0.35, 1] as const;
+
+/** The weave's limits: the rings' centres, in ring radii, while the weave is drawn. */
+export const WEAVE_MIN_CENTRES_R = 1.3;
+export const WEAVE_MAX_CENTRES_R = 1.52;
+
+// DUO LOCKED's brackets, which the launch intro also draws (scaled to its mark by
+// LAUNCH_MARK_W / MATCH_MARK_W), so the two moments close the same "[ ]".
+
+/** The rings' width on the match screen, in points. */
+export const MATCH_MARK_W = 168;
+/** The "[" and "]": IBM Plex Mono SemiBold at this size, in volt. */
+export const BRACKET_SIZE = 96;
+/** Room each side of the rings for a bracket glyph. Measured from the Plex Mono SemiBold outlines
+ * against the mark's geometry: at 36 the "]" lower arm crosses the Q's tail (the nub) by ~6pt at
+ * rest and ~10pt at the spring's peak (10% of BRACKET_TRAVEL). 52 leaves ~9.6pt at rest and
+ * ~5.5pt at the peak, and the 272pt box still fits a 320pt-wide iPhone inside the 24pt gutters. */
+export const BRACKET_SIDE = 52;
+/** How far out each bracket starts, in points. */
+export const BRACKET_TRAVEL = 40;
+/** Full config on purpose: Reanimated 4 merges a partial config over mass 4 / stiffness 900,
+ * which turned the old { damping: 14 } into a five-second wobble with a late flash. This one is
+ * a damping ratio of ~0.59: ~10% overshoot, settled in under a second. */
+export const BRACKET_SPRING = { mass: 1, stiffness: 420, damping: 24 } as const;
+/** The brackets fade in over this long (withTiming's default ease) as they set off. */
+export const BRACKET_FADE_MS = 140;
 
 // Type aliases, not interfaces: expo-router's params want index-signature-compatible objects.
 export type MatchRouteParams = { matchId: string; name?: string; photo?: string; duo?: string; common?: string };

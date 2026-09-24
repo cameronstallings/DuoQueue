@@ -4,18 +4,33 @@ import { URL } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 
 import appConfig from "../../../app.json";
-import { CANVAS, mix, VB_H, VB_W, VB_X, VB_Y } from "../../theme/logo-geometry";
+import { CANVAS, CXA, CXB, CY, D, mix, NUB, R, VB_H, VB_W, VB_X, VB_Y, W } from "../../theme/logo-geometry";
 import { darkColors } from "../../theme/tokens";
-import { RINGS_MS, ringTravel } from "../match/matchMoment";
+import {
+  BRACKET_FADE_MS,
+  BRACKET_SPRING,
+  RING_TRAVEL_UNITS,
+  ringTravel,
+  WEAVE_MAX_CENTRES_R,
+  WEAVE_MIN_CENTRES_R,
+} from "../match/matchMoment";
 
+import { bracketInkPoints, LAUNCH_BRACKET_TRAVEL } from "./launchBrackets";
 import {
   ANDROID_MARK_W,
   ANDROID_SPLASH_IMAGE_WIDTH,
   BREATHE_AFTER_MS,
   LAUNCH_BEAT_MS,
+  LAUNCH_BRACKETS_AT_MS,
   LAUNCH_DISSOLVE_MS,
+  LAUNCH_LOCK_MS,
   LAUNCH_MARK_W,
   LAUNCH_PALETTE,
+  LAUNCH_POP_SPRING,
+  LAUNCH_RUSH_REACH_MS,
+  LAUNCH_RUSH_SPRING,
+  LAUNCH_WINDUP,
+  LAUNCH_WINDUP_MS,
   launchMarkWidth,
   launchOpening,
   launchSchedule,
@@ -27,6 +42,7 @@ import {
   SPLASH_IMAGE_WIDTH,
   splashViewBox,
 } from "./launchTiming";
+import { springAt, springDoneMs, springFirstReachMs, springRange } from "./springMath";
 
 interface SplashProps {
   image: string;
@@ -40,6 +56,59 @@ function splashPlugin(): SplashProps {
   const entry = appConfig.expo.plugins.find((p) => Array.isArray(p) && p[0] === "expo-splash-screen");
   if (!Array.isArray(entry)) throw new Error("expo-splash-screen is not configured in app.json");
   return entry[1] as unknown as SplashProps;
+}
+
+/**
+ * The bracket lock as LaunchIntro.tsx drives it, in ms after the opening starts, with the device's
+ * frames taken out: the value each withTiming / withSpring holds at that instant.
+ */
+function motionAt(ms: number): { rings: number; pop: number; brackets: number } {
+  const rushAt = LAUNCH_BEAT_MS + LAUNCH_WINDUP_MS;
+  let rings = 0;
+  if (ms > LAUNCH_BEAT_MS && ms < rushAt) {
+    const u = (ms - LAUNCH_BEAT_MS) / LAUNCH_WINDUP_MS;
+    rings = LAUNCH_WINDUP * (1 - (1 - u) * (1 - u)); // Easing.out(Easing.quad)
+  } else if (ms >= rushAt) rings = springAt(LAUNCH_RUSH_SPRING, LAUNCH_WINDUP, 1, ms - rushAt).value;
+  const pop = ms < LAUNCH_LOCK_MS ? 1 : springAt(LAUNCH_POP_SPRING, 1, 1, ms - LAUNCH_LOCK_MS).value;
+  const brackets = ms <= LAUNCH_BRACKETS_AT_MS ? 0 : springAt(BRACKET_SPRING, 0, 1, ms - LAUNCH_BRACKETS_AT_MS).value;
+  return { rings, pop, brackets };
+}
+
+/** The rings' centres, in ring radii, at a RingsLock progress. */
+const centresR = (progress: number) => (D + 2 * (1 - progress) * RING_TRAVEL_UNITS) / R;
+
+/** The launch mark's geometry in points, from its centre (y down). */
+const PT = LAUNCH_MARK_W / VB_W;
+const MID_X = VB_X + VB_W / 2;
+const MID_Y = VB_Y + VB_H / 2;
+const TRAVEL_PT = ringTravel(LAUNCH_MARK_W);
+
+/** How close the brackets' ink comes to the rings' ink, in points, before the pop's scale (which
+ * scales rings and brackets together about one point, so it scales the gap with them). */
+function bracketGapPt(rings: number, brackets: number): number {
+  const shift = (1 - rings) * TRAVEL_PT;
+  const o = { x: (CXA - MID_X) * PT - shift, y: (CY - MID_Y) * PT };
+  const q = { x: (CXB - MID_X) * PT + shift, y: (CY - MID_Y) * PT };
+  const nub = { x: (NUB.cx - MID_X) * PT + shift, y: (NUB.cy - MID_Y) * PT };
+  let gap = Infinity;
+  for (const [glyph, out] of [
+    ["[", -LAUNCH_BRACKET_TRAVEL],
+    ["]", LAUNCH_BRACKET_TRAVEL],
+  ] as const) {
+    const pts = bracketInkPoints(glyph).map(([x, y]) => [x + (1 - brackets) * out, y] as const);
+    for (let i = 0; i < pts.length; i++) {
+      const [x0, y0] = pts[i]!;
+      const [x1, y1] = pts[(i + 1) % pts.length]!;
+      const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 0.1);
+      for (let j = 0; j <= n; j++) {
+        const x = x0 + ((x1 - x0) * j) / n;
+        const y = y0 + ((y1 - y0) * j) / n;
+        const ring = (c: { x: number; y: number }) => Math.abs(Math.hypot(x - c.x, y - c.y) - R * PT) - (W / 2) * PT;
+        gap = Math.min(gap, ring(o), ring(q), Math.hypot(x - nub.x, y - nub.y) - NUB.r * PT);
+      }
+    }
+  }
+  return gap;
 }
 
 describe("the native splash in app.json", () => {
@@ -76,10 +145,13 @@ describe("the native splash in app.json", () => {
 });
 
 describe("the launch palette", () => {
-  it("is the dark app's field, ink and duo grey, whatever the theme", () => {
+  it("is the dark app's field, ink, duo grey and volt, whatever the theme", () => {
     expect(LAUNCH_PALETTE.background).toBe(darkColors.background);
     expect(LAUNCH_PALETTE.ink).toBe(darkColors.text);
     expect(LAUNCH_PALETTE.duo).toBe(mix(darkColors.text, darkColors.background, 0.58));
+    // DUO LOCKED's brackets are colors.volt, which is this on the dark field.
+    expect(LAUNCH_PALETTE.volt).toBe(darkColors.volt);
+    expect(LAUNCH_PALETTE.volt).toBe("#CDFF3D");
   });
 });
 
@@ -116,8 +188,10 @@ describe("the launch geometry", () => {
     for (const m of margins) expect(m).toBeGreaterThan(6);
   });
 
-  it("is narrower than the narrowest iPhone", () => {
+  it("is narrower than the narrowest iPhone, brackets included, even all the way out", () => {
     expect(SPLASH_IMAGE_WIDTH).toBeLessThan(320);
+    const reach = Math.max(...bracketInkPoints("]").map(([x]) => x)) + LAUNCH_BRACKET_TRAVEL;
+    expect(2 * reach).toBeLessThan(320);
   });
 
   it("draws Android's locked mark at the size the old splash drew it", () => {
@@ -126,8 +200,8 @@ describe("the launch geometry", () => {
 });
 
 describe("launchOpening", () => {
-  it("slides on iOS", () => {
-    expect(launchOpening("ios", false)).toBe("slide");
+  it("runs the bracket lock on iOS", () => {
+    expect(launchOpening("ios", false)).toBe("bracket-lock");
   });
 
   it("dissolves instead under Reduce Motion", () => {
@@ -140,42 +214,137 @@ describe("launchOpening", () => {
   });
 
   it("sizes the mark to the native splash under it", () => {
-    expect(launchMarkWidth("slide")).toBe(LAUNCH_MARK_W);
+    expect(launchMarkWidth("bracket-lock")).toBe(LAUNCH_MARK_W);
     expect(launchMarkWidth("dissolve")).toBe(LAUNCH_MARK_W);
     expect(launchMarkWidth("none")).toBe(ANDROID_MARK_W);
   });
 });
 
+describe("the bracket lock, against the approved preview (launch-pop/bracket-report.md)", () => {
+  it("winds up 7% over 110ms, then rushes on 225/18/1 from a standstill", () => {
+    expect(LAUNCH_WINDUP).toBe(-0.07);
+    expect(LAUNCH_WINDUP_MS).toBe(110);
+    expect(LAUNCH_RUSH_SPRING).toEqual({ stiffness: 225, damping: 18, mass: 1 });
+    expect(motionAt(LAUNCH_BEAT_MS + LAUNCH_WINDUP_MS - 1e-9).rings).toBeCloseTo(LAUNCH_WINDUP, 6);
+  });
+
+  it("locks 184.5ms into the rush: 444.5ms after the splash hides (670 before)", () => {
+    expect(LAUNCH_RUSH_REACH_MS).toBeCloseTo(184.5, 1);
+    expect(LAUNCH_LOCK_MS).toBeCloseTo(444.5, 1);
+    expect(motionAt(LAUNCH_LOCK_MS - 0.01).rings).toBeLessThan(1);
+    expect(motionAt(LAUNCH_LOCK_MS + 0.01).rings).toBeGreaterThan(1);
+  });
+
+  it("overshoots to 1.101 77ms after the lock, and never takes the rings out of the weave's range", () => {
+    const rushAt = LAUNCH_BEAT_MS + LAUNCH_WINDUP_MS;
+    const after = springRange(LAUNCH_RUSH_SPRING, LAUNCH_WINDUP, 1, LAUNCH_RUSH_REACH_MS, 2000);
+    expect(after.max).toBeCloseTo(1.1014, 4);
+    expect(rushAt + after.maxAtMs - LAUNCH_LOCK_MS).toBeCloseTo(77.3, 0);
+    // The weave is drawn from the lock on: the centres stay 1.3R to 1.52R apart all the while.
+    expect(centresR(after.max)).toBeGreaterThanOrEqual(WEAVE_MIN_CENTRES_R);
+    expect(centresR(after.max)).toBeCloseTo(1.3208, 4);
+    expect(centresR(after.min)).toBeLessThanOrEqual(WEAVE_MAX_CENTRES_R);
+    expect(centresR(1)).toBeCloseTo(1.5, 12);
+  });
+
+  it("pops the mark to 1.08, 60ms after the lock, kicked from rest at 1", () => {
+    expect(LAUNCH_POP_SPRING).toEqual({ stiffness: 400, damping: 20, mass: 1, velocity: 2.9288 });
+    const { max, maxAtMs } = springRange(LAUNCH_POP_SPRING, 1, 1, 0, 400);
+    expect(max).toBeCloseTo(1.08, 4);
+    expect(maxAtMs).toBeCloseTo(60.5, 0);
+  });
+
+  it("brings DUO LOCKED's brackets home at the lock, fading in over 140ms from 312ms", () => {
+    expect(BRACKET_SPRING).toEqual({ mass: 1, stiffness: 420, damping: 24 });
+    expect(BRACKET_FADE_MS).toBe(140);
+    const home = springFirstReachMs(BRACKET_SPRING, 0, 1);
+    expect(home).toBeCloseTo(132.2, 1);
+    expect(LAUNCH_BRACKETS_AT_MS).toBe(Math.round(LAUNCH_LOCK_MS - home));
+    expect(LAUNCH_BRACKETS_AT_MS).toBe(312);
+    // Home within a millisecond of the rings' lock: 0.1pt of travel at that speed.
+    expect(Math.abs(LAUNCH_BRACKETS_AT_MS + home - LAUNCH_LOCK_MS)).toBeLessThan(1);
+    expect(Math.abs(1 - motionAt(LAUNCH_LOCK_MS).brackets) * LAUNCH_BRACKET_TRAVEL).toBeLessThan(0.1);
+  });
+
+  it("overshoots the brackets 4.1pt inward, 57ms after the lock", () => {
+    const { max, maxAtMs } = springRange(BRACKET_SPRING, 0, 1, 0, 600);
+    expect((max - 1) * LAUNCH_BRACKET_TRAVEL).toBeCloseTo(4.12, 2);
+    expect(LAUNCH_BRACKETS_AT_MS + maxAtMs - LAUNCH_LOCK_MS).toBeCloseTo(57, 0);
+  });
+
+  it("keeps the brackets clear of the rings: 9.6pt at rest, never under 9pt on the way", () => {
+    // The preview measured 9.73 / 9.43pt on its pixel-rounded 334px mark; this is the exact geometry.
+    expect(bracketGapPt(1, 1)).toBeCloseTo(9.58, 2);
+    let tightest = Infinity;
+    for (let ms = LAUNCH_BRACKETS_AT_MS + BRACKET_FADE_MS / 2; ms <= LAUNCH_LOCK_MS + 900; ms += 2) {
+      const m = motionAt(ms);
+      // On screen the pop scales the gap with everything else.
+      tightest = Math.min(tightest, bracketGapPt(m.rings, m.brackets) * m.pop);
+    }
+    expect(tightest).toBeGreaterThan(9);
+  });
+
+  it("would only hear the rush's completion callback ~900ms after the lock, so the lock is watched for", () => {
+    const done = springDoneMs(LAUNCH_RUSH_SPRING, LAUNCH_WINDUP, 1);
+    expect(done - LAUNCH_RUSH_REACH_MS).toBeGreaterThan(890);
+  });
+});
+
 describe("launchSchedule", () => {
-  it("locks after a rest and DUO LOCKED's slide", () => {
-    expect(RINGS_MS).toBe(520);
-    expect(launchSchedule("slide")).toEqual({
-      lockMs: LAUNCH_BEAT_MS + RINGS_MS,
-      lockBackstopMs: LAUNCH_BEAT_MS + RINGS_MS + LOCK_LATE_MS,
+  it("runs the bracket lock with springs, travelling brackets and the haptic", () => {
+    expect(launchSchedule("bracket-lock")).toEqual({
+      lockMs: LAUNCH_LOCK_MS,
+      lockBackstopMs: LAUNCH_LOCK_MS + LOCK_LATE_MS,
+      springs: true,
+      brackets: { atMs: LAUNCH_BRACKETS_AT_MS, fadeMs: BRACKET_FADE_MS, travel: true },
+      haptic: true,
     });
-    expect(launchSchedule("slide")).toEqual({ lockMs: 670, lockBackstopMs: 2670 });
   });
 
-  it("locks after a rest and the dissolve under Reduce Motion", () => {
-    expect(launchSchedule("dissolve")).toEqual({ lockMs: LAUNCH_BEAT_MS + LAUNCH_DISSOLVE_MS, lockBackstopMs: 2350 });
+  it("under Reduce Motion: no springs, the brackets fade in at home with the dissolve, the haptic still fires", () => {
+    expect(LAUNCH_DISSOLVE_MS).toBe(200);
+    expect(launchSchedule("dissolve")).toEqual({
+      lockMs: LAUNCH_BEAT_MS + LAUNCH_DISSOLVE_MS,
+      lockBackstopMs: 2350,
+      springs: false,
+      brackets: { atMs: LAUNCH_BEAT_MS, fadeMs: LAUNCH_DISSOLVE_MS, travel: false },
+      haptic: true,
+    });
   });
 
-  it("is locked from the start on Android", () => {
-    expect(launchSchedule("none")).toEqual({ lockMs: 0, lockBackstopMs: 2000 });
+  it("is locked from the start on Android, with no brackets and no haptic: there is no lock to see", () => {
+    expect(launchSchedule("none")).toEqual({ lockMs: 0, lockBackstopMs: 2000, springs: false, brackets: null, haptic: false });
   });
 });
 
 describe("after the lock", () => {
-  it("holds the locked mark before the fade, and breathes only well after it", () => {
-    expect(LOCKED_HOLD_MS).toBe(250);
+  it("holds until the rings, the pop and the brackets have all settled, then fades over 250ms", () => {
+    // Everything within half an @3x pixel of rest, for good: the rings' travel, the pop's swing at
+    // the farthest ink from the centre (a bracket corner), and the brackets' travel.
+    const farthest = Math.max(...(["[", "]"] as const).flatMap((g) => bracketInkPoints(g).map(([x, y]) => Math.hypot(x, y))));
+    let settledAt = LAUNCH_LOCK_MS;
+    for (let ms = LAUNCH_LOCK_MS; ms <= LAUNCH_LOCK_MS + 1500; ms += 0.1) {
+      const m = motionAt(ms);
+      const off = Math.abs(1 - m.rings) * TRAVEL_PT + Math.abs(m.pop - 1) * farthest + Math.abs(1 - m.brackets) * LAUNCH_BRACKET_TRAVEL * m.pop;
+      if (off > 1 / 6) settledAt = ms;
+    }
+    const settledAfterLock = settledAt - LAUNCH_LOCK_MS;
+    expect(settledAfterLock).toBeCloseTo(496.4, 0);
+    expect(LOCKED_HOLD_MS).toBe(500);
+    expect(LOCKED_HOLD_MS).toBeGreaterThanOrEqual(settledAfterLock);
+    expect(LOCKED_HOLD_MS - settledAfterLock).toBeLessThan(20);
+  });
+
+  it("breathes only well after the hold", () => {
     expect(BREATHE_AFTER_MS).toBe(1500);
     expect(BREATHE_AFTER_MS).toBeGreaterThan(LOCKED_HOLD_MS);
   });
 
-  it("waits for a late lock report well past the whole opening before giving up on it", () => {
-    for (const opening of ["slide", "dissolve", "none"] as const) {
+  it("waits for a late lock report 2s past when it was due, well past the whole opening", () => {
+    for (const opening of ["bracket-lock", "dissolve", "none"] as const) {
       const { lockMs, lockBackstopMs } = launchSchedule(opening);
-      expect(lockBackstopMs - lockMs).toBeGreaterThanOrEqual(2 * (LAUNCH_BEAT_MS + RINGS_MS));
+      expect(lockBackstopMs - lockMs).toBe(2000);
+      expect(lockBackstopMs - lockMs).toBeGreaterThanOrEqual(2 * (LAUNCH_LOCK_MS + LOCKED_HOLD_MS));
     }
   });
 });
@@ -183,8 +352,8 @@ describe("after the lock", () => {
 describe("msUntil", () => {
   const lockedAt = 10_000;
 
-  it("holds a fast app until the lock has been seen", () => {
-    expect(msUntil(LOCKED_HOLD_MS, lockedAt, lockedAt + 100)).toBe(150);
+  it("holds a fast app until the lock has settled", () => {
+    expect(msUntil(LOCKED_HOLD_MS, lockedAt, lockedAt + 100)).toBe(400);
   });
 
   it("fades a slow app the moment it is ready", () => {

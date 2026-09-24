@@ -56,6 +56,12 @@ export default function RootLayout() {
     endColdStart();
     setIntro(false);
   }, []);
+  // On a cold start the app mounts behind the intro only once its rings have locked (or its
+  // backstop gave up waiting): mounting the whole tree is heavy UI-thread work, and done while the
+  // rings moved it made them stutter. The session restore and the data loads below start at once
+  // regardless; they are not rendering.
+  const [introLocked, setIntroLocked] = useState(false);
+  const markIntroLocked = useCallback(() => setIntroLocked(true), []);
 
   // The type system carries most of the visual identity, so the app is not mounted (the
   // splash, then the launch intro, stays over it) until the faces are in memory — swapping
@@ -73,11 +79,16 @@ export default function RootLayout() {
     IBMPlexMono_600SemiBold,
   });
 
+  const fontsReady = fontsLoaded || fontError != null;
+  // The app below: after the fonts, and on a cold start after the intro's lock.
+  const appMounted = fontsReady && (!intro || introLocked);
+
   // Here rather than in a screen, because a tap can be what launches the app: by the time any
-  // screen has mounted, the response that opened it has already been delivered. It is handed
-  // the same font gate that holds back the app below, so it cannot navigate a Stack that is
-  // not on screen yet.
-  useNotificationTapRouting(fontsLoaded || fontError != null);
+  // screen has mounted, the response that opened it has already been delivered. It is told
+  // whether the Stack itself is mounted (the same gates that hold back the app below), so it
+  // holds a tap that arrives during the fonts or the launch intro instead of navigating a Stack
+  // that does not exist yet.
+  useNotificationTapRouting(appMounted && status !== "loading");
 
   // Here for the same reason as the line above: an invite can be redeemed the moment a
   // session exists, which is often before any screen that knows about invites has mounted.
@@ -90,8 +101,6 @@ export default function RootLayout() {
     void loadInviteState();
   }, [initialize]);
 
-  const fontsReady = fontsLoaded || fontError != null;
-
   // On a cold start LaunchIntro hides the splash. Otherwise (and as a backstop once the intro is
   // gone) the splash goes as soon as the faces are in.
   useEffect(() => {
@@ -102,7 +111,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
       {/* Light over the intro's dark field whatever the theme; the theme's once it has gone. */}
       <StatusBar style={intro || scheme === "dark" ? "light" : "dark"} />
-      {fontsReady && (
+      {appMounted && (
         <QueryClientProvider client={queryClient}>
           <SafeAreaProvider>
             <OfflineBanner />
@@ -150,7 +159,9 @@ export default function RootLayout() {
         </QueryClientProvider>
       )}
       {/* Cold start only: over everything, on the native splash's picture, until the app is ready. */}
-      {intro && <LaunchIntro ready={fontsReady && status !== "loading"} onDone={endIntro} />}
+      {intro && (
+        <LaunchIntro ready={fontsReady && status !== "loading"} onLocked={markIntroLocked} onDone={endIntro} />
+      )}
     </GestureHandlerRootView>
   );
 }
