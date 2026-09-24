@@ -3,7 +3,7 @@ import { createRequire } from "node:module";
 
 import { describe, expect, it } from "vitest";
 
-import { LOGO_MARK_ASPECT } from "../../theme/logo-geometry";
+import { CY, LOGO_MARK_ASPECT, VB_H, VB_Y } from "../../theme/logo-geometry";
 import { fonts } from "../../theme/tokens";
 import { BRACKET_SIDE, BRACKET_SIZE, BRACKET_TRAVEL, MATCH_MARK_W } from "../match/matchMoment";
 
@@ -171,5 +171,63 @@ describe("the brackets at launch", () => {
     const xs = [...bracketLayout("]").path.matchAll(/[ML](-?[\d.]+) /g)].map((m) => Number(m[1]));
     expect(Math.max(...xs)).toBeCloseTo(vbW! - 600 + 405, 9);
     expect(Math.min(...xs)).toBeCloseTo(vbW! - 600 + 94, 9);
+  });
+});
+
+describe("the brackets on DUO LOCKED", () => {
+  const MARK_H = MATCH_MARK_W * LOGO_MARK_ASPECT;
+  const LOCK_BOX_W = MATCH_MARK_W + 2 * BRACKET_SIDE;
+  /** Font units to points at the match screen's size: 0.096. */
+  const PT = BRACKET_SIZE / BRACKET_UNITS_PER_EM;
+
+  it("are the match screen's numbers exactly: 96pt glyphs in the 272pt lock box, 40pt out", () => {
+    for (const glyph of ["[", "]"] as const) {
+      const layout = bracketLayout(glyph, MATCH_MARK_W);
+      expect(layout.left).toBe(-BRACKET_SIDE);
+      expect(layout.width).toBe(LOCK_BOX_W);
+      expect(LOCK_BOX_W).toBe(272);
+      expect(layout.height).toBeCloseTo(MARK_H, 12);
+      const [, , vbW, vbH] = layout.viewBox.split(" ").map(Number);
+      expect(vbW! / vbH!).toBeCloseTo(layout.width / layout.height, 12);
+      expect(layout.width / vbW!).toBeCloseTo(PT, 12);
+    }
+    expect(bracketLayout("[", MATCH_MARK_W).outX).toBe(-BRACKET_TRAVEL);
+    expect(bracketLayout("]", MATCH_MARK_W).outX).toBe(BRACKET_TRAVEL);
+  });
+
+  it("put each glyph's advance box where the old Text put it: the [ at the lock box's left edge, the ] at its right", () => {
+    // From the mark's centre: the [ Text sat at left: 0, the ] at right: 0, each one advance (57.6pt) wide.
+    const left = bracketInkPoints("[", MATCH_MARK_W).map(([x]) => x);
+    expect(Math.min(...left)).toBeCloseTo(-LOCK_BOX_W / 2 + 195 * PT, 9);
+    expect(Math.max(...left)).toBeCloseTo(-LOCK_BOX_W / 2 + 506 * PT, 9);
+    const right = bracketInkPoints("]", MATCH_MARK_W).map(([x]) => x);
+    expect(Math.max(...right)).toBeCloseTo(LOCK_BOX_W / 2 - (600 - 405) * PT, 9);
+    expect(Math.min(...right)).toBeCloseTo(LOCK_BOX_W / 2 - (600 - 94) * PT, 9);
+  });
+
+  it("centre the ink on the rings, which are centred in the mark's box", () => {
+    expect((CY - VB_Y) / VB_H).toBeCloseTo(0.5, 12);
+    for (const glyph of ["[", "]"] as const) {
+      const ys = bracketInkPoints(glyph, MATCH_MARK_W).map(([, y]) => y);
+      expect(Math.max(...ys) + Math.min(...ys)).toBeCloseTo(0, 9);
+      // 898 font units tall: 86.2pt of ink in the 105pt mark.
+      expect(Math.max(...ys) - Math.min(...ys)).toBeCloseTo(898 * PT, 9);
+    }
+  });
+});
+
+describe("nothing of a bracket can be clipped", () => {
+  it("keeps every point of the ink inside its own Svg, at the match screen's size and the launch intro's", () => {
+    for (const markWidth of [MATCH_MARK_W, LAUNCH_MARK_W]) {
+      for (const glyph of ["[", "]"] as const) {
+        const { width, height } = bracketLayout(glyph, markWidth);
+        // The Svg is centred on the mark (and moves with its bracket), so its box is +-width/2 by +-height/2.
+        for (const [x, y] of bracketInkPoints(glyph, markWidth)) {
+          expect(Math.abs(x)).toBeLessThanOrEqual(width / 2);
+          // At least 9pt of room above and below the ink.
+          expect(height / 2 - Math.abs(y)).toBeGreaterThan(9);
+        }
+      }
+    }
   });
 });

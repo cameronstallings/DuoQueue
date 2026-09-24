@@ -4,13 +4,15 @@ import { BRACKET_SIDE, BRACKET_SIZE, BRACKET_TRAVEL, MATCH_MARK_W } from "../mat
 import { LAUNCH_MARK_W } from "./launchTiming";
 
 /**
- * DUO LOCKED's "[" and "]" for the launch intro, drawn as the glyphs' own outlines rather than as
- * Text. The match screen sets them in IBM Plex Mono SemiBold (fonts.monoSemibold); these are that
- * font's bracketleft and bracketright, point for point (launchBrackets.test.ts reads them out of
- * the .ttf the app loads). As paths they need no font, which matters here: the intro plays while
- * the app's fonts are still loading, and a Text would draw the system face until they arrive.
- * They also land exactly where the approved preview put them, with the ink centred on the mark,
- * where a Text's line box leaves the vertical placement to the platform.
+ * DUO LOCKED's "[" and "]", drawn as the glyphs' own outlines rather than as Text, on the match
+ * screen and in the launch intro alike (LockBrackets.tsx draws them from this). They are IBM Plex
+ * Mono SemiBold's (fonts.monoSemibold) bracketleft and bracketright, point for point
+ * (launchBrackets.test.ts reads them out of the .ttf the app loads). As paths they need no font,
+ * which matters for the intro: it plays while the app's fonts are still loading, and a Text would
+ * draw the system face until they arrive. And they land exactly where they are placed, with the
+ * ink centred on the mark, where a Text's line box (1.3 em in this face) leaves the vertical
+ * placement to the platform: iOS dropped the match screen's 96/96 Text to the box's floor and cut
+ * the top of its arms off, through build 15.
  *
  * Pure, relative imports only: tested in node, and read by the launch preview's renderer.
  */
@@ -76,10 +78,10 @@ function inkSpan(glyph: BracketGlyph): { top: number; bottom: number } {
 }
 
 /**
- * One bracket's Svg and drawing, in points, inside a box the size of the launch mark (the unit the
- * pop scales). As on the match screen, the brackets sit in a lock box LAUNCH_BRACKET_SIDE wider
- * than the mark on each side, the "[" in its advance box at the lock box's left edge and the "]"
- * at its right, and here the ink is centred on the mark's centre.
+ * One bracket's Svg and drawing, in points, inside a box the size of the mark (at launch, the unit
+ * the pop scales). The brackets sit in a lock box BRACKET_SIDE (scaled) wider than the mark on
+ * each side, the "[" in its advance box at the lock box's left edge and the "]" at its right, where
+ * the match screen's Texts were, and the ink is centred on the mark's centre, which is the rings'.
  *
  * Each bracket's Svg covers the WHOLE lock box, centred on the mark, rather than just its glyph:
  * Yoga rounds every view's position to the pixel grid relative to its parent, so a glyph-sized box
@@ -88,7 +90,7 @@ function inkSpan(glyph: BracketGlyph): { top: number; bottom: number } {
  * the viewBox then places the glyphs inside it without rounding.
  */
 export interface BracketLayout {
-  /** The Svg's left edge from the mark box's left edge: -LAUNCH_BRACKET_SIDE. */
+  /** The Svg's left edge from the mark box's left edge: -BRACKET_SIDE, scaled (-LAUNCH_BRACKET_SIDE at launch). */
   left: number;
   /** The lock box: the mark plus a side each way. */
   width: number;

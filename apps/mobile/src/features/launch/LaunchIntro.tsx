@@ -6,7 +6,6 @@ import Animated, {
   Easing,
   ReduceMotion,
   runOnJS,
-  type SharedValue,
   useAnimatedReaction,
   useAnimatedStyle,
   useReducedMotion,
@@ -17,13 +16,12 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-import Svg, { Path } from "react-native-svg";
 
+import { LockBrackets } from "@/features/match/LockBrackets";
 import { BRACKET_SPRING } from "@/features/match/matchMoment";
 import { RingsLock } from "@/features/match/RingsLock";
 import { hapticSuccess } from "@/lib/haptics";
 
-import { type BracketGlyph, bracketLayout } from "./launchBrackets";
 import { launchPopKick } from "./launchPop";
 import {
   BREATH_LOW,
@@ -45,33 +43,6 @@ import {
 
 const INKS = { ink: LAUNCH_PALETTE.ink, duo: LAUNCH_PALETTE.duo };
 const WINDUP_EASING = Easing.out(Easing.quad);
-const BRACKETS = { "[": bracketLayout("["), "]": bracketLayout("]") } as const;
-
-/** One of DUO LOCKED's brackets, as its Plex Mono outline (launchBrackets.ts), drawn in a lock box
- * centred on the mark; `progress` 0 is BRACKET_TRAVEL out, 1 is home. */
-function LaunchBracket({
-  glyph,
-  progress,
-  opacity,
-}: {
-  glyph: BracketGlyph;
-  progress: SharedValue<number>;
-  opacity: SharedValue<number>;
-}) {
-  const { left, width, height, viewBox, path, outX } = BRACKETS[glyph];
-  const style = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ translateX: (1 - progress.value) * outX }],
-  }));
-
-  return (
-    <Animated.View pointerEvents="none" style={[{ position: "absolute", top: 0, left, width, height }, style]}>
-      <Svg width={width} height={height} viewBox={viewBox}>
-        <Path d={path} fill={LAUNCH_PALETTE.volt} />
-      </Svg>
-    </Animated.View>
-  );
-}
 
 interface LaunchIntroProps {
   /** Fonts loaded and the session no longer "loading". */
@@ -285,11 +256,9 @@ export function LaunchIntro({ ready, onLocked, onDone }: LaunchIntroProps) {
           ) : (
             <RingsLock width={width} progress={rings} woven={woven} palette={INKS} />
           )}
+          {/* DUO LOCKED's own brackets (LockBrackets), scaled to this mark (LAUNCH_MARK_W). */}
           {schedule.brackets && (
-            <>
-              <LaunchBracket glyph="[" progress={brackets} opacity={bracketsOpacity} />
-              <LaunchBracket glyph="]" progress={brackets} opacity={bracketsOpacity} />
-            </>
+            <LockBrackets markWidth={width} progress={brackets} opacity={bracketsOpacity} color={LAUNCH_PALETTE.volt} />
           )}
         </Animated.View>
       </Animated.View>

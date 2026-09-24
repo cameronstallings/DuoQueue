@@ -9,7 +9,6 @@ import Animated, {
   FadeInDown,
   ReduceMotion,
   runOnJS,
-  type SharedValue,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -23,12 +22,11 @@ import { Button } from "@/components/Button";
 import { Name } from "@/components/Name";
 import { PresenceAvatar } from "@/components/PresenceAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { LockBrackets } from "@/features/match/LockBrackets";
 import {
   BRACKET_FADE_MS,
   BRACKET_SIDE,
-  BRACKET_SIZE,
   BRACKET_SPRING,
-  BRACKET_TRAVEL,
   MATCH_MARK_W as MARK_W,
   type MatchExit,
   matchExitSteps,
@@ -47,8 +45,10 @@ import { LOGO_MARK_ASPECT } from "@/theme/logo-geometry";
 import { useTheme } from "@/theme/useTheme";
 
 const MARK_H = MARK_W * LOGO_MARK_ASPECT;
-/** The bracket numbers live in matchMoment.ts, shared with the launch intro. Vertical placement
- * is still to confirm on the device. */
+/** The bracket numbers live in matchMoment.ts, and LockBrackets draws them, here and in the launch
+ * intro. Vertical placement: the brackets' ink is centred on the rings (the mark's centre), as the
+ * launch intro centres it. Up to build 15 they were Text at 96/96, which iOS set with the glyph
+ * centred ~8.3pt above the rings and ~3.4pt of each top arm cut off by the Text's box. */
 const LOCK_BOX_W = MARK_W + BRACKET_SIDE * 2;
 const PLAYER_SIZE = 40;
 /** The screen is a modal sheet that is still sliding up for about this long. */
@@ -60,48 +60,6 @@ const FLASH_MS = 200;
 /** RING_BEZIER (matchMoment.ts), shared with duoqueue.io's match card. */
 const RING_EASING = Easing.bezier(...RING_BEZIER);
 const STAMP_EASING = Easing.bezier(0.23, 1, 0.32, 1);
-
-function BracketGlyph({
-  glyph,
-  edge,
-  progress,
-  opacity,
-}: {
-  glyph: "[" | "]";
-  edge: "left" | "right";
-  progress: SharedValue<number>;
-  opacity: SharedValue<number>;
-}) {
-  const { colors, fonts } = useTheme();
-  const fromX = edge === "left" ? -BRACKET_TRAVEL : BRACKET_TRAVEL;
-  const style = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ translateX: (1 - progress.value) * fromX }],
-  }));
-
-  return (
-    <Animated.Text
-      pointerEvents="none"
-      accessibilityElementsHidden
-      importantForAccessibility="no"
-      style={[
-        {
-          position: "absolute",
-          top: (MARK_H - BRACKET_SIZE) / 2,
-          ...(edge === "left" ? { left: 0 } : { right: 0 }),
-          fontFamily: fonts.monoSemibold,
-          fontSize: BRACKET_SIZE,
-          lineHeight: BRACKET_SIZE,
-          includeFontPadding: false,
-          color: colors.volt,
-        },
-        style,
-      ]}
-    >
-      {glyph}
-    </Animated.Text>
-  );
-}
 
 function PlayerChip({ label, name, uri }: { label: string; name: string; uri: string | null }) {
   const { colors, spacing } = useTheme();
@@ -208,9 +166,11 @@ export default function MatchCelebrationScreen() {
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.lg }}>
         <Animated.View entering={lockEntering} style={{ alignItems: "center", gap: spacing.md }}>
           <View style={{ width: LOCK_BOX_W, height: MARK_H, alignItems: "center", justifyContent: "center" }}>
-            <RingsLock width={MARK_W} progress={rings} woven={woven} />
-            <BracketGlyph glyph="[" edge="left" progress={brackets} opacity={bracketsOpacity} />
-            <BracketGlyph glyph="]" edge="right" progress={brackets} opacity={bracketsOpacity} />
+            {/* The mark's own box: the brackets hang out of it into the lock box's sides. */}
+            <View style={{ width: MARK_W, height: MARK_H }}>
+              <RingsLock width={MARK_W} progress={rings} woven={woven} />
+              <LockBrackets markWidth={MARK_W} progress={brackets} opacity={bracketsOpacity} color={colors.volt} />
+            </View>
           </View>
           <Animated.Text
             accessibilityRole="header"

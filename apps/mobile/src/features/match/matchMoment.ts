@@ -35,7 +35,8 @@ export const WEAVE_MAX_CENTRES_R = 1.52;
 
 /** The rings' width on the match screen, in points. */
 export const MATCH_MARK_W = 168;
-/** The "[" and "]": IBM Plex Mono SemiBold at this size, in volt. */
+/** The "[" and "]": IBM Plex Mono SemiBold at this size, in volt, drawn from the font's outlines
+ * (LockBrackets.tsx), not set as Text. */
 export const BRACKET_SIZE = 96;
 /** Room each side of the rings for a bracket glyph. Measured from the Plex Mono SemiBold outlines
  * against the mark's geometry: at 36 the "]" lower arm crosses the Q's tail (the nub) by ~6pt at
