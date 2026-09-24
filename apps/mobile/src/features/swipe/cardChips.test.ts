@@ -272,6 +272,6 @@ describe("cardDetailsLine", () => {
 
 describe("cell copy", () => {
   it("has no em dash", () => {
-    for (const text of Object.values(CELL_COPY)) expect(text).not.toContain("—");
+    for (const text of Object.values(CELL_COPY)) expect(text).not.toContain("\u2014");
   });
 });
