@@ -396,7 +396,13 @@ const GRID = {
   // grew a label to 26px on a desktop, larger than the card sentences it introduces, so it
   // stops at 14px (23 Sept 2026). The floor is unchanged, so a phone sees no difference.
   label: "clamp(11px, 1.05vw, 14px)",
-  cta: "clamp(21px, 5.4vw, 44px)",
+  // THE BUTTON'S LABEL STOPS AT 32px, the size in the "Wildcard" prototype Cameron approved on
+  // 23 Sept 2026 (24 Sept 2026: "shrink the button to match the prototype"). The campaign's
+  // 68/1080 grew it to 44px on a desktop, where it shouted over a headline only 76px tall; the
+  // floor and the 5.4vw ratio are unchanged, so every phone (5.4vw is 23.2px at 430) gets the
+  // exact size it got before and only windows wider than 593px see the cap. The two height and
+  // width tiers near the end of the CSS stop it at 30px, as the prototype does.
+  cta: "clamp(21px, 5.4vw, 32px)",
   wordmark: "clamp(42px, 13.6vw, 148px)",
 };
 
@@ -609,6 +615,9 @@ const CONTRAST_PAIRS = [
   { what: "hero: ink on the chartreuse highlighter (\"duo\")", fg: INK.type, bg: INK.brand, min: 4.5 },
   { what: "hero: trailer link label, ink on its fill (white at 60% over the ground)", fg: INK.type, bg: TRAILER_FILL, min: 4.5 },
   { what: "hero: trailer link running time, muted ink on its fill", fg: INK.muted, bg: TRAILER_FILL, min: 4.5 },
+  // The moment cards' Pause / Play control is a pill on the trailer link's own fill, with its
+  // word and its glyph in ink. Its focus ring is the accent on the ground, measured above.
+  { what: "cards: the Pause / Play control's word and glyph, ink on its fill", fg: INK.type, bg: TRAILER_FILL, min: 4.5 },
   { what: "onVolt glyphs on a volt disc (the trailer's play, card 03's send, the bar's arrow)", fg: APP.onVolt, bg: APP.volt, min: 3.0 },
 
   // THE CALL TO ACTION, in all three of its states.
@@ -1064,6 +1073,54 @@ const FONT_FACE_CSS = FACES.map(
   (f) => `@font-face{font-family:"${f.family}";src:url(/fonts/${f.file}) format("woff2");font-weight:${f.weight};font-style:normal;font-display:swap;}`
 ).join("\n  ");
 
+// ---------------------------------------------------------------------------
+// THE MOMENT LOOP (24 Sept 2026). Each moment card replays its moment on a nine-second
+// turn, at every width, because Cameron asked for the three cards to "rerun the animations
+// every specific amount of seconds" so the page feels alive rather than finished once.
+//
+//   0.0 to 2.4s   the moment plays: the same choreography the cards always had, in the
+//                 same proportions (see mw() below)
+//   2.4 to 8.5s   the finished card holds, 6.1 seconds, long enough to read all of it
+//   8.5 to 8.8s   what arrived fades out where it stands
+//   8.8 to 9.0s   the opening state fades back in (the zero badge, the rings apart, the
+//                 empty composer), and the next turn starts
+//
+// No jump anywhere in the reset: a piece that has to go back to where it started (a game
+// row to the side it came from, a ring to its side) only moves while it is invisible.
+// The cards start 0.6s apart (lead, then stagger) so they cascade instead of resetting
+// together, and card 01's first turn waits for the cards' own rise on a desktop (300 to
+// 687ms) to be over.
+//
+// Written in seconds here, and turned into keyframe percentages by the three helpers, so a
+// change to the turn is a change to one of these numbers and the choreography follows.
+// ---------------------------------------------------------------------------
+const MOMENT_LOOP = { cycle: 9, play: 2.4, hold: 8.5, out: 8.8, lead: 0.6, stagger: 0.6 };
+/** A time within the turn, in seconds, as a keyframe percentage of the turn. */
+const loopPct = (s) => `${+((s / MOMENT_LOOP.cycle) * 100).toFixed(3)}%`;
+/** A point in a moment's own window (0 to 100, which is how every card's choreography was
+ *  first authored, when one window was the whole animation) as its place in the turn. */
+const mw = (p) => loopPct((MOMENT_LOOP.play * p) / 100);
+const M_HOLD = loopPct(MOMENT_LOOP.hold);
+const M_OUT = loopPct(MOMENT_LOOP.out);
+/** 10ms after the fade-out: the instant an invisible piece is put back where it started. */
+const M_SNAP = loopPct(MOMENT_LOOP.out + 0.01);
+const loopDelay = (i) => `${Math.round((MOMENT_LOOP.lead + i * MOMENT_LOOP.stagger) * 1000)}ms`;
+
+/** A piece that ARRIVES during the moment: hidden in `from` until window point `a`, eased to
+ *  its resting style (opacity 1, no transform, which is every such piece's resting style) by
+ *  `b`, held there until the reset, faded out where it stands, then put back in `from` while
+ *  invisible, so the next turn's 0% is exactly this turn's. */
+function arriveKeyframes(name, from, a, b, ease) {
+  return `@keyframes ${name} {
+    0%, ${mw(a)} { opacity: 0; transform: ${from}; animation-timing-function: ${ease}; }
+    ${mw(b)}, ${M_HOLD} { opacity: 1; transform: none; }
+    ${M_OUT} { opacity: 0; transform: none; }
+    ${M_SNAP}, 100% { opacity: 0; transform: ${from}; }
+  }`;
+}
+const EASE_ARRIVE = "cubic-bezier(0.23, 1, 0.32, 1)";
+const EASE_SNAP = "cubic-bezier(0.34, 1.56, 0.64, 1)";
+
 const CSS = `
   ${FONT_FACE_CSS}
 
@@ -1419,12 +1476,66 @@ const CSS = `
      The shadow is small on purpose (CARD_SHADOW_LAYERS). A card is furniture resting on
      the paper, not an object arriving at the reader. */
   section.moments { padding: ${SECTION_GAP} 0 0; }
-  .moments .eyebrow { margin-bottom: clamp(16px, 2.2vw, 26px); }
-  .moment-list {
-    list-style: none; margin: 0; padding: 0;
-    display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-rows: 1fr; gap: 16px;
+  /* The heading, the pause control and the list are siblings in one grid, the heading and
+     the control on the first row, so the control's :checked can reach the cards with a
+     sibling selector (see THE PAUSE CONTROL) in every browser, :has() or not. The grid is
+     as wide as the list, so the control's right edge is the cards' right edge. */
+  .moments-inner {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 16px;
     max-width: 480px;
   }
+  .moments-inner > .eyebrow { grid-column: 1; grid-row: 1; margin: 0; }
+  .moment-list {
+    grid-column: 1 / -1; grid-row: 2;
+    list-style: none; margin: clamp(16px, 2.2vw, 26px) 0 0; padding: 0;
+    display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-rows: 1fr; gap: 16px;
+  }
+
+  /* THE PAUSE CONTROL. The cards replay their moments on a loop, and WCAG 2.2.2 asks that
+     anything moving for more than five seconds can be paused, so this is that, with no script:
+     a real checkbox, laid invisibly over its label so the checkbox itself is the 44px-tall tap
+     target and the thing a screen reader's cursor lands on, and the label drawn as a small pill
+     in the trailer link's language (the same fill, hairline and ink, which the guard measures).
+     It reads "Pause" with a pause glyph, and "Play" with a play glyph once checked, and the
+     word not on screen is hidden (display for the glyphs, visibility for the words), so the
+     accessible name is always the word on screen.
+     Checked, every card's moving pieces lose their animation outright, which leaves each one
+     in its resting style, and the resting style is the finished card. Unchecked again, the
+     loop starts over from each card's first turn.
+     The negative margins keep the pill and its tap target from making the heading's row any
+     taller than the heading: they overhang the section's top padding and the list's margin.
+     Under Reduce Motion nothing loops, so the control is not there at all. */
+  .pause-box {
+    grid-column: 2; grid-row: 1; z-index: 1; position: relative;
+    width: 100%; height: 44px; margin: -11px 0; padding: 0; border: 0;
+    appearance: none; -webkit-appearance: none; background: none; opacity: 0; cursor: pointer;
+  }
+  .pause {
+    grid-column: 2; grid-row: 1;
+    display: inline-flex; align-items: center; gap: 7px;
+    height: 30px; margin: -4px 0; padding: 0 12px 0 11px;
+    background: rgba(${hexToRgb(INK.field).join(",")},${TRAILER_FILL_ALPHA}); border: 1px solid var(--rule); border-radius: 999px;
+    font-family: ${MONO}; font-weight: 600; font-size: 11px; line-height: 1; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--ink); white-space: nowrap;
+    transition: border-color var(--t-quick) ease, transform var(--t-base) var(--ease-out);
+  }
+  .pause svg { display: block; flex: none; width: 9px; height: 10px; fill: currentColor; }
+  /* The two words share one grid cell, so the pill is as wide as "Pause" in both states and
+     does not jump under the pointer when it is pressed. The word not in use is
+     visibility:hidden, which also keeps it out of the accessible name. */
+  .pause .pw { display: grid; }
+  .pause .pw > span { grid-area: 1 / 1; text-align: center; }
+  .pause .is-play { display: none; }
+  .pause .pw .w-play { visibility: hidden; }
+  #moments-pause:checked + .pause .is-pause { display: none; }
+  #moments-pause:checked + .pause .is-play { display: block; }
+  #moments-pause:checked + .pause .pw .w-pause { visibility: hidden; }
+  #moments-pause:checked + .pause .pw .w-play { visibility: visible; }
+  #moments-pause:focus-visible + .pause { outline: 3px solid var(--accent); outline-offset: 2px; }
+  @media (hover: hover) and (pointer: fine) {
+    #moments-pause:hover + .pause { border-color: var(--accent); }
+  }
+  #moments-pause:active + .pause { transform: scale(0.97); transition-duration: var(--t-instant); }
   .moment-card {
     height: 100%; display: flex; flex-direction: column;
     background: var(--app-surface); border: 1px solid var(--hairline); border-radius: 14px;
@@ -1529,13 +1640,14 @@ const CSS = `
      cards do not become three narrow columns on a tablet. From 1080 they stand in a row of
      three and share the field between them. */
   @media (min-width: 720px) and (max-width: 1079px) {
-    .moment-list { max-width: 760px; }
+    .moments-inner { max-width: 760px; }
     .moment-card { flex-direction: row; align-items: center; }
     .stage { flex: none; width: 320px; margin: 7px; }
     .moment-line { padding: 20px 28px 20px 22px; font-size: 20px; }
   }
   @media (min-width: 1080px) {
-    .moment-list { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: none; gap: clamp(16px, 1.8vw, 26px); }
+    .moments-inner { max-width: none; }
+    .moment-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(16px, 1.8vw, 26px); }
     .moment-line { font-size: 17px; }
   }
 
@@ -1697,9 +1809,9 @@ const CSS = `
      ever fades: type builds forward out of the page, and objects arrive rotated and
      oversized under blur and unwind. The page's first frame should be the film's next
      frame. The hero's entrance makes that argument, and nothing else below does. The
-     moment cards (which rise in and then act out the app's three moments), the plain
-     version's rules (which draw across) and the queue bar (which slides in once the form
-     has gone) each have a job of their own, stated where they are.
+     moment cards (which rise in once and then act out the app's three moments on a loop),
+     the plain version's rules (which draw across) and the queue bar (which slides in once
+     the form has gone) each have a job of their own, stated where they are.
 
      THE THINGS THAT DELIBERATELY DO NOT ANIMATE, because "should this animate at all" has
      a real answer and here it is no, three times:
@@ -1717,17 +1829,19 @@ const CSS = `
          that it is plain, so its type is simply there. Only its rules move: each hairline
          draws across as its item comes up the screen, then its short olive tick. Those are
          graphics, not words.
-     And nothing repeats: every piece below plays once, settles, and then stays still.
+     And only one thing repeats: the three moments inside the cards, which replay on a
+     nine-second turn (MOMENT_LOOP in build-site.mjs) and can be paused by the control
+     beside their heading. Every other piece below plays once, settles, and stays still.
 
-     THE RULE THAT MAKES ALL OF IT SAFE: every animation below is fill-mode BACKWARDS, and
-     every to-state is identical to the element's resting style. So the resting style is
-     the truth and the animation is a displacement in front of it, which means an element
-     that is never animated - reduced motion, an older browser, a scroll timeline that
-     never runs - renders correct and complete. Nothing on this page is hidden by a base
-     rule waiting for an animation to reveal it.
+     THE RULE THAT MAKES ALL OF IT SAFE: every to-state below is identical to the element's
+     resting style, and every one-time animation is fill-mode BACKWARDS. So the resting style
+     is the truth and the animation is a displacement in front of it, which means an element
+     that is never animated - reduced motion, the pause control, an older browser, a scroll
+     timeline that never runs - renders correct and complete. Nothing on this page is hidden
+     by a base rule waiting for an animation to reveal it.
 
-     The one refinement: the SCROLL-SCRUBBED animations (the cards below 860px, the plain
-     version's rules, the queue bar) fill BOTH ways. Their forwards fill is their 100%
+     The one refinement: the SCROLL-SCRUBBED animations (the cards' rise below 860px, the
+     plain version's rules, the queue bar) fill BOTH ways. Their forwards fill is their 100%
      keyframe, which is the resting style, so it changes nothing a reader can see except one
      thing, measured: with backwards only, Chrome can leave a stale composited value behind
      when a scrubbed opacity animation passes into its after phase. Scrolled past card 02, its
@@ -1739,36 +1853,25 @@ const CSS = `
      are the other way round: hidden and aria-hidden at rest, and only ever shown by an
      animation passing through them.
 
-     THE MOMENT CARDS HAVE TWO DRIVERS, split at 860px:
-       * BELOW 860 (phones and portrait tablets: the hero is one column and the cards stack
-         under it) each card's moment is scrubbed by that card's own passage up the screen,
-         on a view timeline, so it plays while the reader is looking at it and a fast flick
-         plays it fast. Every range ends at cover 40%, while the card's middle is still below
-         the middle of the screen (cover 50% is the exact moment the two middles meet), so a
-         reader who stops with a card in front of them sees it finished. And the whole moment
-         spans about a third of a screen of scrolling, so a half-typed message is a short band
-         a thumb passes through rather than a place the page can rest.
-       * FROM 860 the moments play once, on load, on a clock: the three cards rise at 300,
-         360 and 420ms, then 01, 02 and 03 play in order, and the page is finished and still
-         at 3.0s. The reason is the first screen of a laptop or a desktop, and it holds from
-         1080, where the three cards stand in one row whose top edge is on the first screen
-         at scroll 0 (measured after load: 66px of each card at 1080x700, 124px at 1280x800,
-         214px at 1440x900, 281px at 1920x1080), and for card 01 alone from 900 (153px of it
-         at 1024x768, all of it at 900x900). A scroll timeline there would sit wherever the
-         fold cut it, and a visitor who never scrolls would see the moments stopped: with the
-         phone driver forced on at scroll 0, every card is 12% of the way through at 1440x900
-         and 30% at 1920x1080 (a game row still sliding in, two rings apart, an empty chat),
-         card 01 is 34% through at 900x900, and at 1280x720 none has started.
-         Below 1080 that reason does not cover every card. From 860 to 899 the hero is still
-         one column and all three cards are below the first screen (card 01's top is 990px
-         down at 899x700, 1108px at 860x900); from 900 to 1079 the cards lie on their sides in
-         a stack and 02 and 03 are below it. Those cards play their load sequence where nobody
-         sees it, and since it is over at 3.0s they are almost always finished and still by
-         the time a reader scrolls to them: that reader gets the finished cards without the
-         moments. It is the cost of splitting at 860, where the plan puts the split, rather
-         than at 1080.
-     Scroll timelines are Chrome 115+ and Safari 26+. Below 860, a browser without them shows
-     the cards finished; under Reduce Motion, every width does. */
+     THE MOMENT CARDS ARE TWO ANIMATIONS, and only the inner one loops (24 Sept 2026).
+       * THE CARD RISES IN ONCE, on the driver that suits the width, split at 860px. Below
+         860 (phones and portrait tablets: the hero is one column and the cards stack under
+         it) it is scrubbed by the card's own passage up the screen, on a view timeline, and
+         is complete at entry 65%. From 860 it is a load sequence at 300, 360 and 420ms,
+         because from 1080 the three cards' top edge is on the first screen at scroll 0
+         (66px of each card at 1080x700, 124px at 1280x800, 214px at 1440x900, 281px at
+         1920x1080), and a scroll timeline there would sit wherever the fold cut it.
+       * THE MOMENT INSIDE IT LOOPS, on a clock, at every width: a nine-second turn per card
+         (2.4s of moment, a 6.1s hold on the finished card, a 0.5s fade back to the start),
+         the cards 0.6s apart. Until 24 Sept 2026 the moment played once (scrubbed on a phone,
+         in a 3.0s load sequence on a desktop) and the page was then still; now the moments
+         keep being acted out while anyone is looking. The turn is MOMENT_LOOP in
+         build-site.mjs, and the keyframes are written against it.
+     WCAG 2.2.2: moving content that lasts more than five seconds must be pausable, so the
+     heading carries a Pause control (a checkbox, no script) that stops every moment on its
+     finished card. Scroll timelines are Chrome 115+ and Safari 26+; below 860, a browser
+     without them shows the cards without their rise. Under Reduce Motion nothing moves and
+     every card is finished, at every width. */
 
   /* Type, and blocks of it. The film spends a word's travel on Z rather than Y: "the word
      comes FORWARD out of the page, which is what a scale from 0.35 under a blur reads as,
@@ -1811,62 +1914,84 @@ const CSS = `
   .hero .display .key::after { animation: mark-swipe 460ms cubic-bezier(0.65, 0, 0.35, 1) 360ms backwards; }
 
   /* ---- the moment cards -------------------------------------------------- */
-  /* Every keyframe below is written as a share of ONE window per card, so a card's pieces
-     keep their choreography whichever driver stretches that window: a scroll range on a
-     phone, a duration on a desktop. The timing inside each window is carried by the
-     keyframes (each step's own curve), and the window itself runs linear. */
+  /* The card itself rises in once. Below 860 it is carried up the screen by a thumb; the
+     load version from 860 travels less, because it is an entrance on a still page. */
   @keyframes card-in {
     from { opacity: 0; transform: translateY(32px); }
     to   { opacity: 1; transform: none; }
   }
-  /* The load version travels less: it is an entrance on a still page, not a card being
-     carried up the screen by a thumb. */
   @keyframes card-rise {
     from { opacity: 0; transform: translateY(18px); }
     to   { opacity: 1; transform: none; }
   }
 
+  /* THE MOMENTS, ONE NINE-SECOND TURN EACH (MOMENT_LOOP in build-site.mjs). Every keyframe
+     is written as a point in the moment's own window, mw(0) to mw(100), which is the first
+     2.4s of the turn: the same proportions the choreography was authored in, so the pieces
+     keep their timing against each other. After the window the finished card holds until
+     M_HOLD (8.5s), whatever arrived fades out where it stands by M_OUT (8.8s), and anything
+     that must go back to where it started moves only at M_SNAP, while it is invisible. The
+     turn itself runs linear; each step carries its own curve. arriveKeyframes() writes the
+     pieces that simply arrive and leave. */
+
   /* 01. The three game rows land from alternating sides, and the badge counts up in the
      app's own words and overlap inks as each one lands. The chips ease out, so each reads
      as landed about 60% of the way through its own slot, and that is where the count
-     steps: 20%, 40%, 60%. Then the badge stamps once. */
-  @keyframes chip-a { 0%, 4%  { opacity: 0; transform: translateX(-40px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); } 28%, 100% { opacity: 1; transform: none; } }
-  @keyframes chip-b { 0%, 24% { opacity: 0; transform: translateX(40px);  animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); } 48%, 100% { opacity: 1; transform: none; } }
-  @keyframes chip-c { 0%, 44% { opacity: 0; transform: translateX(-40px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); } 68%, 100% { opacity: 1; transform: none; } }
-  @keyframes t0 { 0%, 19.9% { opacity: 1; } 20%, 100% { opacity: 0; } }
-  @keyframes t1 { 0%, 19.9% { opacity: 0; } 20%, 39.9% { opacity: 1; } 40%, 100% { opacity: 0; } }
-  @keyframes t2 { 0%, 39.9% { opacity: 0; } 40%, 59.9% { opacity: 1; } 60%, 100% { opacity: 0; } }
-  @keyframes t3 { 0%, 59.9% { opacity: 0; } 60%, 100% { opacity: 1; } }
+     steps: 20%, 40%, 60%. Then the badge stamps once. In the reset the rows and the
+     count fade out together, the badge's edge goes back to grey, and NO GAMES IN COMMON
+     fades back in. */
+  ${arriveKeyframes("chip-a", "translateX(-40px)", 4, 28, EASE_ARRIVE)}
+  ${arriveKeyframes("chip-b", "translateX(40px)", 24, 48, EASE_ARRIVE)}
+  ${arriveKeyframes("chip-c", "translateX(-40px)", 44, 68, EASE_ARRIVE)}
+  @keyframes t0 { 0%, ${mw(19.9)} { opacity: 1; } ${mw(20)}, ${M_OUT} { opacity: 0; } 100% { opacity: 1; } }
+  @keyframes t1 { 0%, ${mw(19.9)} { opacity: 0; } ${mw(20)}, ${mw(39.9)} { opacity: 1; } ${mw(40)}, 100% { opacity: 0; } }
+  @keyframes t2 { 0%, ${mw(39.9)} { opacity: 0; } ${mw(40)}, ${mw(59.9)} { opacity: 1; } ${mw(60)}, 100% { opacity: 0; } }
+  @keyframes t3 { 0%, ${mw(59.9)} { opacity: 0; } ${mw(60)}, ${M_HOLD} { opacity: 1; } ${M_OUT}, 100% { opacity: 0; } }
   @keyframes tier {
-    0%, 19.9%   { border-color: ${APP.overlapNone}; }
-    20%, 39.9%  { border-color: ${APP.overlapOne}; }
-    40%, 59.9%  { border-color: ${APP.overlapTwo}; }
-    60%, 100%   { border-color: ${APP.amber}; }
+    0%, ${mw(19.9)}         { border-color: ${APP.overlapNone}; }
+    ${mw(20)}, ${mw(39.9)}  { border-color: ${APP.overlapOne}; }
+    ${mw(40)}, ${mw(59.9)}  { border-color: ${APP.overlapTwo}; }
+    ${mw(60)}, ${M_HOLD}    { border-color: ${APP.amber}; }
+    ${M_OUT}, 100%          { border-color: ${APP.overlapNone}; }
   }
-  @keyframes stamp { 0%, 60% { transform: none; } 66% { transform: scale(1.05); } 78%, 100% { transform: none; } }
+  @keyframes stamp { 0%, ${mw(60)} { transform: none; } ${mw(66)} { transform: scale(1.05); } ${mw(78)}, 100% { transform: none; } }
 
   /* 02. The logo's two rings slide in from either side and interlock, the brackets snap shut
      with a small overshoot, DUO LOCKED stamps in, then its line comes up. The rings travel
-     190 user units, about 21px at the mark's 98px. */
-  @keyframes ring-ink { 0%, 4% { transform: translateX(-190px); animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1); } 46%, 100% { transform: none; } }
-  @keyframes ring-duo { 0%, 4% { transform: translateX(190px);  animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1); } 46%, 100% { transform: none; } }
-  @keyframes br-l { 0%, 40% { opacity: 0; transform: translateX(-0.7em); animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); } 60%, 100% { opacity: 1; transform: none; } }
-  @keyframes br-r { 0%, 40% { opacity: 0; transform: translateX(0.7em);  animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); } 60%, 100% { opacity: 1; transform: none; } }
-  @keyframes lock-in { 0%, 52% { opacity: 0; transform: scale(1.25); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); } 68%, 100% { opacity: 1; transform: none; } }
-  @keyframes line-in { 0%, 62% { opacity: 0; transform: translateY(6px); } 80%, 100% { opacity: 1; transform: none; } }
+     190 user units, about 21px at the mark's 98px. In the reset everything fades out, and
+     the rings, parted while invisible, fade back in apart for the next lock. */
+  @keyframes ring-ink {
+    0%, ${mw(4)}         { opacity: 1; transform: translateX(-190px); animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1); }
+    ${mw(46)}, ${M_HOLD} { opacity: 1; transform: none; }
+    ${M_OUT}             { opacity: 0; transform: none; }
+    ${M_SNAP}            { opacity: 0; transform: translateX(-190px); }
+    100%                 { opacity: 1; transform: translateX(-190px); }
+  }
+  @keyframes ring-duo {
+    0%, ${mw(4)}         { opacity: 1; transform: translateX(190px); animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1); }
+    ${mw(46)}, ${M_HOLD} { opacity: 1; transform: none; }
+    ${M_OUT}             { opacity: 0; transform: none; }
+    ${M_SNAP}            { opacity: 0; transform: translateX(190px); }
+    100%                 { opacity: 1; transform: translateX(190px); }
+  }
+  ${arriveKeyframes("br-l", "translateX(-0.7em)", 40, 60, EASE_SNAP)}
+  ${arriveKeyframes("br-r", "translateX(0.7em)", 40, 60, EASE_SNAP)}
+  ${arriveKeyframes("lock-in", "scale(1.25)", 52, 68, EASE_ARRIVE)}
+  ${arriveKeyframes("line-in", "translateY(6px)", 62, 80, "linear")}
 
   /* 03. "you on tonight?" arrives, the reply types into the box in fifteen steps (one per
      character of "yep, queue at 9"), send presses, the sent bubble comes up and the box
-     goes back to its placeholder. */
-  @keyframes bubble-in { 0%, 4% { opacity: 0; transform: translateY(10px) scale(0.96); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); } 20%, 100% { opacity: 1; transform: none; } }
-  @keyframes ph { 0%, 23.9% { opacity: 1; } 24%, 61.9% { opacity: 0; } 62%, 100% { opacity: 1; } }
+     goes back to its placeholder. In the reset the two bubbles fade out, leaving the empty
+     chat and its placeholder the next turn starts from. */
+  ${arriveKeyframes("bubble-in", "translateY(10px) scale(0.96)", 4, 20, EASE_ARRIVE)}
+  @keyframes ph { 0%, ${mw(23.9)} { opacity: 1; } ${mw(24)}, ${mw(61.9)} { opacity: 0; } ${mw(62)}, 100% { opacity: 1; } }
   @keyframes typing {
-    0%, 24%    { opacity: 1; clip-path: inset(0 100% 0 0); animation-timing-function: steps(15, end); }
-    50%, 59.9% { opacity: 1; clip-path: inset(0 0 0 0); }
-    60%, 100%  { opacity: 0; clip-path: inset(0 0 0 0); }
+    0%, ${mw(24)}           { opacity: 1; clip-path: inset(0 100% 0 0); animation-timing-function: steps(15, end); }
+    ${mw(50)}, ${mw(59.9)}  { opacity: 1; clip-path: inset(0 0 0 0); }
+    ${mw(60)}, 100%         { opacity: 0; clip-path: inset(0 0 0 0); }
   }
-  @keyframes press { 0%, 53% { transform: none; } 57% { transform: scale(0.84); } 62%, 100% { transform: none; } }
-  @keyframes bubble-out { 0%, 60% { opacity: 0; transform: translateY(12px) scale(0.94); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); } 76%, 100% { opacity: 1; transform: none; } }
+  @keyframes press { 0%, ${mw(53)} { transform: none; } ${mw(57)} { transform: scale(0.84); } ${mw(62)}, 100% { transform: none; } }
+  ${arriveKeyframes("bubble-out", "translateY(12px) scale(0.94)", 60, 76, EASE_ARRIVE)}
 
   /* The plain version's rules. */
   @keyframes rule-draw {
@@ -1874,10 +1999,23 @@ const CSS = `
     to   { transform: scaleX(1); }
   }
 
-  /* Which moment each moving piece (class sd) plays. A name on its own does nothing: its
-     duration is 0s and it has no fill until one of the two drivers below gives it a clock or
-     a scroll range, so a browser that meets neither driver shows the cards at rest. */
+  /* THE LOOP, at every width: which moment each moving piece (class sd) plays, on one
+     nine-second clock, forever, the three cards 0.6s apart (loopDelay). Fill backwards, so
+     before its first turn a card shows its opening state rather than flashing the finished
+     one. There is no fill forwards to think about: an infinite animation never ends. The
+     pause control's rule (THE PAUSE CONTROL, just after) and Reduce Motion both take the
+     animation away entirely, which leaves every piece in its resting style: the finished
+     card. */
   @media (prefers-reduced-motion: no-preference) {
+    .sd {
+      animation-duration: ${MOMENT_LOOP.cycle}s;
+      animation-timing-function: linear;
+      animation-iteration-count: infinite;
+      animation-fill-mode: backwards;
+    }
+    .m1 .sd { animation-delay: ${loopDelay(0)}; }
+    .m2 .sd { animation-delay: ${loopDelay(1)}; }
+    .m3 .sd { animation-delay: ${loopDelay(2)}; }
     .m1 .chip:nth-child(1) { animation-name: chip-a; }
     .m1 .chip:nth-child(2) { animation-name: chip-b; }
     .m1 .chip:nth-child(3) { animation-name: chip-c; }
@@ -1898,23 +2036,20 @@ const CSS = `
     .m3 .send { animation-name: press; }
     .m3 .bubble.out { animation-name: bubble-out; }
   }
+  /* PAUSED: the checkbox beside the heading is checked. An id and a sibling combinator, so it
+     outranks every rule above that names an animation, and it works in a browser without
+     :has(). Taking the animation away (not pausing it mid-move) is the point: the resting
+     style is the finished card, so a paused card is always a whole one. */
+  #moments-pause:checked ~ .moment-list .sd { animation: none; }
 
-  /* DRIVER ONE, below 860px: the card's own passage up the screen. The card rises in over the
-     first 65% of its entry. Its moment starts once 55% of the card is on screen, which is
-     most of its app screen (the screen is the card's top 214px), and ends at cover 40%.
-     Measured on a 390x760 phone: 256px of scrolling for the whole moment, of which the
-     half-typed message is 64px, and each card is finished while its middle is still about
-     107px below the middle of the screen (95px at 390x664, 123px at 768x1024). */
+  /* THE CARD'S RISE, below 860px: the card's own passage up the screen, over the first 65%
+     of its entry. Only the rise is scrubbed; the moment inside loops on its clock. */
   @supports (animation-timeline: view()) and (animation-range: entry) {
     @media (prefers-reduced-motion: no-preference) and (max-width: 859.98px) {
       .moment { view-timeline: --moment; view-timeline-inset: 0; }
       .moment-card {
         animation-name: card-in; animation-fill-mode: both; animation-timing-function: var(--ease-out);
         animation-timeline: --moment; animation-range: entry 0% entry 65%;
-      }
-      .sd {
-        animation-fill-mode: both; animation-timing-function: linear;
-        animation-timeline: --moment; animation-range: entry 55% cover 40%;
       }
     }
     /* The plain version's hairlines draw across as each item comes up, then the olive tick,
@@ -1932,23 +2067,13 @@ const CSS = `
     }
   }
 
-  /* DRIVER TWO, from 860px: once, on load, on a clock. Each card's window is placed so the
-     three moments follow one another in reading order (left to right from 1080, top to
-     bottom below it; see the MOTION header for which of them are on the first screen at
-     which widths), each one starting while the one before it makes its last small move
-     (01's stamp, 02's line coming up): 01 runs from 600ms, 02 from 1250ms, 03 from 1800ms.
-     The sent bubble, the last thing that moves, settles at 2.71s, and every animation on
-     the page has ended at 3.0s. The chat gets the longest window because it holds the
-     typing. */
+  /* THE CARD'S RISE, from 860px: once, on load, at 300, 360 and 420ms, over before card 01's
+     first turn starts at 600ms. */
   @media (prefers-reduced-motion: no-preference) and (min-width: 860px) {
     .moment-card { animation: card-rise var(--t-arrival) var(--ease-out) backwards; }
     .moment:nth-child(1) .moment-card { animation-delay: 300ms; }
     .moment:nth-child(2) .moment-card { animation-delay: 360ms; }
     .moment:nth-child(3) .moment-card { animation-delay: 420ms; }
-    .sd { animation-fill-mode: backwards; animation-timing-function: linear; }
-    .m1 .sd { animation-delay: 600ms;  animation-duration: 950ms; }
-    .m2 .sd { animation-delay: 1250ms; animation-duration: 950ms; }
-    .m3 .sd { animation-delay: 1800ms; animation-duration: 1200ms; }
   }
 
   /* ---- the queue bar, on the form's own timeline -------------------------- */
@@ -2009,6 +2134,8 @@ const CSS = `
      selector outright, with !important, so no later rule can hand one of them a clock again.
      With all of it off the page is simply its resting state, which is the finished one:
      every row in, 3 GAMES IN COMMON, the rings locked, the chat sent, every rule drawn.
+     Nothing loops, so the moment cards' pause control has nothing to pause and is not
+     there at all: display:none takes it out of the tab order and the accessibility tree.
 
      The queue bar is the one exception, and it does not move: under Reduce Motion it is
      shown or hidden in a single step as the form leaves or returns (see its block above),
@@ -2033,6 +2160,7 @@ const CSS = `
       animation: none !important;
       transition: none !important;
     }
+    #moments-pause, .pause { display: none; }
     .cta { transition-property: background-color, border-color; }
     .cta:hover, .cta:active { transform: none; box-shadow: ${shadowCss(CTA_SHADOW_LAYERS, SHADOW_INK)}; }
     /* The trailer link, the outlined join link and the queue bar's button keep their colour
@@ -2112,7 +2240,7 @@ const CSS = `
     .field-label { margin-bottom: 6px; }
     input[type="email"] { padding: 13px 14px; }
     .adult { margin: 10px 0 13px; }
-    .cta { font-size: clamp(21px, 5.1vw, 34px); }
+    .cta { font-size: clamp(21px, 5.1vw, 30px); }
   }
 
   /* A PORTRAIT PHONE WITH BROWSER CHROME. The tier below moves the form beside the type,
@@ -2225,7 +2353,7 @@ const CSS = `
     .field-label { margin-bottom: 5px; }
     input[type="email"] { padding: 12px 14px; font-size: 16px; }
     .adult { margin: 12px 0 14px; }
-    .cta { font-size: clamp(21px, 3.3vw, 34px); }
+    .cta { font-size: clamp(21px, 3.3vw, 30px); }
     .promise { margin-top: 12px; }
   }
 `;
@@ -2614,7 +2742,15 @@ ${bodyHtml}
 // through (the badge's lower counts, the message being typed) are in the markup, invisible
 // at rest and aria-hidden, so a browser that runs no animation shows the complete card and a
 // screen reader hears only the finished one. The `sd` class marks every piece that moves.
+//
+// THE MOMENTS LOOP (24 Sept 2026), so the heading carries a Pause control: a checkbox and its
+// label, siblings of the list so the checkbox's state reaches the cards without :has() or a
+// script. Its two glyphs are drawn, not typed, for the reason the nav's play triangle is:
+// iOS renders the typed pause and play characters as emoji.
 // ---------------------------------------------------------------------------
+
+const PAUSE_GLYPH = `<svg class="is-pause" viewBox="0 0 9 10" aria-hidden="true"><path d="M0.5 0h2.6v10H0.5zM5.9 0h2.6v10H5.9z"/></svg>`;
+const PLAY_GLYPH = `<svg class="is-play" viewBox="0 0 9 10" aria-hidden="true"><path d="M0.5 0l8.5 5-8.5 5z"/></svg>`;
 
 const ARROW_UP_SVG = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${APP.onVolt}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>`;
 
@@ -2671,7 +2807,10 @@ function momentsHtml() {
   return `
 <section class="moments" aria-labelledby="moments-head">
   <div class="wrap">
+   <div class="moments-inner">
     <h2 class="eyebrow" id="moments-head">What you are joining</h2>
+    <input class="pause-box" type="checkbox" id="moments-pause">
+    <label class="pause" for="moments-pause">${PAUSE_GLYPH}${PLAY_GLYPH}<span class="pw"><span class="w-pause">Pause</span><span class="w-play">Play</span></span></label>
     <ol class="moment-list">
       <li class="moment m1">
         <div class="moment-card">
@@ -2716,6 +2855,7 @@ function momentsHtml() {
         </div>
       </li>
     </ol>
+   </div>
   </div>
 </section>`;
 }
