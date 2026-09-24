@@ -16,6 +16,13 @@ export function ringTravel(markWidth: number): number {
   return RING_TRAVEL_UNITS * (markWidth / VB_W);
 }
 
+/** How long the rings take to slide together, in DUO LOCKED and in the launch intro. */
+export const RINGS_MS = 520;
+/** The rings' curve, as Easing.bezier's four arguments: ease-in-out with no overshoot, because
+ * the weave only reads right from 1.3R to 1.52R apart, so the rings must never rebound past their
+ * place (DUO LOCKED's brackets carry the overshoot). Matches the site. */
+export const RING_BEZIER = [0.65, 0, 0.35, 1] as const;
+
 // Type aliases, not interfaces: expo-router's params want index-signature-compatible objects.
 export type MatchRouteParams = { matchId: string; name?: string; photo?: string; duo?: string; common?: string };
 export type MatchPushParams = { matchId: string; name: string; photo: string; duo?: "1"; common?: string };
@@ -56,4 +63,22 @@ export function matchReason(params: Pick<MatchRouteParams, "duo" | "common">): M
   const n = Number(raw);
   if (n <= 0) return null;
   return { kind: "common", text: n === 1 ? "1 game in common" : `${n} games in common` };
+}
+
+export type MatchExit = "keep-swiping" | "message";
+export type MatchExitStep = "back" | "replace-with-tabs" | "replace-with-chat" | "push-chat";
+
+/**
+ * Where the two buttons go. The match screen is normally a sheet over the Deck, Requests or
+ * Online now, so "Keep swiping" is a plain back and "Send a message" swaps the sheet for the chat.
+ *
+ * After an invite it is not over anything. invited.tsx replaces itself with this screen, and a new
+ * player's stack holds nothing else (the onboarding wizard and the invite screen were replaced on
+ * the way), so the match screen is the whole stack: back had nowhere to go, and the chat that
+ * replaced it had no way out to the tabs. With nothing underneath, both go through the tabs.
+ * expo-router queues the two steps and runs them in order.
+ */
+export function matchExitSteps(exit: MatchExit, canGoBack: boolean): MatchExitStep[] {
+  if (exit === "keep-swiping") return canGoBack ? ["back"] : ["replace-with-tabs"];
+  return canGoBack ? ["replace-with-chat"] : ["replace-with-tabs", "push-chat"];
 }

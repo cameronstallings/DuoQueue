@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { VB_W } from "../../theme/logo-geometry";
-import { MATCH_REASON_COPY, matchParams, matchReason, ringTravel } from "./matchMoment";
+import { MATCH_REASON_COPY, matchExitSteps, matchParams, matchReason, ringTravel } from "./matchMoment";
 
 describe("ringTravel", () => {
   it("is 190 of the mark's viewBox units at any width, as on duoqueue.io", () => {
@@ -53,5 +53,24 @@ describe("matchReason", () => {
   it("has no em dash", () => {
     for (const text of Object.values(MATCH_REASON_COPY)) expect(text).not.toContain("\u{2014}");
     expect(matchReason({ common: "3" })?.text).not.toContain("\u{2014}");
+  });
+});
+
+describe("matchExitSteps", () => {
+  it("closes the sheet or swaps it for the chat when it sits over another screen", () => {
+    expect(matchExitSteps("keep-swiping", true)).toEqual(["back"]);
+    expect(matchExitSteps("message", true)).toEqual(["replace-with-chat"]);
+  });
+
+  it("goes through the tabs when the match screen is the whole stack (after an invite)", () => {
+    expect(matchExitSteps("keep-swiping", false)).toEqual(["replace-with-tabs"]);
+    // The chat lands on top of the tabs, so its back button has somewhere to go.
+    expect(matchExitSteps("message", false)).toEqual(["replace-with-tabs", "push-chat"]);
+  });
+
+  it("never goes back when there is nothing to go back to", () => {
+    for (const exit of ["keep-swiping", "message"] as const) {
+      expect(matchExitSteps(exit, false)).not.toContain("back");
+    }
   });
 });
