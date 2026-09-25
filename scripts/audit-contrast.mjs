@@ -207,6 +207,17 @@ const BASE_PAIRS = [
   { fg: "text", bg: "cardPanel" },
   { fg: "textMuted", bg: "cardPanel" },
   { fg: "voltDim", bg: "cardPanel" },
+  // Build 17, the paywall's plans page (PlanRow, PowerUpRow on surface): amber is text there
+  // (the Save chip, the Power-Up's price) as well as the chosen row's edge and radio, so it is
+  // held to the text minimum. The Power-Up's rocket is a graphic (WCAG 1.4.11).
+  { fg: "amber", bg: "surface" },
+  { fg: "volt", bg: "surface", threshold: LARGE, label: "powerUpRocket(volt)/surface" },
+  // Build 17, the paywall's people page: the Super Ping diamond in its panel (a graphic).
+  { fg: "success", bg: "cardPanel", threshold: LARGE, label: "superPingIcon(success)/cardPanel" },
+  // Build 17, the tour: "Can't reach DuoQueue. Try again." is an error toast (Toast.tsx).
+  { fg: "danger", bg: "surfaceSolid", label: "errorToast(danger)/surfaceSolid" },
+  // Not listed, and cannot be: the tour's tap hint (TapHint.tsx) is drawn over Kai's artwork, so
+  // it uses voltRaw (chartreuse in both schemes) and is checked on the render, not here.
 ];
 
 for (const group of ["overlap", "playstyle"]) {
