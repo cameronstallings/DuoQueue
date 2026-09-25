@@ -10,6 +10,7 @@ import {
 
 import { PICTURE_TAG } from "../profile/pictureStatus";
 import { LEAGUE_GAME_NAME } from "../swipe/cardChips";
+import { FREE_DAILY_SWIPES } from "../swipe/deckStripCopy";
 import type { DeckCard, DeckCardPrompt } from "../swipe/types";
 
 /**
@@ -122,7 +123,13 @@ export interface TourCopy {
   body: string;
 }
 
-/** Titles on pages 2 and 3 keep a no-break space so they break well. */
+/** A no-break space, spelled by its code so it can be seen in source and never pasted in raw. */
+const NBSP = String.fromCharCode(0xa0);
+
+/**
+ * Titles on pages 2 and 3 keep a no-break space (NBSP) so they break well. Page 3's limit is the
+ * Deck's own constant, so the tour and the paywall's Deck page always name the same number.
+ */
 export const TOUR_COPY: Record<TourPage, TourCopy> = {
   card: {
     heading: "The card",
@@ -131,13 +138,13 @@ export const TOUR_COPY: Record<TourPage, TourCopy> = {
   },
   canDuo: {
     heading: "Can duo",
-    title: "Lit up means you can queue.",
+    title: `Lit up means you can${NBSP}queue.`,
     body: "Can duo lights up when the ranks you both listed can queue Ranked Solo/Duo together.",
   },
   locked: {
     heading: "Duo locked",
-    title: "Both queue up. Duo locked.",
-    body: "Swipe the card or tap the bolt to queue up. When they queue up with you too, chat opens. Free accounts get 25 swipes a day.",
+    title: `Both queue up. Duo${NBSP}locked.`,
+    body: `Swipe the card or tap the bolt to queue up. When they queue up with you too, chat opens. Free accounts get ${FREE_DAILY_SWIPES} swipes a day.`,
   },
   yours: {
     heading: "Your card",

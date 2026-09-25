@@ -1,9 +1,13 @@
+import { readFileSync } from "node:fs";
+import { URL } from "node:url";
+
 import { LOL_DIVISIONAL_TIERS, lolSoloDuoEligible, type LolDivision } from "@duoqueue/shared-types";
 import { describe, expect, it } from "vitest";
 
 import { PLATFORM_LABELS, PLAYSTYLE_LABELS, REGION_LABELS, SKILL_LABELS } from "../onboarding/profile-labels";
 import { PICTURE_TAG } from "../profile/pictureStatus";
 import { cardCells, cardDetailsLine } from "../swipe/cardChips";
+import { FREE_DAILY_SWIPES } from "../swipe/deckStripCopy";
 import {
   CAN_DUO_CAVEAT,
   EXAMPLE_TAG,
@@ -28,6 +32,13 @@ import {
 const LABELS = { skill: SKILL_LABELS, platform: PLATFORM_LABELS, playstyle: PLAYSTYLE_LABELS };
 const goldII: TourGame = { lolTier: "gold", lolDivision: 2 };
 const notLeague: TourGame = { lolTier: null, lolDivision: null };
+
+/** Spelled by code so no invisible character sits in this file (the 4b6bce5 way). */
+const NBSP = String.fromCharCode(0xa0);
+
+function source(relative: string): string {
+  return readFileSync(new URL(relative, import.meta.url), "utf8");
+}
 
 describe("showsCanDuoPage", () => {
   it("shows for a ranked League player in NA", () => {
@@ -96,11 +107,13 @@ describe("exampleCard (Kai)", () => {
   });
 
   it("asks only questions a real player can pick (the prompt catalogue, 0010 and 0017)", () => {
-    expect(KAI_PROMPTS.map((p) => p.question)).toEqual([
-      "The role I always end up playing is",
-      "A skill I'm weirdly proud of",
-      "My comfort game is",
-    ]);
+    const catalogue =
+      source("../../../../../supabase/migrations/0010_prompts.sql") +
+      source("../../../../../supabase/migrations/0017_more_prompts.sql");
+    expect(KAI_PROMPTS).toHaveLength(3);
+    for (const { question } of KAI_PROMPTS) {
+      expect(catalogue).toContain(`('${question.replaceAll("'", "''")}')`);
+    }
     expect(EXAMPLE_TAG).toBe("Example");
   });
 });
@@ -108,10 +121,10 @@ describe("exampleCard (Kai)", () => {
 describe("tour copy", () => {
   it("says the design's words", () => {
     expect(TOUR_COPY.card.title).toBe("Tap for their prompts.");
-    expect(TOUR_COPY.canDuo.title).toBe("Lit up means you can queue.");
-    expect(TOUR_COPY.locked.title).toBe("Both queue up. Duo locked.");
+    expect(TOUR_COPY.canDuo.title).toBe(`Lit up means you can${NBSP}queue.`);
+    expect(TOUR_COPY.locked.title).toBe(`Both queue up. Duo${NBSP}locked.`);
     expect(TOUR_COPY.locked.body).toBe(
-      "Swipe the card or tap the bolt to queue up. When they queue up with you too, chat opens. Free accounts get 25 swipes a day.",
+      `Swipe the card or tap the bolt to queue up. When they queue up with you too, chat opens. Free accounts get ${FREE_DAILY_SWIPES} swipes a day.`,
     );
     expect(TOUR_COPY.yours.title).toBe("This is your card.");
     expect(TOUR_FOOT).toEqual({ skip: "Skip", start: "Start swiping", dotsLabel: "Tour page" });
@@ -136,8 +149,9 @@ describe("tour copy", () => {
       CAN_DUO_CAVEAT,
       EXAMPLE_TAG,
     ];
+    const dashes = new RegExp(`[${String.fromCharCode(0x2013, 0x2014)}]`);
     for (const text of all) {
-      expect(text).not.toMatch(/[–—]/);
+      expect(text).not.toMatch(dashes);
       expect(text).not.toMatch(/\$\d/);
       expect(text).not.toMatch(/swipe right/i);
       expect(text).not.toMatch(/interested in you/i);
