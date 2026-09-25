@@ -30,6 +30,8 @@ const TRACK_GAP = 4;
 /** Full spring config on purpose: Reanimated 4 merges a partial config over mass 4 /
  * stiffness 900, which wobbles for seconds. Damping ratio ~0.67. */
 const PRESS_SPRING = { mass: 1, stiffness: 380, damping: 26 } as const;
+/** How far everything but the focused cells dims on the tour's Can duo page. */
+export const CARD_DIM_OPACITY = 0.35;
 
 /** Each cell prints in: fade plus a 4pt lift, 140ms, 40ms apart. Reduce Motion: a plain fade. */
 function cellEntering(index: number, reduced: boolean, duration: number) {
@@ -91,6 +93,8 @@ interface CardPlateProps {
   profileRow: boolean;
   onOpenProfile?: () => void;
   onMenu?: () => void;
+  /** Only these cells at full strength; the track, name line and other cells dim (the tour). */
+  focusCells?: readonly CardCell["key"][];
 }
 
 /**
@@ -109,12 +113,14 @@ export function CardPlate({
   profileRow,
   onOpenProfile,
   onMenu,
+  focusCells,
 }: CardPlateProps) {
   const { colors, motion, radius, spacing, type } = useTheme();
   const reduced = useReducedMotion();
   const dip = useSharedValue(1);
   const dipStyle = useAnimatedStyle(() => ({ transform: [{ scale: dip.value }] }));
   const flexes: readonly number[] = cells.length === 3 ? CELL_FLEX : cells.map(() => 1);
+  const dim = focusCells ? CARD_DIM_OPACITY : 1;
 
   return (
     <Pressable
@@ -131,9 +137,11 @@ export function CardPlate({
       }}
     >
       <Animated.View style={[{ paddingHorizontal: PLATE_INSET, paddingTop: spacing.sm, paddingBottom: spacing.tight }, dipStyle]}>
-        <PageTrack count={pageCount} index={pageIndex} />
+        <View style={{ opacity: dim }}>
+          <PageTrack count={pageCount} index={pageIndex} />
+        </View>
 
-        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, marginTop: spacing.tight }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, marginTop: spacing.tight, opacity: dim }}>
           <Name variant="screenTitle" numberOfLines={1} style={{ color: colors.text, flexShrink: 1 }}>
             {name}
           </Name>
@@ -160,7 +168,7 @@ export function CardPlate({
           ) : null}
         </View>
 
-        <Text style={[type.cardMeta, { color: colors.textMuted, marginTop: 2 }]} numberOfLines={1}>
+        <Text style={[type.cardMeta, { color: colors.textMuted, marginTop: 2, opacity: dim }]} numberOfLines={1}>
           {details}
         </Text>
 
@@ -183,32 +191,35 @@ export function CardPlate({
                       paddingRight: spacing.xs,
                     }}
                   >
-                    <Text style={[type.tick, { color: colors.textMuted }]} numberOfLines={1}>
-                      {cell.label}
-                    </Text>
-                    {cell.lit ? (
-                      <View
-                        style={{
-                          alignSelf: "flex-start",
-                          marginTop: spacing.xs,
-                          paddingHorizontal: 6,
-                          paddingVertical: 2,
-                          borderRadius: radius.chip,
-                          backgroundColor: colors.cardLitFill,
-                        }}
-                      >
-                        <Text style={[type.label, { color: colors.cardLitInk }]}>{cell.value}</Text>
-                      </View>
-                    ) : (
-                      <Text
-                        style={[type.bodyStrong, { color: colors.text, marginTop: 2 }]}
-                        numberOfLines={1}
-                        adjustsFontSizeToFit
-                        minimumFontScale={0.8}
-                      >
-                        {cell.value}
+                    {/* An inner View carries the dim, so the entering fade never fights it. */}
+                    <View style={{ opacity: focusCells && !focusCells.includes(cell.key) ? CARD_DIM_OPACITY : 1 }}>
+                      <Text style={[type.tick, { color: colors.textMuted }]} numberOfLines={1}>
+                        {cell.label}
                       </Text>
-                    )}
+                      {cell.lit ? (
+                        <View
+                          style={{
+                            alignSelf: "flex-start",
+                            marginTop: spacing.xs,
+                            paddingHorizontal: 6,
+                            paddingVertical: 2,
+                            borderRadius: radius.chip,
+                            backgroundColor: colors.cardLitFill,
+                          }}
+                        >
+                          <Text style={[type.label, { color: colors.cardLitInk }]}>{cell.value}</Text>
+                        </View>
+                      ) : (
+                        <Text
+                          style={[type.bodyStrong, { color: colors.text, marginTop: 2 }]}
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.8}
+                        >
+                          {cell.value}
+                        </Text>
+                      )}
+                    </View>
                   </Animated.View>
                 );
               })

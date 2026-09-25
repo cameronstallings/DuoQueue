@@ -16,7 +16,7 @@ import { PLATFORM_LABELS, PLAYSTYLE_LABELS, SKILL_LABELS } from "@/features/onbo
 import { useTheme } from "@/theme/useTheme";
 
 import { type CardCell, type CardPage, type CellLabels, cardPagePosition, cardPageSpoken } from "./cardChips";
-import { CardPlate } from "./CardPlate";
+import { CARD_DIM_OPACITY, CardPlate } from "./CardPlate";
 
 export const CARD_CELL_LABELS: CellLabels = {
   skill: SKILL_LABELS,
@@ -118,6 +118,10 @@ export interface CardFaceProps {
   /** Makes the status tag a button (your own card's "ADD A PICTURE" goes to Edit). */
   statusTagAction?: { accessibilityLabel: string; onPress: () => void } | null;
   pictureOverlay?: ReactNode;
+  /** After a tap turns the page (the tour fades its hint on the first one). */
+  onPageChange?: (index: number) => void;
+  /** Only these cells at full strength; the picture and the rest dim (the tour's Can duo page). */
+  focusCells?: readonly CardCell["key"][];
 }
 
 /**
@@ -139,6 +143,8 @@ export function CardFace({
   statusTag,
   statusTagAction,
   pictureOverlay,
+  onPageChange,
+  focusCells,
 }: CardFaceProps) {
   const { colors, motion, radius, spacing, type } = useTheme();
   const [pageIndex, setPageIndex] = useState(0);
@@ -153,6 +159,7 @@ export function CardFace({
     const target = Math.min(Math.max(next, 0), lastIndex);
     if (target === index) return;
     setPageIndex(target);
+    onPageChange?.(target);
     // VoiceOver keeps focus on the tap zone while the page under it changes, so say the new
     // page. Queued (iOS) so the button's own feedback does not cut it off; Android ignores the
     // option. No-op without a screen reader.
@@ -170,7 +177,12 @@ export function CardFace({
         { borderRadius: radius.card, borderColor: colors.cardEdge, backgroundColor: colors.cardHero, padding: spacing.xs },
       ]}
     >
-      <View style={[styles.picture, { borderRadius: radius.picture, backgroundColor: colors.cardRecessed }]}>
+      <View
+        style={[
+          styles.picture,
+          { borderRadius: radius.picture, backgroundColor: colors.cardRecessed, opacity: focusCells ? CARD_DIM_OPACITY : 1 },
+        ]}
+      >
         {/* Keyed by page, so a page turn is a 140ms cross-fade (a fade, so it stays on under
             Reduce Motion). */}
         <Animated.View
@@ -243,6 +255,7 @@ export function CardFace({
         profileRow={profileRow}
         onOpenProfile={interactive ? onOpenProfile : undefined}
         onMenu={interactive ? onMenu : undefined}
+        focusCells={focusCells}
       />
     </View>
   );
