@@ -10,7 +10,10 @@ export function PageHeading({ copy }: { copy: HeadingCopy }) {
   return (
     <View style={{ gap: spacing.sm }}>
       <Text style={[type.label, { color: colors.volt }]}>{copy.label}</Text>
-      <Text accessibilityRole="header" style={[type.heroTitle, { color: colors.text }]}>
+      {/* push-out: where a line still has to wrap (a 375pt phone, a larger text size), iOS
+          moves a word down rather than leave one alone on the last line ("Choose who shows /
+          up." on an iPhone SE, found by rendering at 375 x 667). */}
+      <Text accessibilityRole="header" lineBreakStrategyIOS="push-out" style={[type.heroTitle, { color: colors.text }]}>
         {copy.title}
       </Text>
       <Text style={[type.body, { color: colors.textMuted }]}>{copy.body}</Text>

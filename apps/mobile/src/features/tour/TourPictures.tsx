@@ -44,7 +44,8 @@ export function TourHeading({ copy }: { copy: TourCopy }) {
   return (
     <View style={{ gap: spacing.sm }}>
       <Text style={[type.label, { color: colors.textMuted }]}>{copy.heading}</Text>
-      <Text accessibilityRole="header" style={[type.screenTitle, { color: colors.text }]}>
+      {/* push-out: iOS moves a word down rather than leave one alone on a title's last line. */}
+      <Text accessibilityRole="header" lineBreakStrategyIOS="push-out" style={[type.screenTitle, { color: colors.text }]}>
         {copy.title}
       </Text>
       <Text style={[type.body, { color: colors.textMuted }]}>{copy.body}</Text>
