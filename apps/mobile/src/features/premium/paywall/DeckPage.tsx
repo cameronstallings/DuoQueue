@@ -89,7 +89,10 @@ export function DeckPage({ from, bottomInset }: { from: PaywallFrom; bottomInset
   const { data: quota } = useSwipeQuota();
   const { data: details } = useEditableProfileDetails(userId);
   const limit = quota?.swipes_limit ?? FREE_DAILY_SWIPES;
-  const left = quota ? Math.max(limit - quota.swipes_used, 0) : limit;
+  // From the limit the server has just refused a swipe, so the free strip reads 0 whatever the
+  // cache holds: the refetch after the 25th swipe can still be in flight when the 26th fails,
+  // and "1 LEFT" under "25 OF 25 SWIPES USED" would contradict itself.
+  const left = from === "limit" ? 0 : quota ? Math.max(limit - quota.swipes_used, 0) : limit;
   const rows = filterPreviewRows(details, { skill: SKILL_LABELS, platform: PLATFORM_LABELS, playstyle: PLAYSTYLE_LABELS });
 
   return (

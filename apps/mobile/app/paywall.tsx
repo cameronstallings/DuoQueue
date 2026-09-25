@@ -61,8 +61,8 @@ function PaywallPager({ from }: { from: PaywallFrom }) {
       <GrainOverlay />
       <PaywallBar page={pager.page} onBack={() => pager.goTo(pager.page - 1)} />
       <Pager pager={pager}>
-        {order.map((page) => (
-          <PagerPage key={page} pager={pager}>
+        {order.map((page, index) => (
+          <PagerPage key={page} pager={pager} index={index}>
             {page === "deck" ? (
               <DeckPage from={from} bottomInset={pageBottom} />
             ) : page === "people" ? (

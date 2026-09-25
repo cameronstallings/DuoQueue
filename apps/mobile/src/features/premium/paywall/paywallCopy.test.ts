@@ -110,7 +110,10 @@ describe("peoplePageHeading", () => {
     expect(peoplePageHeading("superping", 5).title).toBe("Send a Super Ping\nevery day.");
     const chat = peoplePageHeading("chat", 5);
     expect(chat.title).toBe("Keep every\nconversation open.");
-    expect(chat.body).toContain(`your ${FREE_ACTIVE_CONVERSATIONS} most recently active matches`);
+    expect(chat.body).toContain("The conversation you opened is locked.");
+    // The rule is the Conversations panel's, directly below: never the same sentence twice.
+    expect(chat.body).not.toContain("most recently active");
+    expect(PEOPLE_EXTRAS.conversationsBody).toContain(`your ${FREE_ACTIVE_CONVERSATIONS} most recently active matches`);
   });
 
   it("orders the People panels by the same reason", () => {

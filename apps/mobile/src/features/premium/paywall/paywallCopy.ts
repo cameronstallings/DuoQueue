@@ -90,7 +90,9 @@ export function peoplePageHeading(from: PaywallFrom, total: number): HeadingCopy
     return {
       label: "Conversations",
       title: "Keep every\nconversation open.",
-      body: `Free can message in your ${FREE_ACTIVE_CONVERSATIONS} most recently active matches. DuoQueue+ keeps every conversation open, and shows everyone who wants to duo with you.`,
+      // Every chat entry is a locked conversation (the send and ping alerts, the locked banner).
+      // The rule itself is the Conversations panel right below, so it is not said twice.
+      body: "The conversation you opened is locked. DuoQueue+ keeps every conversation open, and shows everyone who wants to duo with you.",
     };
   }
   return {
