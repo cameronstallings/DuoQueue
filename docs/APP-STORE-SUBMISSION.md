@@ -35,10 +35,14 @@ Part 5 is the pre-submit checklist. Do that checklist last, right before you tap
 - **The app is built.** `eas login` / `eas init` are already done — `apps/mobile/app.json`
   has a real `extra.eas.projectId` (`a5069e29-0e9b-4c9c-87a3-e4f1f6ae0837`), so push-token
   registration is unblocked and you can run `eas build` directly (see Part 1A step 4).
-- **The paywall's auto-renewal disclosure is already written.** An earlier pass flagged this
-  as missing; it isn't anymore. `apps/mobile/app/paywall.tsx` (right above the Terms/Privacy
-  links, citing Guideline 3.1.2 in a code comment) states plainly that DuoQueue+ auto-renews,
-  what it charges, the 24-hour cancellation window, and where to cancel. No code change needed.
+- **The paywall's auto-renewal disclosure is on its purchase page.** Since build 17 the paywall
+  is three swiped pages (`apps/mobile/app/paywall.tsx`). Page 3
+  (`src/features/premium/paywall/PlansView.tsx`) holds the plans and, directly under the
+  purchase button, a renewal paragraph written for the selected plan (`planCopy` in
+  `pricing.ts`): charged to the Apple Account at confirmation, renews at the same price unless
+  cancelled at least 24 hours before the period ends, the renewal charged within those 24
+  hours, managed or cancelled in Apple Account settings. Restore purchases, Terms of Use and
+  Privacy Policy sit beside it. Pages 1 and 2 show no price and no buy button.
 - **Dating-pattern language is purged and quality gates are green.** "Who liked you" → "who
   wants to duo," heart iconography → game-controller icons, gender-based match filtering
   removed (no screen reads or writes `preferences.preferred_genders`; migration 0060 removes
@@ -331,7 +335,7 @@ From there it's yours to run: chat in-app, share a Discord username, add each ot
 
 Safety, for real: DuoQueue is 18+ only. Every account confirms a date of birth of 18 or older to sign up. Every profile photo is automatically screened before anyone else sees it. Report or block from a profile or a chat. Blocking is immediate and complete: a blocked user can't see your profile again. A hidden-word filter mutes messages containing words you pick. A Safety Center covers meetup safety, scam patterns, and community guidelines.
 
-DuoQueue+ is optional. It lifts the 25-swipes-a-day cap, adds filters for a specific game, platform, skill level, and playstyle, shows everyone who wants to duo at once instead of a daily trio, and gives you a Super Ping a day that tells someone directly you want to duo. Weekly, monthly, 3-month, and 6-month plans, all auto-renewing until you cancel in your App Store account settings. Power-Ups are a separate one-time purchase that puts you near the top of other people's decks for 30 minutes. Everything else (matching, chatting, party mode) is free and unlimited.
+DuoQueue+ is optional. It lifts the 25-swipes-a-day cap, adds filters for a specific game, platform, skill level, and playstyle, shows everyone who wants to duo at once instead of a daily trio, adds unlimited active conversations, and gives you a Super Ping a day that tells someone directly you want to duo. Weekly, monthly, 3-month, and 6-month plans, all auto-renewing until you cancel in your App Store account settings. Power-Ups are a separate one-time purchase that puts you near the top of other people's decks for 30 minutes. Everything else (matching, chatting in your 5 most recent matches, party mode) is free.
 
 Terms of Use (EULA): https://duoqueue.io/terms
 Privacy Policy: https://duoqueue.io/privacy
@@ -349,13 +353,15 @@ one. Do both. This is metadata-only, so the fix needs no new build and resubmiss
 doesn't have.** Both are worth understanding, because they affect what you sell, not just
 what you write:
 
-- **"removes the daily swipe and conversation limits"** — there is no conversation limit.
-  Grepping every `raise exception` in the matching migrations, the only free-tier gate is
-  `daily_swipe_limit_reached` at 25/day ([0048:800](../supabase/migrations/0048_rate_limiting.sql:800)),
-  plus premium-only filters and Super Ping. Free users already have unlimited conversations.
-  **Your paywall says "unlimited conversations" too** ([paywall.tsx:228,241](../apps/mobile/app/paywall.tsx:228)) —
-  that's advertising a subscription benefit that isn't one, and it should be fixed in the app
-  before you submit.
+- **The conversation limit is real, and build 17 sells it (corrected 24 Sept 2026).** An
+  earlier pass said "there is no conversation limit" because it grepped only for `raise
+  exception`. The cap is enforced without one: `is_conversation_unlocked`
+  ([0004_chat.sql:71-118](../supabase/migrations/0004_chat.sql:71)) keeps a free account's 5
+  most recently active matches open, `send-message` answers `conversation_locked`
+  ([index.ts:100-116](../supabase/functions/send-message/index.ts:100)), and Matches shows a
+  "Locked" chip. Cameron chose to keep it, so the description says chatting is free in your 5
+  most recent matches and DuoQueue+ adds unlimited active conversations, and the paywall, the
+  Settings hint and the review notes say the same.
 - **"Legendary Likes ... for extra visibility"** — they have no effect at all. `send_rose`
   ([0048:965](../supabase/migrations/0048_rate_limiting.sql:965)) spends a credit and then calls
   `perform_swipe(target, 'like')` — the identical code path as a free swipe. Nothing records
@@ -406,6 +412,8 @@ is conditional on data the demo account doesn't produce: the Requests upsell ("S
 with DuoQueue+") renders only when there are *more* requests than the free tier shows, and
 the account has exactly 3, all visible free; the swipe-limit prompt needs 25 swipes against
 a 13-card deck. Use the Settings path in the review notes and for the IAP review screenshot.
+Since build 17 the paywall opens on page 1 of 3, which has no plans on it: swipe left twice (or
+use the dots with VoiceOver) to reach page 3. The IAP review screenshot is page 3.
 
 **Capture now, no build needed**: sign in to Expo Go as `review@duoqueue.io` (Part 1.5) and
 screenshot the normal iOS way. Skip the paywall screen in this pass — `react-native-purchases`
@@ -676,6 +684,13 @@ build 11 paste plus the optional picture, the card (picture then three prompts, 
 panel), no gender step, and the lit "CAN DUO" cell in place of "Can duo with you". Keep it
 under 4,000 characters.
 
+**Build 17 paste.** Kept at `C:\Users\stall\Documents\DuoQueue-review-notes-build-16.txt` (the
+build 16 file, updated in place because build 16 was never submitted): NEW IN THIS BUILD gains
+the three-page paywall ("swipe left to page 3") and the once-only tour after setup (the demo
+account is already past it), and HOW TO EXERCISE item 4 says DuoQueue+ keeps every
+conversation open. Count its characters again after any edit (App Store Connect's limit is
+4,000, counting CRLF line ends).
+
 ```
 WHAT THIS APP IS
 DuoQueue helps people find platonic gaming partners ("duos"): teammates to play games, watch
@@ -727,10 +742,11 @@ HOW TO EXERCISE EACH FEATURE
    Sending a new message works normally.
 3. View a full profile: tap the panel under a card's picture in the Deck (or a name in Matches)
    to open full profile detail, showing the picture, prompts, games, schedule, and vibe tags.
-4. Try the paywall: Settings tab -> "Subscription" section -> "DuoQueue+". It lists four
-   auto-renewing plans (Weekly / Monthly / 3-Month / 6-Month) plus a one-time Power-Up
-   consumable, and always offers "Continue with Free" so it never traps you. The same screen
-   is reachable from the Deck tab via "Filters" -> "Unlock DuoQueue+".
+4. Try the paywall: Settings tab -> "Subscription" section -> "DuoQueue+". It is three pages:
+   swipe left (or use the dots) to reach page 3, which lists four auto-renewing plans (Weekly /
+   Monthly / 3-Month / 6-Month) plus a one-time Power-Up consumable. The X closes it from every
+   page and page 3 ends with "Continue with Free", so it never traps you. The same screen is
+   reachable from the Deck tab via "Filters" -> "Unlock DuoQueue+".
 4b. Manage or cancel a subscription: Settings tab -> "Subscription" -> "Manage subscription",
    which opens the App Store's own subscription management. Purchases made through Apple can
    only be changed there, so the app links to it rather than implying it can cancel for you.
@@ -745,12 +761,13 @@ HOW TO EXERCISE EACH FEATURE
 IN-APP PURCHASES
 DuoQueue+ is a subscription (Weekly [$4.99/wk] / Monthly [$7.99/mo] / 3-Month [$17.99] /
 6-Month [$29.99]) that lifts the free tier's 25-swipes-per-day cap, adds advanced filters,
-shows everyone who has sent a request at once, and grants one daily "Super Ping." All four
-tiers are auto-renewing; the paywall states this explicitly next to the purchase button
-("DuoQueue+ is an auto-renewing subscription... renews automatically for the same price and
-period unless you cancel at least 24 hours before the current period ends... Manage or cancel
-anytime in your device's Account Settings"), and Restore Purchases is present on the same
-screen. One consumable purchase is also offered, visually separated from the subscription
+shows everyone who has sent a request at once, keeps every conversation open (free accounts
+can message in their 5 most recently active matches), and grants one daily "Super Ping." All
+four tiers are auto-renewing; page 3 of the paywall states this directly under the purchase
+button, for the selected plan ("DuoQueue+ Monthly, $7.99 a month, charged to your Apple Account
+when you confirm. It renews at $7.99 a month unless cancelled at least 24 hours before the
+period ends..."), and Restore purchases is on the same page. One consumable purchase is also
+offered, visually separated from the subscription
 tiers: a "Power-Up," which raises the buyer's position in other users' decks for 30 minutes.
 
 MODERATION AND SAFETY
@@ -868,11 +885,13 @@ Guideline 3.1.1 problem and a refund magnet, so **the storefront tile is removed
 
   **Action for you: create five IAP products, not six. Skip `duoqueue_roses_3`.**
 
-**2. The paywall no longer advertises "unlimited conversations."** There is no conversation
-cap for free users anywhere in the schema — the only free-tier gate is 25 swipes a day — so
-that line was selling a non-benefit, which is exactly what Guideline 3.1.2 review looks at.
-Both instances in `paywall.tsx` now list the real benefits (unlimited swipes, advanced
-filters, the full requests list, the daily Super Ping). Part 2 and Part 4 match.
+**2. Unlimited active conversations are a real DuoQueue+ benefit (corrected for build 17).**
+This note used to say free accounts had no conversation cap. They do: `is_conversation_unlocked`
+(0004_chat.sql:71-118) keeps a free account's 5 most recently active matches open and locks
+older ones until the player unmatches one or upgrades, and `send-message` refuses a locked
+conversation. Build 17 keeps the cap and lists it: page 2 of the paywall, the plans caption,
+the Settings hint, the description and the review notes all say DuoQueue+ keeps every
+conversation open.
 
 ---
 

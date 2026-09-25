@@ -50,7 +50,7 @@ export default function SettingsScreen() {
             hint={
               isPremium
                 ? "See what's included and your current plan"
-                : "Unlimited swipes, filters, and a daily Super Ping"
+                : "Unlimited swipes and conversations, filters, a daily Super Ping"
             }
             value={isPremium ? "Active" : undefined}
             onPress={() => router.push(paywallHref("settings"))}
