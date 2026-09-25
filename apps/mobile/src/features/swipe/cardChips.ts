@@ -212,23 +212,36 @@ export function cardPages(picture: string | null, prompts: DeckCardPrompt[]): Ca
   return pages.length > 0 ? pages : [{ kind: "blank" }];
 }
 
-/** Where a card's pages are, for VoiceOver: "Page 2 of 4". */
-export function cardPagePosition(index: number, count: number): string {
-  return `Page ${index + 1} of ${count}`;
+/**
+ * Where a card's pages are, for VoiceOver: "Page 2 of 4". A card that sits on a pager of its own
+ * (`onPager`, the tour) says "Card page 2 of 4", so its pages are never taken for the pager's.
+ */
+export function cardPagePosition(index: number, count: number, onPager = false): string {
+  return `${onPager ? "Card page" : "Page"} ${index + 1} of ${count}`;
 }
 
 /**
  * What VoiceOver hears after a page turn: "Page 2 of 4. My comfort game is Stardew Valley."
  * The questions are sentence stems, so question and answer join with a space.
  */
-export function cardPageSpoken(page: CardPage, name: string, index: number, count: number): string {
+export function cardPageSpoken(page: CardPage, name: string, index: number, count: number, onPager = false): string {
   const content =
     page.kind === "picture"
       ? `${name}'s picture`
       : page.kind === "prompt"
         ? [page.question.trim(), page.answer.trim()].filter(Boolean).join(" ")
         : name;
-  return `${cardPagePosition(index, count)}. ${content}`;
+  return `${cardPagePosition(index, count, onPager)}. ${content}`;
+}
+
+/**
+ * The tap zones' VoiceOver names. The Deck's card is the only paged thing on its screen, so it
+ * keeps "Next page". The tour's cards sit on the tour's own pager ("Tour page, 1 of 4"), so they
+ * name the card they turn: "Kai's card, next page".
+ */
+export function cardZoneLabels(cardName?: string | null): { previous: string; next: string } {
+  if (!cardName) return { previous: "Previous page", next: "Next page" };
+  return { previous: `${cardName}, previous page`, next: `${cardName}, next page` };
 }
 
 /** "27 · NA West · en fr". The card renders it uppercase (type.cardMeta). The tour passes

@@ -6,6 +6,7 @@ import { LockBrackets } from "@/features/match/LockBrackets";
 import { BRACKET_SIDE, MATCH_MARK_W } from "@/features/match/matchMoment";
 import { RingsLock } from "@/features/match/RingsLock";
 import { REGION_LABELS } from "@/features/onboarding/profile-labels";
+import { usePagerHeadingRef } from "@/features/pager/Pager";
 import { OwnCard } from "@/features/profile/OwnCardSection";
 import { CARD_CELL_LABELS, CardFace } from "@/features/swipe/CardFace";
 import { cardCells, cardDetailsLine, cardPages, type CardPage } from "@/features/swipe/cardChips";
@@ -18,9 +19,13 @@ import {
   EXAMPLE_TAG,
   KAI_PROMPTS,
   LOCKED_COPY,
-  TOUR_FULL_CHAT_HEIGHT,
+  TOUR_CAN_DUO_PICTURE_MIN,
+  TOUR_CARD_NAME,
+  TOUR_CARD_PICTURE_MIN,
   exampleCard,
   tourChat,
+  tourChatSpoken,
+  tourLockedFit,
   type TourCopy,
   type TourRankLine,
 } from "./tourPages";
@@ -31,21 +36,29 @@ const KAI_PICTURE: number = require("../../../assets/tour/kai.jpg");
 
 const MARK_H = MATCH_MARK_W * LOGO_MARK_ASPECT;
 const LOCK_BOX_W = MATCH_MARK_W + BRACKET_SIDE * 2;
-/** The lock mark's width on a short phone's page 3. */
+/** The lock mark's width on a short page 3. */
 const SHORT_MARK_W = 128;
+/** A measured page 3 taller than its picture area by more than this is short (layout rounding). */
+const OVERFLOW_SLOP = 0.5;
 
 function kaiPages(): CardPage[] {
   return [{ kind: "picture", url: KAI_PICTURE }, ...cardPages(null, KAI_PROMPTS)];
 }
 
-/** The text block under every picture, top-aligned so the heading never jumps between pages. */
-export function TourHeading({ copy }: { copy: TourCopy }) {
+/**
+ * The text block under every picture, top-aligned so the heading never jumps between pages. It
+ * reports its height (`onHeight`), so the picture leaves the tallest heading room at any text
+ * size (tourPictureHeight). Its title registers with the tour's pager page (PagerPage), as the
+ * paywall's titles do.
+ */
+export function TourHeading({ copy, onHeight }: { copy: TourCopy; onHeight?: (height: number) => void }) {
   const { colors, spacing, type } = useTheme();
+  const titleRef = usePagerHeadingRef();
   return (
-    <View style={{ gap: spacing.sm }}>
+    <View style={{ gap: spacing.sm }} onLayout={onHeight ? (e) => onHeight(e.nativeEvent.layout.height) : undefined}>
       <Text style={[type.label, { color: colors.textMuted }]}>{copy.heading}</Text>
       {/* push-out: iOS moves a word down rather than leave one alone on a title's last line. */}
-      <Text accessibilityRole="header" lineBreakStrategyIOS="push-out" style={[type.screenTitle, { color: colors.text }]}>
+      <Text ref={titleRef} accessibilityRole="header" lineBreakStrategyIOS="push-out" style={[type.screenTitle, { color: colors.text }]}>
         {copy.title}
       </Text>
       <Text style={[type.body, { color: colors.textMuted }]}>{copy.body}</Text>
@@ -53,12 +66,16 @@ export function TourHeading({ copy }: { copy: TourCopy }) {
   );
 }
 
-/** Page 1: Kai's real card, which really turns when tapped, with the hint until the first tap. */
+/**
+ * Page 1: Kai's real card, which really turns when tapped, with the hint until the first tap. At
+ * least `height` tall; a larger text size grows the plate, and past TOUR_CARD_PICTURE_MIN of
+ * picture the card grows instead and the page scrolls.
+ */
 export function CardTourPage({ height, rankLabel }: { height: number; rankLabel: string | null }) {
   const [tapped, setTapped] = useState(false);
   const card = exampleCard(rankLabel);
   return (
-    <View style={{ height }}>
+    <View style={{ minHeight: height }}>
       <CardFace
         name={card.display_name}
         details={cardDetailsLine(card, REGION_LABELS, { withAge: false })}
@@ -70,19 +87,22 @@ export function CardTourPage({ height, rankLabel }: { height: number; rankLabel:
         statusTag={EXAMPLE_TAG}
         onPageChange={() => setTapped(true)}
         pictureOverlay={<TapHint visible={!tapped} />}
+        pagerCardName={TOUR_CARD_NAME.kai}
+        pictureMinHeight={TOUR_CARD_PICTURE_MIN}
       />
     </View>
   );
 }
 
-/** Page 2 (ranked League players in NA only): Kai dimmed but for the rank and the lit cell, then
- * the player's own rank line and the required caveat. */
+/** Page 2 (ranked League players in NA only): Kai dimmed but for the rank, the lit cell and the
+ * EXAMPLE tag, then the player's own rank line and the required caveat. The picture may shrink to
+ * the tag's height; the plate and the rank panel never shrink (the page scrolls instead). */
 export function CanDuoTourPage({ height, rankLabel, line }: { height: number; rankLabel: string; line: TourRankLine }) {
   const { colors, radius, spacing, type } = useTheme();
   const card = exampleCard(rankLabel);
   return (
-    <View style={{ height, gap: spacing.md }}>
-      <View style={{ flex: 1 }}>
+    <View style={{ minHeight: height, gap: spacing.md }}>
+      <View style={{ flexGrow: 1 }}>
         <CardFace
           name={card.display_name}
           details={cardDetailsLine(card, REGION_LABELS, { withAge: false })}
@@ -93,6 +113,8 @@ export function CanDuoTourPage({ height, rankLabel, line }: { height: number; ra
           profileRow={false}
           statusTag={EXAMPLE_TAG}
           focusCells={["game", "duo"]}
+          pagerCardName={TOUR_CARD_NAME.kai}
+          pictureMinHeight={TOUR_CAN_DUO_PICTURE_MIN}
         />
       </View>
       <View
@@ -113,14 +135,19 @@ export function CanDuoTourPage({ height, rankLabel, line }: { height: number; ra
   );
 }
 
-function Bubble({ mine, text }: { mine: boolean; text: string }) {
+/** One bubble. VoiceOver hears who said it ("Kai: ..."), which the picture tells only by side and
+ * colour. */
+function Bubble({ line }: { line: { from: "kai" | "you"; text: string } }) {
   const { colors, radius, spacing, type } = useTheme();
+  const mine = line.from === "you";
   // The chat screen's own bubble shape (app/chat/[matchId].tsx): the tail corner tightens to 3.
   const shape = mine
     ? { borderBottomRightRadius: 3, backgroundColor: colors.bubbleOwn }
     : { borderBottomLeftRadius: 3, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border };
   return (
     <View
+      accessible
+      accessibilityLabel={tourChatSpoken(line)}
       style={{
         alignSelf: mine ? "flex-end" : "flex-start",
         maxWidth: "78%",
@@ -130,26 +157,42 @@ function Bubble({ mine, text }: { mine: boolean; text: string }) {
         ...shape,
       }}
     >
-      <Text style={[type.body, { color: colors.text }]}>{text}</Text>
+      <Text style={[type.body, { color: colors.text }]}>{line.text}</Text>
     </View>
   );
 }
 
-/** Page 3: the real DUO LOCKED mark at its end state, then a short neutral chat. */
+/**
+ * Page 3: the real DUO LOCKED mark at its end state, centred in the room the chat leaves, then a
+ * short neutral chat in a panel that fits its bubbles (as the design draws it). On a short phone,
+ * or when it measures taller than its picture area at a larger text size, it gives way a step at a
+ * time (tourLockedFit): the smaller mark and two bubbles, then no line under the mark. At least
+ * `height` tall; still too tall after that, the page scrolls.
+ */
 export function LockedTourPage({ height }: { height: number }) {
   const { colors, radius, spacing, type } = useTheme();
   // RingsLock and LockBrackets with every value at 1: the locked mark, standing still, so there is
   // no motion to reduce.
   const locked = useSharedValue(1);
-  // A short phone (an iPhone SE) draws the mark smaller so two whole bubbles still fit under it;
+  // Steps only ever go up: a page that gave way never measures its way back to the taller one.
+  const [steps, setSteps] = useState(0);
+  const fit = tourLockedFit(height, steps);
+  const short = fit > 0;
   // LockBrackets scales its brackets to the mark, as the launch intro's smaller mark does.
-  const short = height < TOUR_FULL_CHAT_HEIGHT;
   const markW = short ? SHORT_MARK_W : MATCH_MARK_W;
   const markH = short ? SHORT_MARK_W * LOGO_MARK_ASPECT : MARK_H;
   const boxW = short ? SHORT_MARK_W + (BRACKET_SIDE * 2 * SHORT_MARK_W) / MATCH_MARK_W : LOCK_BOX_W;
   return (
-    <View style={{ height, gap: spacing.md }}>
-      <View style={{ alignItems: "center", gap: spacing.sm }}>
+    <View
+      onLayout={(e) => {
+        if (fit === 2 || e.nativeEvent.layout.height <= height + OVERFLOW_SLOP) return;
+        // One step per layout of this fit: a second report of the same layout adds nothing.
+        const seen = steps;
+        setSteps((current) => (current === seen ? current + 1 : current));
+      }}
+      style={{ minHeight: height, gap: spacing.md }}
+    >
+      <View style={{ flexGrow: 1, alignItems: "center", justifyContent: "center", gap: spacing.sm }}>
         <View style={{ width: boxW, height: markH, alignItems: "center", justifyContent: "center" }}>
           <View style={{ width: markW, height: markH }}>
             <RingsLock width={markW} progress={locked} woven={locked} />
@@ -157,12 +200,10 @@ export function LockedTourPage({ height }: { height: number }) {
           </View>
         </View>
         <Text style={{ ...type.label, fontSize: 14, lineHeight: 20, letterSpacing: 3, color: colors.volt }}>{LOCKED_COPY.stamp}</Text>
-        <Text style={[type.body, { color: colors.text }]}>{LOCKED_COPY.line}</Text>
+        {fit < 2 ? <Text style={[type.body, { color: colors.text, textAlign: "center" }]}>{LOCKED_COPY.line}</Text> : null}
       </View>
       <View
         style={{
-          flex: 1,
-          overflow: "hidden",
           padding: spacing.md,
           gap: spacing.sm,
           borderRadius: radius.card,
@@ -171,8 +212,8 @@ export function LockedTourPage({ height }: { height: number }) {
         }}
       >
         <Text style={[type.label, { color: colors.textMuted }]}>{LOCKED_COPY.chatLabel}</Text>
-        {tourChat(height).map((line) => (
-          <Bubble key={line.text} mine={line.from === "you"} text={line.text} />
+        {tourChat(fit).map((line) => (
+          <Bubble key={line.text} line={line} />
         ))}
       </View>
     </View>

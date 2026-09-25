@@ -15,7 +15,7 @@ import { PlayerMark } from "@/components/PlayerMark";
 import { PLATFORM_LABELS, PLAYSTYLE_LABELS, SKILL_LABELS } from "@/features/onboarding/profile-labels";
 import { useTheme } from "@/theme/useTheme";
 
-import { type CardCell, type CardPage, type CellLabels, cardPagePosition, cardPageSpoken } from "./cardChips";
+import { type CardCell, type CardPage, type CellLabels, cardPagePosition, cardPageSpoken, cardZoneLabels } from "./cardChips";
 import { CARD_DIM_OPACITY, CardPlate } from "./CardPlate";
 
 export const CARD_CELL_LABELS: CellLabels = {
@@ -120,8 +120,16 @@ export interface CardFaceProps {
   pictureOverlay?: ReactNode;
   /** After a tap turns the page (the tour fades its hint on the first one). */
   onPageChange?: (index: number) => void;
-  /** Only these cells at full strength; the picture and the rest dim (the tour's Can duo page). */
+  /** Only these cells at full strength; the picture and the rest dim (the tour's Can duo page).
+   * The status tag stays at full strength: on the tour it is the EXAMPLE tag, the card's only
+   * sign that Kai is invented. */
   focusCells?: readonly CardCell["key"][];
+  /** For a card on a pager of its own (the tour): VoiceOver's name for it, so its tap zones read
+   * "Kai's card, next page" and "Card page 1 of 4", never the pager's own words. */
+  pagerCardName?: string;
+  /** The least the picture keeps when a larger text size grows the plate (the tour: its page
+   * scrolls instead). Unset, the picture takes whatever the plate leaves, as in the Deck. */
+  pictureMinHeight?: number;
 }
 
 /**
@@ -145,6 +153,8 @@ export function CardFace({
   pictureOverlay,
   onPageChange,
   focusCells,
+  pagerCardName,
+  pictureMinHeight,
 }: CardFaceProps) {
   const { colors, motion, radius, spacing, type } = useTheme();
   const [pageIndex, setPageIndex] = useState(0);
@@ -154,6 +164,7 @@ export function CardFace({
   const index = Math.min(pageIndex, lastIndex);
   const page: CardPage = pages[index] ?? { kind: "blank" };
   const clearTop = statusTag ? STATUS_TAG_INSET + tagHeight + spacing.sm : 0;
+  const onPager = !!pagerCardName;
 
   function goTo(next: number) {
     const target = Math.min(Math.max(next, 0), lastIndex);
@@ -163,11 +174,12 @@ export function CardFace({
     // VoiceOver keeps focus on the tap zone while the page under it changes, so say the new
     // page. Queued (iOS) so the button's own feedback does not cut it off; Android ignores the
     // option. No-op without a screen reader.
-    const spoken = cardPageSpoken(pages[target] ?? { kind: "blank" }, name, target, pages.length);
+    const spoken = cardPageSpoken(pages[target] ?? { kind: "blank" }, name, target, pages.length, onPager);
     AccessibilityInfo.announceForAccessibilityWithOptions(spoken, { queue: true });
   }
 
-  const position = cardPagePosition(index, pages.length);
+  const position = cardPagePosition(index, pages.length, onPager);
+  const zones = cardZoneLabels(pagerCardName);
   const tagSurface = { borderRadius: radius.chip, borderColor: colors.cardEdge, backgroundColor: colors.cardHero };
 
   return (
@@ -180,19 +192,24 @@ export function CardFace({
       <View
         style={[
           styles.picture,
-          { borderRadius: radius.picture, backgroundColor: colors.cardRecessed, opacity: focusCells ? CARD_DIM_OPACITY : 1 },
+          { borderRadius: radius.picture, backgroundColor: colors.cardRecessed },
+          pictureMinHeight ? { minHeight: pictureMinHeight } : null,
         ]}
       >
-        {/* Keyed by page, so a page turn is a 140ms cross-fade (a fade, so it stays on under
-            Reduce Motion). */}
-        <Animated.View
-          key={`${index}-${page.kind}`}
-          entering={FadeIn.duration(motion.quick).reduceMotion(ReduceMotion.Never)}
-          exiting={FadeOut.duration(motion.quick).reduceMotion(ReduceMotion.Never)}
-          style={StyleSheet.absoluteFill}
-        >
-          <CardPageView page={page} name={name} clearTop={clearTop} />
-        </Animated.View>
+        {/* The focus dimming is on the page layer only, so the status tag over it keeps its
+            full contrast (a separate View: the entering fade below owns the page's opacity). */}
+        <View style={[StyleSheet.absoluteFill, { opacity: focusCells ? CARD_DIM_OPACITY : 1 }]}>
+          {/* Keyed by page, so a page turn is a 140ms cross-fade (a fade, so it stays on under
+              Reduce Motion). */}
+          <Animated.View
+            key={`${index}-${page.kind}`}
+            entering={FadeIn.duration(motion.quick).reduceMotion(ReduceMotion.Never)}
+            exiting={FadeOut.duration(motion.quick).reduceMotion(ReduceMotion.Never)}
+            style={StyleSheet.absoluteFill}
+          >
+            <CardPageView page={page} name={name} clearTop={clearTop} />
+          </Animated.View>
+        </View>
 
         {interactive && pages.length > 1 && (
           <>
@@ -201,7 +218,7 @@ export function CardFace({
                 sighted players stays as it was, and goTo ignores a turn past either end. */}
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Previous page"
+              accessibilityLabel={zones.previous}
               accessibilityValue={{ text: position }}
               accessibilityState={{ disabled: index === 0 }}
               onPress={() => goTo(index - 1)}
@@ -209,7 +226,7 @@ export function CardFace({
             />
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Next page"
+              accessibilityLabel={zones.next}
               accessibilityValue={{ text: position }}
               accessibilityState={{ disabled: index === lastIndex }}
               onPress={() => goTo(index + 1)}

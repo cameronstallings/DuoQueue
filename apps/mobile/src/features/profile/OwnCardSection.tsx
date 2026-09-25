@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/Skeleton";
 import { REGION_LABELS } from "@/features/onboarding/profile-labels";
 import { CARD_CELL_LABELS, CardFace } from "@/features/swipe/CardFace";
 import { cardCells, cardDetailsLine, cardPages, cardPicture } from "@/features/swipe/cardChips";
+import { TOUR_CARD_NAME, TOUR_CARD_PICTURE_MIN } from "@/features/tour/tourPages";
 import { useTheme } from "@/theme/useTheme";
 
 import { cardNudge, completenessItems, nudgeText } from "./completeness";
@@ -92,9 +93,14 @@ export function OwnCard({ profile, height = OWN_CARD_HEIGHT, mode = "profile" }:
     );
   }
   const url = picture ? picture.url : cardPicture(card);
+  const tour = mode === "tour";
   return (
-    <View style={{ height }}>
+    // On the tour the card may grow past its picture area at a larger text size (the page
+    // scrolls), and VoiceOver calls it "Your card" so its pages are not taken for the tour's.
+    <View style={tour ? { minHeight: height } : { height }}>
       <CardFace
+        pagerCardName={tour ? TOUR_CARD_NAME.yours : undefined}
+        pictureMinHeight={tour ? TOUR_CARD_PICTURE_MIN : undefined}
         name={card.display_name}
         details={cardDetailsLine(card, REGION_LABELS, { withAge: mode === "profile" })}
         isActive={false}

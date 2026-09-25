@@ -14,6 +14,7 @@ import {
   cardPageSpoken,
   cardPages,
   cardPicture,
+  cardZoneLabels,
   detailGames,
   showsDuoLabel,
 } from "./cardChips";
@@ -242,6 +243,24 @@ describe("cardPageSpoken", () => {
   it("has no em dash", () => {
     const spoken = cardPageSpoken({ kind: "prompt", question: "Q", answer: "A" }, "Rae", 0, 1);
     expect(spoken).not.toContain("—");
+  });
+
+  it("says Card page for a card on a pager of its own (the tour)", () => {
+    expect(cardPagePosition(0, 4, true)).toBe("Card page 1 of 4");
+    expect(cardPageSpoken({ kind: "prompt", question: "My comfort game is", answer: "Stardew Valley." }, "Kai", 1, 4, true)).toBe(
+      "Card page 2 of 4. My comfort game is Stardew Valley.",
+    );
+  });
+});
+
+describe("cardZoneLabels", () => {
+  it("keeps the Deck's words", () => {
+    expect(cardZoneLabels()).toEqual({ previous: "Previous page", next: "Next page" });
+    expect(cardZoneLabels(null)).toEqual({ previous: "Previous page", next: "Next page" });
+  });
+
+  it("names the card on the tour, so its zones are never taken for the tour's pages", () => {
+    expect(cardZoneLabels("Kai's card")).toEqual({ previous: "Kai's card, previous page", next: "Kai's card, next page" });
   });
 });
 

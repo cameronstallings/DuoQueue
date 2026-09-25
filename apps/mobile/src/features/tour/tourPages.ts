@@ -95,7 +95,8 @@ export function exampleCard(rankLabel: string | null): DeckCard {
     gender: "prefer_not_to_say",
     region: "na_east",
     bio: null,
-    shared_games_count: 2,
+    // Kai lists one game, so the "In common" cell can never honestly say more than one.
+    shared_games_count: 1,
     shared_shows_count: 0,
     score: 0,
     lol_duo_eligible: league,
@@ -134,7 +135,8 @@ export const TOUR_COPY: Record<TourPage, TourCopy> = {
   card: {
     heading: "The card",
     title: "Tap for their prompts.",
-    body: "Pictures first, then prompts. Tap the right side of a card for the next page and the left side to go back. Try it here.",
+    // A card has at most one picture (cardPages), as the store copy promises.
+    body: "The picture first, then prompts. Tap the right side of a card for the next page and the left side to go back. Try it here.",
   },
   canDuo: {
     heading: "Can duo",
@@ -173,7 +175,16 @@ export const LOCKED_COPY = {
 
 export const TAP_HINT = { next: "Next page ›", back: "‹ Back" } as const;
 
+/**
+ * What VoiceOver calls the card whose pages a tour page's tap zones turn, so "Kai's card, next
+ * page" is never mistaken for the tour's own dots ("Tour page, 1 of 4").
+ */
+export const TOUR_CARD_NAME = { kai: "Kai's card", yours: "Your card" } as const;
+
 export const TOUR_FOOT = { skip: "Skip", start: "Start swiping", dotsLabel: "Tour page" } as const;
+
+/** Leaving the tour needs the profile the wizard just finished; offline, the tour stays put. */
+export const TOUR_OFFLINE = "Can't reach DuoQueue. Try again.";
 
 /** A short, neutral chat: games, Discord, the lobby. Nothing that reads like a date (check.md #12). */
 export const TOUR_CHAT: readonly { from: "kai" | "you"; text: string }[] = [
@@ -182,30 +193,99 @@ export const TOUR_CHAT: readonly { from: "kai" | "you"; text: string }[] = [
   { from: "kai", text: "Sent it. See you in the lobby." },
 ];
 
+/** Who says a bubble, for VoiceOver: the picture tells it only by side and colour. */
+export function tourChatSpoken(line: { from: "kai" | "you"; text: string }): string {
+  return `${line.from === "you" ? "You" : "Kai"}: ${line.text}`;
+}
+
 /**
- * Below this picture height the chat keeps its last two bubbles and the lock mark is drawn
- * smaller, so page 3 never overflows. Measured on the render: at 393pt wide the three bubbles
- * need a picture of 417pt, so 430 leaves a narrower phone room for one more wrapped line.
+ * Below this picture height page 3 starts short: the lock mark is drawn smaller and the chat keeps
+ * two bubbles. Measured on the render: at 393pt wide the three bubbles need a picture of 417pt,
+ * so 430 leaves a narrower phone room for one more wrapped line.
  */
 export const TOUR_FULL_CHAT_HEIGHT = 430;
 
-export function tourChat(pictureHeight: number): readonly { from: "kai" | "you"; text: string }[] {
-  return pictureHeight < TOUR_FULL_CHAT_HEIGHT ? TOUR_CHAT.slice(1) : TOUR_CHAT;
+/**
+ * How far page 3 gives way to fit its picture area. 0: as designed. 1, short: the smaller mark and
+ * two bubbles. 2, compact: short, and without the line under the mark ("You and Kai both queued
+ * up.", which the heading below already says). A short phone starts at 1; every time the page
+ * measures taller than its picture area (a larger text size wraps the bubbles onto more lines)
+ * it takes one more step. Past 2 the page scrolls.
+ */
+export type LockedFit = 0 | 1 | 2;
+
+export function tourLockedFit(pictureHeight: number, overflowSteps: number): LockedFit {
+  const start = pictureHeight < TOUR_FULL_CHAT_HEIGHT ? 1 : 0;
+  return Math.min(2, start + Math.max(0, overflowSteps)) as LockedFit;
 }
 
-/** The picture area: 458pt on a 393 x 852 phone (71pt down, text block at 549), never under 280. */
+/** Short keeps the first two bubbles: Kai's question and its answer, a whole exchange. */
+export function tourChat(fit: LockedFit): readonly { from: "kai" | "you"; text: string }[] {
+  return fit > 0 ? TOUR_CHAT.slice(0, 2) : TOUR_CHAT;
+}
+
+/** The picture area: 458pt on a 393 x 852 phone at the default text size, never under 280. */
 export const TOUR_PICTURE_MAX = 458;
 export const TOUR_PICTURE_MIN = 280;
 /**
- * Everything on a tour page but the picture and the safe area: 12 above the picture, 20 to the
- * text block, its 154, and the foot's dots, Skip slot and margin (138 less the 34 home-indicator
- * inset). 852 - 59 - 34 - 301 = 458. The insets are the phone's own, so an iPhone SE (20 / 0)
- * gets the 93pt its missing notch and home indicator leave, instead of a picture cut to 280 over
- * empty space (found by rendering at 375 x 667).
+ * A tour page's height, less the picture and the safe area, in two parts.
+ *
+ * Grows with the text size: the text block's lines (the label's 14, a two-line title's 56 and a
+ * three-line body's 66, plus 2, so 138) and the Start swiping label's 21.
+ *
+ * Fixed: 12 above the picture, 20 to the text block, the text block's two 8pt gaps (16), the
+ * dots (23), their 8pt gap to the button, the button's 36 of padding, the 16 margin under it, and
+ * 11 of slack, kept so the design's 458pt picture on a 393 x 852 phone stays as drawn:
+ * 12 + 20 + 16 + 23 + 8 + 36 + 16 + 11 = 142.
+ *
+ * At the default size 142 + 138 + 21 = 301, and 852 - 59 - 34 - 301 = 458. The insets are the
+ * phone's own, so an iPhone SE (20 / 0) gets the 93pt its missing notch and home indicator leave
+ * (found by rendering at 375 x 667). A title or body that wraps to more lines than this budget
+ * is met by the measured bound in tourPictureHeight, and past the 280 floor every tour page
+ * scrolls (welcome.tsx), so no line is ever cut off out of reach.
  */
-const TOUR_CHROME = 301;
+const TOUR_CHROME_FIXED = 142;
+const TOUR_TEXT_LINES = 138;
+const TOUR_FOOT_LABEL_LINE = 21;
+/** On a page, around the picture and its heading: 12 above the picture, 20 between, and the
+ * page's 8 of bottom padding (welcome.tsx TourPageScroll). */
+const TOUR_PAGE_CHROME = 40;
 
-export function tourPictureHeight(windowHeight: number, insets: { top: number; bottom: number }): number {
-  const room = windowHeight - insets.top - insets.bottom - TOUR_CHROME;
+/** What the tour measured once its pages were laid out: the pager's height (the window less the
+ * foot) and the tallest page heading. Zero until measured. */
+export interface TourMeasured {
+  pageHeight: number;
+  tallestHeading: number;
+}
+
+/**
+ * `fontScale` is useWindowDimensions().fontScale: a larger text size takes its lines from the
+ * picture, down to the 280 floor, so the heading stays on screen.
+ *
+ * The budget above counts a three-line body, but a larger text size also wraps the body onto more
+ * lines. Once the pages are measured, the picture is also never taller than the pager leaves
+ * beside the tallest heading, so every heading fits at rest. The tallest one, so the headings
+ * still line up from page to page. At the default size the measured bound is looser than the
+ * budget (463 against 458 on a 393 x 852 phone), so it changes nothing there.
+ */
+export function tourPictureHeight(
+  windowHeight: number,
+  insets: { top: number; bottom: number },
+  fontScale = 1,
+  measured?: TourMeasured,
+): number {
+  const scaled = (TOUR_TEXT_LINES + TOUR_FOOT_LABEL_LINE) * fontScale;
+  let room = Math.round(windowHeight - insets.top - insets.bottom - TOUR_CHROME_FIXED - scaled);
+  if (measured && measured.pageHeight > 0 && measured.tallestHeading > 0) {
+    room = Math.min(room, Math.floor(measured.pageHeight - insets.top - TOUR_PAGE_CHROME - measured.tallestHeading));
+  }
   return Math.max(TOUR_PICTURE_MIN, Math.min(TOUR_PICTURE_MAX, room));
 }
+
+/**
+ * The least picture a card page keeps when a larger text size grows the plate under it: room for
+ * the tap hint's ring and tag (TapHint.tsx). Past it the card grows and the page scrolls.
+ */
+export const TOUR_CARD_PICTURE_MIN = 120;
+/** Page 2 dims Kai's picture, so it only has to hold the EXAMPLE tag: 10 + 24 + 10. */
+export const TOUR_CAN_DUO_PICTURE_MIN = 44;
