@@ -8,6 +8,8 @@ import { sendExpoPush } from "../_shared/expo-push.ts";
 import { checkBearerAuth, requireSecret } from "../_shared/require-secret-auth.ts";
 import { isUuid, readJsonBody } from "../_shared/validation.ts";
 
+import { superPingPush } from "./superPingCopy.ts";
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const INTERNAL_TRIGGER_AUTH_TOKEN = requireSecret("INTERNAL_TRIGGER_AUTH_TOKEN");
@@ -142,7 +144,8 @@ Deno.serve(async (req) => {
     }
     case "super_ping": {
       const senderName = await getDisplayName(event.senderId);
-      await notifyProfile(event.receiverId, "super_ping", "Super Ping!", `${senderName} is very interested in you.`);
+      const copy = superPingPush(senderName);
+      await notifyProfile(event.receiverId, "super_ping", copy.title, copy.body);
       break;
     }
     case "looking_now": {
