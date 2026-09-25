@@ -319,8 +319,10 @@ literal launch-day line.
 
 ### 2.5 Description (4000 char max) — use this:
 
-2,288 characters (build 16: adds the one-picture card and the League Can duo paragraph; the
-paste-ready copy is also in `C:\Users\stall\Documents\DuoQueue-listing-build-16.txt`).
+2,350 characters, 2,365 counting CRLF line ends (build 17: adds unlimited active conversations
+and "chatting in your 5 most recently active matches", the server's rule, is_conversation_unlocked;
+build 16 added the one-picture card and the League Can duo paragraph; the paste-ready copy is
+also in `C:\Users\stall\Documents\DuoQueue-listing-build-16.txt`).
 
 ```
 DuoQueue is not a dating app. It's how you find people to actually play with: a duo for co-op, a fourth for the raid, someone equally deep into the same show. No looks-first swiping, no gender filters. Just shared games, shows, and playstyle.
@@ -335,7 +337,7 @@ From there it's yours to run: chat in-app, share a Discord username, add each ot
 
 Safety, for real: DuoQueue is 18+ only. Every account confirms a date of birth of 18 or older to sign up. Every profile photo is automatically screened before anyone else sees it. Report or block from a profile or a chat. Blocking is immediate and complete: a blocked user can't see your profile again. A hidden-word filter mutes messages containing words you pick. A Safety Center covers meetup safety, scam patterns, and community guidelines.
 
-DuoQueue+ is optional. It lifts the 25-swipes-a-day cap, adds filters for a specific game, platform, skill level, and playstyle, shows everyone who wants to duo at once instead of a daily trio, adds unlimited active conversations, and gives you a Super Ping a day that tells someone directly you want to duo. Weekly, monthly, 3-month, and 6-month plans, all auto-renewing until you cancel in your App Store account settings. Power-Ups are a separate one-time purchase that puts you near the top of other people's decks for 30 minutes. Everything else (matching, chatting in your 5 most recent matches, party mode) is free.
+DuoQueue+ is optional. It lifts the 25-swipes-a-day cap, adds filters for a specific game, platform, skill level, and playstyle, shows everyone who wants to duo at once instead of a daily trio, adds unlimited active conversations, and gives you a Super Ping a day that tells someone directly you want to duo. Weekly, monthly, 3-month, and 6-month plans, all auto-renewing until you cancel in your App Store account settings. Power-Ups are a separate one-time purchase that puts you near the top of other people's decks for 30 minutes. Everything else (matching, chatting in your 5 most recently active matches, party mode) is free.
 
 Terms of Use (EULA): https://duoqueue.io/terms
 Privacy Policy: https://duoqueue.io/privacy
@@ -360,8 +362,10 @@ what you write:
   most recently active matches open, `send-message` answers `conversation_locked`
   ([index.ts:100-116](../supabase/functions/send-message/index.ts:100)), and Matches shows a
   "Locked" chip. Cameron chose to keep it, so the description says chatting is free in your 5
-  most recent matches and DuoQueue+ adds unlimited active conversations, and the paywall, the
-  Settings hint and the review notes say the same.
+  most recently active matches and DuoQueue+ adds unlimited active conversations, and the
+  paywall, the Settings hint and the review notes say the same. "Most recently active", never
+  "most recent": the server ranks by the latest of the match time and the last message, so a
+  free account that chats in its two oldest matches keeps those open and locks a newer one.
 - **"Legendary Likes ... for extra visibility"** — they have no effect at all. `send_rose`
   ([0048:965](../supabase/migrations/0048_rate_limiting.sql:965)) spends a credit and then calls
   `perform_swipe(target, 'like')` — the identical code path as a free swipe. Nothing records
@@ -686,10 +690,12 @@ under 4,000 characters.
 
 **Build 17 paste.** Kept at `C:\Users\stall\Documents\DuoQueue-review-notes-build-16.txt` (the
 build 16 file, updated in place because build 16 was never submitted): NEW IN THIS BUILD gains
-the three-page paywall ("swipe left to page 3") and the once-only tour after setup (the demo
-account is already past it), and HOW TO EXERCISE item 4 says DuoQueue+ keeps every
-conversation open. Count its characters again after any edit (App Store Connect's limit is
-4,000, counting CRLF line ends).
+the three-page paywall ("Swipe left twice to reach page 3", twice because the pager turns one
+page per swipe, and never "use the dots": they are not buttons, only VoiceOver's adjustable)
+and the once-only tour after setup (the demo account is already past it), and HOW TO EXERCISE
+item 4 says "swipe left twice to page 3" and that DuoQueue+ keeps every conversation open.
+Measured 3,954 characters counting CRLF line ends (3,952 without the final line end). Count
+again after any edit (App Store Connect's limit is 4,000, counting CRLF line ends).
 
 ```
 WHAT THIS APP IS
@@ -743,7 +749,8 @@ HOW TO EXERCISE EACH FEATURE
 3. View a full profile: tap the panel under a card's picture in the Deck (or a name in Matches)
    to open full profile detail, showing the picture, prompts, games, schedule, and vibe tags.
 4. Try the paywall: Settings tab -> "Subscription" section -> "DuoQueue+". It is three pages:
-   swipe left (or use the dots) to reach page 3, which lists four auto-renewing plans (Weekly /
+   swipe left twice (with VoiceOver, swipe up on the page dots) to reach page 3, which lists
+   four auto-renewing plans (Weekly /
    Monthly / 3-Month / 6-Month) plus a one-time Power-Up consumable. The X closes it from every
    page and page 3 ends with "Continue with Free", so it never traps you. The same screen is
    reachable from the Deck tab via "Filters" -> "Unlock DuoQueue+".
