@@ -82,3 +82,12 @@ out of their own profile row.
   security model lives in those comments.
 - New tables need RLS enabled and explicit grants; this schema has no default-permissive
   policy anywhere and that property is worth preserving.
+- **From 30 Oct 2026 Supabase stops auto-granting new tables, views and sequences in
+  `public` to anon, authenticated AND service_role.** Every new table or view (and any one
+  dropped and re-created) must grant exactly what it needs, including
+  `grant select, insert, update, delete on public.<t> to service_role` for anything an Edge
+  Function touches (service_role bypasses RLS but not a missing grant: it gets 42501), plus
+  `grant usage, select on sequence ...` for serial columns. The server-only pattern
+  (`revoke all ... from public, anon, authenticated`) then leaves the table unreachable
+  unless service_role is granted explicitly. Functions are unchanged: PUBLIC still gets
+  EXECUTE by default, so keep revoking it per function (0031's schema-level revoke does nothing).
