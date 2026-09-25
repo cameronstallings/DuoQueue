@@ -111,7 +111,7 @@ export default function WelcomeScreen() {
   const pages = tourPages({ region: card.data?.region ?? null, games });
   const rank = tourRank(games);
   const rankLabel = pages.includes("canDuo") && rank ? formatLolRank(rank) : null;
-  const pictureHeight = tourPictureHeight(height);
+  const pictureHeight = tourPictureHeight(height, insets);
 
   const skipTour = !userId || seen === true;
   const ready = !skipTour && seen === false && factsReady;

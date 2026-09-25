@@ -160,15 +160,19 @@ describe("tour copy", () => {
 });
 
 describe("layout", () => {
-  it("fits the picture area to the phone", () => {
-    expect(tourPictureHeight(852)).toBe(458);
-    expect(tourPictureHeight(932)).toBe(458);
-    expect(tourPictureHeight(700)).toBe(306);
-    expect(tourPictureHeight(667)).toBe(280);
+  it("fits the picture area to the phone and its safe area", () => {
+    const notched = { top: 59, bottom: 34 };
+    expect(tourPictureHeight(852, notched)).toBe(458);
+    expect(tourPictureHeight(932, notched)).toBe(458);
+    expect(tourPictureHeight(700, notched)).toBe(306);
+    // An iPhone SE: no notch, no home indicator, so the picture gets that room back.
+    expect(tourPictureHeight(667, { top: 20, bottom: 0 })).toBe(346);
+    expect(tourPictureHeight(568, { top: 20, bottom: 0 })).toBe(280);
   });
 
   it("keeps the chat's last two bubbles on a short phone", () => {
     expect(tourChat(458)).toEqual(TOUR_CHAT);
+    expect(tourChat(420)).toEqual(TOUR_CHAT.slice(1));
     expect(tourChat(300)).toEqual(TOUR_CHAT.slice(1));
   });
 });

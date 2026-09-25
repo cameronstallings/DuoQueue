@@ -182,8 +182,12 @@ export const TOUR_CHAT: readonly { from: "kai" | "you"; text: string }[] = [
   { from: "kai", text: "Sent it. See you in the lobby." },
 ];
 
-/** Below this picture height the chat keeps its last two bubbles, so page 3 never overflows. */
-export const TOUR_FULL_CHAT_HEIGHT = 400;
+/**
+ * Below this picture height the chat keeps its last two bubbles and the lock mark is drawn
+ * smaller, so page 3 never overflows. Measured on the render: at 393pt wide the three bubbles
+ * need a picture of 417pt, so 430 leaves a narrower phone room for one more wrapped line.
+ */
+export const TOUR_FULL_CHAT_HEIGHT = 430;
 
 export function tourChat(pictureHeight: number): readonly { from: "kai" | "you"; text: string }[] {
   return pictureHeight < TOUR_FULL_CHAT_HEIGHT ? TOUR_CHAT.slice(1) : TOUR_CHAT;
@@ -192,8 +196,16 @@ export function tourChat(pictureHeight: number): readonly { from: "kai" | "you";
 /** The picture area: 458pt on a 393 x 852 phone (71pt down, text block at 549), never under 280. */
 export const TOUR_PICTURE_MAX = 458;
 export const TOUR_PICTURE_MIN = 280;
-const TOUR_CHROME = 394;
+/**
+ * Everything on a tour page but the picture and the safe area: 12 above the picture, 20 to the
+ * text block, its 154, and the foot's dots, Skip slot and margin (138 less the 34 home-indicator
+ * inset). 852 - 59 - 34 - 301 = 458. The insets are the phone's own, so an iPhone SE (20 / 0)
+ * gets the 93pt its missing notch and home indicator leave, instead of a picture cut to 280 over
+ * empty space (found by rendering at 375 x 667).
+ */
+const TOUR_CHROME = 301;
 
-export function tourPictureHeight(windowHeight: number): number {
-  return Math.max(TOUR_PICTURE_MIN, Math.min(TOUR_PICTURE_MAX, windowHeight - TOUR_CHROME));
+export function tourPictureHeight(windowHeight: number, insets: { top: number; bottom: number }): number {
+  const room = windowHeight - insets.top - insets.bottom - TOUR_CHROME;
+  return Math.max(TOUR_PICTURE_MIN, Math.min(TOUR_PICTURE_MAX, room));
 }

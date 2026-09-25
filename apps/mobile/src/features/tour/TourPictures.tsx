@@ -18,6 +18,7 @@ import {
   EXAMPLE_TAG,
   KAI_PROMPTS,
   LOCKED_COPY,
+  TOUR_FULL_CHAT_HEIGHT,
   exampleCard,
   tourChat,
   type TourCopy,
@@ -30,6 +31,8 @@ const KAI_PICTURE: number = require("../../../assets/tour/kai.jpg");
 
 const MARK_H = MATCH_MARK_W * LOGO_MARK_ASPECT;
 const LOCK_BOX_W = MATCH_MARK_W + BRACKET_SIDE * 2;
+/** The lock mark's width on a short phone's page 3. */
+const SHORT_MARK_W = 128;
 
 function kaiPages(): CardPage[] {
   return [{ kind: "picture", url: KAI_PICTURE }, ...cardPages(null, KAI_PROMPTS)];
@@ -137,13 +140,19 @@ export function LockedTourPage({ height }: { height: number }) {
   // RingsLock and LockBrackets with every value at 1: the locked mark, standing still, so there is
   // no motion to reduce.
   const locked = useSharedValue(1);
+  // A short phone (an iPhone SE) draws the mark smaller so two whole bubbles still fit under it;
+  // LockBrackets scales its brackets to the mark, as the launch intro's smaller mark does.
+  const short = height < TOUR_FULL_CHAT_HEIGHT;
+  const markW = short ? SHORT_MARK_W : MATCH_MARK_W;
+  const markH = short ? SHORT_MARK_W * LOGO_MARK_ASPECT : MARK_H;
+  const boxW = short ? SHORT_MARK_W + (BRACKET_SIDE * 2 * SHORT_MARK_W) / MATCH_MARK_W : LOCK_BOX_W;
   return (
     <View style={{ height, gap: spacing.md }}>
       <View style={{ alignItems: "center", gap: spacing.sm }}>
-        <View style={{ width: LOCK_BOX_W, height: MARK_H, alignItems: "center", justifyContent: "center" }}>
-          <View style={{ width: MATCH_MARK_W, height: MARK_H }}>
-            <RingsLock width={MATCH_MARK_W} progress={locked} woven={locked} />
-            <LockBrackets markWidth={MATCH_MARK_W} progress={locked} opacity={locked} color={colors.volt} />
+        <View style={{ width: boxW, height: markH, alignItems: "center", justifyContent: "center" }}>
+          <View style={{ width: markW, height: markH }}>
+            <RingsLock width={markW} progress={locked} woven={locked} />
+            <LockBrackets markWidth={markW} progress={locked} opacity={locked} color={colors.volt} />
           </View>
         </View>
         <Text style={{ ...type.label, fontSize: 14, lineHeight: 20, letterSpacing: 3, color: colors.volt }}>{LOCKED_COPY.stamp}</Text>
