@@ -23,7 +23,9 @@ import {
   parsePaywallFrom,
   paywallHref,
   paywallPageOrder,
+  paywallPageTitles,
   peoplePageHeading,
+  peoplePanelIsTopic,
   peoplePanelOrder,
   powerUpButtonLabel,
   powerUpTitle,
@@ -31,6 +33,7 @@ import {
   requestLine,
   requestsIllustrationLabel,
   requestsState,
+  requestsTotal,
   restoreAlert,
   type RequestGameRow,
 } from "./paywallCopy";
@@ -120,6 +123,37 @@ describe("peoplePageHeading", () => {
     expect(peoplePanelOrder("chat")).toEqual(["conversations", "requests", "superPing"]);
     expect(peoplePanelOrder("superping")).toEqual(["superPing", "requests", "conversations"]);
     expect(peoplePanelOrder("settings")).toEqual(["requests", "superPing", "conversations"]);
+  });
+
+  it("does not name the page's own topic again in the panel under its heading", () => {
+    expect(peoplePanelIsTopic("chat", "conversations")).toBe(true);
+    expect(peoplePanelIsTopic("superping", "superPing")).toBe(true);
+    expect(peoplePanelIsTopic("chat", "superPing")).toBe(false);
+    expect(peoplePanelIsTopic("settings", "conversations")).toBe(false);
+    expect(peoplePanelIsTopic("requests", "superPing")).toBe(false);
+  });
+});
+
+describe("the dots' page titles", () => {
+  it("counts requests as page 2 does", () => {
+    expect(requestsTotal(undefined, 0)).toBe(0);
+    expect(requestsTotal(7, 3)).toBe(7);
+    // The list can run ahead of the count; page 2 shows at most FREE_REQUESTS_PER_DAY of it.
+    expect(requestsTotal(1, 3)).toBe(3);
+    expect(requestsTotal(0, 9)).toBe(FREE_REQUESTS_PER_DAY);
+  });
+
+  it("names each page in the order it is shown", () => {
+    expect(paywallPageTitles(paywallPageOrder("settings"), "settings", 25, 7)).toEqual([
+      deckPageHeading("settings", 25).title,
+      "7 players want to duo with you.",
+      PLANS_HEADING.title,
+    ]);
+    expect(paywallPageTitles(paywallPageOrder("chat"), "chat", 25, 0)).toEqual([
+      peoplePageHeading("chat", 0).title,
+      deckPageHeading("chat", 25).title,
+      PLANS_HEADING.title,
+    ]);
   });
 });
 

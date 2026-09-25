@@ -37,15 +37,17 @@ function Dot({ index, pager }: { index: number; pager: PagerController }) {
 
 /**
  * Where you are, and VoiceOver's way through: with no Continue buttons, the dot row is one
- * adjustable element ("Page, 1 of 3") that a swipe up or down turns.
+ * adjustable element ("Page, 1 of 3") that a swipe up or down turns. With `titles` (each page's
+ * title, in page order) its value names the page too: "Page, 2 of 3, See everyone who wants to
+ * duo." The dots are not buttons for a finger; a sighted player swipes the pages themselves.
  */
-export function PagerDots({ pager, label }: { pager: PagerController; label: string }) {
+export function PagerDots({ pager, label, titles }: { pager: PagerController; label: string; titles?: readonly string[] }) {
   return (
     <View
       accessible
       accessibilityRole="adjustable"
       accessibilityLabel={label}
-      accessibilityValue={pagerA11yValue(pager.page, pager.count)}
+      accessibilityValue={pagerA11yValue(pager.page, pager.count, titles)}
       accessibilityActions={[{ name: "increment" }, { name: "decrement" }]}
       onAccessibilityAction={(event) => pager.adjust(event.nativeEvent.actionName)}
       style={{ flexDirection: "row", gap: DOT_GAP, alignItems: "center", justifyContent: "center", paddingVertical: 8 }}

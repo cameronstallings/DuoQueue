@@ -25,6 +25,22 @@ export function pageAtOffset(x: number, width: number, count: number): number {
   return clampPage(x / width, count);
 }
 
+/** Within this much of a page's edge, a drag has ended ON the page. */
+const SETTLED_SLOP = 0.5;
+
+/**
+ * The page a drag ended on, or null while the pager is between pages. A drag released exactly on
+ * a page's edge with no speed left does not decelerate, so iOS sends onScrollEndDrag and never
+ * onMomentumScrollEnd: without this the pager would keep its old page, and the tour's Start
+ * swiping would stay untappable on the last page.
+ */
+export function settledPage(x: number, width: number, count: number): number | null {
+  if (width <= 0) return null;
+  const nearest = Math.round(x / width);
+  if (Math.abs(x - nearest * width) > SETTLED_SLOP) return null;
+  return clampPage(nearest, count);
+}
+
 /** How lit dot `index` is at offset `x`: 1 on its own page, 0 a page away, linear between. */
 export function dotLight(x: number, index: number, width: number): number {
   "worklet";
@@ -67,11 +83,22 @@ export function shouldPeek(i: PeekInputs): boolean {
   return i.count > 1 && i.ready && !i.peeked && !i.touched && !i.reduceMotion && !i.screenReader;
 }
 
-/** The dot row's accessibilityValue: VoiceOver reads "Page, 1 of 3". */
-export function pagerA11yValue(index: number, count: number): { min: number; max: number; now: number; text: string } {
+/**
+ * The dot row's accessibilityValue: VoiceOver reads "Page, 2 of 3, See everyone who wants to duo."
+ * With each page's title, a swipe up on the dots says where it landed, not only a number: focus
+ * stays on the dots (an adjustable keeps it, as UIPageControl does), so this is the only thing
+ * VoiceOver says about the new page. Titles are spoken on one line (their breaks and no-break
+ * spaces are layout, not words).
+ */
+export function pagerA11yValue(
+  index: number,
+  count: number,
+  titles?: readonly string[],
+): { min: number; max: number; now: number; text: string } {
   const max = Math.max(count, 1);
   const now = clampPage(index, count) + 1;
-  return { min: 1, max, now, text: `${now} of ${max}` };
+  const title = titles?.[now - 1]?.replace(/\s+/g, " ").trim();
+  return { min: 1, max, now, text: title ? `${now} of ${max}, ${title}` : `${now} of ${max}` };
 }
 
 /** VoiceOver's swipe up or down on the dots: one page per action, clamped at the ends. */

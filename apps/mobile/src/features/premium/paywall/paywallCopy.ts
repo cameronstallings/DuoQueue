@@ -117,6 +117,37 @@ export function peoplePanelOrder(from: PaywallFrom): readonly PeoplePanel[] {
   return ["requests", "superPing", "conversations"];
 }
 
+/**
+ * The panel that IS the page's topic (Conversations from a chat, Super Ping from a Super Ping)
+ * sits right under the heading that already names it, so it drops its own section label and
+ * title and keeps only its line: "Keep every conversation open." is never followed by
+ * CONVERSATIONS and "Every conversation open".
+ */
+export function peoplePanelIsTopic(from: PaywallFrom, panel: PeoplePanel): boolean {
+  return (from === "chat" && panel === "conversations") || (from === "superping" && panel === "superPing");
+}
+
+/** How many want to duo, as page 2 counts them: the count, or the list if it has run ahead. */
+export function requestsTotal(count: number | undefined, listed: number): number {
+  return Math.max(count ?? 0, Math.min(listed, FREE_REQUESTS_PER_DAY));
+}
+
+/** Each page's title, in page order: the dots' VoiceOver value names the page it turned to. */
+export function paywallPageTitles(
+  order: readonly PaywallPage[],
+  from: PaywallFrom,
+  swipesLimit: number,
+  total: number,
+): string[] {
+  return order.map((page) =>
+    page === "deck"
+      ? deckPageHeading(from, swipesLimit).title
+      : page === "people"
+        ? peoplePageHeading(from, total).title
+        : PLANS_HEADING.title,
+  );
+}
+
 export type RequestsState = { kind: "none" } | { kind: "allShown" } | { kind: "hidden"; hidden: number };
 
 /** Which honest state the requests panel draws, decided by the data. */

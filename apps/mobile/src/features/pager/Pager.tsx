@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { View } from "react-native";
+import { type ReactNode, createContext, useCallback, useContext } from "react";
+import { type HostInstance, View } from "react-native";
 import Animated from "react-native-reanimated";
 
 import type { PagerController } from "./usePager";
@@ -22,6 +22,7 @@ export function Pager({ pager, children }: { pager: PagerController; children: R
       onScroll={pager.scrollHandler}
       scrollEventThrottle={16}
       onScrollBeginDrag={pager.onScrollBeginDrag}
+      onScrollEndDrag={pager.onScrollEndDrag}
       onMomentumScrollEnd={pager.onMomentumScrollEnd}
       keyboardShouldPersistTaps="handled"
       style={{ flex: 1 }}
@@ -29,6 +30,18 @@ export function Pager({ pager, children }: { pager: PagerController; children: R
       {children}
     </Animated.ScrollView>
   );
+}
+
+type HeadingRef = (node: HostInstance | null) => void;
+
+const PagerHeadingContext = createContext<HeadingRef | null>(null);
+
+/**
+ * The ref a page's title takes (PageHeading, TourHeading), so a turn made with the chevron can
+ * move VoiceOver to it. Undefined outside a pager, where there is nothing to register with.
+ */
+export function usePagerHeadingRef(): HeadingRef | undefined {
+  return useContext(PagerHeadingContext) ?? undefined;
 }
 
 /**
@@ -39,13 +52,22 @@ export function Pager({ pager, children }: { pager: PagerController; children: R
  */
 export function PagerPage({ pager, index, children }: { pager: PagerController; index?: number; children: ReactNode }) {
   const hidden = index !== undefined && index !== pager.page;
+  const { registerHeading } = pager;
+  const headingRef = useCallback(
+    (node: HostInstance | null) => {
+      if (index !== undefined) registerHeading(index, node);
+    },
+    [registerHeading, index],
+  );
   return (
-    <View
-      accessibilityElementsHidden={hidden}
-      importantForAccessibility={hidden ? "no-hide-descendants" : "auto"}
-      style={{ width: pager.width }}
-    >
-      {children}
-    </View>
+    <PagerHeadingContext.Provider value={headingRef}>
+      <View
+        accessibilityElementsHidden={hidden}
+        importantForAccessibility={hidden ? "no-hide-descendants" : "auto"}
+        style={{ width: pager.width }}
+      >
+        {children}
+      </View>
+    </PagerHeadingContext.Provider>
   );
 }

@@ -12,6 +12,7 @@ import {
   footFade,
   pageAtOffset,
   pagerA11yValue,
+  settledPage,
   shouldPeek,
 } from "./pagerMath";
 
@@ -43,6 +44,23 @@ describe("pageAtOffset", () => {
     expect(pageAtOffset(5000, 393, 3)).toBe(2);
     expect(pageAtOffset(-40, 393, 3)).toBe(0);
     expect(pageAtOffset(100, 0, 3)).toBe(0);
+  });
+});
+
+describe("settledPage (a drag that ends on a page's edge, with no momentum to follow)", () => {
+  it("is the page when the drag ended on it", () => {
+    expect(settledPage(1179, 393, 4)).toBe(3);
+    expect(settledPage(1179.3, 393, 4)).toBe(3);
+    expect(settledPage(0, 393, 4)).toBe(0);
+  });
+
+  it("is null between pages, where the momentum end will say", () => {
+    expect(settledPage(1000, 393, 4)).toBeNull();
+    expect(settledPage(PEEK_OFFSET, 393, 4)).toBeNull();
+  });
+
+  it("survives a zero width", () => {
+    expect(settledPage(0, 0, 4)).toBeNull();
   });
 });
 
@@ -131,6 +149,15 @@ describe("pagerA11yValue and adjustedPage (VoiceOver's pager)", () => {
   it("reads N of M, one-based", () => {
     expect(pagerA11yValue(0, 3)).toEqual({ min: 1, max: 3, now: 1, text: "1 of 3" });
     expect(pagerA11yValue(2, 4)).toEqual({ min: 1, max: 4, now: 3, text: "3 of 4" });
+  });
+
+  it("names the page it landed on, its title on one line", () => {
+    const nbsp = String.fromCharCode(0xa0);
+    const titles = ["Keep swiping.\nChoose who shows up.", "See everyone who wants to duo.", `Choose your${nbsp}plan.`];
+    expect(pagerA11yValue(0, 3, titles).text).toBe("1 of 3, Keep swiping. Choose who shows up.");
+    expect(pagerA11yValue(1, 3, titles).text).toBe("2 of 3, See everyone who wants to duo.");
+    expect(pagerA11yValue(2, 3, titles).text).toBe("3 of 3, Choose your plan.");
+    expect(pagerA11yValue(1, 3, []).text).toBe("2 of 3");
   });
 
   it("turns one page per swipe and stops at the ends", () => {

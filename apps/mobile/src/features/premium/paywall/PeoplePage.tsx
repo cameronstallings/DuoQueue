@@ -15,10 +15,12 @@ import {
   REQUESTS_COPY,
   hiddenCountLabel,
   peoplePageHeading,
+  peoplePanelIsTopic,
   peoplePanelOrder,
   requestLine,
   requestsIllustrationLabel,
   requestsState,
+  requestsTotal,
   type PaywallFrom,
   type PeoplePanel,
   type RequestGameRow,
@@ -150,14 +152,28 @@ function RequestsPanel({
   );
 }
 
-function ExtraPanel({ label, title, body, icon }: { label: string; title: string; body: string; icon: ReactNode }) {
+/** `topic`: the page's heading already names this panel (peoplePanelIsTopic), so it is only the
+ * icon and its line. */
+function ExtraPanel({
+  label,
+  title,
+  body,
+  icon,
+  topic,
+}: {
+  label: string;
+  title: string;
+  body: string;
+  icon: ReactNode;
+  topic: boolean;
+}) {
   const { colors, radius, spacing, type } = useTheme();
   return (
     <View style={{ gap: spacing.sm }}>
-      <Text style={[type.label, { color: colors.textMuted }]}>{label}</Text>
+      {topic ? null : <Text style={[type.label, { color: colors.textMuted }]}>{label}</Text>}
       <View
         accessible
-        accessibilityLabel={`${title}. ${body}`}
+        accessibilityLabel={topic ? body : `${title}. ${body}`}
         style={{
           flexDirection: "row",
           alignItems: "center",
@@ -183,7 +199,7 @@ function ExtraPanel({ label, title, body, icon }: { label: string; title: string
           {icon}
         </View>
         <View style={{ flex: 1, gap: 2 }}>
-          <Text style={[type.bodyStrong, { color: colors.text }]}>{title}</Text>
+          {topic ? null : <Text style={[type.bodyStrong, { color: colors.text }]}>{title}</Text>}
           <Text style={[type.caption, { color: colors.textMuted }]}>{body}</Text>
         </View>
       </View>
@@ -199,7 +215,7 @@ export function PeoplePage({ from, bottomInset }: { from: PaywallFrom; bottomIns
   const admirersQuery = useAdmirers(true);
   const shown = (admirersQuery.data ?? []).slice(0, FREE_REQUESTS_PER_DAY);
   const { data: games } = useRequestGames(shown.map((a) => a.profile_id));
-  const total = Math.max(countQuery.data ?? 0, shown.length);
+  const total = requestsTotal(countQuery.data, admirersQuery.data?.length ?? 0);
 
   const panels: Record<PeoplePanel, ReactNode> = {
     requests: (
@@ -218,6 +234,7 @@ export function PeoplePage({ from, bottomInset }: { from: PaywallFrom; bottomIns
         title={PEOPLE_EXTRAS.superPingTitle}
         body={PEOPLE_EXTRAS.superPingBody}
         icon={<Ionicons name="diamond" size={20} color={colors.success} />}
+        topic={peoplePanelIsTopic(from, "superPing")}
       />
     ),
     conversations: (
@@ -227,6 +244,7 @@ export function PeoplePage({ from, bottomInset }: { from: PaywallFrom; bottomIns
         title={PEOPLE_EXTRAS.conversationsTitle}
         body={PEOPLE_EXTRAS.conversationsBody}
         icon={<Ionicons name="chatbubbles" size={20} color={colors.voltDim} />}
+        topic={peoplePanelIsTopic(from, "conversations")}
       />
     ),
   };

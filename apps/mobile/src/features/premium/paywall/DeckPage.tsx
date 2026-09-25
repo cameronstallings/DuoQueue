@@ -28,13 +28,19 @@ const FILTER_ICONS: Record<FilterPreviewRow["key"], ComponentProps<typeof Ionico
   active: "time-outline",
 };
 
+/** How far this picture's 9pt ticks follow a larger text size. Unlike the Deck's own strip
+ * (fixed at 32pt, its fit sums hold only at 1x), this one has nothing beside the two ticks, so it
+ * grows with them (minHeight) and nothing is cut. */
+const STRIP_TEXT_SCALE_MAX = 1.3;
+
 /** A strip in the Deck's own panel style, drawn as a picture: no chevron, no press. */
 function SwipesStrip({ tick, value, lit }: { tick: string; value: string; lit: boolean }) {
   const { colors, radius, spacing, type } = useTheme();
   return (
     <View
       style={{
-        height: 32,
+        minHeight: 32,
+        paddingVertical: spacing.xs,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
@@ -45,10 +51,10 @@ function SwipesStrip({ tick, value, lit }: { tick: string; value: string; lit: b
         backgroundColor: colors.cardPanel,
       }}
     >
-      <Text style={[type.tick, { color: colors.textMuted }]} maxFontSizeMultiplier={1}>
+      <Text style={[type.tick, { color: colors.textMuted }]} maxFontSizeMultiplier={STRIP_TEXT_SCALE_MAX}>
         {tick}
       </Text>
-      <Text style={[type.tick, { color: lit ? colors.voltDim : colors.textMuted }]} maxFontSizeMultiplier={1}>
+      <Text style={[type.tick, { color: lit ? colors.voltDim : colors.textMuted }]} maxFontSizeMultiplier={STRIP_TEXT_SCALE_MAX}>
         {value}
       </Text>
     </View>
@@ -73,7 +79,8 @@ function FilterPreview({ row, first }: { row: FilterPreviewRow; first: boolean }
     >
       <Ionicons name={FILTER_ICONS[row.key]} size={19} color={colors.textMuted} />
       <Text style={[type.body, { color: colors.text, flex: 1 }]}>{row.label}</Text>
-      <Text style={[type.caption, { color: colors.textMuted, flexShrink: 1 }]} numberOfLines={1}>
+      {/* Two lines, so "League of Legends" is never cut at a larger text size. */}
+      <Text style={[type.caption, { color: colors.textMuted, flexShrink: 1, textAlign: "right" }]} numberOfLines={2}>
         {row.value ?? FILTER_ANY}
       </Text>
       <Ionicons name="lock-closed" size={13} color={colors.textMuted} />
@@ -112,7 +119,8 @@ export function DeckPage({ from, bottomInset }: { from: PaywallFrom; bottomInset
         <View style={{ gap: spacing.sm }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", gap: spacing.sm }}>
             <Text style={[type.label, { color: colors.textMuted }]}>{DECK_COPY.filters}</Text>
-            <Text style={[type.tick, { color: colors.textMuted }]}>{DECK_COPY.preview}</Text>
+            {/* Shrinks and wraps on the right, so a larger text size never runs it off the page. */}
+            <Text style={[type.tick, { color: colors.textMuted, flexShrink: 1, textAlign: "right" }]}>{DECK_COPY.preview}</Text>
           </View>
           <View style={{ borderRadius: radius.card, borderWidth: 1, borderColor: colors.cardEdge, backgroundColor: colors.cardPanel }}>
             {rows.map((row, i) => (

@@ -28,6 +28,11 @@ export interface PlansViewProps {
   bottomInset: number;
 }
 
+/** An 18pt caption line + 13 above and below = a 44pt target (Restore is a required control).
+ * The 8 at each side reaches only across the 8pt gap to the dot between two links, so
+ * neighbouring targets never overlap. */
+const LINK_SLOP = { top: 13, bottom: 13, left: 8, right: 8 };
+
 /** Restore is a button; Terms and Privacy are links (build 17 fix: they were bare text). */
 function LegalLinks({ restoring, onRestore }: { restoring: boolean; onRestore: () => void }) {
   const { colors, spacing, type } = useTheme();
@@ -39,15 +44,15 @@ function LegalLinks({ restoring, onRestore }: { restoring: boolean; onRestore: (
   );
   return (
     <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", alignItems: "center", gap: spacing.sm }}>
-      <Pressable accessibilityRole="button" accessibilityState={{ busy: restoring }} disabled={restoring} onPress={onRestore} hitSlop={8}>
+      <Pressable accessibilityRole="button" accessibilityState={{ busy: restoring }} disabled={restoring} onPress={onRestore} hitSlop={LINK_SLOP}>
         <Text style={link}>{restoring ? LEGAL_LINKS.restoring : LEGAL_LINKS.restore}</Text>
       </Pressable>
       {dot}
-      <Pressable accessibilityRole="link" onPress={() => void WebBrowser.openBrowserAsync(LEGAL_URLS.termsOfService)} hitSlop={8}>
+      <Pressable accessibilityRole="link" onPress={() => void WebBrowser.openBrowserAsync(LEGAL_URLS.termsOfService)} hitSlop={LINK_SLOP}>
         <Text style={link}>{LEGAL_LINKS.terms}</Text>
       </Pressable>
       {dot}
-      <Pressable accessibilityRole="link" onPress={() => void WebBrowser.openBrowserAsync(LEGAL_URLS.privacyPolicy)} hitSlop={8}>
+      <Pressable accessibilityRole="link" onPress={() => void WebBrowser.openBrowserAsync(LEGAL_URLS.privacyPolicy)} hitSlop={LINK_SLOP}>
         <Text style={link}>{LEGAL_LINKS.privacy}</Text>
       </Pressable>
     </View>
