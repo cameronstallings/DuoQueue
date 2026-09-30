@@ -43,7 +43,7 @@ import path from "node:path";
 // Read from the build rather than restated here, so the live checks follow the site if the
 // phase ever flips back. Importing runs nothing: build-site.mjs builds only when it is the
 // script node was started with.
-import { PHASE, APP_STORE_URL } from "./build-site.mjs";
+import { PHASE, APP_STORE_URL, OG_CARD } from "./build-site.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
@@ -65,6 +65,12 @@ const FILM_FILES = [
   { rel: "assets/duoqueue-launch-poster.jpg", contentType: "image/jpeg" },
 ];
 
+// The link preview card for the current PHASE (OG_CARD, rendered by scripts/make-og.mjs),
+// and once launched the same card under the pre-launch name og.png, which make-og.mjs also
+// writes. Required like the film, and checked live the same way, by type and byte count:
+// a card still serving the previous build's bytes is the waitlist card still being shared.
+const OG_FILES = [...new Set([OG_CARD, "og.png"])].map((rel) => ({ rel, contentType: "image/png" }));
+
 // Every file the build must have produced. A missing one is a failed deploy, not a
 // warning: three of these five are the difference between a working custom domain and a
 // dead one.
@@ -83,7 +89,7 @@ const REQUIRED = [
   "privacy/index.html",
   "terms/index.html",
   "CNAME",
-  "og.png",
+  ...OG_FILES.map((f) => f.rel),
   "favicon.png",
   "fonts/unbounded-700.woff2",
   "fonts/manrope-800.woff2",
@@ -100,10 +106,11 @@ const REQUIRED_MAY_BE_EMPTY = [".nojekyll"];
 // is not enough: GitHub Pages serves the PREVIOUS build with a 200 for a minute or so
 // after a push.
 //
-// A binary has no sentinel string, so the film's two files are checked by what they CAN
-// prove: `contentType` must match (a video served as text/html is a 404 page in disguise),
-// and `sizeOf` names the built file whose byte count the served Content-Length must equal,
-// which is what tells a new encode from the previous one still being served.
+// A binary has no sentinel string, so the film's two files and the preview cards are checked
+// by what they CAN prove: `contentType` must match (a video served as text/html is a 404 page
+// in disguise), and `sizeOf` names the built file whose byte count the served Content-Length
+// must equal, which is what tells a new encode (or a new card) from the previous one still
+// being served.
 //
 // `absent` is the other half of a sentinel: a string the page must NOT contain. The film
 // moved off the home page onto /watch/, and a home page still embedding it is the previous
@@ -146,7 +153,7 @@ const LIVE_CHECKS = [
   { url: `${ORIGIN}/terms/`, sentinel: "Terms of Service" },
   { url: `${ORIGIN}/CNAME`, sentinel: "duoqueue.io" },
   { url: `${ORIGIN}/fonts/manrope-800.woff2`, sentinel: null },
-  ...FILM_FILES.map((f) => ({ url: `${ORIGIN}/${f.rel}`, sentinel: null, contentType: f.contentType, sizeOf: f.rel })),
+  ...[...FILM_FILES, ...OG_FILES].map((f) => ({ url: `${ORIGIN}/${f.rel}`, sentinel: null, contentType: f.contentType, sizeOf: f.rel })),
 ];
 
 // check() treats a falsy sentinel AND a falsy absent as "headers only". An empty string is
