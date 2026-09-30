@@ -49,11 +49,21 @@
   in case a later migration adds a seventh). Gender is not used in any filter or in any
   score: in all six it is only a returned column (0060 removed the deck and Online Now
   filter, and 0059's standouts, admirers and party deck never had one).
+
+  ONE PICTURE AND NO GENDER STEP (version 1.4, published 2026-09-30, the day DuoQueue 1.0
+  build 17 was released; design: docs/superpowers/specs/2026-09-23-build-12-card-and-photo-design.md):
+  the Photos bullet now describes one optional picture (the `profile` role; cards read
+  profile ?? header, and the app shows no gallery), and the Gender bullet says gender is no
+  longer collected (the onboarding step is gone since build 12; build 11, which still asked,
+  was never released). Older header and gallery rows and older gender answers stay stored
+  until the account is deleted. Both bullets still say that data reaches other signed-in
+  users' apps, because the six functions above still return gender and public_profile_media
+  still returns approved gallery rows. Only drop that after a migration stops it.
 -->
 # DuoQueue Privacy Policy
 
-**Effective date:** September 24, 2026
-**Version:** 1.3
+**Effective date:** September 30, 2026
+**Version:** 1.4
 
 This policy explains what DuoQueue collects, why, who we share it with, and what control you have over it. It's written in plain language on purpose. If anything here is unclear, contact us using the details below.
 
@@ -88,10 +98,10 @@ We only collect what the app actually uses. Here's every category, itemized.
 ### Profile information
 - **Display name:** shown on your profile and in chat.
 - **Date of birth:** collected once at signup. We use it for two things: confirming you're 18 or older (DuoQueue is not available to anyone younger; see [Section 9](#9-age-restriction)) and calculating the age shown on your profile. Your exact birth date is never shown to other users, only your calculated age.
-- **Gender:** collected at onboarding. The current version of the app does not display it to other users, but it is part of the profile information our servers send to another user's app when your profile is shown to them (for example, in their deck, in Online Now, in the list of people who liked them, or when they open your profile), so it is not private from other signed-in users. It is never used to filter or rank who you're shown.
+- **Gender:** no longer collected. Earlier test versions of the app asked for it during setup. If you answered then, the answer is still stored until you delete your account. The app never shows it, but it is still part of the profile information our servers send to another user's app when your profile is shown to them (for example, in their deck, in Online Now, in the list of people who liked them, or when they open your profile), so it is not private from other signed-in users. It is never used to filter or rank who you're shown.
 - **Region:** collected at onboarding and shown on your profile to other users; also used to filter candidates when someone sets a region preference, and to slightly favor same-region matches in ranking.
 - **Spoken language(s):** collected at onboarding; used as a premium filter so users can require a shared language, and to favor candidates who share a language with you in ranking.
-- **Photos:** a profile photo, an optional header photo, and up to six gallery photos. Every uploaded photo is automatically re-processed to strip embedded location and camera metadata (EXIF/GPS data) before it's stored. Every photo also goes through our moderation pipeline before it becomes visible to anyone else. When our automated moderation provider (Sightengine) is configured, most photos are screened automatically and only borderline or undetermined cases go to a human moderator; if the automated provider isn't configured, every photo instead goes straight to human review. See [Section 3](#3-who-we-share-data-with).
+- **Photos:** one optional picture, of anything you like. It is shown on your card and next to your name. Earlier test versions also asked for a header photo, which is still shown on your card if you haven't added a picture, and allowed gallery photos, which are kept but no longer shown in the app (they can still be part of the profile information sent to another signed-in user's app). All of them are deleted with your account, except as described in [Section 5](#5-how-long-we-keep-data). Every uploaded photo is automatically re-processed to strip embedded location and camera metadata (EXIF/GPS data) before it's stored. Every photo also goes through our moderation pipeline before it becomes visible to anyone else. When our automated moderation provider (Sightengine) is configured, most photos are screened automatically and only borderline or undetermined cases go to a human moderator; if the automated provider isn't configured, every photo instead goes straight to human review. See [Section 3](#3-who-we-share-data-with).
 - **Bio and prompt answers:** free-text fields you write about yourself.
 - **Games, shows/movies/anime, and platforms:** what you play or watch, your self-reported skill level and rank per game, and which platforms (PC, PlayStation, Xbox, Switch, mobile) you play on. Your League of Legends rank, if you add one, is a tier and, for most tiers, a division (for example, "Gold II"), and it is shown to other users. We also compare it with another player's League rank, using League's published rules for who can queue together, to mark players you can duo with in Ranked Solo/Duo with "Can duo with you" and to show them nearer the top of your deck. Other players see the same about you.
 - **Playstyle tags and "vibe" answers:** self-reported traits (e.g. chill vs. competitive, mic preference) and three sliders (session intensity, communication style, coaching preference) plus a tilt-handling answer, used to help match you with compatible players.
