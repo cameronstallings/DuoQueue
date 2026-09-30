@@ -32,13 +32,18 @@
 //   9  fetch the live site and assert a per-page sentinel string, retrying for 90s while
 //      Pages rebuilds. /privacy/ and /terms/ are checked on EVERY deploy, not because
 //      this change touches them but because this branch serves them. A check can also
-//      name a string that must be ABSENT, for something a page must have stopped serving
+//      name a string that must be ABSENT, for something a page must have stopped serving.
+//      What the landing pages must serve follows PHASE in build-site.mjs (see PHASE_CHECKS)
 // ---------------------------------------------------------------------------
 
 import { spawnSync } from "node:child_process";
 import { existsSync, statSync, cpSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+// Read from the build rather than restated here, so the live checks follow the site if the
+// phase ever flips back. Importing runs nothing: build-site.mjs builds only when it is the
+// script node was started with.
+import { PHASE, APP_STORE_URL } from "./build-site.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
@@ -104,15 +109,39 @@ const REQUIRED_MAY_BE_EMPTY = [".nojekyll"];
 // moved off the home page onto /watch/, and a home page still embedding it is the previous
 // build (or a regression in build-site.mjs), so it is retried like a missing sentinel and
 // fails the deploy if it never goes away.
+//
+// PHASE_CHECKS are the ones that differ before and after launch. Once launched, the landing
+// page and each of its copies must link to the App Store listing and must NOT still serve
+// the waitlist form: a page with the form is the previous build, retried and then failed
+// like any other. The watch pages' button and the two waitlist result pages carry the same
+// link. Before launch, the form (with each channel's own hidden source) and the two result
+// pages' own words are the proof.
+const FORM_SENTINEL = 'id="waitlist-form"';
+const LANDING_COPIES = ["/", "/waitlist/", "/tt/", "/ig/", "/yt/"];
+const WATCH_COPIES = ["/watch/", "/tt/watch/", "/ig/watch/", "/yt/watch/"];
+if (PHASE === "launched" && !APP_STORE_URL) die('PHASE is "launched" but build-site.mjs exports no APP_STORE_URL.');
+const STORE_SENTINEL = `href="${APP_STORE_URL}"`;
+const PHASE_CHECKS =
+  PHASE === "launched"
+    ? [
+        ...LANDING_COPIES.map((p) => ({ url: `${ORIGIN}${p}`, sentinel: STORE_SENTINEL, absent: FORM_SENTINEL })),
+        ...WATCH_COPIES.map((p) => ({ url: `${ORIGIN}${p}`, sentinel: STORE_SENTINEL })),
+        { url: `${ORIGIN}/waitlist/thanks/`, sentinel: STORE_SENTINEL },
+        { url: `${ORIGIN}/waitlist/try-again/`, sentinel: STORE_SENTINEL },
+      ]
+    : [
+        { url: `${ORIGIN}/`, sentinel: FORM_SENTINEL },
+        { url: `${ORIGIN}/waitlist/`, sentinel: FORM_SENTINEL },
+        { url: `${ORIGIN}/tt/`, sentinel: 'name="source" value="tt"' },
+        { url: `${ORIGIN}/waitlist/thanks/`, sentinel: "on the list" },
+        { url: `${ORIGIN}/waitlist/try-again/`, sentinel: "18 or older box" },
+      ];
+
 const LIVE_CHECKS = [
-  { url: `${ORIGIN}/`, sentinel: 'id="waitlist-form"' },
+  ...PHASE_CHECKS,
   { url: `${ORIGIN}/`, sentinel: 'href="/watch/"' },
   { url: `${ORIGIN}/`, absent: "duoqueue-launch.mp4" },
   { url: `${ORIGIN}/watch/`, sentinel: 'src="/assets/duoqueue-launch.mp4"' },
-  { url: `${ORIGIN}/waitlist/`, sentinel: 'id="waitlist-form"' },
-  { url: `${ORIGIN}/tt/`, sentinel: 'name="source" value="tt"' },
-  { url: `${ORIGIN}/waitlist/thanks/`, sentinel: "on the list" },
-  { url: `${ORIGIN}/waitlist/try-again/`, sentinel: "18 or older box" },
   { url: `${ORIGIN}/privacy/`, sentinel: "Privacy Policy" },
   { url: `${ORIGIN}/terms/`, sentinel: "Terms of Service" },
   { url: `${ORIGIN}/CNAME`, sentinel: "duoqueue.io" },

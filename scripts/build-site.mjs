@@ -15,13 +15,13 @@
 //   docs/legal/privacy-policy.md   -> site/privacy/index.html
 //   docs/legal/terms-of-service.md -> site/terms/index.html
 //   (hand-written, not from markdown):
-//     site/index.html                     the landing page, form and all
+//     site/index.html                     the landing page: the form, or once launched the App Store link
 //     site/waitlist/index.html            the same page at its canonical-ish path
-//     site/tt|ig|yt/index.html            the same page, one hidden field different
+//     site/tt|ig|yt/index.html            the same page (with the form, one hidden field different)
 //     site/watch/index.html               the film on its own dark page
-//     site/tt|ig|yt/watch/index.html      the same page, its join button back to that channel
-//     site/waitlist/thanks/index.html     post-submit success
-//     site/waitlist/try-again/index.html  post-submit "fix one of two things"
+//     site/tt|ig|yt/watch/index.html      the same page, its button back to that channel (or to the App Store)
+//     site/waitlist/thanks/index.html     post-submit success; once launched, "out now" for old links
+//     site/waitlist/try-again/index.html  post-submit "fix one of two things"; the same, once launched
 //   plus site/CNAME, site/.nojekyll, site/favicon.png, site/og.png
 //   and, committed rather than generated (like og.png and the fonts):
 //     site/assets/duoqueue-launch.mp4          the launch film, shown on the watch pages
@@ -81,13 +81,23 @@ const APP_ASSETS = path.join(ROOT, "apps", "mobile", "assets");
 // is one line, it lands in git as the record of exactly when the site changed,
 // and it cannot be forgotten by a shell that did not export a variable.
 //
-// PHASE controls three things and nothing else: the hero's call to action, what
-// the waitlist page's body is (a form, or "we are live, here is the link"), and
-// where the outlined link after the plain version points (back up to the form, or
-// to the App Store).
+// PHASE controls every line that is only true before, or only true after, the app is out:
+// the hero's eyebrow, call to action and the promise under it (a form, or the App Store
+// link), the queue bar's button, the moment cards' heading, the plain version's first and
+// third items, where the outlined link after the plain version points (back up to the
+// form, or to the App Store), the landing pages' meta description, the watch pages'
+// button, and what the two waitlist result pages say.
+//
+// FLIPPED TO "launched" ON 30 SEPT 2026, the day DuoQueue 1.0 went live on the App Store.
 // ---------------------------------------------------------------------------
-const PHASE = "waitlist"; // "waitlist" | "launched"
-const APP_STORE_URL = null; // "https://apps.apple.com/us/app/duoqueue/id<AppleID>"
+const PHASE = "launched"; // "waitlist" | "launched"
+// The listing is "DuoQueue: Gaming Partners", app id 6798837181. This is the slug-free
+// form on purpose: Apple redirects it to the visitor's own storefront's listing, so it
+// needs no country code and survives a rename of the listing. No Apple badge image is
+// drawn or loaded (the site loads nothing from a third party, and the official badge is
+// Apple's artwork, not ours to imitate); the button says "Download on the App Store" in
+// the app's own button style, with "App Store" capitalised as Apple's guidelines ask.
+const APP_STORE_URL = "https://apps.apple.com/app/id6798837181";
 
 // The public form endpoint (supabase/functions/waitlist-signup). The project ref
 // is not a secret and is already committed in scripts/db/*.ps1 and shipped inside
@@ -1420,6 +1430,21 @@ const CSS = `
   .promise { font-size: 15px; line-height: 1.5; margin: 16px 0 0; max-width: 44ch; }
   .fineprint { font-size: 13.5px; line-height: 1.55; color: var(--muted); margin: 8px 0 0; max-width: 46ch; }
 
+  /* THE LAUNCHED CALL TO ACTION (launchedCta): the same button with the App Store link in
+     place of the form, held to the form's 460px, with the promise under it. It is the query
+     container for the label's fit, below. */
+  .get-app { max-width: 460px; container-type: inline-size; }
+  /* THE LABEL FITS ON ONE LINE AT EVERY WIDTH. "Download on the App Store" advances 12.80em in
+     Manrope 800 at -0.02em (13.13em in the system fallback), against 7.30em for "join the
+     waitlist", measured in headless Chrome. At the button's own size it wrapped onto two lines
+     on a 320px phone, on a phone on its side, and at the 32px size a tall desktop gets. So the
+     button keeps its size, and with it its height and everything measured against its bottom
+     edge, and only the words step down, to whatever fits the button's inside (100cqi of
+     .get-app, less the two 1.5px borders and the 0.6em padding each side) at 13.2em, with 2px
+     to spare. Both 1em and 1.2em here are the button's own size. A 390px phone gets the full
+     size; a 320px one gets 18.9px against 21. */
+  .cta-fit { font-size: min(1em, calc((100cqi - 5px - 1.2em) / 13.2)); }
+
   /* The honeypot. Off-canvas rather than display:none, because some form-filling
      bots skip anything that is not rendered. tabindex, autocomplete and aria-hidden
      on the input itself keep it away from keyboards and screen readers. */
@@ -1764,25 +1789,26 @@ const CSS = `
   /* ---- the queue bar ----------------------------------------------------- */
   /* THE CLOSING LOCKUP'S ONE JOB, DONE FROM THE TOP OF THE SCREEN. The lockup's only working
      part was a second button that jumped back to the form, once, at the bottom of the page.
-     This slim bar does that job at every scroll position after the form has left the screen:
-     the logo, and "join the waitlist" in the app's own primary button (volt fill, onVolt
-     label, radius.button, the scale(0.97) press, the button's contact shadow).
+     This slim bar does that job at every scroll position after the hero's call to action has
+     left the screen: the logo, and the call to action again in the app's own primary button
+     (volt fill, onVolt label, radius.button, the scale(0.97) press, the button's contact
+     shadow). Before launch that is "join the waitlist", jumping back up to the form; once
+     PHASE is "launched" it is "Download on the App Store", straight to the listing, and it
+     watches #get-app (the download button and the line under it) instead of the form.
 
      It is display:none here, and it only exists inside the scroll-timeline block in MOTION
-     below, and only on a page that has the form. Without a scroll timeline there is no way
-     to show it only once the form has gone (there is no script to watch the scroll), and a
-     bar that sat over the form's own button would be worse than no bar, so in a browser
-     without one it stays display:none and the form and the outlined link after the plain
-     version are the page's calls to action.
-     A page with the bar and no #waitlist-form needs its own rule, because the timeline
-     support check cannot see it: the landing pages are that page once PHASE is "launched"
-     (waitlistBody then emits the download button, not the form). With no form there is no
-     --form timeline, the bar's animation is inactive and has no effect, and the bar would
-     sit at its resting style in that block, fixed and visible at every scroll position,
-     over the site header at the top of the page. So that block also hides it wherever
-     body:not(:has(#waitlist-form)). Its markup is emitted on the landing pages only
-     (pageShell's qbar option, qbarHtml()), and pageShell does not emit it at all when PHASE
-     is "launched"; the guard is there so that a page that forgets costs nothing. */
+     below, and only on a page that has the hero's call to action. Without a scroll timeline
+     there is no way to show it only once that has gone (there is no script to watch the
+     scroll), and a bar that sat over the hero's own button would be worse than no bar, so in
+     a browser without one it stays display:none and the hero's button and the outlined link
+     after the plain version are the page's calls to action.
+     A page with the bar and neither #waitlist-form nor #get-app needs its own rule, because
+     the timeline support check cannot see it: with nothing to watch there is no --act
+     timeline, the bar's animation is inactive and has no effect, and the bar would sit at
+     its resting style in that block, fixed and visible at every scroll position, over the
+     site header at the top of the page. So that block also hides it on any such page. Its
+     markup is emitted on the landing pages only (pageShell's qbar option, qbarHtml()); the
+     guard is there so that a page that forgets costs nothing. */
   .qbar { display: none; }
   .qbar-in { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 58px; }
   .qbar .brand span { font-size: 17px; }
@@ -1800,6 +1826,13 @@ const CSS = `
   .qbar-cta:hover { background: var(--app-volt-dim); text-decoration: none; }
   .qbar-cta:active { background: var(--app-volt-dim); transform: scale(0.97); transition-duration: var(--t-instant); }
   .qbar-cta svg { width: 15px; height: 15px; display: block; }
+  /* Once launched the bar's button says "Download on the App Store", which does not fit
+     beside the logo on a phone: at 320px the bar has 280px, and the logo and the whole label
+     need about 380. So below 480px the words after "Download" are dropped from view (the
+     link's aria-label still carries all of them), and from 480px the bar has the room. */
+  @media (max-width: 479.98px) {
+    .qbar-more { display: none; }
+  }
 
   /* =======================================================================
      MOTION
@@ -1811,7 +1844,7 @@ const CSS = `
      frame. The hero's entrance makes that argument, and nothing else below does. The
      moment cards (which rise in once and then act out the app's three moments on a loop),
      the plain version's rules (which draw across) and the queue bar (which slides in once
-     the form has gone) each have a job of their own, stated where they are.
+     the hero's call to action has gone) each have a job of their own, stated where they are.
 
      THE THINGS THAT DELIBERATELY DO NOT ANIMATE, because "should this animate at all" has
      a real answer and here it is no, three times:
@@ -2076,27 +2109,29 @@ const CSS = `
     .moment:nth-child(3) .moment-card { animation-delay: 420ms; }
   }
 
-  /* ---- the queue bar, on the form's own timeline -------------------------- */
-  /* The bar watches the form. body's timeline-scope lifts the form's view timeline up to
-     where a bar outside <main> can see it, and the range starts at exit 100%: the scroll
-     position at which the form's last pixel has gone off the top of the screen. So the bar
-     can never sit over the form's button, and it slides down over the next 72px of
-     scrolling, a little more than its own height. Scroll back until the form's bottom edge
-     returns and it slides away again. Chrome and Safari 26+; elsewhere the bar is absent,
-     and so it is on any page without the form (the last rule in this block: no form, no
-     timeline to show the bar on, so no bar).
+  /* ---- the queue bar, on the hero's call to action's own timeline --------- */
+  /* The bar watches the hero's call to action: the form before launch (#waitlist-form), the
+     download button and its line after it (#get-app). One page only ever has one of the
+     two. body's timeline-scope lifts its view timeline, --act, up to where a bar outside
+     <main> can see it, and the range starts at exit 100%: the scroll position at which its
+     last pixel has gone off the top of the screen. So the bar can never sit over the hero's
+     own button, and it slides down over the next 72px of scrolling, a little more than its
+     own height. Scroll back until that bottom edge returns and it slides away again. Chrome
+     and Safari 26+; elsewhere the bar is absent, and so it is on any page without either
+     (the last rule in this block: nothing to watch, no timeline to show the bar on, so no
+     bar).
 
      scroll-padding keeps what a keyboard focuses, or an in-page link jumps to, out from
-     under the bar. It is scoped with :has(.qbar):has(#waitlist-form) to the pages where the
-     bar can show, so the privacy, terms and waitlist result pages (which share this CSS and
-     have no bar), and a landing page whose form has gone, keep their jumps at the real top
-     of the screen; every browser with timeline-scope also has :has. It has a side effect
-     that every view timeline on the page has to undo:
+     under the bar. It is scoped with :has(.qbar):has(#waitlist-form, #get-app) to the pages
+     where the bar can show, so the privacy, terms and waitlist result pages (which share
+     this CSS and have no bar) keep their jumps at the real top of the screen; every browser
+     with timeline-scope also has :has. It has a side effect that every view timeline on the
+     page has to undo:
      a view timeline's default inset ("auto") IS the scroll-padding, so without an explicit
-     view-timeline-inset of 0 the form's exit 100% would fall 72px early, with the form's
-     button still on screen, and the bar would slide over it. That is why the form, the
-     moment cards and the plain version's items all declare view-timeline-inset: 0: their
-     ranges are measured against the real edges of the screen. */
+     view-timeline-inset of 0 the call to action's exit 100% would fall 72px early, with its
+     button still on screen, and the bar would slide over it. That is why the call to action,
+     the moment cards and the plain version's items all declare view-timeline-inset: 0:
+     their ranges are measured against the real edges of the screen. */
   @keyframes qbar-in {
     from { transform: translateY(-100%); visibility: hidden; }
     to   { transform: none; visibility: visible; }
@@ -2105,27 +2140,27 @@ const CSS = `
     from { visibility: hidden; }
     to   { visibility: visible; }
   }
-  @supports (timeline-scope: --form) and (animation-timeline: view()) and (animation-range: exit) {
-    body { timeline-scope: --form; }
-    #waitlist-form { view-timeline: --form; view-timeline-inset: 0; }
-    html:has(.qbar):has(#waitlist-form) { scroll-padding-top: 72px; }
+  @supports (timeline-scope: --act) and (animation-timeline: view()) and (animation-range: exit) {
+    body { timeline-scope: --act; }
+    #waitlist-form, #get-app { view-timeline: --act; view-timeline-inset: 0; }
+    html:has(.qbar):has(#waitlist-form, #get-app) { scroll-padding-top: 72px; }
     .qbar {
       display: block; position: fixed; z-index: 30; top: 0; left: 0; right: 0;
       background: rgba(${hexToRgb(GROUND.base).join(",")},${QBAR_ALPHA});
       -webkit-backdrop-filter: saturate(1.4) blur(14px); backdrop-filter: saturate(1.4) blur(14px);
       border-bottom: 1px solid var(--rule);
       animation-name: qbar-in; animation-fill-mode: both; animation-timing-function: linear;
-      animation-timeline: --form; animation-range: exit 100% exit calc(100% + 72px);
+      animation-timeline: --act; animation-range: exit 100% exit calc(100% + 72px);
     }
-    /* Reduce Motion: no slide and no half-shown bar. It is simply there once the form has
-       gone, and gone once the form is back: one step, at the start of the same range. */
+    /* Reduce Motion: no slide and no half-shown bar. It is simply there once the call to
+       action has gone, and gone once it is back: one step, at the start of the same range. */
     @media (prefers-reduced-motion: reduce) {
       .qbar { animation-name: qbar-show; animation-timing-function: steps(1, start); }
     }
-    /* No form, no bar: see the note at the bar's resting style. It sets display alone, so
-       it outranks the display:block above (an id inside :has) and leaves the Reduce Motion
-       rule's animation-name alone. */
-    body:not(:has(#waitlist-form)) .qbar { display: none; }
+    /* Nothing to watch, no bar: see the note at the bar's resting style. It sets display
+       alone, so it outranks the display:block above (an id inside :has) and leaves the Reduce
+       Motion rule's animation-name alone. */
+    body:not(:has(#waitlist-form, #get-app)) .qbar { display: none; }
   }
 
   /* ---- reduced motion ---------------------------------------------------- */
@@ -2138,7 +2173,8 @@ const CSS = `
      there at all: display:none takes it out of the tab order and the accessibility tree.
 
      The queue bar is the one exception, and it does not move: under Reduce Motion it is
-     shown or hidden in a single step as the form leaves or returns (see its block above),
+     shown or hidden in a single step as the hero's call to action leaves or returns (see
+     its block above),
      never slid and never half-shown.
 
      Not a blanket kill beyond that. Everything that MOVES stops - every entrance, the hover
@@ -2188,6 +2224,11 @@ const CSS = `
     /* The sub is the last line of the copy column and the form is the top of the other,
        so its bottom margin is measuring against nothing. */
     .hero-copy .sub { margin-bottom: 0; }
+    /* Once launched the column holds a button and one sentence instead of a whole form, about
+       120px against the copy's 450, so at the top it left a tall empty column under it. It
+       sits on the middle of the copy and the trailer link instead, beside the lede. Only
+       here: in the short landscape tier the middle of the copy can be under the fold. */
+    .hero-act-store { align-self: center; }
     .hero-watch { margin-top: 30px; }
     .plain-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(24px, 4vw, 52px); }
     /* The support card: heading in a narrow left column, its three paragraphs beside it. */
@@ -2545,7 +2586,8 @@ const WATCH_CSS = `
   /* The app's own primary button in its own dark colours: volt fill, onVolt label,
      radius.button and the scale(0.97) press, from the shared rule. No cast shadow, since a
      shadow on this ground is invisible, and so no lift under the pointer either: a lift is
-     read by its shadow. The label goes back to that channel's form (buildWatchPage). */
+     read by its shadow. Before launch it went back to that channel's form; once launched it
+     goes to the App Store (buildWatchPage). */
   .watch .cta {
     max-width: 460px;
     background: ${VOLT.volt}; color: ${VOLT.onVolt}; border-color: ${VOLT.volt};
@@ -2619,13 +2661,20 @@ function stripCssComments(css) {
   return css.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\n[ \t]*(?=\n)/g, "");
 }
 
-/** The queue bar: the logo and "join the waitlist", which slides down from the top of the
- *  screen once the form has fully left it (the queue bar's CSS says how, with no script). */
+/** The queue bar: the logo and the call to action again, which slides down from the top of
+ *  the screen once the hero's own has fully left it (the queue bar's CSS says how, with no
+ *  script). Before launch that is "join the waitlist", back up to the form; once launched it
+ *  is the App Store link, whose last four words drop out of view on a phone (.qbar-more) and
+ *  stay in its accessible name. */
 function qbarHtml() {
+  const cta =
+    PHASE === "launched"
+      ? `<a class="qbar-cta" href="${APP_STORE_URL}" aria-label="Download on the App Store"><span>Download<span class="qbar-more"> on the App Store</span></span></a>`
+      : `<a class="qbar-cta" href="#waitlist-form">join the waitlist${ARROW_UP_SVG}</a>`;
   return `<div class="qbar">
   <div class="wrap qbar-in">
     <a class="brand" href="#main">${ringsMarkSvg({ size: 24, label: "" })}<span>duoqueue</span></a>
-    <a class="qbar-cta" href="#waitlist-form">join the waitlist${ARROW_UP_SVG}</a>
+    ${cta}
   </div>
 </div>
 `;
@@ -2646,8 +2695,8 @@ function pageShell({
   // The film is on (main() checks once): the nav leads with WATCH, and the page opts into the
   // view transition between a landing page and its watch page.
   film = false,
-  // The queue bar, for a landing page. Never emitted once PHASE is "launched": the bar only
-  // ever shows once the form has left the screen, and a launched page has no form.
+  // The queue bar, for a landing page, in either phase: it shows once the hero's call to
+  // action (the form, or once launched the download button) has left the screen.
   qbar = false,
   // "" or one of CHANNELS: which channel's watch page the nav's WATCH goes to.
   channelDir = "",
@@ -2663,7 +2712,7 @@ function pageShell({
     ? `<a class="nav-watch" href="${channelRoot(channelDir)}watch/"${current === "watch" ? ' aria-current="page"' : ""}>${NAV_PLAY_SVG}Watch</a>
       `
     : "";
-  const bar = qbar && PHASE === "waitlist" ? qbarHtml() : "";
+  const bar = qbar ? qbarHtml() : "";
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -2808,7 +2857,7 @@ function momentsHtml() {
 <section class="moments" aria-labelledby="moments-head">
   <div class="wrap">
    <div class="moments-inner">
-    <h2 class="eyebrow" id="moments-head">What you are joining</h2>
+    <h2 class="eyebrow" id="moments-head">${PHASE === "launched" ? "How it works" : "What you are joining"}</h2>
     <input class="pause-box" type="checkbox" id="moments-pause" aria-label="Pause animations">
     <label class="pause" for="moments-pause">${PAUSE_GLYPH}${PLAY_GLYPH}<span class="pw"><span class="w-pause">Pause</span><span class="w-play">Play</span></span></label>
     <ol class="moment-list">
@@ -2870,23 +2919,38 @@ function trailerLinkHtml(channelDir = "") {
 }
 
 // ---------------------------------------------------------------------------
-// The waitlist page. One template, five URLs, one hidden field's difference.
+// The landing page. One template, five URLs.
 //
-// /, /waitlist/, /tt/, /ig/ and /yt/ all render this. The root gets the form
-// because the ads' end card prints "duoqueue.io" and nothing else: a visitor who
-// has to find and tap a second link before they can type an address is a visitor
-// the campaign paid for and then lost. The three channel paths are short enough to
-// live in a social bio and give per-channel attribution with no analytics SDK, no
-// cookie and no query-string JavaScript.
+// /, /waitlist/, /tt/, /ig/ and /yt/ all render this. The root carries the call to
+// action because the ads' end card prints "duoqueue.io" and nothing else: a visitor who
+// has to find and tap a second link before they can act is a visitor the campaign paid
+// for and then lost.
+//
+// BEFORE LAUNCH the five differed by one hidden field: the form's `source`, so the three
+// channel paths (short enough to live in a social bio) gave per-channel attribution with
+// no analytics SDK, no cookie and no query-string JavaScript.
+//
+// ONCE LAUNCHED there is no form, so /tt/, /ig/ and /yt/ are plain copies of the landing
+// page, canonical to /, kept because those addresses are already in bios and captions. They
+// no longer tell the channels apart. Per-channel attribution now has to happen at Apple's
+// end: App Store Connect campaign links, the listing URL with `pt` (the provider token) and
+// `ct` (the campaign name) appended, which App Store Connect's App Analytics then counts
+// per campaign. `pt` is Cameron's provider token, which only he can read out of App Store
+// Connect; until he has, every copy links to the bare APP_STORE_URL.
 // ---------------------------------------------------------------------------
 
 const HERO_LEDE = "DuoQueue is an 18+ app for finding people to play games with. It is not dating.";
 const HERO_SUB =
   "You match on the games you play, the hours you are online, and how you like to play them. Then you talk, and queue up.";
-// The line under the call to action, per phase. The form's and the watch page's are one string,
-// so the promise a visitor reads beside the film is the one they read beside the form.
+// The line under the call to action, per phase. The landing page's and the watch page's are one
+// string, so the promise a visitor reads beside the film is the one they read beside the button.
+// "Free to download" rather than "free": the app is free to get and has optional in-app purchases
+// (DuoQueue+, Power-Ups, Legendary Likes; the privacy policy's Section 2 lists them).
 const WAITLIST_PROMISE = "One email, on the day it goes live. That is the only one you get.";
-const LAUNCHED_PROMISE = "DuoQueue is live. If you joined the waitlist, the email is already on its way.";
+const LAUNCHED_PROMISE =
+  "Free to download on iPhone, 18+ only. We are starting with League of Legends players in North America.";
+/** The launched call to action's words. "App Store" capitalised, as Apple's guidelines ask. */
+const STORE_LABEL = "Download on the App Store";
 
 function signupForm(source) {
   return `
@@ -2913,22 +2977,48 @@ function signupForm(source) {
       <p class="fineprint">We do not share your address. No analytics, no trackers and no cookies on this page. Submitting the form sets one 30-minute anti-bot cookie on our backend&rsquo;s own domain, and nothing else. See the <a href="/privacy/">Privacy Policy</a>.</p>`;
 }
 
-/** The launched-phase body. Built now rather than left as a TODO so the flip in
- * 1.6 is one constant and not a rewrite under time pressure on release day. */
+/** The launched-phase call to action: the App Store link in the app's own button, and the
+ *  promise under it. #get-app is what the queue bar watches in place of the form. Also the
+ *  body of the two waitlist result pages once launched (outNowBody). */
 function launchedCta() {
   return `
-      <p><a class="cta" href="${APP_STORE_URL}" style="max-width:460px;">download on the app store</a></p>
-      <p class="promise">${LAUNCHED_PROMISE}</p>`;
+      <div class="get-app" id="get-app">
+        ${storeButton()}
+        <p class="promise">${LAUNCHED_PROMISE}</p>
+      </div>`;
+}
+
+/** The App Store button itself, the app's primary button with its label in .cta-fit, which
+ *  steps the words down to fit on one line (see the CSS). Its parent must be a .get-app. */
+function storeButton() {
+  return `<a class="cta" href="${APP_STORE_URL}"><span class="cta-fit">${STORE_LABEL}</span></a>`;
 }
 
 function waitlistBody({ source, film = false, channelDir = "" }) {
-  const action = PHASE === "launched" ? launchedCta() : signupForm(source);
+  const launched = PHASE === "launched";
+  const action = launched ? launchedCta() : signupForm(source);
   // The outlined link after the plain version: back up to the form, or, once launched, to
   // the store. It is what is left of the closing lockup's button.
-  const again =
-    PHASE === "launched"
-      ? `<a class="cta-ghost" href="${APP_STORE_URL}">download duoqueue</a>`
-      : `<a class="cta-ghost" href="#waitlist-form">join the waitlist <span aria-hidden="true">&uarr;</span></a>`;
+  const again = launched
+    ? `<a class="cta-ghost" href="${APP_STORE_URL}">${STORE_LABEL}</a>`
+    : `<a class="cta-ghost" href="#waitlist-form">join the waitlist <span aria-hidden="true">&uarr;</span></a>`;
+  // The plain version's first and third items are the two that were only true of a waitlist:
+  // the age box was on the form, and "everyone starts together" was about the list. Once
+  // launched the age line says what the app does (a date of birth at signup, refused under
+  // 18, not verified: the privacy policy's Section 9 in fewer words) and the third item says
+  // who the app is starting with.
+  const ageLine = launched
+    ? "DuoQueue is for adults. You give your date of birth when you sign up, and a date under 18 is refused. Nobody checks ID, and we do not pretend otherwise."
+    : "DuoQueue is for adults. The box on that form is you telling us your age. It is not us checking it, and we do not pretend otherwise.";
+  const [thirdHead, thirdLine] = launched
+    ? [
+        "League of Legends first",
+        "We are starting with League of Legends players in North America, so the first people in find someone to play with instead of an empty screen. Your other games go on your profile too.",
+      ]
+    : [
+        "Everyone starts together",
+        "The whole list gets the app on the same day on purpose, so the first people in find someone to play with instead of an empty screen.",
+      ];
   // Only when the film is on, so the link can never point at a watch page that was not built.
   const watch = film
     ? `
@@ -2942,12 +3032,12 @@ function waitlistBody({ source, film = false, channelDir = "" }) {
   <div class="wrap">
     <div class="hero-grid">
       <div class="hero-copy">
-        <p class="eyebrow">${PHASE === "launched" ? "Out now" : "The waitlist"}</p>
+        <p class="eyebrow">${launched ? "Out now on iPhone" : "The waitlist"}</p>
         <h1 class="display">queue up<br>with a <span class="key">duo</span></h1>
         <p class="lede">${HERO_LEDE}</p>
         <p class="sub">${HERO_SUB}</p>
       </div>
-      <div class="hero-act">
+      <div class="hero-act${launched ? " hero-act-store" : ""}">
 ${action}
       </div>${watch}
     </div>
@@ -2960,15 +3050,15 @@ ${momentsHtml()}
     <ul class="plain-list">
       <li>
         <h3>18+ only</h3>
-        <p>DuoQueue is for adults. The box on that form is you telling us your age. It is not us checking it, and we do not pretend otherwise.</p>
+        <p>${ageLine}</p>
       </li>
       <li>
         <h3>Platonic, not dating</h3>
         <p>You are looking for someone to play with. The profile is games, hours and playstyle, and there is nothing romantic anywhere in the app.</p>
       </li>
       <li>
-        <h3>Everyone starts together</h3>
-        <p>The whole list gets the app on the same day on purpose, so the first people in find someone to play with instead of an empty screen.</p>
+        <h3>${thirdHead}</h3>
+        <p>${thirdLine}</p>
       </li>
     </ul>
     <p class="again">${again}</p>
@@ -3001,7 +3091,9 @@ function buildWaitlistPage({ source, canonical, includeSupport, film = false, ch
         ? "DuoQueue: find your duo"
         : "DuoQueue: join the waitlist",
     description:
-      "DuoQueue is an 18+ app for finding people to play games with. Platonic, not dating. Join the waitlist and get one email the day it goes live.",
+      PHASE === "launched"
+        ? "DuoQueue is an 18+ app for finding people to play games with. Platonic, not dating. Free to download on iPhone, starting with League of Legends players in North America."
+        : "DuoQueue is an 18+ app for finding people to play games with. Platonic, not dating. Join the waitlist and get one email the day it goes live.",
     canonical,
     bodyHtml: waitlistBody({ source, film, channelDir }) + (includeSupport ? supportSection() : ""),
     film,
@@ -3017,20 +3109,24 @@ function buildWaitlistPage({ source, canonical, includeSupport, film = false, ch
 // canonical to /watch/. The film used to sit on the landing page as a dark block that broke
 // the light page's flow and cost every visit 2.9 MB. Here it is the page: up to 400px wide,
 // native controls, muted autoplay (see FILM), played once so it rests on its last frame, with
-// the headline, the 18+ / not dating line and a chartreuse join button beside it.
+// the headline, the 18+ / not dating line and a chartreuse button beside it.
 //
-// A channel gets its own copy for the same reason it gets its own landing page: the join
-// button (and the logo, and the footer's Home) go back to THAT channel's form, so the hidden
-// source field still says tt, ig or yt after a detour through the film.
+// A channel gets its own copy for the same reason it gets its own landing page: before
+// launch the button (and the logo, and the footer's Home) went back to THAT channel's form,
+// so the hidden source field still said tt, ig or yt after a detour through the film. Once
+// launched the button goes to the App Store and the logo and Home still go back to that
+// channel's copy of the landing page.
 // ---------------------------------------------------------------------------
 
 function buildWatchPage({ channelDir = "" } = {}) {
   const home = channelRoot(channelDir);
-  // Once launched there is no form to go back to: the button goes to the store instead.
-  const [joinHref, joinLabel, promise] =
-    PHASE === "launched"
-      ? [APP_STORE_URL, "download on the app store", LAUNCHED_PROMISE]
-      : [`${home}#waitlist-form`, "join the waitlist", WAITLIST_PROMISE];
+  const launched = PHASE === "launched";
+  // Once launched there is no form to go back to: the button goes to the store instead, in a
+  // .get-app so its label fits on one line like the landing page's.
+  const action = launched
+    ? `<div class="get-app">${storeButton()}</div>`
+    : `<a class="cta" href="${home}#waitlist-form">join the waitlist</a>`;
+  const promise = launched ? LAUNCHED_PROMISE : WAITLIST_PROMISE;
   const body = `
 <section class="watch" aria-labelledby="watch-head">
   <div class="wrap watch-grid">
@@ -3043,7 +3139,7 @@ function buildWatchPage({ channelDir = "" } = {}) {
       <p class="eyebrow">The trailer &middot; ${FILM.length}</p>
       <h1 class="display" id="watch-head">from the first swipe to <span class="key">queueing up</span></h1>
       <p class="lede">${HERO_LEDE}</p>
-      <a class="cta" href="${joinHref}">${joinLabel}</a>
+      ${action}
       <p class="promise">${promise}</p>
     </div>
   </div>
@@ -3051,8 +3147,9 @@ function buildWatchPage({ channelDir = "" } = {}) {
 `;
   return pageShell({
     title: "Watch the trailer | DuoQueue",
-    description:
-      "The DuoQueue trailer, 21 seconds: an 18+ app for finding people to play games with. Platonic, not dating.",
+    description: launched
+      ? "The DuoQueue trailer: an 18+ app for finding people to play games with. Platonic, not dating. Free to download on iPhone."
+      : "The DuoQueue trailer, 21 seconds: an 18+ app for finding people to play games with. Platonic, not dating.",
     canonical: `${SITE_ORIGIN}/watch/`,
     bodyHtml: body,
     extraCss: WATCH_CSS,
@@ -3077,9 +3174,45 @@ function buildWatchPage({ channelDir = "" } = {}) {
 //
 // Both are noindex: they are states, not pages, and a search result pointing at
 // "You are on the list" would be a dead end for somebody who is not.
+//
+// ONCE LAUNCHED both addresses stay, because old links still reach them: a form page left
+// open in a tab still posts to the endpoint, which still redirects here, and the waitlist
+// emails and bookmarks carry these URLs. So both say the one thing that is true now, the
+// app is out, and send the visitor to the App Store (outNowBody). The thanks page keeps its
+// closing lockup.
 // ---------------------------------------------------------------------------
 
+/** Both result pages' message once PHASE is "launched": the app is out, here is the link. The
+ *  button and the line under it are the landing page's own (launchedCta), so the call to
+ *  action's shadow guard measures the same arrangement here. */
+function outNowBody() {
+  return `
+<section class="outcome">
+  <div class="wrap">
+    <p class="eyebrow">Out now on iPhone</p>
+    <h1 class="display">the wait is <span class="key">over</span></h1>
+    <p class="lede">DuoQueue is out, so there is no list to join any more. Get the app and make your profile.</p>
+${launchedCta()}
+    <p class="fineprint">Joined the waitlist and want your address deleted? Email <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a> and we will remove it.</p>
+  </div>
+</section>
+`;
+}
+
+const OUT_NOW_TITLE = "DuoQueue is out now";
+const OUT_NOW_DESCRIPTION =
+  "DuoQueue is out now, free to download on iPhone, so there is no waitlist to join any more. Download it on the App Store.";
+
 function buildThanksPage() {
+  if (PHASE === "launched") {
+    return pageShell({
+      title: OUT_NOW_TITLE,
+      description: OUT_NOW_DESCRIPTION,
+      bodyHtml: outNowBody() + lockupHtml(),
+      noindex: true,
+      extraCss: LOCKUP_CSS,
+    });
+  }
   const body = `
 <section class="outcome">
   <div class="wrap">
@@ -3090,7 +3223,19 @@ function buildThanksPage() {
     <p class="fineprint">Changed your mind, or joined by accident? Email <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a> and we will take you off.</p>
   </div>
 </section>
+${lockupHtml()}`;
+  return pageShell({
+    title: "You are on the list | DuoQueue",
+    description: "You joined the DuoQueue waitlist. We will email you once, the day it goes live.",
+    bodyHtml: body,
+    noindex: true,
+    extraCss: LOCKUP_CSS,
+  });
+}
 
+/** The closing lockup, the campaign's end card standing still: on the thanks page only. */
+function lockupHtml() {
+  return `
 <section class="lockup">
   <div class="wrap">
     <div class="lockup-inner">
@@ -3101,16 +3246,17 @@ function buildThanksPage() {
   </div>
 </section>
 `;
-  return pageShell({
-    title: "You are on the list | DuoQueue",
-    description: "You joined the DuoQueue waitlist. We will email you once, the day it goes live.",
-    bodyHtml: body,
-    noindex: true,
-    extraCss: LOCKUP_CSS,
-  });
 }
 
 function buildTryAgainPage() {
+  if (PHASE === "launched") {
+    return pageShell({
+      title: OUT_NOW_TITLE,
+      description: OUT_NOW_DESCRIPTION,
+      bodyHtml: outNowBody(),
+      noindex: true,
+    });
+  }
   const body = `
 <section class="outcome">
   <div class="wrap">
@@ -3447,4 +3593,5 @@ export {
   INK,
   APP,
   PHASE,
+  APP_STORE_URL,
 };
