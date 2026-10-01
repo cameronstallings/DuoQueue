@@ -3,17 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DuoQueue: find your duo</title>
-<meta name="description" content="DuoQueue is an 18+ app for finding people to play games with. Platonic, not dating. Free to download on iPhone, starting with League of Legends players in North America.">
+<title>DuoQueue is out now</title>
+<meta name="description" content="DuoQueue is out now, free to download on iPhone, so there is no waitlist to join any more. Download it on the App Store.">
 <link rel="canonical" href="https://duoqueue.io/">
-
+<meta name="robots" content="noindex">
+<meta http-equiv="refresh" content="0; url=https://apps.apple.com/app/apple-store/id6798837181?pt=129274943&amp;ct=youtube&amp;mt=8">
 <link rel="icon" href="/favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="/favicon.png">
 <meta name="theme-color" content="#F6F3EA">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="DuoQueue">
-<meta property="og:title" content="DuoQueue: find your duo">
-<meta property="og:description" content="DuoQueue is an 18+ app for finding people to play games with. Platonic, not dating. Free to download on iPhone, starting with League of Legends players in North America.">
+<meta property="og:title" content="DuoQueue is out now">
+<meta property="og:description" content="DuoQueue is out now, free to download on iPhone, so there is no waitlist to join any more. Download it on the App Store.">
 <meta property="og:image" content="https://duoqueue.io/og-launch.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -742,27 +743,44 @@
     .cta { font-size: clamp(21px, 3.3vw, 30px); }
     .promise { margin-top: 12px; }
   }
-  @media (prefers-reduced-motion: no-preference) {
-    @view-transition { navigation: auto; }
+  section.lockup { padding: 0 0 clamp(36px, 10.93vw, 118px); text-align: center; }
+  .lockup .wrap {
+    padding-left: clamp(12px, 5.7%, 62px); padding-right: clamp(12px, 5.7%, 62px);
+    container-type: inline-size;
   }
-  ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 240ms; }
-  .trailer-play, .film-frame { view-transition-name: film; }
-  ::view-transition-group(film) { animation-duration: 440ms; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  .lockup-inner { display: flex; flex-direction: column; align-items: center; gap: clamp(16px, 3.70vw, 40px); }
+  .lockup .brand-mark {
+    --mark-w: clamp(101px, 27.7vw, 300px);
+    width: var(--mark-w); height: auto;
+    margin-top: calc(var(--mark-w) * -0.29);
+    margin-bottom: calc(var(--mark-w) * -0.2686);
+  }
+  .lockup .brand-mark { --mark-w: clamp(96px, 29.2cqi, 406px); }
+  .wordmark {
+    font-family: Unbounded, Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 700; font-size: clamp(42px, 13.6vw, 148px);
+    line-height: 1.16; letter-spacing: 0.02em; color: var(--ink); white-space: nowrap;
+  }
+  .wordmark { font-size: min(14.4cqi, 200px); }
+  .url {
+    font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 600; font-size: clamp(14px, 3.2vw, 30px);
+    letter-spacing: 0.12em; color: var(--ink);
+  }
+  @supports (animation-timeline: view()) and (animation-range: entry) {
+    .lockup-inner > * {
+      animation-name: rise;
+      animation-fill-mode: backwards;
+      animation-timing-function: var(--ease-out);
+      animation-timeline: view();
+      animation-range: entry 0% entry 60%;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lockup-inner > * { animation: none; }
+  }
 </style>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
-<div class="qbar">
-  <div class="wrap qbar-in">
-    <a class="brand" href="#main"><svg class="brand-mark" width="24" height="24" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <circle cx="660.992" cy="512" r="215.04" fill="none" stroke="var(--mark-duo)" stroke-width="98.9184" />
-    <circle cx="842.425508224487" cy="693.433508224487" r="55.394304000000005" fill="var(--mark-duo)" />
-    <circle cx="338.432" cy="512" r="215.04" fill="none" stroke="var(--mark-ink)" stroke-width="98.9184" />
-    <path d="M 583.6133027625533 712.6358363150401 A 215.04 215.04 0 0 1 452.25814711396214 563.6950699714191" fill="none" stroke="var(--mark-duo)" stroke-width="98.9184" />
-  </svg><span>duoqueue</span></a>
-    <a class="qbar-cta" href="https://apps.apple.com/app/apple-store/id6798837181?pt=129274943&amp;ct=youtube&amp;mt=8" aria-label="Download on the App Store"><span>Download<span class="qbar-more"> on the App Store</span></span></a>
-  </div>
-</div>
 <header class="site-header">
   <div class="wrap">
     <a class="brand" href="/"><svg class="brand-mark" width="26" height="26" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="DuoQueue">
@@ -772,7 +790,6 @@
     <path d="M 583.6133027625533 712.6358363150401 A 215.04 215.04 0 0 1 452.25814711396214 563.6950699714191" fill="none" stroke="var(--mark-duo)" stroke-width="98.9184" />
   </svg><span>duoqueue</span></a>
     <nav>
-      <a class="nav-watch" href="/yt/watch/"><svg viewBox="0 0 8 9" aria-hidden="true"><path d="M0 0l8 4.5L0 9z"/></svg>Watch</a>
       <a href="/privacy/">Privacy</a>
       <a href="/terms/">Terms</a>
       <a href="/#support">Support</a>
@@ -781,109 +798,32 @@
 </header>
 <main id="main">
 
-<section class="hero">
+<section class="outcome">
   <div class="wrap">
-    <div class="hero-grid">
-      <div class="hero-copy">
-        <p class="eyebrow">Out now on iPhone</p>
-        <h1 class="display">queue up<br>with a <span class="key">duo</span></h1>
-        <p class="lede">DuoQueue is an 18+ app for finding people to play games with. It is not dating.</p>
-        <p class="sub">You match on the games you play, the hours you are online, and how you like to play them. Then you talk, and queue up.</p>
-      </div>
-      <div class="hero-act hero-act-store">
+    <p class="eyebrow">Out now on iPhone</p>
+    <h1 class="display">the wait is <span class="key">over</span></h1>
+    <p class="lede">DuoQueue is out, so there is no list to join any more. Get the app and make your profile.</p>
 
       <div class="get-app" id="get-app">
         <a class="cta" href="https://apps.apple.com/app/apple-store/id6798837181?pt=129274943&amp;ct=youtube&amp;mt=8"><span class="cta-fit">Download on the App Store</span></a>
         <p class="promise">Free to download on iPhone, 18+ only. We are starting with League of Legends players in North America.</p>
       </div>
-      </div>
-      <div class="hero-watch">
-        <a class="trailer" href="/yt/watch/"><span class="trailer-play" aria-hidden="true"><svg viewBox="0 0 13 14"><path d="M0 0l13 7L0 14z"/></svg></span><span class="trailer-text">Watch the trailer</span><span class="trailer-time">0:22</span></a>
-      </div>
-    </div>
+    <p class="fineprint">Joined the waitlist and want your address deleted? Email <a href="mailto:support@duoqueue.io">support@duoqueue.io</a> and we will remove it.</p>
   </div>
 </section>
 
-<section class="moments" aria-labelledby="moments-head">
+<section class="lockup">
   <div class="wrap">
-   <div class="moments-inner">
-    <h2 class="eyebrow" id="moments-head">How it works</h2>
-    <input class="pause-box" type="checkbox" id="moments-pause" aria-label="Pause animations">
-    <label class="pause" for="moments-pause"><svg class="is-pause" viewBox="0 0 9 10" aria-hidden="true"><path d="M0.5 0h2.6v10H0.5zM5.9 0h2.6v10H5.9z"/></svg><svg class="is-play" viewBox="0 0 9 10" aria-hidden="true"><path d="M0.5 0l8.5 5-8.5 5z"/></svg><span class="pw"><span class="w-pause">Pause</span><span class="w-play">Play</span></span></label>
-    <ol class="moment-list">
-      <li class="moment m1">
-        <div class="moment-card">
-          <div class="stage">
-            <ul class="chips">
-              <li class="chip sd"><b>League of Legends</b><i>&middot; Gold II</i></li>
-              <li class="chip sd"><b>Rocket League</b><i>&middot; Ranked Grinder</i></li>
-              <li class="chip sd"><b>Valorant</b><i>&middot; Competitive</i></li>
-            </ul>
-            <div class="overlap sd">
-              <span class="t0 sd" aria-hidden="true">&gt;&gt; NO GAMES IN COMMON</span>
-              <span class="t1 sd" aria-hidden="true">&gt;&gt; 1 GAME IN COMMON</span>
-              <span class="t2 sd" aria-hidden="true">&gt;&gt; 2 GAMES IN COMMON</span>
-              <span class="t3 sd">&gt;&gt; 3 GAMES IN COMMON</span>
-            </div>
-          </div>
-          <p class="moment-line"><span class="no">01</span>You match on what you play, and how you play it.</p>
-        </div>
-      </li>
-      <li class="moment m2">
-        <div class="moment-card">
-          <div class="stage">
-            <div class="lockin" aria-hidden="true">
-              <span class="br br-l sd">[</span>
-              <svg viewBox="60 236 880 553" xmlns="http://www.w3.org/2000/svg">
-                <g class="ring-duo sd"><circle cx="660.992" cy="512" r="215.04" fill="none" stroke="var(--mark-duo)" stroke-width="98.9184" /><circle cx="842.425508224487" cy="693.433508224487" r="55.394304000000005" fill="var(--mark-duo)" /></g>
-                <g class="ring-ink sd"><circle cx="338.432" cy="512" r="215.04" fill="none" stroke="var(--mark-ink)" stroke-width="98.9184" /></g>
-                <g class="ring-duo sd"><path d="M 583.6133027625533 712.6358363150401 A 215.04 215.04 0 0 1 452.25814711396214 563.6950699714191" fill="none" stroke="var(--mark-duo)" stroke-width="98.9184" /></g>
-              </svg>
-              <span class="br br-r sd">]</span>
-            </div>
-            <p class="lock sd">Duo locked</p>
-            <p class="both sd">You and your new match both queued up.</p>
-          </div>
-          <p class="moment-line"><span class="no">02</span>And when it is mutual, you are a duo.</p>
-        </div>
-      </li>
-      <li class="moment m3">
-        <div class="moment-card">
-          <div class="stage talk">
-            <div class="chat">
-              <p class="bubble in sd">you on tonight?</p>
-              <p class="bubble out sd">yep, queue at 9</p>
-              <div class="composer" aria-hidden="true">
-                <div class="box"><span class="ph sd">Message&hellip;</span><span class="typed sd">yep, queue at 9</span></div>
-                <div class="send sd"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F7F9F0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg></div>
-              </div>
-            </div>
-          </div>
-          <p class="moment-line"><span class="no">03</span>Then you talk, and queue up.</p>
-        </div>
-      </li>
-    </ol>
-   </div>
-  </div>
-</section>
-<section class="plain">
-  <div class="wrap">
-    <h2 class="eyebrow">The plain version</h2>
-    <ul class="plain-list">
-      <li>
-        <h3>18+ only</h3>
-        <p>DuoQueue is for adults. You give your date of birth when you sign up, and a date under 18 is refused. Nobody checks ID, and we do not pretend otherwise.</p>
-      </li>
-      <li>
-        <h3>Platonic, not dating</h3>
-        <p>You are looking for someone to play with. The profile is games, hours and playstyle, and there is nothing romantic anywhere in the app.</p>
-      </li>
-      <li>
-        <h3>League of Legends first</h3>
-        <p>We are starting with League of Legends players in North America, so the first people in find someone to play with instead of an empty screen. Your other games go on your profile too.</p>
-      </li>
-    </ul>
-    <p class="again"><a class="cta-ghost" href="https://apps.apple.com/app/apple-store/id6798837181?pt=129274943&amp;ct=youtube&amp;mt=8">Download on the App Store</a></p>
+    <div class="lockup-inner">
+      <svg class="brand-mark" width="250" height="250" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <circle cx="660.992" cy="512" r="215.04" fill="none" stroke="var(--mark-duo)" stroke-width="98.9184" />
+    <circle cx="842.425508224487" cy="693.433508224487" r="55.394304000000005" fill="var(--mark-duo)" />
+    <circle cx="338.432" cy="512" r="215.04" fill="none" stroke="var(--mark-ink)" stroke-width="98.9184" />
+    <path d="M 583.6133027625533 712.6358363150401 A 215.04 215.04 0 0 1 452.25814711396214 563.6950699714191" fill="none" stroke="var(--mark-duo)" stroke-width="98.9184" />
+  </svg>
+      <div class="wordmark">duoqueue</div>
+      <div class="url">duoqueue.io</div>
+    </div>
   </div>
 </section>
 
