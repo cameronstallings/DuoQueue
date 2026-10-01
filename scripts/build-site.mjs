@@ -107,7 +107,7 @@ const APP_STORE_URL = "https://apps.apple.com/app/id6798837181";
 // app has a day of analytics data. `pt` is the account's provider token, the same on every
 // campaign link, so one generated link is enough: copy its `pt=` value here and every copy of the
 // site links with its own `ct`. Left null, every page links to the bare APP_STORE_URL as before.
-const APP_STORE_PT = null;
+const APP_STORE_PT = "129274943"; // from the campaign link Cameron generated in App Store Connect, 30 Sept 2026
 const CAMPAIGN_BY_CHANNEL = { tt: "tiktok", ig: "instagram", yt: "youtube" };
 const SITE_CAMPAIGN = "duoqueue.io";
 
