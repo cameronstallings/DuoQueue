@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>You are on the list | DuoQueue</title>
-<meta name="description" content="You joined the DuoQueue waitlist. We will email you once, the day it goes live.">
+<title>DuoQueue is out now</title>
+<meta name="description" content="DuoQueue is out now, free to download on iPhone, so there is no waitlist to join any more. Download it on the App Store.">
 
 <meta name="robots" content="noindex">
 <link rel="icon" href="/favicon.png" type="image/png">
@@ -12,9 +12,9 @@
 <meta name="theme-color" content="#F6F3EA">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="DuoQueue">
-<meta property="og:title" content="You are on the list | DuoQueue">
-<meta property="og:description" content="You joined the DuoQueue waitlist. We will email you once, the day it goes live.">
-<meta property="og:image" content="https://duoqueue.io/og.png">
+<meta property="og:title" content="DuoQueue is out now">
+<meta property="og:description" content="DuoQueue is out now, free to download on iPhone, so there is no waitlist to join any more. Download it on the App Store.">
+<meta property="og:image" content="https://duoqueue.io/og-launch.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 
@@ -192,6 +192,8 @@
   }
   .promise { font-size: 15px; line-height: 1.5; margin: 16px 0 0; max-width: 44ch; }
   .fineprint { font-size: 13.5px; line-height: 1.55; color: var(--muted); margin: 8px 0 0; max-width: 46ch; }
+  .get-app { max-width: 460px; container-type: inline-size; }
+  .cta-fit { font-size: min(1em, calc((100cqi - 5px - 1.2em) / 13.2)); }
   .hp { position: absolute; left: -9999px; top: auto; width: 1px; height: 1px; overflow: hidden; }
   .trailer {
     display: inline-flex; align-items: center; gap: 12px;
@@ -435,6 +437,9 @@
   .qbar-cta:hover { background: var(--app-volt-dim); text-decoration: none; }
   .qbar-cta:active { background: var(--app-volt-dim); transform: scale(0.97); transition-duration: var(--t-instant); }
   .qbar-cta svg { width: 15px; height: 15px; display: block; }
+  @media (max-width: 479.98px) {
+    .qbar-more { display: none; }
+  }
   @keyframes rise {
     from { opacity: 0; transform: perspective(900px) translate3d(0, 10px, -70px); }
     to   { opacity: 1; transform: perspective(900px) translate3d(0, 0, 0); }
@@ -621,22 +626,22 @@
     from { visibility: hidden; }
     to   { visibility: visible; }
   }
-  @supports (timeline-scope: --form) and (animation-timeline: view()) and (animation-range: exit) {
-    body { timeline-scope: --form; }
-    #waitlist-form { view-timeline: --form; view-timeline-inset: 0; }
-    html:has(.qbar):has(#waitlist-form) { scroll-padding-top: 72px; }
+  @supports (timeline-scope: --act) and (animation-timeline: view()) and (animation-range: exit) {
+    body { timeline-scope: --act; }
+    #waitlist-form, #get-app { view-timeline: --act; view-timeline-inset: 0; }
+    html:has(.qbar):has(#waitlist-form, #get-app) { scroll-padding-top: 72px; }
     .qbar {
       display: block; position: fixed; z-index: 30; top: 0; left: 0; right: 0;
       background: rgba(246,243,234,0.9);
       -webkit-backdrop-filter: saturate(1.4) blur(14px); backdrop-filter: saturate(1.4) blur(14px);
       border-bottom: 1px solid var(--rule);
       animation-name: qbar-in; animation-fill-mode: both; animation-timing-function: linear;
-      animation-timeline: --form; animation-range: exit 100% exit calc(100% + 72px);
+      animation-timeline: --act; animation-range: exit 100% exit calc(100% + 72px);
     }
     @media (prefers-reduced-motion: reduce) {
       .qbar { animation-name: qbar-show; animation-timing-function: steps(1, start); }
     }
-    body:not(:has(#waitlist-form)) .qbar { display: none; }
+    body:not(:has(#waitlist-form, #get-app)) .qbar { display: none; }
   }
   @media (prefers-reduced-motion: reduce) {
     .hero-copy .eyebrow,
@@ -669,6 +674,7 @@
       align-items: start;
     }
     .hero-copy .sub { margin-bottom: 0; }
+    .hero-act-store { align-self: center; }
     .hero-watch { margin-top: 30px; }
     .plain-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(24px, 4vw, 52px); }
     section.card {
@@ -793,11 +799,15 @@
 
 <section class="outcome">
   <div class="wrap">
-    <p class="eyebrow">The waitlist</p>
-    <h1 class="display">you are <span class="key">on the list</span></h1>
-    <p class="lede">We will email you once, the day DuoQueue goes live. Nothing before that, nothing after.</p>
-    <p class="sub">Add support@duoqueue.io to your contacts so it does not land in spam.</p>
-    <p class="fineprint">Changed your mind, or joined by accident? Email <a href="mailto:support@duoqueue.io">support@duoqueue.io</a> and we will take you off.</p>
+    <p class="eyebrow">Out now on iPhone</p>
+    <h1 class="display">the wait is <span class="key">over</span></h1>
+    <p class="lede">DuoQueue is out, so there is no list to join any more. Get the app and make your profile.</p>
+
+      <div class="get-app" id="get-app">
+        <a class="cta" href="https://apps.apple.com/app/id6798837181"><span class="cta-fit">Download on the App Store</span></a>
+        <p class="promise">Free to download on iPhone, 18+ only. We are starting with League of Legends players in North America.</p>
+      </div>
+    <p class="fineprint">Joined the waitlist and want your address deleted? Email <a href="mailto:support@duoqueue.io">support@duoqueue.io</a> and we will remove it.</p>
   </div>
 </section>
 

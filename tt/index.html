@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DuoQueue: join the waitlist</title>
-<meta name="description" content="DuoQueue is an 18+ app for finding people to play games with. Platonic, not dating. Join the waitlist and get one email the day it goes live.">
+<title>DuoQueue: find your duo</title>
+<meta name="description" content="DuoQueue is an 18+ app for finding people to play games with. Platonic, not dating. Free to download on iPhone, starting with League of Legends players in North America.">
 <link rel="canonical" href="https://duoqueue.io/">
 
 <link rel="icon" href="/favicon.png" type="image/png">
@@ -12,9 +12,9 @@
 <meta name="theme-color" content="#F6F3EA">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="DuoQueue">
-<meta property="og:title" content="DuoQueue: join the waitlist">
-<meta property="og:description" content="DuoQueue is an 18+ app for finding people to play games with. Platonic, not dating. Join the waitlist and get one email the day it goes live.">
-<meta property="og:image" content="https://duoqueue.io/og.png">
+<meta property="og:title" content="DuoQueue: find your duo">
+<meta property="og:description" content="DuoQueue is an 18+ app for finding people to play games with. Platonic, not dating. Free to download on iPhone, starting with League of Legends players in North America.">
+<meta property="og:image" content="https://duoqueue.io/og-launch.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:url" content="https://duoqueue.io/">
@@ -192,6 +192,8 @@
   }
   .promise { font-size: 15px; line-height: 1.5; margin: 16px 0 0; max-width: 44ch; }
   .fineprint { font-size: 13.5px; line-height: 1.55; color: var(--muted); margin: 8px 0 0; max-width: 46ch; }
+  .get-app { max-width: 460px; container-type: inline-size; }
+  .cta-fit { font-size: min(1em, calc((100cqi - 5px - 1.2em) / 13.2)); }
   .hp { position: absolute; left: -9999px; top: auto; width: 1px; height: 1px; overflow: hidden; }
   .trailer {
     display: inline-flex; align-items: center; gap: 12px;
@@ -435,6 +437,9 @@
   .qbar-cta:hover { background: var(--app-volt-dim); text-decoration: none; }
   .qbar-cta:active { background: var(--app-volt-dim); transform: scale(0.97); transition-duration: var(--t-instant); }
   .qbar-cta svg { width: 15px; height: 15px; display: block; }
+  @media (max-width: 479.98px) {
+    .qbar-more { display: none; }
+  }
   @keyframes rise {
     from { opacity: 0; transform: perspective(900px) translate3d(0, 10px, -70px); }
     to   { opacity: 1; transform: perspective(900px) translate3d(0, 0, 0); }
@@ -621,22 +626,22 @@
     from { visibility: hidden; }
     to   { visibility: visible; }
   }
-  @supports (timeline-scope: --form) and (animation-timeline: view()) and (animation-range: exit) {
-    body { timeline-scope: --form; }
-    #waitlist-form { view-timeline: --form; view-timeline-inset: 0; }
-    html:has(.qbar):has(#waitlist-form) { scroll-padding-top: 72px; }
+  @supports (timeline-scope: --act) and (animation-timeline: view()) and (animation-range: exit) {
+    body { timeline-scope: --act; }
+    #waitlist-form, #get-app { view-timeline: --act; view-timeline-inset: 0; }
+    html:has(.qbar):has(#waitlist-form, #get-app) { scroll-padding-top: 72px; }
     .qbar {
       display: block; position: fixed; z-index: 30; top: 0; left: 0; right: 0;
       background: rgba(246,243,234,0.9);
       -webkit-backdrop-filter: saturate(1.4) blur(14px); backdrop-filter: saturate(1.4) blur(14px);
       border-bottom: 1px solid var(--rule);
       animation-name: qbar-in; animation-fill-mode: both; animation-timing-function: linear;
-      animation-timeline: --form; animation-range: exit 100% exit calc(100% + 72px);
+      animation-timeline: --act; animation-range: exit 100% exit calc(100% + 72px);
     }
     @media (prefers-reduced-motion: reduce) {
       .qbar { animation-name: qbar-show; animation-timing-function: steps(1, start); }
     }
-    body:not(:has(#waitlist-form)) .qbar { display: none; }
+    body:not(:has(#waitlist-form, #get-app)) .qbar { display: none; }
   }
   @media (prefers-reduced-motion: reduce) {
     .hero-copy .eyebrow,
@@ -669,6 +674,7 @@
       align-items: start;
     }
     .hero-copy .sub { margin-bottom: 0; }
+    .hero-act-store { align-self: center; }
     .hero-watch { margin-top: 30px; }
     .plain-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(24px, 4vw, 52px); }
     section.card {
@@ -754,7 +760,7 @@
     <circle cx="338.432" cy="512" r="215.04" fill="none" stroke="var(--mark-ink)" stroke-width="98.9184" />
     <path d="M 583.6133027625533 712.6358363150401 A 215.04 215.04 0 0 1 452.25814711396214 563.6950699714191" fill="none" stroke="var(--mark-duo)" stroke-width="98.9184" />
   </svg><span>duoqueue</span></a>
-    <a class="qbar-cta" href="#waitlist-form">join the waitlist<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F7F9F0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg></a>
+    <a class="qbar-cta" href="https://apps.apple.com/app/id6798837181" aria-label="Download on the App Store"><span>Download<span class="qbar-more"> on the App Store</span></span></a>
   </div>
 </div>
 <header class="site-header">
@@ -779,34 +785,17 @@
   <div class="wrap">
     <div class="hero-grid">
       <div class="hero-copy">
-        <p class="eyebrow">The waitlist</p>
+        <p class="eyebrow">Out now on iPhone</p>
         <h1 class="display">queue up<br>with a <span class="key">duo</span></h1>
         <p class="lede">DuoQueue is an 18+ app for finding people to play games with. It is not dating.</p>
         <p class="sub">You match on the games you play, the hours you are online, and how you like to play them. Then you talk, and queue up.</p>
       </div>
-      <div class="hero-act">
+      <div class="hero-act hero-act-store">
 
-      <form class="signup" id="waitlist-form" method="post" action="https://oflexcazqfuvcikrewnb.supabase.co/functions/v1/waitlist-signup">
-        <label class="field-label" for="email">Your email</label>
-        <input id="email" type="email" name="email" placeholder="you@example.com"
-               autocomplete="email" inputmode="email" spellcheck="false"
-               maxlength="254" required>
-
-        <div class="hp" aria-hidden="true">
-          <label for="company">Company</label>
-          <input id="company" type="text" name="company" tabindex="-1" autocomplete="off">
-        </div>
-
-        <div class="adult">
-          <input id="adult" type="checkbox" name="adult" value="yes" required>
-          <label for="adult">I am 18 or older</label>
-        </div>
-
-        <input type="hidden" name="source" value="tt">
-        <button class="cta" type="submit">join the waitlist</button>
-      </form>
-      <p class="promise">One email, on the day it goes live. That is the only one you get.</p>
-      <p class="fineprint">We do not share your address. No analytics, no trackers and no cookies on this page. Submitting the form sets one 30-minute anti-bot cookie on our backend&rsquo;s own domain, and nothing else. See the <a href="/privacy/">Privacy Policy</a>.</p>
+      <div class="get-app" id="get-app">
+        <a class="cta" href="https://apps.apple.com/app/id6798837181"><span class="cta-fit">Download on the App Store</span></a>
+        <p class="promise">Free to download on iPhone, 18+ only. We are starting with League of Legends players in North America.</p>
+      </div>
       </div>
       <div class="hero-watch">
         <a class="trailer" href="/tt/watch/"><span class="trailer-play" aria-hidden="true"><svg viewBox="0 0 13 14"><path d="M0 0l13 7L0 14z"/></svg></span><span class="trailer-text">Watch the trailer</span><span class="trailer-time">0:22</span></a>
@@ -818,7 +807,7 @@
 <section class="moments" aria-labelledby="moments-head">
   <div class="wrap">
    <div class="moments-inner">
-    <h2 class="eyebrow" id="moments-head">What you are joining</h2>
+    <h2 class="eyebrow" id="moments-head">How it works</h2>
     <input class="pause-box" type="checkbox" id="moments-pause" aria-label="Pause animations">
     <label class="pause" for="moments-pause"><svg class="is-pause" viewBox="0 0 9 10" aria-hidden="true"><path d="M0.5 0h2.6v10H0.5zM5.9 0h2.6v10H5.9z"/></svg><svg class="is-play" viewBox="0 0 9 10" aria-hidden="true"><path d="M0.5 0l8.5 5-8.5 5z"/></svg><span class="pw"><span class="w-pause">Pause</span><span class="w-play">Play</span></span></label>
     <ol class="moment-list">
@@ -883,18 +872,18 @@
     <ul class="plain-list">
       <li>
         <h3>18+ only</h3>
-        <p>DuoQueue is for adults. The box on that form is you telling us your age. It is not us checking it, and we do not pretend otherwise.</p>
+        <p>DuoQueue is for adults. You give your date of birth when you sign up, and a date under 18 is refused. Nobody checks ID, and we do not pretend otherwise.</p>
       </li>
       <li>
         <h3>Platonic, not dating</h3>
         <p>You are looking for someone to play with. The profile is games, hours and playstyle, and there is nothing romantic anywhere in the app.</p>
       </li>
       <li>
-        <h3>Everyone starts together</h3>
-        <p>The whole list gets the app on the same day on purpose, so the first people in find someone to play with instead of an empty screen.</p>
+        <h3>League of Legends first</h3>
+        <p>We are starting with League of Legends players in North America, so the first people in find someone to play with instead of an empty screen. Your other games go on your profile too.</p>
       </li>
     </ul>
-    <p class="again"><a class="cta-ghost" href="#waitlist-form">join the waitlist <span aria-hidden="true">&uarr;</span></a></p>
+    <p class="again"><a class="cta-ghost" href="https://apps.apple.com/app/id6798837181">Download on the App Store</a></p>
   </div>
 </section>
 
