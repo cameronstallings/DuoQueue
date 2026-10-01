@@ -2737,6 +2737,9 @@ function pageShell({
   // that channel's landing page, so its hidden source field still says where the visitor
   // came from.
   homeHref = "/",
+  // An already-escaped URL to send the visitor on to at once (a meta refresh, since the site
+  // runs no script). The page's own body stays as the fallback for a browser that refuses it.
+  refreshTo = "",
 }) {
   if (!(theme in THEME_COLOR)) throw new Error(`build-site: pageShell() got an unknown theme "${theme}"`);
   const watchLink = film
@@ -2753,6 +2756,7 @@ function pageShell({
 <meta name="description" content="${escapeHtml(description)}">
 ${canonical ? `<link rel="canonical" href="${canonical}">` : ""}
 ${noindex ? `<meta name="robots" content="noindex">` : ""}
+${refreshTo ? `<meta http-equiv="refresh" content="0; url=${refreshTo}">` : ""}
 <link rel="icon" href="/favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="/favicon.png">
 <meta name="theme-color" content="${THEME_COLOR[theme]}">
@@ -2961,9 +2965,9 @@ function trailerLinkHtml(channelDir = "") {
 // channel paths (short enough to live in a social bio) gave per-channel attribution with
 // no analytics SDK, no cookie and no query-string JavaScript.
 //
-// ONCE LAUNCHED there is no form, so /tt/, /ig/ and /yt/ are plain copies of the landing
-// page, canonical to /, kept because those addresses are already in bios and captions. They
-// no longer tell the channels apart. Per-channel attribution now has to happen at Apple's
+// ONCE LAUNCHED there is no form, and /tt/, /ig/ and /yt/ stop rendering this template:
+// they jump straight to the App Store with their channel's campaign link (buildChannelJump),
+// because a bio link tapped after a video should not stop at a page that pitches it again. Per-channel attribution now has to happen at Apple's
 // end: App Store Connect campaign links, the listing URL with `pt` (the provider token) and
 // `ct` (the campaign name) appended, which App Store Connect's App Analytics then counts
 // per campaign. `pt` is Cameron's provider token, which only he can read out of App Store
@@ -3150,8 +3154,10 @@ function buildWaitlistPage({ source, canonical, includeSupport, film = false, ch
 // ---------------------------------------------------------------------------
 
 function buildWatchPage({ channelDir = "" } = {}) {
-  const home = channelRoot(channelDir);
   const launched = PHASE === "launched";
+  // Once launched a channel's root jumps to the App Store (buildChannelJump), so the logo and
+  // Home go to the real landing page instead.
+  const home = launched ? "/" : channelRoot(channelDir);
   // Once launched there is no form to go back to: the button goes to the store instead, in a
   // .get-app so its label fits on one line like the landing page's.
   const action = launched
@@ -3233,6 +3239,23 @@ ${launchedCta()}
 const OUT_NOW_TITLE = "DuoQueue is out now";
 const OUT_NOW_DESCRIPTION =
   "DuoQueue is out now, free to download on iPhone, so there is no waitlist to join any more. Download it on the App Store.";
+
+/** Once launched, a channel's bio address (/tt/, /ig/, /yt/) is a jump straight to the App Store
+ *  with that channel's campaign link, not a copy of the landing page: someone who tapped a bio
+ *  link after a video has already seen the pitch, and a landing page in between is one more tap
+ *  to lose them on. Its body is the out-now message with the same button, for a browser that
+ *  will not follow the refresh, and it stays out of search like the result pages. */
+function buildChannelJump(dir) {
+  return pageShell({
+    title: OUT_NOW_TITLE,
+    description: OUT_NOW_DESCRIPTION,
+    bodyHtml: outNowBody() + lockupHtml(),
+    canonical: `${SITE_ORIGIN}/`,
+    noindex: true,
+    extraCss: LOCKUP_CSS,
+    refreshTo: storeHref(`${dir}/index.html`),
+  });
+}
 
 function buildThanksPage() {
   if (PHASE === "launched") {
@@ -3528,7 +3551,12 @@ function main() {
   write("index.html", buildWaitlistPage({ source: "direct", canonical: `${SITE_ORIGIN}/`, includeSupport: true, film }));
   write("waitlist/index.html", buildWaitlistPage({ source: "direct", canonical: `${SITE_ORIGIN}/`, includeSupport: false, film }));
   for (const dir of CHANNELS) {
-    write(`${dir}/index.html`, buildWaitlistPage({ source: dir, canonical: `${SITE_ORIGIN}/`, includeSupport: false, film, channelDir: dir }));
+    write(
+      `${dir}/index.html`,
+      PHASE === "launched"
+        ? buildChannelJump(dir)
+        : buildWaitlistPage({ source: dir, canonical: `${SITE_ORIGIN}/`, includeSupport: false, film, channelDir: dir })
+    );
   }
   // The watch pages: /watch/ for the unlabelled landing pages, and one per channel.
   if (film) {
