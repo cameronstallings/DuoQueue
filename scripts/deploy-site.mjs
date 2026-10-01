@@ -43,7 +43,7 @@ import path from "node:path";
 // Read from the build rather than restated here, so the live checks follow the site if the
 // phase ever flips back. Importing runs nothing: build-site.mjs builds only when it is the
 // script node was started with.
-import { PHASE, APP_STORE_URL, OG_CARD } from "./build-site.mjs";
+import { PHASE, APP_STORE_URL, storeHref, OG_CARD } from "./build-site.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
@@ -127,14 +127,16 @@ const FORM_SENTINEL = 'id="waitlist-form"';
 const LANDING_COPIES = ["/", "/waitlist/", "/tt/", "/ig/", "/yt/"];
 const WATCH_COPIES = ["/watch/", "/tt/watch/", "/ig/watch/", "/yt/watch/"];
 if (PHASE === "launched" && !APP_STORE_URL) die('PHASE is "launched" but build-site.mjs exports no APP_STORE_URL.');
-const STORE_SENTINEL = `href="${APP_STORE_URL}"`;
+// Each page's App Store link: the bare listing, or (once build-site.mjs has the provider token)
+// that page's own campaign link, so a copy serving another channel's campaign fails the check.
+const storeSentinel = (p) => `href="${storeHref(p)}"`;
 const PHASE_CHECKS =
   PHASE === "launched"
     ? [
-        ...LANDING_COPIES.map((p) => ({ url: `${ORIGIN}${p}`, sentinel: STORE_SENTINEL, absent: FORM_SENTINEL })),
-        ...WATCH_COPIES.map((p) => ({ url: `${ORIGIN}${p}`, sentinel: STORE_SENTINEL })),
-        { url: `${ORIGIN}/waitlist/thanks/`, sentinel: STORE_SENTINEL },
-        { url: `${ORIGIN}/waitlist/try-again/`, sentinel: STORE_SENTINEL },
+        ...LANDING_COPIES.map((p) => ({ url: `${ORIGIN}${p}`, sentinel: storeSentinel(p), absent: FORM_SENTINEL })),
+        ...WATCH_COPIES.map((p) => ({ url: `${ORIGIN}${p}`, sentinel: storeSentinel(p) })),
+        { url: `${ORIGIN}/waitlist/thanks/`, sentinel: storeSentinel("/waitlist/thanks/") },
+        { url: `${ORIGIN}/waitlist/try-again/`, sentinel: storeSentinel("/waitlist/try-again/") },
       ]
     : [
         { url: `${ORIGIN}/`, sentinel: FORM_SENTINEL },

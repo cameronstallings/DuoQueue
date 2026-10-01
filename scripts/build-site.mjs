@@ -101,6 +101,26 @@ const PHASE = "launched"; // "waitlist" | "launched"
 // the app's own button style, with "App Store" capitalised as Apple's guidelines ask.
 const APP_STORE_URL = "https://apps.apple.com/app/id6798837181";
 
+// App Store Connect campaign links, so App Analytics can count first-time downloads per channel
+// (a download within 24 hours of the click counts; the most recent click wins). Apple builds them
+// at Apps > DuoQueue > Analytics > Acquisition > Campaigns > (+), a tab that only appears once the
+// app has a day of analytics data. `pt` is the account's provider token, the same on every
+// campaign link, so one generated link is enough: copy its `pt=` value here and every copy of the
+// site links with its own `ct`. Left null, every page links to the bare APP_STORE_URL as before.
+const APP_STORE_PT = null;
+const CAMPAIGN_BY_CHANNEL = { tt: "tiktok", ig: "instagram", yt: "youtube" };
+const SITE_CAMPAIGN = "duoqueue.io";
+
+/** The App Store link a page at `relPath` (e.g. "ig/index.html", "watch/index.html") carries,
+ *  HTML-escaped for an href. A channel's copies (tt/, ig/, yt/ and their watch pages) carry that
+ *  channel's campaign; every other page carries the site's. */
+function storeHref(relPath = "") {
+  if (!APP_STORE_PT) return APP_STORE_URL;
+  const dir = relPath.replace(/^\//, "").split("/")[0];
+  const ct = CAMPAIGN_BY_CHANNEL[dir] ?? SITE_CAMPAIGN;
+  return `https://apps.apple.com/app/apple-store/id6798837181?pt=${encodeURIComponent(APP_STORE_PT)}&amp;ct=${encodeURIComponent(ct)}&amp;mt=8`;
+}
+
 // The link preview card every page's og:image names, rendered by scripts/make-og.mjs (it
 // needs sharp, so this build only asserts it). It follows PHASE, name and all: the waitlist
 // card carries a "join the waitlist" slab, the launch card does not, and the launch card has
@@ -3490,6 +3510,10 @@ function main() {
   const written = [];
 
   function write(relPath, contents) {
+    // every page is generated with the bare listing URL; here each one gets its own campaign link
+    if (PHASE === "launched" && relPath.endsWith(".html")) {
+      contents = contents.split(`href="${APP_STORE_URL}"`).join(`href="${storeHref(relPath)}"`);
+    }
     staged.push([relPath, contents]);
   }
 
@@ -3615,5 +3639,6 @@ export {
   APP,
   PHASE,
   APP_STORE_URL,
+  storeHref,
   OG_CARD,
 };
