@@ -1,12 +1,23 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { PartyMessageRow } from "@duoqueue/shared-types";
 
+import { useOnAppResume } from "@/hooks/useOnAppResume";
 import { supabase } from "@/lib/supabase";
 import { useSessionStore } from "@/store/session-store";
 
 function partyMessagesQueryKey(partyId: string) {
   return ["party-messages", partyId] as const;
+}
+
+async function fetchPartyMessages(partyId: string): Promise<PartyMessageRow[]> {
+  const { data, error } = await supabase
+    .from("party_messages")
+    .select("*")
+    .eq("party_id", partyId)
+    .order("created_at");
+  if (error) throw error;
+  return (data ?? []) as PartyMessageRow[];
 }
 
 function makeTempId(): string {
@@ -20,20 +31,32 @@ export function usePartyMessages(partyId: string | undefined) {
 
   const query = useQuery({
     queryKey,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("party_messages")
-        .select("*")
-        .eq("party_id", partyId)
-        .order("created_at");
-      if (error) throw error;
-      return (data ?? []) as PartyMessageRow[];
-    },
+    queryFn: () => fetchPartyMessages(partyId ?? ""),
     enabled: !!partyId,
   });
 
+  // Same gap as 1:1 chat (useChatMessages' catchUp explains it): Realtime never replays what
+  // it missed while iOS had the socket down, so re-read on resume and on every re-join.
+  // Party messages send no push, so those are the only two triggers. Pending temp- rows stay.
+  const catchUp = useCallback(async () => {
+    if (!partyId) return;
+    let fresh: PartyMessageRow[];
+    try {
+      fresh = await fetchPartyMessages(partyId);
+    } catch {
+      return;
+    }
+    queryClient.setQueryData<PartyMessageRow[]>(partyMessagesQueryKey(partyId), (old) => [
+      ...fresh,
+      ...(old?.filter((m) => m.id.startsWith("temp-")) ?? []),
+    ]);
+  }, [partyId, queryClient]);
+
+  useOnAppResume(useCallback(() => void catchUp(), [catchUp]));
+
   useEffect(() => {
     if (!partyId) return;
+    let joinedOnce = false;
 
     const channel = supabase
       .channel(`party-chat:${partyId}`)
@@ -66,12 +89,16 @@ export function usePartyMessages(partyId: string | undefined) {
           });
         },
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status !== "SUBSCRIBED") return;
+        if (joinedOnce) void catchUp();
+        joinedOnce = true;
+      });
 
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [partyId, queryClient, myId]);
+  }, [partyId, queryClient, myId, catchUp]);
 
   return { messages: query.data ?? [], isLoading: query.isLoading, error: query.error };
 }

@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import * as Notifications from "expo-notifications";
 import type { DiscordShareRow, MessageRow } from "@duoqueue/shared-types";
 
+import { useOnAppResume } from "@/hooks/useOnAppResume";
 import { supabase } from "@/lib/supabase";
 import { useSessionStore } from "@/store/session-store";
 
@@ -41,8 +43,45 @@ export function useChatMessages(matchId: string) {
     enabled: !!matchId,
   });
 
+  /**
+   * Realtime only delivers inserts that happen while its socket is up, and it never replays
+   * the ones it missed. iOS cuts the socket whenever the app is backgrounded or the phone
+   * locks, and it takes a heartbeat cycle to notice, so a message sent in that gap reached the
+   * other phone as a push but not as a bubble: the notification came and the chat stayed as it
+   * was. This re-reads the thread at the three moments such a gap can end: the app coming back
+   * to the foreground, the channel re-joining, and a message push landing while the app is open.
+   * Pending optimistic sends (temp- rows) are kept; useSendMessage's onSuccess still settles them.
+   */
+  const catchUp = useCallback(async () => {
+    if (!matchId) return;
+    let fresh: ChatData;
+    try {
+      fresh = await fetchChatData(matchId);
+    } catch {
+      // The cache stays as it was, and the next trigger tries again.
+      return;
+    }
+    queryClient.setQueryData<ChatData>(chatQueryKey(matchId), (old) => {
+      const pending = old?.messages.filter((m) => m.id.startsWith("temp-")) ?? [];
+      return { messages: [...fresh.messages, ...pending], shares: fresh.shares };
+    });
+  }, [matchId, queryClient]);
+
+  useOnAppResume(useCallback(() => void catchUp(), [catchUp]));
+
+  useEffect(() => {
+    // The push carries only its category, not the match, so any open thread re-reads itself.
+    const subscription = Notifications.addNotificationReceivedListener((notification) => {
+      if (notification.request.content.data?.category === "new_message") void catchUp();
+    });
+    return () => subscription.remove();
+  }, [catchUp]);
+
   useEffect(() => {
     if (!matchId) return;
+    // SUBSCRIBED fires on the first join and again on every re-join after the socket drops;
+    // only the re-joins can have missed something.
+    let joinedOnce = false;
 
     const channel = supabase
       .channel(`chat:${matchId}`)
@@ -126,12 +165,16 @@ export function useChatMessages(matchId: string) {
           );
         },
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status !== "SUBSCRIBED") return;
+        if (joinedOnce) void catchUp();
+        joinedOnce = true;
+      });
 
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [matchId, queryClient, myId]);
+  }, [matchId, queryClient, myId, catchUp]);
 
   const timeline = useMemo<ChatTimelineItem[]>(() => {
     if (!query.data) return [];
