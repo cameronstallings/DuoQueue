@@ -51,11 +51,14 @@ Deno.serve(async (req) => {
     ]);
 
     const tokenList = (tokens ?? []).map((t) => t.expo_push_token as string);
+    // `matchId` lets a tap open this conversation instead of resuming wherever the app was left
+    // (apps/mobile/src/lib/notificationRouting.ts). Additive, like send-push-notification's: a
+    // build that predates it reads only `category`. `category` stays last so nothing replaces it.
     await sendExpoPush(
       tokenList,
       "Your duo is waiting",
       `${sender?.display_name ?? "Someone"} sent you a message. Say hi back.`,
-      { category: "nudge_unread" },
+      { matchId, category: "nudge_unread" },
     );
     notified++;
 

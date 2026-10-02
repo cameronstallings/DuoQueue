@@ -80,7 +80,21 @@ async function getDisplayName(profileId: string): Promise<string> {
   return data?.display_name ?? "Someone";
 }
 
-async function notifyProfile(profileId: string, category: NotificationCategory, title: string, body: string) {
+// `extra` rides in the push's `data` next to `category`, for a tapped push to route by. Today
+// that is `matchId` on new_match and new_message, so the app can open that chat instead of
+// resuming wherever it was left (the decision is apps/mobile/src/lib/notificationRouting.ts).
+//
+// STRICTLY ADDITIVE, because this deploys to every installed app at once and the app cannot be
+// patched: a build that predates `matchId` reads only `data.category` and ignores the rest, so
+// it behaves exactly as before. `category` is spread last so no extra field can ever replace
+// it, since every shipped build routes and refreshes on that one key.
+async function notifyProfile(
+  profileId: string,
+  category: NotificationCategory,
+  title: string,
+  body: string,
+  extra: Record<string, string> = {},
+) {
   const { data: settings } = await supabase
     .from("notification_settings")
     .select(category)
@@ -99,7 +113,7 @@ async function notifyProfile(profileId: string, category: NotificationCategory, 
     .eq("profile_id", profileId);
 
   const tokenList = (tokens ?? []).map((t) => t.expo_push_token as string);
-  await sendExpoPush(tokenList, title, body, { category });
+  await sendExpoPush(tokenList, title, body, { ...extra, category });
 }
 
 Deno.serve(async (req) => {
@@ -123,9 +137,11 @@ Deno.serve(async (req) => {
         getDisplayName(event.userAId),
         getDisplayName(event.userBId),
       ]);
+      // Both sides get the match id: either one tapping it lands in the new chat.
+      const tapData = { matchId: event.matchId };
       await Promise.all([
-        notifyProfile(event.userAId, "new_match", "New match!", `You matched with ${nameB}.`),
-        notifyProfile(event.userBId, "new_match", "New match!", `You matched with ${nameA}.`),
+        notifyProfile(event.userAId, "new_match", "New match!", `You matched with ${nameB}.`, tapData),
+        notifyProfile(event.userBId, "new_match", "New match!", `You matched with ${nameA}.`, tapData),
       ]);
       break;
     }
@@ -138,7 +154,9 @@ Deno.serve(async (req) => {
       if (match) {
         const recipientId = match.user_a_id === event.senderId ? match.user_b_id : match.user_a_id;
         const senderName = await getDisplayName(event.senderId);
-        await notifyProfile(recipientId, "new_message", senderName, "Sent you a message");
+        await notifyProfile(recipientId, "new_message", senderName, "Sent you a message", {
+          matchId: event.matchId,
+        });
       }
       break;
     }
