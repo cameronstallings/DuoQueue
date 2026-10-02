@@ -11,11 +11,11 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useHeaderHeight } from "@react-navigation/elements";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MESSAGE_MAX_LENGTH, type ReportReason } from "@duoqueue/shared-types";
 
+import { ChatHeader } from "@/components/ChatHeader";
 import { GraticuleBackground } from "@/components/GraticuleBackground";
 import { GrainOverlay } from "@/components/GrainOverlay";
 import { ReportModal } from "@/components/ReportModal";
@@ -120,7 +120,6 @@ export default function PartyChatScreen() {
   useRequireSession();
   const { colors, radius, spacing, type } = useTheme();
   const insets = useSafeAreaInsets();
-  const headerHeight = useHeaderHeight();
   // Mirrors the 1:1 chat composer: the bar floats off the home indicator when idle
   // and collapses once the keyboard is up, since the keyboard already owns that space.
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -207,34 +206,14 @@ export default function PartyChatScreen() {
       <GraticuleBackground />
       <GrainOverlay />
 
-      <Stack.Screen
-        options={{
-          title: "Party chat",
-          headerShown: true,
-          headerRight: () => (
-            <Pressable
-              onPress={() => setMembersSheetVisible(true)}
-              hitSlop={12}
-              accessibilityRole="button"
-              accessibilityLabel="Party options"
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: radius.round,
-                backgroundColor: colors.surfaceAlt,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Ionicons
-                name="ellipsis-horizontal"
-                size={18}
-                color={colors.voltDim}
-                style={{ textAlign: "center", lineHeight: 18, includeFontPadding: false }}
-              />
-            </Pressable>
-          ),
-        }}
+      <ChatHeader
+        optionsLabel="Party options"
+        onOptions={() => setMembersSheetVisible(true)}
+        title={
+          <Text style={[type.title, { color: colors.text }]} numberOfLines={1}>
+            Party chat
+          </Text>
+        }
       />
 
       {isLoading ? (
@@ -265,10 +244,9 @@ export default function PartyChatScreen() {
         />
       )}
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={headerHeight}
-      >
+      {/* No keyboardVerticalOffset: with no native header this screen starts at the top of
+          the window, so there is nothing above it for the offset to account for. */}
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View
           style={{
             flexDirection: "row",

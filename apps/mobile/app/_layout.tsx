@@ -137,7 +137,8 @@ export default function RootLayout() {
                 <Stack.Screen name="welcome" />
                 <Stack.Screen name="invited" />
                 <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="chat/[matchId]" options={{ headerShown: true, title: "Chat" }} />
+                {/* Both chats draw their own top bar (ChatHeader): the native one broke on iOS 26. */}
+                <Stack.Screen name="chat/[matchId]" />
                 <Stack.Screen name="filters" options={{ presentation: "modal" }} />
                 <Stack.Screen name="paywall" options={{ presentation: "modal" }} />
                 <Stack.Screen name="admirers" options={{ presentation: "modal" }} />
@@ -160,10 +161,7 @@ export default function RootLayout() {
                 <Stack.Screen name="match/[matchId]" options={{ presentation: "modal" }} />
                 <Stack.Screen name="profile/[profileId]" options={{ presentation: "modal" }} />
                 <Stack.Screen name="party/[partyId]/index" options={{ headerShown: false }} />
-                <Stack.Screen
-                  name="party/[partyId]/chat"
-                  options={{ headerShown: true, title: "Party chat", headerBackTitle: "Back" }}
-                />
+                <Stack.Screen name="party/[partyId]/chat" />
               </Stack>
             )}
             <Toast />

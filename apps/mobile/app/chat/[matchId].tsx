@@ -12,8 +12,7 @@ import {
 } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { Ionicons } from "@expo/vector-icons";
-import { useHeaderHeight } from "@react-navigation/elements";
-import { router, Stack, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import Animated, { FadeInUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MATCH_FEEDBACK_TAGS, MESSAGE_MAX_LENGTH, type MatchFeedbackTag, type ReportReason } from "@duoqueue/shared-types";
@@ -21,6 +20,7 @@ import { MATCH_FEEDBACK_TAGS, MESSAGE_MAX_LENGTH, type MatchFeedbackTag, type Re
 import { GraticuleBackground } from "@/components/GraticuleBackground";
 import { Button, ButtonRow } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { ChatHeader } from "@/components/ChatHeader";
 import { ChipSelect } from "@/components/ChipSelect";
 import { EmptyState } from "@/components/EmptyState";
 import { GrainOverlay } from "@/components/GrainOverlay";
@@ -388,7 +388,6 @@ function DiscordShareBubble({
 export default function ChatScreen() {
   useRequireSession();
   const { colors, spacing, radius, type } = useTheme();
-  const headerHeight = useHeaderHeight();
   const insets = useSafeAreaInsets();
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const myId = useSessionStore((s) => s.session?.user.id);
@@ -563,57 +562,24 @@ export default function ChatScreen() {
       <GraticuleBackground />
       <GrainOverlay />
 
-      <Stack.Screen
-        options={{
-          title: matchInfo?.other_display_name ?? "Chat",
-          // Without this iOS labels the back button with the previous route's name,
-          // which here is the literal route group "(tabs)".
-          headerBackTitle: "Matches",
-          headerTintColor: colors.voltDim,
-          headerStyle: { backgroundColor: colors.surfaceSolid },
-          headerShadowVisible: false,
-          // The name itself is the way into their profile — smallest change that
-          // keeps the native header chrome but makes the title tappable.
-          headerTitle: () => (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="View profile"
-              disabled={!matchInfo}
-              onPress={() => matchInfo && router.push(`/profile/${matchInfo.other_profile_id}`)}
-              hitSlop={8}
-            >
-              <Name variant="title" style={{ color: colors.text }} numberOfLines={1}>
-                {matchInfo?.other_display_name ?? "Chat"}
-              </Name>
-            </Pressable>
-          ),
-          headerRight: () => (
-            <Pressable
-              onPress={() => setMenuVisible(true)}
-              hitSlop={12}
-              accessibilityRole="button"
-              accessibilityLabel="Chat options"
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: radius.round,
-                backgroundColor: colors.surfaceAlt,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              {/* includeFontPadding/lineHeight neutralize the icon font's own vertical
-                  padding — ellipsis-horizontal's glyph box isn't symmetric, so flex
-                  centering alone leaves it visibly off-center in a tight circle. */}
-              <Ionicons
-                name="ellipsis-horizontal"
-                size={18}
-                color={colors.voltDim}
-                style={{ textAlign: "center", lineHeight: 18, includeFontPadding: false }}
-              />
-            </Pressable>
-          ),
-        }}
+      <ChatHeader
+        optionsLabel="Chat options"
+        onOptions={() => setMenuVisible(true)}
+        title={
+          // The name itself is the way into their profile.
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="View profile"
+            disabled={!matchInfo}
+            onPress={() => matchInfo && router.push(`/profile/${matchInfo.other_profile_id}`)}
+            hitSlop={8}
+            style={{ alignSelf: "flex-start" }}
+          >
+            <Name variant="title" style={{ color: colors.text }} numberOfLines={1}>
+              {matchInfo?.other_display_name ?? "Chat"}
+            </Name>
+          </Pressable>
+        }
       />
 
       {isLoading ? (
@@ -713,10 +679,9 @@ export default function ChatScreen() {
 
       <SessionBanner matchId={matchId} myId={myId} />
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={headerHeight}
-      >
+      {/* No keyboardVerticalOffset: with no native header this screen starts at the top of
+          the window, so there is nothing above it for the offset to account for. */}
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
         {matchInfo?.is_locked ? (
           <View style={{ padding: spacing.md, borderTopWidth: 1, borderColor: colors.border }}>
             <View
