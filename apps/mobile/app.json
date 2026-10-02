@@ -3,7 +3,13 @@
     "name": "DuoQueue",
     "slug": "duoqueue",
     "scheme": "duoqueue",
-    "version": "1.0.0",
+    "version": "1.0.1",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/a5069e29-0e9b-4c9c-87a3-e4f1f6ae0837"
+    },
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
