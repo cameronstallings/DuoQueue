@@ -1,0 +1,117 @@
+# EAS Build upload filter. When this file exists, EAS CLI reads ONLY it and ignores every
+# .gitignore (and never reads .git/info/exclude), so the .gitignore rules are repeated first,
+# verbatim. Keep the two in sync when .gitignore changes.
+#
+# Why it exists: build 18 (2 Oct 2026) uploaded 869 MB, almost all of it the /brag launch-video
+# renders in brag-output*/ that only .git/info/exclude hides. The app build needs apps/mobile,
+# packages/* (pnpm-workspace.yaml) and the root package.json, pnpm-lock.yaml, .npmrc and
+# tsconfig files; everything excluded below is marketing, site, docs, server or scratch.
+
+# ---- .gitignore, verbatim ----
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Expo
+apps/mobile/.expo/
+apps/mobile/dist/
+apps/mobile/web-build/
+*.jks
+*.keystore
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# EAS / native app-signing config that will appear once builds are configured
+credentials.json
+google-services.json
+GoogleService-Info.plist
+
+# Native
+apps/mobile/ios/
+apps/mobile/android/
+
+# Env
+.env
+.env.local
+*.env
+!.env.example
+
+# Supabase
+supabase/.branches/
+supabase/.temp/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editors / OS
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+*.tsbuildinfo
+
+# Build output
+dist/
+build/
+
+# Local Expo CLI state
+.expo/
+
+# Local moderation-page config (contains project URL + anon key)
+admin/config.js
+.superpowers/
+
+# Marketing video source footage and renders. Screen recordings and gameplay B-roll are
+# large binaries that change every time they are re-cut, and the rendered output is
+# reproducible from them, so neither belongs in git history. Fonts and the grain tile are
+# copied out of the repo's node_modules by marketing/video/scripts/sync-assets.ts, so they are
+# reproducible too. The Remotion project's own source (compositions, hooks, config) is tracked
+# normally, as is marketing/video/state/, which is the ledger of what has already shipped.
+marketing/video/out/
+marketing/video/public/fonts/
+marketing/video/public/footage/
+marketing/video/public/noise.png
+marketing/video/.env
+
+# Generated audio. The voiceover WAVs and the finished mixes are reproducible from
+# marketing/video/src/audio/timings.generated.ts, which IS committed and holds every number
+# the pipeline measured off them, so the binaries are a `pnpm video:audio` away and do not
+# belong in history. The phrase cache is keyed on the text, so it rebuilds only what changed.
+# public/audio/bed-01.mp3 is NOT ignored: it is a licensed source asset, not an output.
+marketing/video/.audio-cache/
+marketing/video/public/audio/mix/
+
+# Scratch probe scripts the build agents left behind. Renders belong in out/.
+marketing/video/_*.ts
+
+# Installed agent skills. skills-lock.json records exactly what is installed and is committed;
+# the content itself is third-party, ~20MB, and reinstallable with `npx skills add`. Same
+# reasoning as node_modules: pin the manifest, not the payload.
+.agents/
+.claude/skills/
+
+# ---- .git/info/exclude (EAS does not read it) ----
+brag-output*/
+.claude/worktrees/
+marketing/store/out/
+
+# ---- Not part of the app build ----
+/marketing/
+/site/
+/docs/
+/design/
+/assets/
+/admin/
+/supabase/
+/.claude/
+# Root-level scratch files left by research runs.
+/*.htm
+/*.html
+/*.jsonl
+/*.log
+/*.xml
