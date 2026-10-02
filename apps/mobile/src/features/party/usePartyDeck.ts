@@ -6,6 +6,8 @@ import { enrichCandidates } from "@/features/swipe/enrichCandidates";
 import type { DeckCard, SwipeDirection } from "@/features/swipe/types";
 import { supabase } from "@/lib/supabase";
 
+import { partyPendingInvitesQueryKey } from "./useParty";
+
 const PARTY_DECK_PAGE_SIZE = 20;
 
 async function fetchPartyDeckCards(partyId: string): Promise<DeckCard[]> {
@@ -62,8 +64,12 @@ export function usePartySwipeAction(partyId: string | undefined) {
       const [result] = (data ?? []) as PartySwipeResult[];
       return result ?? { invited: false };
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["party-invites"] });
+    // A like that completed the party's yes sent an invite, so the deck's "Waiting on" line
+    // names them now rather than at its next poll.
+    onSuccess: (result) => {
+      if (result.invited && partyId) {
+        void queryClient.invalidateQueries({ queryKey: partyPendingInvitesQueryKey(partyId) });
+      }
     },
   });
 }

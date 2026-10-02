@@ -6,7 +6,11 @@ import {
   chatPush,
   frontScreen,
   isOnMatches,
+  matchesOpening,
   notificationTapAction,
+  partyNotificationOf,
+  partyOpening,
+  partyPush,
   shouldHandleTap,
   whenFront,
   type FrontScreen,
@@ -17,12 +21,15 @@ import {
 
 const MATCH_ID = "3f2b8c1e-9a4d-4e6f-8b2a-1c3d5e7f9a0b";
 const OTHER_MATCH_ID = "a1b2c3d4-e5f6-4a7b-9c8d-0e1f2a3b4c5d";
+const PARTY_ID = "5c6d7e8f-1a2b-4c3d-8e9f-0a1b2c3d4e5f";
+const OTHER_PARTY_ID = "9e8d7c6b-5a4f-4e3d-9c2b-1a0f9e8d7c6b";
 
 /** A tapped new-player push, arriving at a fully settled app. Each test overrides only the
  *  fact it is about. */
 const ready: NotificationTapInput = {
   category: "new_player",
   matchId: undefined,
+  partyId: undefined,
   navigatorReady: true,
   sessionStatus: "signed_in",
   profileStatus: "loaded",
@@ -36,6 +43,12 @@ const OPEN_CHAT = { kind: "open-chat", matchId: MATCH_ID } as const;
 
 /** Every category that opens a chat when its payload names the match. */
 const CHAT_CATEGORIES = ["new_message", "new_match", "nudge_unread"];
+
+/** The four party pushes 0070 sends, each of which names its party. */
+const PARTY_CATEGORIES = ["party_invite", "party_started", "party_joined", "party_message"];
+
+/** A tapped party-message push that names its party, at the same settled app. */
+const readyParty: NotificationTapInput = { ...ready, category: "party_message", partyId: PARTY_ID };
 
 describe("notificationTapAction", () => {
   it("drops a tap held by a session that has no profile row", () => {
@@ -123,6 +136,7 @@ describe("notificationTapAction", () => {
     // A held tap is re-evaluated on every session change. Holding one that was never ours, or
     // one that names nothing to open, would be a leak with no exit.
     const unsettled = {
+      partyId: undefined,
       navigatorReady: false,
       sessionStatus: "loading",
       profileStatus: "unknown",
@@ -140,6 +154,12 @@ describe("notificationTapAction", () => {
     expect(notificationTapAction({ ...unsettled, category: "nudge_unread", matchId: undefined })).toEqual({
       kind: "ignore",
     });
+    for (const category of PARTY_CATEGORIES) {
+      expect(notificationTapAction({ ...unsettled, category, matchId: undefined })).toEqual({ kind: "ignore" });
+      expect(notificationTapAction({ ...unsettled, category, matchId: undefined, partyId: "nope" })).toEqual({
+        kind: "ignore",
+      });
+    }
   });
 });
 
@@ -233,6 +253,119 @@ describe("notificationTapAction: message and match pushes", () => {
   });
 });
 
+describe("notificationTapAction: party pushes", () => {
+  it("sends a party invite to the Matches tab, where its banner is answered", () => {
+    expect(notificationTapAction({ ...readyParty, category: "party_invite" })).toEqual({ kind: "open-matches" });
+  });
+
+  it("opens the party's deck for a party that was started or joined", () => {
+    for (const category of ["party_started", "party_joined"]) {
+      expect(notificationTapAction({ ...readyParty, category })).toEqual({
+        kind: "open-party",
+        partyId: PARTY_ID,
+        screen: "deck",
+      });
+    }
+  });
+
+  it("opens the party's chat for a party message", () => {
+    expect(notificationTapAction(readyParty)).toEqual({ kind: "open-party", partyId: PARTY_ID, screen: "chat" });
+  });
+
+  it("ignores a party push that names no party", () => {
+    for (const category of PARTY_CATEGORIES) {
+      expect(notificationTapAction({ ...readyParty, category, partyId: undefined })).toEqual({ kind: "ignore" });
+      expect(notificationTapAction({ ...readyParty, category, partyId: null })).toEqual({ kind: "ignore" });
+    }
+  });
+
+  it("refuses a party id that is not a UUID", () => {
+    const malformed: unknown[] = [
+      "",
+      "not-a-uuid",
+      `${PARTY_ID}x`,
+      ` ${PARTY_ID}`,
+      "../(tabs)/settings",
+      42,
+      { partyId: PARTY_ID },
+      [PARTY_ID],
+    ];
+    for (const category of PARTY_CATEGORIES) {
+      for (const partyId of malformed) {
+        expect(notificationTapAction({ ...readyParty, category, partyId })).toEqual({ kind: "ignore" });
+      }
+    }
+  });
+
+  it("lowercases the party id, the spelling get_my_parties uses", () => {
+    expect(notificationTapAction({ ...readyParty, partyId: PARTY_ID.toUpperCase() })).toEqual({
+      kind: "open-party",
+      partyId: PARTY_ID,
+      screen: "chat",
+    });
+  });
+
+  it("never opens a 1:1 chat for a party push, whatever match id rides along", () => {
+    for (const category of PARTY_CATEGORIES) {
+      // No party id: nothing to route to, and the match id does not step in.
+      expect(notificationTapAction({ ...readyParty, category, partyId: undefined, matchId: MATCH_ID })).toEqual({
+        kind: "ignore",
+      });
+      const routed = notificationTapAction({ ...readyParty, category, matchId: MATCH_ID });
+      expect(routed.kind).not.toBe("open-chat");
+      expect(routed.kind).not.toBe("ignore");
+    }
+  });
+
+  it("does not let a party id turn a chat push into a party", () => {
+    expect(notificationTapAction({ ...readyMessage, partyId: PARTY_ID })).toEqual(OPEN_CHAT);
+    expect(notificationTapAction({ ...readyMessage, matchId: undefined, partyId: PARTY_ID })).toEqual({
+      kind: "ignore",
+    });
+  });
+
+  it("does not treat a lookalike category as a party push", () => {
+    for (const category of ["party-message", "Party_Message", "party_messages", "party", "party_"]) {
+      expect(notificationTapAction({ ...readyParty, category })).toEqual({ kind: "ignore" });
+    }
+  });
+
+  it("holds and drops a party tap exactly where it holds and drops a chat tap", () => {
+    for (const category of PARTY_CATEGORIES) {
+      const tap = { ...readyParty, category };
+      expect(notificationTapAction({ ...tap, navigatorReady: false })).toEqual({ kind: "wait" });
+      expect(notificationTapAction({ ...tap, sessionStatus: "loading" })).toEqual({ kind: "wait" });
+      expect(notificationTapAction({ ...tap, onboardingCompleted: undefined })).toEqual({ kind: "wait" });
+      for (const profileStatus of ["unknown", "error"] as const) {
+        expect(notificationTapAction({ ...tap, profileStatus, onboardingCompleted: undefined })).toEqual({
+          kind: "wait",
+        });
+      }
+      expect(notificationTapAction({ ...tap, sessionStatus: "signed_out" })).toEqual({ kind: "ignore" });
+      expect(notificationTapAction({ ...tap, profileStatus: "missing", onboardingCompleted: undefined })).toEqual({
+        kind: "ignore",
+      });
+      expect(notificationTapAction({ ...tap, onboardingCompleted: false })).toEqual({ kind: "ignore" });
+    }
+  });
+});
+
+describe("partyNotificationOf", () => {
+  it("reads each party push's category and lowercased party", () => {
+    for (const category of PARTY_CATEGORIES) {
+      expect(partyNotificationOf(category, PARTY_ID.toUpperCase())).toEqual({ category, partyId: PARTY_ID });
+    }
+  });
+
+  it("is null for anything that is not a party push naming a party", () => {
+    expect(partyNotificationOf("new_message", PARTY_ID)).toBeNull();
+    expect(partyNotificationOf(undefined, PARTY_ID)).toBeNull();
+    expect(partyNotificationOf("party_message", undefined)).toBeNull();
+    expect(partyNotificationOf("party_message", "not-a-uuid")).toBeNull();
+    expect(partyNotificationOf(["party_message"], PARTY_ID)).toBeNull();
+  });
+});
+
 describe("shouldHandleTap", () => {
   it("handles a tap it has not seen", () => {
     expect(shouldHandleTap("abc", new Set())).toBe(true);
@@ -270,6 +403,9 @@ function tabs(tab: string): Route {
 function chat(matchId: string): Route {
   return { name: "chat/[matchId]", params: { matchId } };
 }
+function party(partyId: string, screen: "deck" | "chat"): Route {
+  return { name: screen === "deck" ? "party/[partyId]/index" : "party/[partyId]/chat", params: { partyId } };
+}
 
 describe("frontScreen", () => {
   it("reads the tab bar and which tab it shows", () => {
@@ -291,9 +427,7 @@ describe("frontScreen", () => {
 
   it("calls anything else on the Stack other, including a nested group's screen", () => {
     expect(frontScreen(app({ name: "welcome" }))).toEqual({ kind: "other" });
-    expect(frontScreen(app({ name: "party/[partyId]/chat", params: { partyId: OTHER_MATCH_ID } }))).toEqual({
-      kind: "other",
-    });
+    expect(frontScreen(app({ name: "settings/notifications" }))).toEqual({ kind: "other" });
     expect(frontScreen(app({ name: "(onboarding)", state: { index: 0, routes: [{ name: "games" }] } }))).toEqual({
       kind: "other",
     });
@@ -310,6 +444,32 @@ describe("frontScreen", () => {
     expect(frontScreen(app(tabs("matches"), { name: "chat/[matchId]", params: { matchId: 7 } }))).toEqual({
       kind: "chat",
       matchId: undefined,
+    });
+  });
+
+  it("reads a party's deck or chat in front, with its party", () => {
+    expect(frontScreen(app(tabs("matches"), party(PARTY_ID, "deck")))).toEqual({
+      kind: "party",
+      partyId: PARTY_ID,
+      screen: "deck",
+    });
+    expect(frontScreen(app(tabs("matches"), party(PARTY_ID, "deck"), party(PARTY_ID, "chat")))).toEqual({
+      kind: "party",
+      partyId: PARTY_ID,
+      screen: "chat",
+    });
+  });
+
+  it("does not invent a party id for a party route without a usable one", () => {
+    expect(frontScreen(app(tabs("matches"), { name: "party/[partyId]/index" }))).toEqual({
+      kind: "party",
+      partyId: undefined,
+      screen: "deck",
+    });
+    expect(frontScreen(app(tabs("matches"), { name: "party/[partyId]/chat", params: { partyId: 7 } }))).toEqual({
+      kind: "party",
+      partyId: undefined,
+      screen: "chat",
     });
   });
 
@@ -355,11 +515,74 @@ describe("isOnMatches", () => {
       { kind: "tabs", tab: "index" },
       { kind: "tabs", tab: undefined },
       { kind: "chat", matchId: MATCH_ID },
+      { kind: "party", partyId: PARTY_ID, screen: "deck" },
       { kind: "gate" },
       { kind: "other" },
     ] as const) {
       expect(isOnMatches(front)).toBe(false);
     }
+  });
+});
+
+describe("partyOpening", () => {
+  const deck: FrontScreen = { kind: "party", partyId: PARTY_ID, screen: "deck" };
+  const partyChat: FrontScreen = { kind: "party", partyId: PARTY_ID, screen: "chat" };
+
+  it("leaves the party alone when the screen the tap wants is already in front", () => {
+    expect(partyOpening(deck, PARTY_ID, "deck")).toBe("already-open");
+    expect(partyOpening(partyChat, PARTY_ID, "chat")).toBe("already-open");
+  });
+
+  it("leaves somebody in the party's chat there for a tap bound for its deck", () => {
+    // Party started or joined: the chat is deeper into the same party than the deck, and a full
+    // party's deck is only a button back into the chat.
+    expect(partyOpening(partyChat, PARTY_ID, "deck")).toBe("already-open");
+  });
+
+  it("goes by way of Matches from the party's deck to its chat", () => {
+    // Back from the chat then lands on Matches, as for a party chat opened from Your parties.
+    expect(partyOpening(deck, PARTY_ID, "chat")).toBe("dismiss-to-matches");
+  });
+
+  it("dismisses another party's screen rather than pushing over it", () => {
+    expect(partyOpening({ ...deck, partyId: OTHER_PARTY_ID }, PARTY_ID, "deck")).toBe("dismiss-to-matches");
+    expect(partyOpening({ ...partyChat, partyId: OTHER_PARTY_ID }, PARTY_ID, "chat")).toBe("dismiss-to-matches");
+    expect(partyOpening({ ...partyChat, partyId: undefined }, PARTY_ID, "chat")).toBe("dismiss-to-matches");
+  });
+
+  it("dismisses a 1:1 chat, even one whose id happens to equal the party's", () => {
+    expect(partyOpening({ kind: "chat", matchId: PARTY_ID }, PARTY_ID, "chat")).toBe("dismiss-to-matches");
+    expect(partyOpening({ kind: "other" }, PARTY_ID, "deck")).toBe("dismiss-to-matches");
+  });
+
+  it("switches tabs when the tab bar is in front, and waits out the gate", () => {
+    for (const tab of [...TAB_ORDER, undefined]) {
+      expect(partyOpening({ kind: "tabs", tab }, PARTY_ID, "chat")).toBe("switch-to-matches");
+    }
+    expect(partyOpening({ kind: "gate" }, PARTY_ID, "deck")).toBe("wait-for-gate");
+  });
+});
+
+describe("matchesOpening", () => {
+  it("moves nothing when Matches is already in front", () => {
+    expect(matchesOpening({ kind: "tabs", tab: "matches" })).toBe("already-open");
+  });
+
+  it("switches from another tab and dismisses anything on top of the tabs", () => {
+    for (const tab of ["index", "profile", "settings", undefined]) {
+      expect(matchesOpening({ kind: "tabs", tab })).toBe("switch-to-matches");
+    }
+    for (const front of [
+      { kind: "chat", matchId: MATCH_ID },
+      { kind: "party", partyId: PARTY_ID, screen: "chat" },
+      { kind: "other" },
+    ] as const) {
+      expect(matchesOpening(front)).toBe("dismiss-to-matches");
+    }
+  });
+
+  it("waits out the auth gate like every other tap", () => {
+    expect(matchesOpening({ kind: "gate" })).toBe("wait-for-gate");
   });
 });
 
@@ -439,6 +662,32 @@ describe("chatPush", () => {
     for (const front of movedOn) {
       expect(chatPush({ superseded: false, matchListed: true, front })).toBe("stand-down");
       expect(chatPush({ superseded: false, matchListed: false, front })).toBe("stand-down");
+    }
+  });
+});
+
+describe("partyPush", () => {
+  const onMatches: FrontScreen = { kind: "tabs", tab: "matches" };
+
+  it("pushes the party once the list confirms it, or cannot say", () => {
+    expect(partyPush({ superseded: false, partyListed: true, front: onMatches })).toBe("push");
+    expect(partyPush({ superseded: false, partyListed: undefined, front: onMatches })).toBe("push");
+  });
+
+  it("stays on Matches when the party is not this account's any more", () => {
+    expect(partyPush({ superseded: false, partyListed: false, front: onMatches })).toBe("gone");
+  });
+
+  it("stands down when superseded or when the user has moved on", () => {
+    for (const partyListed of [true, false, undefined]) {
+      expect(partyPush({ superseded: true, partyListed, front: onMatches })).toBe("stand-down");
+    }
+    for (const front of [
+      { kind: "party", partyId: PARTY_ID, screen: "chat" },
+      { kind: "tabs", tab: "index" },
+      { kind: "other" },
+    ] as const) {
+      expect(partyPush({ superseded: false, partyListed: true, front })).toBe("stand-down");
     }
   });
 });

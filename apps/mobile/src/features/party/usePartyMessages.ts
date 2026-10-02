@@ -3,10 +3,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { PartyMessageRow } from "@duoqueue/shared-types";
 
 import { useOnAppResume } from "@/hooks/useOnAppResume";
+import type { PartyNotification } from "@/lib/notificationRouting";
 import { supabase } from "@/lib/supabase";
 import { useSessionStore } from "@/store/session-store";
 
-function partyMessagesQueryKey(partyId: string) {
+import { useOnPartyPush } from "./usePartyFreshness";
+
+/** Exported for `useNotificationTapRouting`, which marks a tapped party's thread stale. */
+export function partyMessagesQueryKey(partyId: string) {
   return ["party-messages", partyId] as const;
 }
 
@@ -36,8 +40,9 @@ export function usePartyMessages(partyId: string | undefined) {
   });
 
   // Same gap as 1:1 chat (useChatMessages' catchUp explains it): Realtime never replays what
-  // it missed while iOS had the socket down, so re-read on resume and on every re-join.
-  // Party messages send no push, so those are the only two triggers. Pending temp- rows stay.
+  // it missed while iOS had the socket down, so re-read on resume, on every re-join, and when a
+  // party_message push for THIS party lands while the app is open (0070 added the push; it
+  // names its party, so another party's message re-reads nothing). Pending temp- rows stay.
   const catchUp = useCallback(async () => {
     if (!partyId) return;
     let fresh: PartyMessageRow[];
@@ -53,6 +58,14 @@ export function usePartyMessages(partyId: string | undefined) {
   }, [partyId, queryClient]);
 
   useOnAppResume(useCallback(() => void catchUp(), [catchUp]));
+  useOnPartyPush(
+    useCallback(
+      (push: PartyNotification) => {
+        if (push.category === "party_message" && push.partyId === partyId?.toLowerCase()) void catchUp();
+      },
+      [catchUp, partyId],
+    ),
+  );
 
   useEffect(() => {
     if (!partyId) return;

@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { RefreshControl, SectionList, Pressable, Text, View } from "react-native";
 import { Image } from "expo-image";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn } from "react-native-reanimated";
 
@@ -13,6 +14,7 @@ import { SectionLabel } from "@/components/SectionLabel";
 import { useMatches, type MatchListItem } from "@/features/chat/useMatches";
 import { PartyInvitesBanner } from "@/features/party/PartyInvitesBanner";
 import { PartyListSection } from "@/features/party/PartyListSection";
+import { refreshParties } from "@/features/party/useParty";
 import { initialOf } from "@/lib/initialOf";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
@@ -155,6 +157,18 @@ export default function MatchesScreen() {
   const profile = useSessionStore((s) => s.profile);
   const { data: matches, isLoading, error, refetch } = useMatches();
   const sections = matches ? groupMatches(matches, profile?.id) : [];
+  const queryClient = useQueryClient();
+
+  // The party banner and "Your parties" re-read whenever this tab comes back into focus: an
+  // invite or a new member is exactly what somebody switches here to look for. Not on the first
+  // focus, which is the mount, where both are already reading for the first time.
+  const focusedOnce = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (focusedOnce.current) void refreshParties(queryClient);
+      focusedOnce.current = true;
+    }, [queryClient]),
+  );
 
   // Spinner only for user-initiated pulls — driving it from isFetching made the list
   // flash a refresh spinner on every background refetch when returning to this tab.
@@ -162,7 +176,7 @@ export default function MatchesScreen() {
   async function handleRefresh() {
     setRefreshing(true);
     try {
-      await refetch();
+      await Promise.all([refetch(), refreshParties(queryClient)]);
     } finally {
       setRefreshing(false);
     }

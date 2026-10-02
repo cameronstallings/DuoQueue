@@ -24,6 +24,13 @@ import type { ProfileStatus } from "@/features/auth/sessionRouting";
  *    not hypothetical: a push sitting in Notification Center can be tapped hours after it was
  *    sent.
  *
+ *  - The four party pushes (0070_party_invites_cap_and_pushes.sql), IF the payload names the
+ *    party (`data.partyId`), and never a 1:1 chat whatever else the payload carries:
+ *      party_invite    the Matches tab, where the invite banner is answered
+ *      party_started   that party's deck ("Swipe together to find a third")
+ *      party_joined    that party's deck, which shows "Your party is full" and the chat button
+ *      party_message   that party's chat
+ *
  * The rest (super_ping, nudge_online, daily_swipes_refreshed) still resume where the user left
  * off. None of them is about a conversation.
  *
@@ -47,7 +54,8 @@ import type { ProfileStatus } from "@/features/auth/sessionRouting";
  * layout guard, so every reason not to open the deck is a reason not to open a chat. A chat has
  * a fifth, below: on a cold start the session settling is not the end of the race, because the
  * gate's own redirect lands a render AFTER that, so the chat's first move waits for it too
- * (`wait-for-gate` on `chatOpening`).
+ * (`wait-for-gate` on `chatOpening`). A party screen sits on the same Stack over the same tabs,
+ * so a party tap shares all five, and so does a party invite's move to Matches.
  */
 
 /** The subset of the notification payload this decision reads. */
@@ -58,6 +66,8 @@ export interface NotificationTapInput {
   /** `data.matchId` from the push payload, sent on new_message, new_match and nudge_unread.
    *  Absent on every push from a server that predates it, and just as untrusted as `category`. */
   matchId: unknown;
+  /** `data.partyId` from the push payload, sent on the four party pushes. Just as untrusted. */
+  partyId: unknown;
   /** Whether `RootLayout` is past its font and launch-intro gates and actually rendering the
    *  `Stack`. */
   navigatorReady: boolean;
@@ -77,7 +87,11 @@ export type NotificationDestination =
   /** Go to the deck, and refresh it on the way. */
   | { kind: "open-deck" }
   /** Open this match's chat, on top of the Matches tab. */
-  | { kind: "open-chat"; matchId: string };
+  | { kind: "open-chat"; matchId: string }
+  /** Open one of this party's screens, on top of the Matches tab (where "Your parties" lists it). */
+  | { kind: "open-party"; partyId: string; screen: PartyScreen }
+  /** Go to the Matches tab itself: a party invite is answered on its banner. */
+  | { kind: "open-matches" };
 
 export type NotificationTapAction =
   | NotificationDestination
@@ -87,33 +101,81 @@ export type NotificationTapAction =
   | { kind: "ignore" };
 
 /**
- * A match id, by shape. Any version, because this only has to prove the value is safe to put
- * in a route and compare against `get_matches_summary`'s `match_id`; the server already
- * validated it as a UUID before sending it. Pinning a version here would be a client that
- * cannot be patched refusing ids from a server that can.
+ * A match or party id, by shape. Any version, because this only has to prove the value is safe
+ * to put in a route and compare against `get_matches_summary`'s `match_id` or `get_my_parties`'
+ * `party_id`; the server already validated it as a UUID before sending it. Pinning a version
+ * here would be a client that cannot be patched refusing ids from a server that can.
  */
-const MATCH_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Which of a party's two screens a tap opens: the shared deck, or the group chat. */
+export type PartyScreen = "deck" | "chat";
+
+/** The four pushes `send-push-notification` sends about a party. */
+export type PartyCategory = "party_invite" | "party_started" | "party_joined" | "party_message";
+
+const PARTY_CATEGORIES: readonly string[] = [
+  "party_invite",
+  "party_started",
+  "party_joined",
+  "party_message",
+] satisfies PartyCategory[];
+
+/** A party push, read off its payload: which kind, and which party. */
+export interface PartyNotification {
+  category: PartyCategory;
+  /** Lowercased, the spelling `get_my_parties` and the party list route with. */
+  partyId: string;
+}
+
+/**
+ * A party push's category and party, or null when the payload is not one: a category that is
+ * not exactly one of the four, or a party id that is missing or not the shape of an id.
+ *
+ * Exported because two things read party pushes: the tap (below), and the screens that refresh
+ * themselves when one lands while the app is open (`usePartyFreshness`, `usePartyMessages`).
+ * One reading means the two can never disagree about what a party push is.
+ */
+export function partyNotificationOf(category: unknown, partyId: unknown): PartyNotification | null {
+  if (typeof category !== "string" || !PARTY_CATEGORIES.includes(category)) return null;
+  if (typeof partyId !== "string" || !UUID_PATTERN.test(partyId)) return null;
+  return { category: category as PartyCategory, partyId: partyId.toLowerCase() };
+}
 
 /**
  * The tapped push's destination, judged on its payload alone. Null for anything not routed.
  *
  * Lowercased because Postgres prints UUIDs lowercase, so that is how `match_id` arrives from
  * `get_matches_summary` and how the Matches list routes. A chat opened on an uppercase spelling
- * of the same id would find no `matchInfo` and draw itself as "Chat".
+ * of the same id would find no `matchInfo` and draw itself as "Chat". Party ids get the same
+ * treatment for the same reason (`get_my_parties`, the "already open" comparison).
+ *
+ * A party push reads only `partyId`. The category decides what a push is, and a stray `matchId`
+ * on one must never turn it into a 1:1 chat.
  */
-function destinationOf(category: unknown, matchId: unknown): NotificationDestination | null {
+function destinationOf(category: unknown, matchId: unknown, partyId: unknown): NotificationDestination | null {
   if (category === "new_player") return { kind: "open-deck" };
   if (category === "new_message" || category === "new_match" || category === "nudge_unread") {
-    if (typeof matchId !== "string" || !MATCH_ID_PATTERN.test(matchId)) return null;
+    if (typeof matchId !== "string" || !UUID_PATTERN.test(matchId)) return null;
     return { kind: "open-chat", matchId: matchId.toLowerCase() };
   }
-  return null;
+  const party = partyNotificationOf(category, partyId);
+  if (!party) return null;
+  switch (party.category) {
+    case "party_invite":
+      return { kind: "open-matches" };
+    case "party_started":
+    case "party_joined":
+      return { kind: "open-party", partyId: party.partyId, screen: "deck" };
+    case "party_message":
+      return { kind: "open-party", partyId: party.partyId, screen: "chat" };
+  }
 }
 
 export function notificationTapAction(input: NotificationTapInput): NotificationTapAction {
   // The payload first, so a push that is not ours (or names nothing) never waits. A held tap is
   // re-asked on every store change, and holding one that can never go anywhere is a leak.
-  const destination = destinationOf(input.category, input.matchId);
+  const destination = destinationOf(input.category, input.matchId, input.partyId);
   if (!destination) return { kind: "ignore" };
 
   if (!input.navigatorReady) return { kind: "wait" };
@@ -159,12 +221,17 @@ export function shouldHandleTap(identifier: string | undefined, handled: Readonl
 
 // ---------------------------------------------------------------------------------------------
 // Opening a chat. The deck is one tab switch; a chat has a place in the stack, so it needs to
-// know where the app is before it moves anything.
+// know where the app is before it moves anything. A party screen has the same place (on the
+// root Stack, over the tabs on Matches), so it takes the same two moves.
 // ---------------------------------------------------------------------------------------------
 
 /** expo-router's route names: file paths under app/, without the extension. */
 const TABS_ROUTE = "(tabs)";
 const CHAT_ROUTE = "chat/[matchId]";
+const PARTY_ROUTES: ReadonlyMap<string, PartyScreen> = new Map([
+  ["party/[partyId]/index", "deck"],
+  ["party/[partyId]/chat", "chat"],
+]);
 const MATCHES_TAB = "matches";
 /** app/index.tsx, the auth gate. The tab bar has an "index" too (the deck), told apart by depth. */
 const GATE_ROUTE = "index";
@@ -187,6 +254,8 @@ export type FrontScreen =
   | { kind: "tabs"; tab: string | undefined }
   /** A one-to-one chat. */
   | { kind: "chat"; matchId: string | undefined }
+  /** A party's deck or its group chat. */
+  | { kind: "party"; partyId: string | undefined; screen: PartyScreen }
   /**
    * The auth gate (app/index.tsx): the root Stack's first screen on every launch, which is
    * about to replace itself with the tab bar (or sign-in, or onboarding) through its own
@@ -194,8 +263,14 @@ export type FrontScreen =
    * through it (signing in, an invite link).
    */
   | { kind: "gate" }
-  /** Anything else on the root Stack: a modal, a party, a settings page, the welcome screen. */
+  /** Anything else on the root Stack: a modal, a settings page, the welcome screen. */
   | { kind: "other" };
+
+/** A string route param, or undefined for a missing or malformed one. */
+function stringParam(params: object | undefined, key: string): string | undefined {
+  const value = params && key in params ? (params as Record<string, unknown>)[key] : undefined;
+  return typeof value === "string" ? value : undefined;
+}
 
 /**
  * Follows the focused route down from the container's root state.
@@ -221,10 +296,9 @@ export function frontScreen(state: NavigationStateLike | undefined): FrontScreen
       const tabs = route.state;
       return { kind: "tabs", tab: tabs?.routes[tabs.index ?? 0]?.name };
     }
-    if (route.name === CHAT_ROUTE) {
-      const matchId = route.params && "matchId" in route.params ? route.params.matchId : undefined;
-      return { kind: "chat", matchId: typeof matchId === "string" ? matchId : undefined };
-    }
+    if (route.name === CHAT_ROUTE) return { kind: "chat", matchId: stringParam(route.params, "matchId") };
+    const partyScreen = PARTY_ROUTES.get(route.name);
+    if (partyScreen) return { kind: "party", partyId: stringParam(route.params, "partyId"), screen: partyScreen };
     if (route.name === GATE_ROUTE && (parent === undefined || parent === ROOT_SLOT)) return { kind: "gate" };
     parent = route.name;
     level = route.state;
@@ -237,8 +311,10 @@ export function isOnMatches(front: FrontScreen): boolean {
   return front.kind === "tabs" && front.tab === MATCHES_TAB;
 }
 
+/** The first move toward a chat. Also the answer for a party screen (`partyOpening`) and for a
+ *  party invite's move to Matches itself (`matchesOpening`), which have the same four cases. */
 export type ChatOpening =
-  /** That chat is already in front of them. Refresh it; pushing it again would stack a copy. */
+  /** That chat (party screen, Matches) is already in front of them. Pushing it again would stack a copy. */
   | "already-open"
   /** The tab bar is in front. Switch it to Matches; nothing needs dismissing. */
   | "switch-to-matches"
@@ -273,8 +349,35 @@ export type ChatOpening =
  * route that is already focused. Each is right exactly where the other is wrong.
  */
 export function chatOpening(front: FrontScreen, matchId: string): ChatOpening {
+  return openingFrom(front, front.kind === "chat" && front.matchId === matchId);
+}
+
+/**
+ * The first move toward a party screen. Same answers as `chatOpening`, for the same reasons: a
+ * party screen sits on the root Stack over the tab bar, and "Your parties" on Matches is the
+ * place it is opened from by hand, so its back button belongs on Matches too.
+ *
+ * Already open means that party's screen is in front. For a tap bound for the DECK (party
+ * started, party joined), that party's chat counts as well: the chat is the deeper of the
+ * party's two screens, and a full party's deck is only a button back into it, so pulling
+ * somebody out of the conversation to show them that would be a step backwards.
+ */
+export function partyOpening(front: FrontScreen, partyId: string, screen: PartyScreen): ChatOpening {
+  const sameParty = front.kind === "party" && front.partyId === partyId;
+  return openingFrom(front, sameParty && (front.screen === screen || front.screen === "chat"));
+}
+
+/**
+ * The only move a party invite makes: to the Matches tab, where the invite banner is. Already
+ * open when Matches is in front; the banner refreshes itself there.
+ */
+export function matchesOpening(front: FrontScreen): ChatOpening {
+  return openingFrom(front, isOnMatches(front));
+}
+
+function openingFrom(front: FrontScreen, alreadyOpen: boolean): ChatOpening {
   if (front.kind === "gate") return "wait-for-gate";
-  if (front.kind === "chat" && front.matchId === matchId) return "already-open";
+  if (alreadyOpen) return "already-open";
   if (front.kind === "tabs") return "switch-to-matches";
   return "dismiss-to-matches";
 }
@@ -329,6 +432,25 @@ export function chatPush(input: ChatPushInput): ChatPush {
   if (!isOnMatches(input.front)) return "stand-down";
   if (input.matchListed === false) return "gone";
   return "push";
+}
+
+export interface PartyPushInput {
+  /** As on `ChatPushInput`. */
+  superseded: boolean;
+  /** Whether a fresh `get_my_parties` lists the party: true, false, or undefined for unknown. */
+  partyListed: boolean | undefined;
+  front: FrontScreen;
+}
+
+/**
+ * The second move toward a party screen, once `get_my_parties` has answered. Exactly
+ * `chatPush`'s rule, for the same reasons: a party can be gone by the time its push is tapped
+ * (a tap from Notification Center after somebody else signed in on this phone), and a party
+ * screen opened for a party you are not in draws an empty header, a deck that cannot load and a
+ * chat that cannot send. Unknown still pushes, and the app must still be on Matches.
+ */
+export function partyPush(input: PartyPushInput): ChatPush {
+  return chatPush({ superseded: input.superseded, matchListed: input.partyListed, front: input.front });
 }
 
 // ---------------------------------------------------------------------------------------------

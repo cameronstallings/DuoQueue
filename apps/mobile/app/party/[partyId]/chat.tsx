@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MESSAGE_MAX_LENGTH, type ReportReason } from "@duoqueue/shared-types";
@@ -23,7 +24,7 @@ import { SectionLabel } from "@/components/SectionLabel";
 import { Sheet } from "@/components/Sheet";
 import { Skeleton } from "@/components/Skeleton";
 import { useBlockUser, useReportUser } from "@/features/chat/useMatchActions";
-import { type PartyMemberProfile, usePartyMembers } from "@/features/party/useParty";
+import { type PartyMemberProfile, partyMembersQueryKey, usePartyMembers } from "@/features/party/useParty";
 import { usePartyMessages, useSendPartyMessage } from "@/features/party/usePartyMessages";
 import { containsHiddenWord, useHiddenWords } from "@/features/settings/useHiddenWords";
 import { useRequireSession } from "@/hooks/useRequireSession";
@@ -160,8 +161,25 @@ export default function PartyChatScreen() {
   const membersHandoff = useSheetHandoff();
   const actionsHandoff = useSheetHandoff();
 
-  const otherMembers = (members ?? []).filter((m) => m.profile_id !== myId);
-  const nameById = new Map((members ?? []).map((m) => [m.profile_id, m.display_name]));
+  const otherMembers = (members?.profiles ?? []).filter((m) => m.profile_id !== myId);
+  const nameById = new Map((members?.profiles ?? []).map((m) => [m.profile_id, m.display_name]));
+
+  // A message from somebody the member list has never heard of means the list is behind: the
+  // third person accepted after it was read, and their first "hi" would otherwise sit under
+  // "Someone" until something else refetched it. Asked once per sender, so a sender the list
+  // can never name (they left, or are hidden from this viewer) cannot make it refetch forever.
+  const queryClient = useQueryClient();
+  const askedAbout = useRef(new Set<string>());
+  useEffect(() => {
+    if (!partyId || !members) return;
+    const known = new Set(members.ids);
+    const strangers = messages
+      .map((m) => m.sender_id)
+      .filter((id) => id !== myId && !known.has(id) && !askedAbout.current.has(id));
+    if (strangers.length === 0) return;
+    for (const id of strangers) askedAbout.current.add(id);
+    void queryClient.invalidateQueries({ queryKey: partyMembersQueryKey(partyId) });
+  }, [partyId, members, messages, myId, queryClient]);
 
   async function handleSend() {
     const content = draft.trim();

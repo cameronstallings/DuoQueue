@@ -6,16 +6,30 @@ import { router, useNavigationContainerRef } from "expo-router";
 import { chatQueryKey } from "@/features/chat/useChatMessages";
 import { fetchMatches, MATCHES_QUERY_KEY } from "@/features/chat/useMatches";
 import {
+  fetchMyParties,
+  MY_PARTIES_QUERY_KEY,
+  PARTY_INVITES_QUERY_KEY,
+  partyMembersQueryKey,
+  partyPendingInvitesQueryKey,
+} from "@/features/party/useParty";
+import { partyMessagesQueryKey } from "@/features/party/usePartyMessages";
+import {
   answerWithin,
   chatOpening,
   chatPush,
   frontScreen,
   isOnMatches,
+  matchesOpening,
   notificationTapAction,
+  partyOpening,
+  partyPush,
   shouldHandleTap,
   whenFront,
+  type ChatOpening,
+  type ChatPush,
   type FrontScreen,
   type NavigationReader,
+  type PartyScreen,
 } from "@/lib/notificationRouting";
 import { queryClient } from "@/lib/query-client";
 import { useSessionStore } from "@/store/session-store";
@@ -35,14 +49,16 @@ const NAVIGATION_WAIT_MS = 5000;
 /**
  * How long the match list gets to answer before the chat is pushed without its answer. Unknown
  * means push (see `chatPush`), so this is the longest a tap can sit on Matches looking like it
- * did nothing, on a network that is up but crawling or failing through retries.
+ * did nothing, on a network that is up but crawling or failing through retries. The party list
+ * gets the same bound for a party tap.
  */
 const MATCH_READ_DEADLINE_MS = 4000;
 
 /**
- * Sends a tapped push where it points: a "new players in your games" push to the deck, and a
- * new message, a new match or an unread-message reminder to that chat, on top of the Matches
- * tab.
+ * Sends a tapped push where it points: a "new players in your games" push to the deck, a new
+ * message, a new match or an unread-message reminder to that chat, a party push to that party's
+ * deck or chat, and a party invite to the Matches tab, where its banner is. Everything but the
+ * deck lands on top of the Matches tab.
  *
  * Mounted once, from `RootLayout`. Two sources, because a tap arrives differently depending
  * on whether the app was already running: the listener catches warm taps, and one read of
@@ -71,10 +87,10 @@ export function useNotificationTapRouting(navigatorReady: boolean): void {
   const navigationRef = useNavigationContainerRef();
   const [pending, setPending] = useState<Notifications.NotificationResponse | null>(null);
   const handled = useRef<Set<string>>(new Set());
-  // Stops whatever the last chat tap is still waiting on (a navigation listener, a timer) and
-  // marks it superseded, so a read that answers late stands down. Called whenever a later tap
-  // is decided: the later tap owns navigation now.
-  const cancelChat = useRef<(() => void) | null>(null);
+  // Stops whatever the last tap that goes by way of Matches is still waiting on (a navigation
+  // listener, a timer) and marks it superseded, so a read that answers late stands down. Called
+  // whenever a later tap is decided: the later tap owns navigation now.
+  const cancelOpening = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -104,6 +120,7 @@ export function useNotificationTapRouting(navigatorReady: boolean): void {
     const action = notificationTapAction({
       category: data?.category,
       matchId: data?.matchId,
+      partyId: data?.partyId,
       navigatorReady,
       sessionStatus: status,
       profileStatus,
@@ -116,8 +133,10 @@ export function useNotificationTapRouting(navigatorReady: boolean): void {
 
     handled.current.add(identifier);
     setPending(null);
-    cancelChat.current?.();
-    cancelChat.current = null;
+    cancelOpening.current?.();
+    cancelOpening.current = null;
+
+    if (action.kind === "ignore") return;
 
     if (action.kind === "open-deck") {
       // Invalidate before navigating so the deck is refetching by the time it renders. The push
@@ -125,40 +144,20 @@ export function useNotificationTapRouting(navigatorReady: boolean): void {
       // the whole point of sending it.
       void queryClient.invalidateQueries({ queryKey: ["deck"] });
       router.navigate("/(tabs)");
-    } else if (action.kind === "open-chat") {
-      cancelChat.current = openChat(action.matchId, {
-        front: () => frontScreen(navigationRef.isReady() ? navigationRef.getRootState() : undefined),
-        onChange: (callback) => navigationRef.addListener("state", () => callback()),
-      });
+      return;
     }
+
+    const nav: NavigationReader = {
+      front: () => frontScreen(navigationRef.isReady() ? navigationRef.getRootState() : undefined),
+      onChange: (callback) => navigationRef.addListener("state", () => callback()),
+    };
+    if (action.kind === "open-chat") cancelOpening.current = openChat(action.matchId, nav);
+    else if (action.kind === "open-party") cancelOpening.current = openParty(action.partyId, action.screen, nav);
+    else cancelOpening.current = openMatches(nav);
   }, [pending, navigatorReady, status, profileStatus, onboardingCompleted, navigationRef]);
 }
 
-/**
- * Three steps, each waiting on the one before (the reasons are on `chatOpening` and
- * `chatPush`): past the auth gate, if it is in front; then to the Matches tab, at once, so the
- * tap visibly did something; then, once the app is ON Matches, the chat on top of it, after
- * `get_matches_summary` confirms the match still exists. Returns a cancel for the hook to call
- * when a later tap is decided.
- *
- *   warm, on the deck or another tab   switch to Matches, then push the chat
- *   warm, in another chat or a modal   dismiss down to the tabs on Matches, then push
- *   warm, already in this chat         refresh it, move nothing
- *   cold start                         the auth gate (app/index.tsx) is in front, and the
- *                                      decision usually lands in the commit that renders its
- *                                      Redirect to the tabs (where the session or the profile
- *                                      settles). That Redirect issues its replace a render
- *                                      later, so it would be queued behind anything moved now
- *                                      and undo it. Wait for the tab bar to come to the front,
- *                                      then go on as warm
- *   match gone since the push          stay on Matches, with a toast
- *   offline                            push at once: the read would only be held, not sent
- *   list slow or failing               push at the deadline (or on the failure)
- *
- * The push waits for the first move to LAND, not just to be issued: expo-router queues router
- * calls and runs them later, so the app is still where it was the moment after `navigate` or
- * `dismissTo` returns, and `chatPush` would read that and stand down.
- */
+/** A tapped chat: its thread and the match list are stale until read, then the chat on top. */
 function openChat(matchId: string, nav: NavigationReader): () => void {
   // Both before any screen renders them: the thread so it opens on the message the push
   // announced rather than on what was cached when the app was last open, and the list because
@@ -170,6 +169,101 @@ function openChat(matchId: string, nav: NavigationReader): () => void {
   void queryClient.invalidateQueries({ queryKey: chatQueryKey(matchId), refetchType: "none" });
   void queryClient.invalidateQueries({ queryKey: MATCHES_QUERY_KEY });
 
+  return viaMatches(nav, {
+    opening: (front) => chatOpening(front, matchId),
+    onTop: {
+      // `staleTime: 0` so the answer is never older than this tap. Matches has landed by now, so
+      // its own read (started by the invalidation above, or by mounting) is usually still in
+      // flight, and this joins it, keeping that read's retries. `retry: false` applies only when
+      // that read has already finished and this sends a new one. Either way the deadline is the
+      // real bound.
+      listed: () =>
+        queryClient
+          .fetchQuery({ queryKey: MATCHES_QUERY_KEY, queryFn: fetchMatches, staleTime: 0, retry: false })
+          .then((matches) => matches.some((m) => m.match_id === matchId)),
+      next: (matchListed, superseded, front) => chatPush({ superseded, matchListed, front }),
+      push: () => router.push({ pathname: "/chat/[matchId]", params: { matchId } }),
+      gone: "That conversation is no longer available",
+    },
+  });
+}
+
+/**
+ * A tapped party push: that party's deck (started, joined) or chat (message), on top of Matches,
+ * where "Your parties" is. Its messages are only marked stale for the same reason as a chat's
+ * thread: an open party chat catches itself up (usePartyMessages), keeping its temp- rows.
+ */
+function openParty(partyId: string, screen: PartyScreen, nav: NavigationReader): () => void {
+  void queryClient.invalidateQueries({ queryKey: partyMessagesQueryKey(partyId), refetchType: "none" });
+  void queryClient.invalidateQueries({ queryKey: partyMembersQueryKey(partyId) });
+  void queryClient.invalidateQueries({ queryKey: partyPendingInvitesQueryKey(partyId) });
+  void queryClient.invalidateQueries({ queryKey: MY_PARTIES_QUERY_KEY });
+
+  return viaMatches(nav, {
+    opening: (front) => partyOpening(front, partyId, screen),
+    onTop: {
+      listed: () =>
+        queryClient
+          .fetchQuery({ queryKey: MY_PARTIES_QUERY_KEY, queryFn: fetchMyParties, staleTime: 0, retry: false })
+          .then((parties) => parties.some((p) => p.party_id === partyId)),
+      next: (partyListed, superseded, front) => partyPush({ superseded, partyListed, front }),
+      push: () =>
+        router.push({ pathname: screen === "chat" ? "/party/[partyId]/chat" : "/party/[partyId]", params: { partyId } }),
+      gone: "That party is no longer available",
+    },
+  });
+}
+
+/** A tapped party invite: the Matches tab, with its invites banner already re-reading. */
+function openMatches(nav: NavigationReader): () => void {
+  void queryClient.invalidateQueries({ queryKey: PARTY_INVITES_QUERY_KEY });
+  return viaMatches(nav, { opening: matchesOpening });
+}
+
+/** Where a tap that goes by way of the Matches tab is headed. */
+interface ViaMatches {
+  /** The first move, from wherever the app is (`chatOpening`, `partyOpening`, `matchesOpening`). */
+  opening: (front: FrontScreen) => ChatOpening;
+  /** The screen to push on top of Matches once the app is on it. Absent when Matches is the destination. */
+  onTop?: {
+    /** Whether the destination is still this account's, read fresh from the list Matches shows. */
+    listed: () => Promise<boolean>;
+    /** The second move, given that answer (`chatPush`, `partyPush`). */
+    next: (listed: boolean | undefined, superseded: boolean, front: FrontScreen) => ChatPush;
+    push: () => void;
+    /** The toast for a destination the list no longer has. */
+    gone: string;
+  };
+}
+
+/**
+ * Three steps, each waiting on the one before (the reasons are on `chatOpening` and
+ * `chatPush`): past the auth gate, if it is in front; then to the Matches tab, at once, so the
+ * tap visibly did something; then, once the app is ON Matches, the screen on top of it, after
+ * the list Matches shows (`get_matches_summary`, `get_my_parties`) confirms it still exists. A
+ * party invite stops after the second step: Matches is where it is answered. Returns a cancel
+ * for the hook to call when a later tap is decided.
+ *
+ *   warm, on the deck or another tab   switch to Matches, then push
+ *   warm, in another chat or a modal   dismiss down to the tabs on Matches, then push
+ *   warm, already on that screen       move nothing (it refreshes itself)
+ *   cold start                         the auth gate (app/index.tsx) is in front, and the
+ *                                      decision usually lands in the commit that renders its
+ *                                      Redirect to the tabs (where the session or the profile
+ *                                      settles). That Redirect issues its replace a render
+ *                                      later, so it would be queued behind anything moved now
+ *                                      and undo it. Wait for the tab bar to come to the front,
+ *                                      then go on as warm
+ *   gone since the push                stay on Matches, with a toast
+ *   offline                            push at once: the read would only be held, not sent
+ *   list slow or failing               push at the deadline (or on the failure)
+ *
+ * The push waits for the first move to LAND, not just to be issued: expo-router queues router
+ * calls and runs them later, so the app is still where it was the moment after `navigate` or
+ * `dismissTo` returns, and `chatPush` would read that and stand down.
+ */
+function viaMatches(nav: NavigationReader, route: ViaMatches): () => void {
+  const { opening, onTop } = route;
   let cancelled = false;
   const stops: (() => void)[] = [];
   const cancel = () => {
@@ -177,42 +271,31 @@ function openChat(matchId: string, nav: NavigationReader): () => void {
     for (const stop of stops.splice(0)) stop();
   };
 
-  const decide = (matchListed: boolean | undefined) => {
-    const next = chatPush({ superseded: cancelled, matchListed, front: nav.front() });
-    if (next === "push") {
-      router.push({ pathname: "/chat/[matchId]", params: { matchId } });
-    } else if (next === "gone") {
-      useToastStore.getState().showToast("That conversation is no longer available", "info");
-    }
-  };
-
   const confirmThenPush = () => {
+    if (!onTop) return;
+    const decide = (listed: boolean | undefined) => {
+      const next = onTop.next(listed, cancelled, nav.front());
+      if (next === "push") onTop.push();
+      else if (next === "gone") useToastStore.getState().showToast(onTop.gone, "info");
+    };
     // Offline, TanStack would PAUSE the read until the network returned, so it is not sent:
     // the answer is unknown, and unknown pushes.
     if (!onlineManager.isOnline()) {
       decide(undefined);
       return;
     }
-    // `staleTime: 0` so the answer is never older than this tap. Matches has landed by now, so
-    // its own read (started by the invalidation above, or by mounting) is usually still in
-    // flight, and this joins it, keeping that read's retries. `retry: false` applies only when
-    // that read has already finished and this sends a new one. Either way the deadline is the
-    // real bound.
-    const read = queryClient
-      .fetchQuery({ queryKey: MATCHES_QUERY_KEY, queryFn: fetchMatches, staleTime: 0, retry: false })
-      .then((matches) => matches.some((m) => m.match_id === matchId));
-    stops.push(answerWithin(read, MATCH_READ_DEADLINE_MS, decide));
+    stops.push(answerWithin(onTop.listed(), MATCH_READ_DEADLINE_MS, decide));
   };
 
   const firstMove = (front: FrontScreen) => {
-    const opening = chatOpening(front, matchId);
-    if (opening === "already-open" || opening === "wait-for-gate") return;
-    if (opening === "switch-to-matches") router.navigate(MATCHES_HREF);
+    const first = opening(front);
+    if (first === "already-open" || first === "wait-for-gate") return;
+    if (first === "switch-to-matches") router.navigate(MATCHES_HREF);
     else router.dismissTo(MATCHES_HREF);
-    stops.push(whenFront(nav, isOnMatches, confirmThenPush, NAVIGATION_WAIT_MS));
+    if (onTop) stops.push(whenFront(nav, isOnMatches, confirmThenPush, NAVIGATION_WAIT_MS));
   };
 
-  const pastGate = (front: FrontScreen) => chatOpening(front, matchId) !== "wait-for-gate";
+  const pastGate = (front: FrontScreen) => opening(front) !== "wait-for-gate";
   stops.push(whenFront(nav, pastGate, firstMove, NAVIGATION_WAIT_MS));
   return cancel;
 }

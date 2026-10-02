@@ -9,7 +9,8 @@ import { GraticuleBackground } from "@/components/GraticuleBackground";
 import { EmptyState } from "@/components/EmptyState";
 import { GrainOverlay } from "@/components/GrainOverlay";
 import { Skeleton } from "@/components/Skeleton";
-import { usePartyMembers } from "@/features/party/useParty";
+import { joinNames } from "@/features/party/partyCopy";
+import { PARTY_CAP, PARTY_POLL_MS, usePartyMembers, usePartyPendingInvites } from "@/features/party/useParty";
 import { usePartyDeck, usePartySwipeAction } from "@/features/party/usePartyDeck";
 import { LikePassButtons } from "@/features/swipe/LikePassButtons";
 import { SwipeDeck, type SwipeDeckHandle } from "@/features/swipe/SwipeDeck";
@@ -30,10 +31,23 @@ export default function PartyDeckScreen() {
   const { colors, spacing, type, radius } = useTheme();
   const insets = useSafeAreaInsets();
   const { partyId } = useLocalSearchParams<{ partyId: string }>();
-  const { data: members } = usePartyMembers(partyId);
+  // Polled while this screen is up, because the moment that matters here (the third person
+  // accepting, or saying no) happens on somebody else's phone. A party push or a return to the
+  // app refreshes both sooner (usePartyFreshness); the poll covers anyone with pushes off.
+  const { data: members, isLoading: membersLoading } = usePartyMembers(partyId, { refetchInterval: PARTY_POLL_MS });
+  const { data: pendingInvites } = usePartyPendingInvites(partyId);
   const { cards, isLoading, error, popTop, restoreTop, refetch } = usePartyDeck(partyId);
   const swipeAction = usePartySwipeAction(partyId);
   const deckRef = useRef<SwipeDeckHandle>(null);
+
+  // Full means three people: nobody is left to invite, and the server sends no more invites
+  // (0070), so the deck would only be swipes that go nowhere. The chat is the party now.
+  const isFull = (members?.ids.length ?? 0) >= PARTY_CAP;
+  const waitingOn = joinNames((pendingInvites ?? []).map((invite) => invite.display_name));
+
+  function openChat() {
+    router.push({ pathname: "/party/[partyId]/chat", params: { partyId } });
+  }
 
   async function handleSwiped(card: DeckCard, direction: SwipeDirection) {
     popTop();
@@ -42,8 +56,8 @@ export default function PartyDeckScreen() {
       if (result.invited) {
         hapticSuccess();
         Alert.alert(
-          "Everyone said yes!",
-          `The whole party liked ${card.display_name}. They've been invited to join.`,
+          "Invite sent",
+          `You all liked ${card.display_name}. They join your party chat once they accept.`,
         );
       }
     } catch (err) {
@@ -90,25 +104,43 @@ export default function PartyDeckScreen() {
         <View style={{ flex: 1 }}>
           <Text style={{ ...type.screenTitle, color: colors.text }}>Party</Text>
           <Text style={[type.caption, { color: colors.textMuted }]}>
-            {(members ?? []).map((m) => m.display_name).join(" & ") || "Loading…"}
+            {joinNames((members?.profiles ?? []).map((m) => m.display_name)) || "Loading…"}
           </Text>
         </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Party chat"
-          onPress={() => router.push({ pathname: "/party/[partyId]/chat", params: { partyId } })}
-          hitSlop={8}
-        >
+        <Pressable accessibilityRole="button" accessibilityLabel="Party chat" onPress={openChat} hitSlop={8}>
           <Ionicons name="chatbubbles" size={24} color={colors.voltDim} />
         </Pressable>
       </View>
 
-      <Text style={[type.caption, { color: colors.textMuted, paddingHorizontal: spacing.lg, paddingTop: spacing.sm }]}>
-        Everyone in the party has to like someone before they get invited.
-      </Text>
+      {!isFull && (
+        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm, gap: spacing.xs }}>
+          <Text style={[type.caption, { color: colors.textMuted }]}>
+            Everyone in the party has to like someone before they get invited.
+          </Text>
+          {/* Somebody the party already said yes to. Until they answer, the like is not lost, it
+              is waiting, and without this line a sent invite looked like nothing had happened. */}
+          {waitingOn ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
+              <Ionicons name="hourglass-outline" size={14} color={colors.voltDim} />
+              <Text style={[type.caption, { color: colors.text, flex: 1 }]} numberOfLines={2}>
+                Waiting on {waitingOn}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      )}
 
       <View style={{ flex: 1, margin: spacing.lg }}>
-        {isLoading ? (
+        {isFull ? (
+          <EmptyState
+            icon="people"
+            title="Your party is full"
+            subtitle="All three of you are in. Plan your next game in the party chat."
+            actionLabel="Open party chat"
+            onAction={openChat}
+            tick="PARTY FULL"
+          />
+        ) : isLoading || membersLoading ? (
           <Skeleton style={{ flex: 1, borderRadius: radius.card }} />
         ) : error ? (
           <EmptyState
@@ -140,11 +172,13 @@ export default function PartyDeckScreen() {
         )}
       </View>
 
-      <LikePassButtons
-        disabled={cards.length === 0}
-        onPass={() => deckRef.current?.pass()}
-        onLike={() => deckRef.current?.like()}
-      />
+      {!isFull && (
+        <LikePassButtons
+          disabled={cards.length === 0}
+          onPass={() => deckRef.current?.pass()}
+          onLike={() => deckRef.current?.like()}
+        />
+      )}
     </View>
   );
 }

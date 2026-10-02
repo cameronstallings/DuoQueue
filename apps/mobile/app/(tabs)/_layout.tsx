@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { sessionRoute } from "@/features/auth/sessionRouting";
 import { useHeartbeat } from "@/features/online-now/useHeartbeat";
+import { usePartyFreshness } from "@/features/party/usePartyFreshness";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
@@ -76,6 +77,9 @@ export default function TabsLayout() {
   const insets = useSafeAreaInsets();
 
   useHeartbeat();
+  // Here because the tab layout stays mounted under every party screen: a party push or a
+  // return to the app refreshes the banner, "Your parties" and an open party alike.
+  usePartyFreshness();
 
   /**
    * The chokepoint for every tab route, which is why the age-gate branch has to be here and

@@ -7,24 +7,30 @@ import { Skeleton } from "@/components/Skeleton";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
-import { useMyParties, usePartyMembers } from "./useParty";
+import { joinNames } from "./partyCopy";
+import { PARTY_CAP, useMyParties, usePartyMembers } from "./useParty";
 
 function PartyRow({ partyId }: { partyId: string }) {
   const { colors, radius, spacing, type } = useTheme();
   const myId = useSessionStore((s) => s.profile?.id);
   const { data: members } = usePartyMembers(partyId);
 
-  const names = (members ?? [])
-    .filter((m) => m.profile_id !== myId)
-    .map((m) => m.display_name)
-    .join(" & ");
-  const memberCount = members?.length ?? 0;
+  const names = joinNames(
+    (members?.profiles ?? []).filter((m) => m.profile_id !== myId).map((m) => m.display_name),
+  );
+  const memberCount = members?.ids.length ?? 0;
+  // A full party has nobody left to swipe for, so it opens on its chat. A duo still looking
+  // opens on the deck, which has the chat one tap away. Before the count loads it is the deck,
+  // which shows its own "Your party is full" state if that guess was wrong.
+  const full = memberCount >= PARTY_CAP;
 
   return (
     <Pressable
-      onPress={() => router.push({ pathname: "/party/[partyId]", params: { partyId } })}
+      onPress={() =>
+        router.push({ pathname: full ? "/party/[partyId]/chat" : "/party/[partyId]", params: { partyId } })
+      }
       accessibilityRole="button"
-      accessibilityLabel={`Open party${names ? ` with ${names}` : ""}`}
+      accessibilityLabel={`Open party${full ? " chat" : ""}${names ? ` with ${names}` : ""}`}
       style={({ pressed }) => ({
         flexDirection: "row",
         alignItems: "center",
@@ -51,7 +57,11 @@ function PartyRow({ partyId }: { partyId: string }) {
           {names || "Your party"}
         </Text>
         <Text style={[type.caption, { color: colors.textMuted }]}>
-          {memberCount > 0 ? `${memberCount} member${memberCount === 1 ? "" : "s"}` : "Loading…"}
+          {memberCount === 0
+            ? "Loading…"
+            : full
+              ? `${memberCount} members, party chat`
+              : `${memberCount} member${memberCount === 1 ? "" : "s"}, finding a third`}
         </Text>
       </View>
       <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
