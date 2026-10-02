@@ -70,7 +70,9 @@ export function useChatMessages(matchId: string) {
   useOnAppResume(useCallback(() => void catchUp(), [catchUp]));
 
   useEffect(() => {
-    // The push carries only its category, not the match, so any open thread re-reads itself.
+    // Any open thread re-reads itself on any message push. The push now names its match
+    // (`data.matchId`), but one from the server before that names none, and re-reading a thread
+    // that did not change costs one small query.
     const subscription = Notifications.addNotificationReceivedListener((notification) => {
       if (notification.request.content.data?.category === "new_message") void catchUp();
     });

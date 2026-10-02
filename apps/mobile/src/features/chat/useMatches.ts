@@ -10,7 +10,9 @@ export interface MatchListItem extends MatchSummary {
 
 export const MATCHES_QUERY_KEY = ["matches-summary"] as const;
 
-async function fetchMatches(): Promise<MatchListItem[]> {
+/** Exported for `useNotificationTapRouting`, which asks this same list whether a tapped push's
+ * match still exists before it opens the chat (see `chatPush` in notificationRouting.ts). */
+export async function fetchMatches(): Promise<MatchListItem[]> {
   const { data, error } = await supabase.rpc("get_matches_summary");
   if (error) throw error;
   const rows = (data ?? []) as MatchSummary[];

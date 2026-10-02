@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Alert, Modal, StyleSheet, Text, View } from "react-native";
+import { useFocusEffect } from "expo-router";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   interpolate,
@@ -46,6 +47,20 @@ export function SwipeCard({ card, isTop, onSwiped, externalTrigger, context }: S
   const { colors, radius, type } = useTheme();
   const [reportVisible, setReportVisible] = useState(false);
   const [detailVisible, setDetailVisible] = useState(false);
+  // Both sheets are React Native Modals, drawn over the whole window rather than inside this
+  // screen, so leaving the screen does not take them with it: a tapped message push switches to
+  // the Matches tab and pushes the chat, and an open profile would stay presented over both.
+  // Closed on blur (and unmount), not hidden while blurred, so coming back to the deck does not
+  // reopen a profile or a half-filled report out of nowhere.
+  useFocusEffect(
+    useCallback(
+      () => () => {
+        setDetailVisible(false);
+        setReportVisible(false);
+      },
+      [],
+    ),
+  );
   const blockUser = useBlockUser();
   const reportUser = useReportUser();
 

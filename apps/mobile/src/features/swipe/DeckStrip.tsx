@@ -1,5 +1,6 @@
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
+import { useFocusEffect } from "expo-router";
 
 import { Name } from "@/components/Name";
 import { PresenceAvatar } from "@/components/PresenceAvatar";
@@ -53,6 +54,22 @@ export function DeckStrip({ quota }: { quota: StripQuota | undefined }) {
   // for the sheet's onDismiss (iOS only). Android stacks its dialogs and has no onDismiss, so
   // there the card opens at once.
   const pendingCardRef = useRef<DeckCard | null>(null);
+
+  // The sheet and the card are drawn over the whole window, not inside the Deck, so leaving the
+  // Deck (a tapped message push switching to Matches, say) would leave them presented over
+  // wherever the app went. Closed on blur rather than hidden, so coming back does not reopen
+  // them; and a card still waiting on the sheet's dismissal is dropped, or that dismissal would
+  // open it over the other screen.
+  useFocusEffect(
+    useCallback(
+      () => () => {
+        pendingCardRef.current = null;
+        setSheetVisible(false);
+        setOpenCard(null);
+      },
+      [],
+    ),
+  );
 
   function handlePick(card: DeckCard) {
     setSheetVisible(false);
