@@ -707,7 +707,7 @@ export default function ChatScreen() {
 
       {otherIsTyping && (
         <Text style={[type.caption, { color: colors.textMuted, paddingHorizontal: spacing.md }]}>
-          {matchInfo?.other_display_name ?? "They"} are typing…
+          {matchInfo?.other_display_name ? `${matchInfo.other_display_name} is typing…` : "They are typing…"}
         </Text>
       )}
 
