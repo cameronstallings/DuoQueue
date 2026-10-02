@@ -280,7 +280,8 @@ export default function PartyChatScreen() {
             ]}
             multiline
             returnKeyType="send"
-            blurOnSubmit={false}
+            // Same as the 1:1 composer: without this the keyboard's Send key inserted a newline.
+            submitBehavior="submit"
             onSubmitEditing={() => void handleSend()}
           />
           <Pressable

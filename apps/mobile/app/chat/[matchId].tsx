@@ -742,7 +742,10 @@ export default function ChatScreen() {
               ]}
               multiline
               returnKeyType="send"
-              blurOnSubmit={false}
+              // A multiline field's return key inserts a newline unless told otherwise, so the
+              // keyboard's Send key never fired onSubmitEditing. "submit" sends and keeps the
+              // keyboard up; long messages still wrap.
+              submitBehavior="submit"
               onSubmitEditing={() => void handleSend()}
             />
             <Pressable
