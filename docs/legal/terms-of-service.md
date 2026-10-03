@@ -15,12 +15,18 @@
   an aggressive-sounding one that a court is more likely to strike down entirely
   (especially the arbitration/class-waiver language, which is heavily regulated and
   varies by state). These are still template clauses, not customized legal advice, and
-  they should be reviewed by a licensed North Carolina attorney before the app takes on
+  they should be reviewed by a licensed Texas attorney before the app takes on
   meaningful revenue or user volume.
+
+  TEXAS (effective 2026-10-02): Cameron moved from Cary, NC to Houston, TX, so the governing
+  law (Section 11) is now Texas and arbitration is seated in or near Harris County, Texas,
+  where the new mailing address (supabase/functions/_shared/org.ts) is. Both were North
+  Carolina / Wake County before. The effective date was bumped as the notice the "Changes to
+  these Terms" section promises for a material change.
 -->
 # DuoQueue Terms of Service
 
-**Effective date:** August 5, 2026
+**Effective date:** October 2, 2026
 
 Welcome to DuoQueue. These Terms of Service ("Terms") are a contract between you and DuoQueue, operated by Cameron Shaw Stallings as an individual (a sole proprietor, not a company or LLC) ("DuoQueue," "we," "us," or "our"), and govern your access to and use of the DuoQueue app and related services (the "Service"). By creating an account or using DuoQueue, you agree to these Terms and to our [Privacy Policy](./privacy-policy.md).
 
@@ -162,7 +168,7 @@ We reserve the right, at our own expense, to assume the exclusive defense and co
 
 **Informal resolution first.** Before filing an arbitration or a lawsuit, you agree to try to resolve the dispute informally by sending written notice to `support@duoqueue.io` describing the dispute and the relief you're seeking. We'll do the same if we have a dispute with you. Most disputes get resolved this way. If it isn't resolved within 30 days after that notice is sent, either of us may start arbitration (or, where it applies, go to small claims court) as described below.
 
-**Binding individual arbitration.** Except for small claims court as described below, you and DuoQueue agree that any dispute, claim, or controversy arising out of or relating to these Terms or the Service will be resolved by binding, individual arbitration rather than in court, administered by the American Arbitration Association (AAA) under its Consumer Arbitration Rules. The arbitration will be seated in or near Wake County, North Carolina, or, at your election, conducted remotely by phone or video conference. The arbitrator, not any court, has exclusive authority to resolve disputes about the interpretation, applicability, or enforceability of this arbitration agreement.
+**Binding individual arbitration.** Except for small claims court as described below, you and DuoQueue agree that any dispute, claim, or controversy arising out of or relating to these Terms or the Service will be resolved by binding, individual arbitration rather than in court, administered by the American Arbitration Association (AAA) under its Consumer Arbitration Rules. The arbitration will be seated in or near Harris County, Texas, or, at your election, conducted remotely by phone or video conference. The arbitrator, not any court, has exclusive authority to resolve disputes about the interpretation, applicability, or enforceability of this arbitration agreement.
 
 **Small claims court.** Either of us may instead bring an individual claim in small claims court, if the claim qualifies for that court.
 
@@ -174,7 +180,7 @@ We reserve the right, at our own expense, to assume the exclusive defense and co
 
 **Your right to opt out.** You can opt out of this entire arbitration agreement (including the class action waiver) by sending written notice to {{POSTAL_ADDRESS_WITH_NAME}}, or to `support@duoqueue.io`, within 30 days of the date you first agree to these Terms (for example, the date you create your account). Your notice must include your name and a clear statement that you're opting out of arbitration. Opting out doesn't affect any other part of these Terms and doesn't limit your ability to use DuoQueue.
 
-**Governing law.** These Terms, and any dispute not subject to arbitration, are governed by the laws of the State of North Carolina, without regard to its conflict-of-laws rules.
+**Governing law.** These Terms, and any dispute not subject to arbitration, are governed by the laws of the State of Texas, without regard to its conflict-of-laws rules.
 
 ---
 
