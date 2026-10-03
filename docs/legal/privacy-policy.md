@@ -59,11 +59,15 @@
   until the account is deleted. Both bullets still say that data reaches other signed-in
   users' apps, because the six functions above still return gender and public_profile_media
   still returns approved gallery rows. Only drop that after a migration stops it.
+
+  MAILING ADDRESS (version 1.5, published 2026-10-02): Cameron moved the mailing address from
+  Cary, NC to Houston, TX. The address itself lives in supabase/functions/_shared/org.ts and
+  is substituted at build time; nothing else in this policy changed.
 -->
 # DuoQueue Privacy Policy
 
-**Effective date:** September 30, 2026
-**Version:** 1.4
+**Effective date:** October 2, 2026
+**Version:** 1.5
 
 This policy explains what DuoQueue collects, why, who we share it with, and what control you have over it. It's written in plain language on purpose. If anything here is unclear, contact us using the details below.
 

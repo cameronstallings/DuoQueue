@@ -48,7 +48,7 @@
  * Bare on purpose: the two legal documents print it after their own "Mailing address:"
  * label, while the email footer and the arbitration clause want "DuoQueue, " in front. One
  * value composed two ways beats two values that can drift apart. */
-export const POSTAL_ADDRESS = "201 N Becket St, Cary, NC 27513, USA";
+export const POSTAL_ADDRESS = "808 Crawford St, Houston, TX 77010, USA";
 
 /** The same address as an email footer or a legal notice wants it: who, then where. */
 export const POSTAL_ADDRESS_WITH_NAME = `DuoQueue, ${POSTAL_ADDRESS}`;
