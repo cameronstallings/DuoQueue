@@ -124,7 +124,3 @@ A slide has a `role` (`hook`, `tip`, `cta`, `closer`), a `layout`, and text fiel
 - `lib/lint.mjs`, `lib/posting.mjs`: copy rules, and the caption / HOW TO POST / sources / log text
 - `fonts/`: Manrope and IBM Plex Mono (full TTFs, SIL Open Font License, see `fonts/OFL-*.txt`)
 - `cache/` (git ignores it): backgrounds, the HTML of every slide, failed renders, report.json
-
-`render.py` and `slides.py` are an older Python draft of this batch with different copy. They
-are superseded and `render.py` stops immediately if run. Cameron decides whether to delete them.
-The slides that draft made are in `Ready to post\Slideshows\Old draft (do not post)`.
