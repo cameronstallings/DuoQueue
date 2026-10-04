@@ -1,0 +1,191 @@
+/* DuoQueue TikTok slides, Volt look. One 1080x1920 slide per page.
+   Text sizes are calc(var(--k) * Npx): page.js lowers --k on a .fit box until its text fits.
+   TikTok covers the right column (x > 940) and the bottom (y > 1500): render.mjs fails the
+   run if any text lands there. */
+:root {
+  --bg: #0a0b09;
+  --surface: #12140f;
+  --surface2: #1a1d15;
+  --seam: #232720;
+  --edge: #30362a;
+  --ink: #f5f3ee;
+  --muted: #b4bda6;
+  --dim: #9aa38d; /* source tags and the header; was #8a927e at 26 px, too faint on a phone */
+  --row: #8a937c;
+  --volt: #cdff3d;
+  --p2: #f2f6ea;
+  --paper: #f2f4eb;
+  --paper-band: #e7ebdb;
+  --paper-line: #d6dcc6;
+  --paper-ink: #161a0f;
+  --paper-muted: #3b4232;
+  --paper-dim: #596150;
+  --olive: #4a6b00;
+  --on-olive: #f7f9f0;
+  --flood-ink: #0a0b09;
+  --flood-muted: #1f2709;
+  --flood-dim: #364510;
+  --k: 1;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1080px; height: 1920px; overflow: hidden; }
+body {
+  position: relative;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: Manrope, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-kerning: normal;
+}
+body.paper-theme { background: var(--paper); color: var(--paper-ink); }
+body.flood-theme { background: var(--volt); color: var(--flood-ink); }
+
+/* backgrounds */
+.bg { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; object-fit: cover; }
+.grid {
+  position: absolute; inset: 0;
+  background-image: linear-gradient(var(--seam) 1px, transparent 1px), linear-gradient(90deg, var(--seam) 1px, transparent 1px);
+  background-size: 120px 120px;
+  background-position: 0 -1px, -1px 0;
+}
+.band { position: absolute; left: 0; right: 0; top: 0; height: 196px; background: var(--paper-band); border-bottom: 2px solid var(--paper-line); }
+.scrim { position: absolute; left: 0; right: 0; top: 0; height: 0; pointer-events: none; }
+.ghost {
+  position: absolute; z-index: 0; pointer-events: none;
+  font-weight: 800; line-height: 0.8; letter-spacing: -0.06em; white-space: nowrap;
+  color: #191d14;
+}
+.ghost.in-card { left: 48px; bottom: 150px; font-size: 440px; color: #1b1f16; }
+/* page.js moves a slab ghost below the text (font box bottom at y 1490) and shrinks it to fit */
+.ghost.in-slab { left: 66px; bottom: 624px; font-size: 600px; color: #181b13; }
+
+/* header: series label + slide number (type slides only) */
+.hdr {
+  position: absolute; left: 72px; width: 852px; top: 236px;
+  display: flex; justify-content: space-between; align-items: center;
+  font: 600 28px/1 "Plex Mono"; letter-spacing: 0.16em; text-transform: uppercase; color: var(--dim);
+}
+.hdr .sq { display: inline-block; width: 14px; height: 14px; margin-right: 16px; background: var(--volt); vertical-align: -1px; }
+.paper-theme .hdr { color: var(--paper-dim); }
+.paper-theme .hdr .sq { background: var(--olive); }
+.flood-theme .hdr { color: var(--flood-dim); }
+.flood-theme .hdr .sq { background: var(--flood-ink); }
+
+/* fit boxes: the vertical padding keeps descenders inside the clip */
+.fit { position: absolute; z-index: 1; display: flex; flex-direction: column; overflow: hidden; padding: 28px 0; }
+.fit.bottom > :first-child { margin-top: auto; }
+.fit.center > :first-child { margin-top: auto; }
+.fit.center > :last-child { margin-bottom: auto; }
+.wide { left: 72px; right: 156px; }   /* text box x 72..924 */
+.slab { left: 44px; right: 148px; }   /* panels x 44..932, text inside from x ~100 */
+
+/* shared type */
+.krow { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 20px; margin-bottom: calc(var(--k) * 30px); }
+.kicker { font: 600 calc(var(--k) * 30px)/1.1 "Plex Mono"; letter-spacing: 0.12em; text-transform: uppercase; color: var(--volt); }
+.paper-theme .kicker { color: var(--olive); }
+.flood-theme .kicker { color: var(--flood-dim); }
+.chip {
+  display: inline-block; align-self: flex-start; max-width: 100%;
+  font: 600 calc(var(--k) * 26px)/1.15 "Plex Mono"; letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 0.4em 0.6em 0.36em; border-radius: 3px;
+}
+.chip.opener { background: var(--volt); color: var(--bg); font-size: calc(var(--k) * 30px); margin-bottom: calc(var(--k) * 34px); }
+.chip.take { border: 2px solid var(--volt); color: var(--volt); }
+.chip.truth { background: var(--volt); color: var(--paper-ink); }
+.paper-theme .chip.take { background: var(--volt); color: var(--paper-ink); border: 0; }
+.flood-theme .chip.take { background: var(--flood-ink); color: var(--volt); border: 0; }
+
+.head { font-weight: 800; line-height: 1.04; letter-spacing: -0.028em; text-wrap: balance; color: var(--ink); }
+.h-hook { font-size: calc(var(--k) * 118px); text-shadow: 0 2px 28px rgba(0, 0, 0, 0.35); }
+.h-slab { font-size: calc(var(--k) * 112px); }
+.h-card { font-size: calc(var(--k) * 104px); }
+.h-panel { font-size: calc(var(--k) * 84px); }
+.h-paper { font-size: calc(var(--k) * 108px); color: var(--paper-ink); }
+.h-flood { font-size: calc(var(--k) * 120px); line-height: 1.0; color: var(--flood-ink); }
+.h-log { font-size: calc(var(--k) * 86px); }
+.h-rails { font-size: calc(var(--k) * 92px); }
+.h-cta { font-size: calc(var(--k) * 112px); }
+
+.mark {
+  color: var(--bg);
+  background: linear-gradient(to bottom, transparent 14%, var(--volt) 14%, var(--volt) 93%, transparent 93%);
+  padding: 0 0.13em;
+  white-space: nowrap;
+  -webkit-box-decoration-break: clone; box-decoration-break: clone;
+  text-shadow: none;
+}
+.paper-theme .mark { color: var(--on-olive); background: linear-gradient(to bottom, transparent 14%, var(--olive) 14%, var(--olive) 93%, transparent 93%); }
+
+.body {
+  font-weight: 600; font-size: calc(var(--k) * 50px); line-height: 1.32; letter-spacing: -0.005em;
+  color: var(--muted); text-wrap: pretty; margin-top: calc(var(--k) * 30px);
+}
+.paper-theme .body { color: var(--paper-muted); }
+.flood-theme .body { color: var(--flood-muted); }
+.src {
+  font: 500 calc(var(--k) * 30px)/1.4 "Plex Mono"; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--dim); margin-top: calc(var(--k) * 32px); text-wrap: balance;
+}
+.paper-theme .src { color: var(--paper-dim); }
+.flood-theme .src { color: var(--flood-dim); }
+.rule { height: 4px; background: var(--flood-ink); margin-top: calc(var(--k) * 44px); flex: none; }
+.spacer { flex: 1 1 auto; min-height: 0; }
+
+/* T2 card and photo panel: a solid panel with a 10 px volt edge-bar, no glow */
+.cardbox {
+  top: 292px; bottom: 424px; /* card y 292..1496 */
+  padding: 60px 48px 52px 58px;
+  background: var(--surface); border: 2px solid var(--edge); border-left: 10px solid var(--volt); border-radius: 0 8px 8px 0;
+}
+.cardbox > :not(.ghost) { position: relative; z-index: 1; }
+.panel {
+  background: rgba(10, 11, 9, 0.9); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  border-left: 10px solid var(--volt); border-radius: 0 8px 8px 0;
+  padding: calc(var(--k) * 40px) 44px calc(var(--k) * 42px) 46px;
+}
+.panel .body { font-size: calc(var(--k) * 44px); margin-top: calc(var(--k) * 22px); }
+.panel .src { margin-top: calc(var(--k) * 26px); }
+.panel .krow { margin-bottom: calc(var(--k) * 24px); }
+
+/* T5 log strip: generic rows, the last one lit. Not any game's UI. */
+.rows { display: flex; flex-direction: column; gap: calc(var(--k) * 14px); }
+.row {
+  display: flex; justify-content: space-between; align-items: center;
+  height: calc(var(--k) * var(--rh, 92px)); padding: 0 32px;
+  background: var(--surface); border: 2px solid var(--edge); border-radius: 6px;
+  font: 600 calc(var(--k) * 34px)/1 "Plex Mono"; letter-spacing: 0.12em; color: var(--row);
+}
+.row.lit { border: 3px solid var(--volt); color: var(--volt); background: #171c0d; }
+.stmt { margin-top: auto; padding-top: calc(var(--k) * 56px); display: flex; flex-direction: column; }
+
+/* T6 two rails: you say / your duo says */
+.rail { position: relative; border-radius: 0 8px 8px 0; padding: calc(var(--k) * 34px) 40px calc(var(--k) * 38px) 50px; }
+.rail::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 8px; }
+.r1 { background: var(--surface); border: 2px solid var(--edge); border-left: 0; margin-top: calc(var(--k) * 46px); }
+.r1::before { background: var(--volt); }
+.r2 { background: #0e100c; border: 2px solid var(--seam); border-left: 0; margin-top: calc(var(--k) * 18px); }
+.r2::before { background: var(--p2); }
+.rl { font: 600 calc(var(--k) * 26px)/1 "Plex Mono"; letter-spacing: 0.14em; text-transform: uppercase; color: var(--volt); margin-bottom: calc(var(--k) * 22px); }
+.r2 .rl { color: var(--p2); }
+.rq { font-weight: 800; font-size: calc(var(--k) * 84px); line-height: 1.08; letter-spacing: -0.025em; color: var(--ink); text-wrap: balance; }
+.ra { font-weight: 700; font-size: calc(var(--k) * 68px); line-height: 1.12; letter-spacing: -0.02em; color: var(--muted); text-wrap: balance; }
+
+/* T1 slab extras: the CTA search field and closing lines */
+.lead { font-weight: 700; font-size: calc(var(--k) * 58px); line-height: 1.24; color: var(--muted); margin-top: calc(var(--k) * 40px); text-wrap: balance; }
+.search {
+  display: flex; align-items: center; gap: 28px; flex: none;
+  height: calc(var(--k) * 168px); padding: 0 44px; margin-top: calc(var(--k) * 72px);
+  background: var(--surface); border: 3px solid var(--edge); border-radius: 18px;
+}
+.search svg { width: calc(var(--k) * 64px); height: calc(var(--k) * 64px); flex: none; }
+.search .q { font-weight: 800; font-size: calc(var(--k) * 80px); letter-spacing: -0.02em; color: var(--ink); line-height: 1; }
+.search .caret { width: 7px; height: calc(var(--k) * 88px); background: var(--volt); margin-left: -18px; flex: none; }
+.line { font-weight: 700; font-size: calc(var(--k) * 56px); line-height: 1.22; color: var(--ink); margin-top: calc(var(--k) * 56px); text-wrap: balance; }
+.line .v { color: var(--volt); }
+.small { font: 600 calc(var(--k) * 32px)/1.2 "Plex Mono"; letter-spacing: 0.12em; text-transform: uppercase; color: var(--volt); margin-top: calc(var(--k) * 22px); }
+
+.nw { white-space: nowrap; }
+.flood-theme .body { font-size: calc(var(--k) * 54px); }
+
+/* contrast probe: render.mjs screenshots the page with all text hidden to read what it sits on */
+body.probe * { color: transparent !important; text-shadow: none !important; }

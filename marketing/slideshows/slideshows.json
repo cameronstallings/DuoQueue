@@ -1,0 +1,897 @@
+{
+  "about": "TikTok photo slideshows for DuoQueue's TikTok, batch 1 (3 Oct 2026). Edit the copy here, then run `node render.mjs`. Field guide: README.md.",
+  "postOrder": [
+    "07",
+    "09",
+    "08",
+    "10",
+    "01",
+    "04",
+    "02",
+    "03",
+    "05",
+    "06"
+  ],
+  "slideshows": [
+    {
+      "id": "01",
+      "title": "6 habits keeping you hardstuck",
+      "topic": "get-better",
+      "hookType": "pain point",
+      "opener": "Here is the hard truth",
+      "appCta": true,
+      "caption": "Which one are you guilty of? Sources are on the slides. DuoQueue isn't endorsed by Riot Games. #soloqueue #rankedgrind #gamingtips #duoqueue #lfg",
+      "sources": [
+        "https://doi.org/10.1037/0033-295X.100.3.363 (Ericsson, Krampe and Tesch-Romer 1993)",
+        "https://dignitas.gg/articles/the-best-habits-to-climb-in-solo-queue (Dignitas habits guide, 14 Sep 2021, contributor lolmjlauer, a coaching guide, not research. Slide 3: 'allocate a maximum number of games to play in a single session'. Slide 4: 'pick a champion you are planning on playing that day and load into a custom game against a bot' and 'practice your last-hitting for 5 or so minutes'. Slide 5: 'stick to the same 3-5 champions'. Slide 6: 'Your mental will likely lose you the game before your nexus actually explodes')",
+        "https://www.itero.gg/articles/mastery-a-statistical-summary (1M+ Gold Solo games, patch 13.7: about 44% under 10k mastery, 50%+ above; smurf caveat)",
+        "https://support.riotgames.com/en-us/league-of-legends/gameplay/using-allied-and-all-chat ('/fullmute PlayerName' mutes that player's text and pings for the rest of the game; checked 3 Oct 2026)",
+        "https://www.tandfonline.com/doi/full/10.1080/1750984X.2022.2116723 (Williamson et al. 2022: process goals d = 1.36, outcome goals d = 0.09)",
+        "https://itunes.apple.com/search?term=duoqueue&country=us&entity=software (CTA search check: 'DuoQueue: Find a Gaming Duo' is first, 3 Oct 2026; listed Free with In-App Purchases)"
+      ],
+      "slides": [
+        {
+          "role": "hook",
+          "layout": "hook-photo",
+          "bg": "v12-w2-flat-unimpressed-stare",
+          "opener": "Here is the hard truth",
+          "head": "6 habits keeping you hardstuck",
+          "mark": "hardstuck"
+        },
+        {
+          "role": "tip",
+          "layout": "card",
+          "kicker": "HABIT 1 OF 6",
+          "head": "Queuing with no goal",
+          "body": "Playing isn't practice. Practice has one clear goal and feedback on it.",
+          "source": "Ericsson et al. 1993"
+        },
+        {
+          "role": "tip",
+          "layout": "log",
+          "kicker": "HABIT 2 OF 6",
+          "head": "No game limit for the night",
+          "body": "Set a max number of games before the session starts, and stop when you hit it.",
+          "rows": [
+            [
+              "GAME 1"
+            ],
+            [
+              "GAME 2"
+            ],
+            [
+              "GAME 3"
+            ],
+            [
+              "YOUR MAX",
+              "STOP"
+            ]
+          ],
+          "source": "Dignitas habits guide 2021"
+        },
+        {
+          "role": "tip",
+          "layout": "card",
+          "kicker": "HABIT 3 OF 6",
+          "head": "Jumping into ranked cold",
+          "body": "Take today's champ into a custom game against a bot and last-hit for about 5 minutes first.",
+          "source": "Dignitas habits guide 2021"
+        },
+        {
+          "role": "tip",
+          "layout": "card",
+          "kicker": "HABIT 4 OF 6",
+          "head": "Learning new champs in ranked",
+          "body": "Gold players on champs under 10k mastery won about 44% (2023 data). A Dignitas guide says stick to 3 to 5.",
+          "source": "iTero 2023; Dignitas habits guide 2021"
+        },
+        {
+          "role": "tip",
+          "layout": "tip-photo",
+          "bg": "v07-w1-ranting-squint",
+          "kicker": "HABIT 5 OF 6",
+          "head": "Arguing in chat",
+          "body": "Type /fullmute plus their name and play. Your mental can lose a game before your nexus does.",
+          "source": "Riot Support; Dignitas habits guide 2021"
+        },
+        {
+          "role": "tip",
+          "layout": "paper",
+          "kicker": "HABIT 6 OF 6",
+          "chip": "HARD TRUTH",
+          "head": "Chasing LP instead of a skill",
+          "mark": "a skill",
+          "body": "Try \"ward before every dragon\", not \"hit Gold\". In sports research, goals about what you do helped far more than goals about results.",
+          "source": "Williamson et al. 2022"
+        },
+        {
+          "role": "cta",
+          "layout": "cta",
+          "head": "Want a duo who works on these too?",
+          "line": "Search DuoQueue on the App Store.",
+          "small": "Free to download on iPhone."
+        }
+      ]
+    },
+    {
+      "id": "02",
+      "title": "How to review a ranked game in 10 minutes",
+      "topic": "get-better",
+      "hookType": "promise of value",
+      "opener": "Let me save you some time",
+      "appCta": true,
+      "caption": "Do this once after tonight's session. Save it so you have the steps. DuoQueue isn't endorsed by Riot Games. #gamingtips #soloqueue #rankedgrind #duoqueue #lfg",
+      "sources": [
+        "https://dignitas.gg/articles/how-to-analyze-your-vods-to-improve-at-league-of-legends (Dignitas VOD guide, 17 Apr 2021, author Sax: 'Use the fast forward feature to go 2x, 4x, or even 8x speed!'; 'Change the Fog of War to your team'; 'go over every death that you have'. 'Slow down only for fights and deaths' is MY TAKE)",
+        "https://doi.org/10.1037/0033-295X.100.3.363 (Ericsson, Krampe and Tesch-Romer 1993: a well-defined task, informative feedback, repetition; 'one fix, not five' is MY TAKE)",
+        "https://itunes.apple.com/search?term=duoqueue&country=us&entity=software (CTA search check)"
+      ],
+      "slides": [
+        {
+          "role": "hook",
+          "layout": "slab",
+          "opener": "Let me save you some time",
+          "head": "How to review a ranked game in 10 minutes",
+          "mark": "10 minutes",
+          "ghost": "10"
+        },
+        {
+          "role": "tip",
+          "layout": "card",
+          "kicker": "STEP 1 OF 6",
+          "head": "Fast-forward the quiet parts",
+          "body": "A Dignitas guide says replays go 2x, 4x, even 8x. Slow down only for fights and deaths.",
+          "source": "Dignitas VOD guide 2021"
+        },
+        {
+          "role": "tip",
+          "layout": "card",
+          "kicker": "STEP 2 OF 6",
+          "head": "Set fog of war to your team",
+          "body": "Now you only see what you could actually see in the game.",
+          "source": "Dignitas VOD guide 2021"
+        },
+        {
+          "role": "tip",
+          "layout": "card",
+          "kicker": "STEP 3 OF 6",
+          "head": "Skip straight to your deaths",
+          "body": "A Dignitas guide says: \"Go over every death that you have.\"",
+          "source": "Dignitas VOD guide 2021"
+        },
+        {
+          "role": "tip",
+          "layout": "card",
+          "kicker": "STEP 4 OF 6",
+          "head": "Back up 20 seconds before each death",
+          "body": "Pause there. Ask what you knew right then, not what happened next.",
+          "take": "MY TAKE"
+        },
+        {
+          "role": "tip",
+          "layout": "card",
+          "kicker": "STEP 5 OF 6",
+          "head": "Write down one fix",
+          "body": "Not five. Deliberate practice works on one well-defined task with feedback.",
+          "take": "MY TAKE",
+          "source": "Ericsson et al. 1993"
+        },
+        {
+          "role": "tip",
+          "layout": "flood",
+          "kicker": "STEP 6 OF 6",
+          "head": "Next game, only work on that",
+          "body": "A clear goal, feedback, repeat. That's the core of deliberate practice.",
+          "source": "Ericsson et al. 1993"
+        },
+        {
+          "role": "cta",
+          "layout": "cta",
+          "head": "No ranked duo to review with yet?",
+          "line": "Search DuoQueue on the App Store.",
+          "small": "Free to download on iPhone."
+        }
+      ]
+    },
+    {
+      "id": "03",
+      "title": "5 signs you should stop queuing tonight",
+      "topic": "get-better",
+      "hookType": "pain point",
+      "opener": "Nobody talks about this",
+      "appCta": true,
+      "caption": "Which sign hits closest? Sources are on the slides. DuoQueue isn't endorsed by Riot Games. #soloqueue #rankedgrind #gamingtips #duoqueue #lfg",
+      "sources": [
+        "https://dl.acm.org/doi/fullHtml/10.1145/3665463.3678787 (Streaks and Coping, CHI PLAY Companion 2024: 597,680 games, Korea top 3%; small effects; breaks after losing streaks slightly improved performance)",
+        "https://dignitas.gg/articles/the-best-habits-to-climb-in-solo-queue (Dignitas habits guide, 14 Sep 2021, contributor lolmjlauer, a coaching guide's opinion: 'play it like a series. If I win two straight, or lose two straight, I don't even play'; 'If you won two straight, then you should quit while you're ahead')",
+        "https://pmc.ncbi.nlm.nih.gov/articles/PMC11082399/ (Cregan, Toth and Campbell 2024, Frontiers in Psychology, n = 1,007: anger strongest predictor, beta 0.559; seeking distraction, for example 'taking a break to engage in other enjoyable activities', beta -0.114, 'an important emotion regulation strategy to reduce an individual's likelihood of experiencing tilt'; a survey, so association, not cause)",
+        "https://www.researchgate.net/publication/359706185 (DiFrancisco-Donoghue et al. 2021, BMJ Open Sport and Exercise Medicine 7:e001118, 21 players; no change in game performance)",
+        "https://itunes.apple.com/search?term=duoqueue&country=us&entity=software (CTA search check)"
+      ],
+      "slides": [
+        {
+          "role": "hook",
+          "layout": "hook-photo",
+          "bg": "v10-w2-closeup-deflated-looking-down",
+          "opener": "Nobody talks about this",
+          "head": "5 signs you should stop queuing tonight",
+          "mark": "stop queuing"
+        },
+        {
+          "role": "tip",
+          "layout": "log",
+          "kicker": "SIGN 1 OF 5",
+          "head": "You're on a losing streak",
+          "body": "In 597,680 high-elo Korean games, losing streaks went with worse play. Breaks helped a little.",
+          "rows": [
+            [
+              "GAME 1",
+              "LOSS"
+            ],
+            [
+              "GAME 2",
+              "LOSS"
+            ],
+            [
+              "GAME 3",
+              "?"
+            ]
+          ],
+          "source": "Streaks and Coping, CHI PLAY 2024"
+        },
+        {
+          "role": "tip",
+          "layout": "tip-photo",
+          "bg": "v15-w2-closeup-determined-stare",
+          "kicker": "SIGN 2 OF 5",
+          "head": "You just won two in a row",
+          "body": "A Dignitas guide says quit while you're ahead. Bank the wins and log off.",
+          "source": "Dignitas habits guide 2021 (opinion)"
+        },
+        {
+          "role": "tip",
+          "layout": "tip-photo",
+          "bg": "v06-w1-exasperated-head-back",
+          "kicker": "SIGN 3 OF 5",
+          "head": "You're angry, not just annoyed",
+          "body": "In a survey of 1,007 gamers, anger was the strongest predictor of tilt.",
+          "source": "Cregan, Toth and Campbell 2024"
+        },
+        {
+          "role": "tip",
+          "layout": "card",
+          "kicker": "SIGN 4 OF 5",
+          "head": "You haven't done anything else today",
+          "body": "Same survey: gamers who coped by stepping away to do something else were less likely to tilt.",
+          "source": "Cregan, Toth and Campbell 2024"
+        },
+        {
+          "role": "tip",
+          "layout": "flood",
+          "kicker": "SIGN 5 OF 5",
+          "head": "You're saying \"one more\"",
+          "body": "If you have to talk yourself into a game, you're done for the night.",
+          "take": "MY TAKE"
+        },
+        {
+          "role": "tip",
+          "layout": "tip-photo",
+          "bg": "v17-w2-empty-room",
+          "head": "Taking a break? Walk, don't sit",
+          "body": "In 2-hour gaming sessions, a 6-minute walk sharpened thinking more than a sitting break. Game scores didn't change.",
+          "source": "DiFrancisco-Donoghue et al. 2021"
+        },
+        {
+          "role": "cta",
+          "layout": "cta",
+          "head": "Done for tonight? Queue tomorrow with a duo, not four randoms.",
+          "line": "Search DuoQueue on the App Store.",
+          "small": "Free to download on iPhone."
+        }
+      ]
+    },
+    {
+      "id": "04",
+      "title": "5 things good duos settle before champ select",
+      "topic": "duo",
+      "hookType": "insider info",
+      "opener": "I wish somebody told me this sooner",
+      "appCta": true,
+      "caption": "Two minutes in the lobby saves a lot of tilt later. DuoQueue isn't endorsed by Riot Games. #duoqueue #rankedgrind #gamingtips #soloqueue #lfg",
+      "sources": [
+        "https://dignitas.gg/articles/best-duo-queue-role-combinations-to-carry (Dignitas, 12 Jan 2018, author Novalas, no coach title: Jungle+Mid, ADC+Support, Mid+Support, Jungle+Support, Jungle+Top, presented as his own suggestions)",
+        "https://arxiv.org/abs/1512.08321 (Kim, Keegan, Park and Oh, CHI 2016, 3.36M players: 'player proficiency increases team performance more than team congruency')",
+        "https://www.researchgate.net/publication/232489779_Measuring_Shared_Team_Mental_Models_A_Meta-Analysis (DeChurch and Mesmer-Magnus 2010; mostly work, lab and military teams)",
+        "https://kops.uni-konstanz.de/handle/123456789/10973 (Gollwitzer and Sheeran 2006, 94 studies, d = 0.65)",
+        "Stop rule is MY TAKE, informed by https://royalsocietypublishing.org/doi/10.1098/rsos.180329 and https://www.eurekalert.org/news-releases/1042313",
+        "https://itunes.apple.com/search?term=duoqueue&country=us&entity=software (CTA search check)"
+      ],
+      "slides": [
+        {
+          "role": "hook",
+          "layout": "hook-photo",
+          "bg": "v16-w2-explaining-brow-raised",
+          "opener": "I wish somebody told me this sooner",
+          "head": "5 things good duos settle before champ select",
+          "mark": "champ select"
+        },
+        {
+          "role": "tip",
+          "layout": "card",
+          "kicker": "1 OF 5",
+          "head": "Roles that play together",
+          "body": "One Dignitas writer's picks: jungle with mid, support or top. ADC with support. Mid with support.",
+          "source": "Dignitas duo roles 2018"
+        },
+        {
+          "role": "tip",
+          "layout": "card",
+          "kicker": "2 OF 5",
+          "head": "You both play your main role",
+          "body": "In a study of 3.36 million League players, being good at your role helped a team more than fitting the team.",
+          "source": "Kim et al. CHI 2016"
+        },
+        {
+          "role": "tip",
+          "layout": "card",
+          "kicker": "3 OF 5",
+          "head": "The early game plan",
+          "body": "Who you play around and your first move. Teams that share a picture of the plan perform better (mostly work teams, not games).",
+          "source": "DeChurch and Mesmer-Magnus 2010"
+        },
+        {
+          "role": "tip",
+          "layout": "rails",
+          "kicker": "4 OF 5",
+          "head": "One if-then call",
+          "body": "If-then plans helped people reach goals across 94 studies (not games).",
+          "rails": [
+            [
+              "YOU SAY",
+              "If their jungler shows top"
+            ],
+            [
+              "YOU BOTH DO",
+              "Take dragon."
+            ]
+          ],
+          "source": "Gollwitzer and Sheeran 2006"
+        },
+        {
+          "role": "tip",
+          "layout": "flood",
+          "kicker": "5 OF 5",
+          "head": "When you stop",
+          "body": "2 losses in a row or 2 hours, whichever comes first.",
+          "take": "MY TAKE"
+        },
+        {
+          "role": "cta",
+          "layout": "cta",
+          "head": "Need a ranked duo for League?",
+          "line": "Search DuoQueue on the App Store.",
+          "small": "Free to download on iPhone."
+        }
+      ]
+    },
+    {
+      "id": "05",
+      "title": "The best duo role combos, ranked (my take)",
+      "topic": "duo",
+      "hookType": "surprise",
+      "opener": "You might disagree",
+      "appCta": true,
+      "caption": "Tell me what I got wrong. This is my opinion, not a tier list. DuoQueue isn't endorsed by Riot Games. #duoqueue #gamingtips #rankedgrind #soloqueue #lfg",
+      "sources": [
+        "https://dignitas.gg/articles/best-duo-queue-role-combinations-to-carry (Dignitas, 12 Jan 2018, author Novalas: same top-5 order, presented as his opinion; it does not rank top + bot)",
+        "https://wiki.leagueoflegends.com/en-us/Position ('the bottom lane is shared by two players'; mid is 'at the center of the map')",
+        "https://itunes.apple.com/search?term=duoqueue&country=us&entity=software (CTA search check)"
+      ],
+      "slides": [
+        {
+          "role": "hook",
+          "layout": "hook-photo",
+          "bg": "v13-w2-one-finger-up",
+          "opener": "You might disagree",
+          "head": "The best duo role combos, ranked",
+          "mark": "role combos,",
+          "zone": {
+            "top": 1060
+          }
+        },
+        {
+          "role": "tip",
+          "layout": "paper",
+          "head": "Worst:\ntop + a bot laner",
+          "mark": "Worst:",
+          "body": "You start on opposite sides of the map, so you barely play together.",
+          "take": "MY TAKE"
+        },
+        {
+          "role": "tip",
+          "layout": "card",
+          "kicker": "RANK #5",
+          "head": "Jungle + top",
+          "body": "Top lane is an island. A jungler who plans top side changes that.",
+          "take": "MY TAKE"
+        },
+        {
+          "role": "tip",
+          "layout": "card",
+          "kicker": "RANK #4",
+          "head": "Jungle + support",
+          "body": "Once bot lane is stable, you can roam and ward the enemy jungle together.",
+          "take": "MY TAKE"
+        },
+        {
+          "role": "tip",
+          "layout": "card",
+          "kicker": "RANK #3",
+          "head": "Mid + support",
+          "body": "Your support can roam to mid through the river. A 2018 Dignitas guide ranks it 3rd too.",
+          "take": "MY TAKE ON THE RANKING",
+          "source": "Dignitas duo roles 2018"
+        },
+        {
+          "role": "tip",
+          "layout": "card",
+          "kicker": "RANK #2",
+          "head": "ADC + support",
+          "body": "You share a lane, so all of laning is duo time.",
+          "take": "MY TAKE ON THE RANKING",
+          "source": "League Wiki, Position"
+        },
+        {
+          "role": "tip",
+          "layout": "card",
+          "kicker": "RANK #1",
+          "head": "Jungle + mid",
+          "body": "Mid sits in the center of the map, so your jungler is never far. A 2018 Dignitas guide put it first too.",
+          "take": "MY TAKE ON THE RANKING",
+          "source": "Dignitas duo roles 2018; League Wiki"
+        },
+        {
+          "role": "cta",
+          "layout": "cta",
+          "head": "Need a ranked duo for your combo?",
+          "line": "Search DuoQueue on the App Store.",
+          "small": "Free to download on iPhone."
+        }
+      ]
+    },
+    {
+      "id": "06",
+      "title": "4 things to know before you duo in ranked",
+      "topic": "duo",
+      "hookType": "insider info",
+      "opener": "Stop scrolling for a second",
+      "appCta": true,
+      "caption": "Did you know the AFK one? DuoQueue isn't endorsed by Riot Games. #duoqueue #lfg #rankedgrind #soloqueue #gamingtips",
+      "sources": [
+        "https://support.riotgames.com/en-us/league-of-legends/gameplay/mmr-rank-and-lp ('Queueing with somebody you know confers certain advantages... slightly more difficult opponents or reduced LP gains'; LP refund requires 'The disruptive player is NOT part of your premade group')",
+        "https://support.riotgames.com/en-us/league-of-legends/gameplay/ranked-tiers-divisions-and-queues (Flex 'in groups of 1, 2, 3, and 5'; parties of 4 unranked)",
+        "https://dignitas.gg/articles/blogs/League-of-Legends/13939/dynamic-duo-queue-tips-for-league-of-legends (Dignitas, 9 Oct 2019, contributor Teatones: 'Normal and Flex-Queue are League of Legends' practice fields')",
+        "https://itunes.apple.com/search?term=duoqueue&country=us&entity=software (CTA search check)"
+      ],
+      "slides": [
+        {
+          "role": "hook",
+          "layout": "hook-photo",
+          "bg": "v04-w1-dead-straight-stare",
+          "opener": "Stop scrolling for a second",
+          "head": "4 things to know before you duo in ranked",
+          "mark": "before you duo",
+          "size": 0.86
+        },
+        {
+          "role": "tip",
+          "layout": "paper",
+          "kicker": "1 OF 4",
+          "chip": "HARD TRUTH",
+          "head": "Duoing isn't free LP",
+          "mark": "free LP",
+          "body": "Riot says it gives \"certain advantages\", so you may see slightly harder opponents or smaller LP gains.",
+          "source": "Riot Support, MMR, Rank and LP"
+        },
+        {
+          "role": "tip",
+          "layout": "card",
+          "kicker": "2 OF 4",
+          "head": "If your duo goes AFK, you don't get LP back",
+          "body": "Riot's LP refund for disrupted games only applies when the disruptive player is not in your premade.",
+          "source": "Riot Support, MMR, Rank and LP"
+        },
+        {
+          "role": "tip",
+          "layout": "card",
+          "kicker": "3 OF 4",
+          "head": "Ranked Flex has no groups of 4",
+          "body": "Flex takes groups of 1, 2, 3 or 5. Groups of 4 have to stick to unranked games.",
+          "source": "Riot Support, Ranked Queues"
+        },
+        {
+          "role": "tip",
+          "layout": "card",
+          "kicker": "4 OF 4",
+          "head": "Try new combos in normals or Flex first",
+          "body": "A Dignitas guide calls them League's \"practice fields\" for new duo plans.",
+          "source": "Dignitas duo tips 2019 (opinion)"
+        },
+        {
+          "role": "cta",
+          "layout": "cta",
+          "head": "Know the rules? Now find a ranked duo.",
+          "line": "Search DuoQueue on the App Store.",
+          "small": "Free to download on iPhone."
+        }
+      ]
+    },
+    {
+      "id": "07",
+      "title": "5 ranked myths you still believe",
+      "topic": "get-better",
+      "hookType": "surprise",
+      "opener": "This might surprise you",
+      "appCta": false,
+      "caption": "Which one did you believe? Sources: Riot /dev 2018, Phroxzon (Riot) 2025, Sapienza 2018, Univ. of Tsukuba 2024, Leavitt 2016, Riot Support. #gamingtips #rankedgrind #soloqueue #lfg",
+      "sources": [
+        "https://www.leagueoflegends.com/en-us/news/dev/dev-matchmaking-real-talk/ (26 Feb 2018: 'There's nothing in the MMR system that forces you to have lower-skill teammates or disproportionately higher-skill opponents')",
+        "https://www.dexerto.com/league-of-legends/lead-lol-dev-finally-confirms-if-losers-queue-actually-exists-2527357/ and https://dotesports.com/league-of-legends/news/get-good-lol-balance-boss-declares-losers-queue-doesnt-exist (July 2025, lead gameplay designer Matt 'Phroxzon' Leung-Harrison: 'Losers' queue is not true, we're not intentionally making you lose more games while you're losing'; ranked matches you on MMR only)",
+        "https://royalsocietypublishing.org/doi/10.1098/rsos.180329 (Sapienza et al. 2018: about 242,000 games, 16,665 players, 8 to 10% drop over a session)",
+        "https://www.eurekalert.org/news-releases/1042313 and https://www.sciencedirect.com/science/article/pii/S0747563224000876 (Matsui, Univ. of Tsukuba 2024)",
+        "https://dl.acm.org/citation.cfm?id=2858132 (Leavitt, Keegan and Clark, CHI 2016, 84,489 players in 10,293 games: pings have 'a positive but concave relationship with player performance')",
+        "https://support.riotgames.com/en-us/league-of-legends/gameplay/replays-faq-pro-tips"
+      ],
+      "slides": [
+        {
+          "role": "hook",
+          "layout": "hook-photo",
+          "bg": "v05-w1-head-tilt-deadpan",
+          "opener": "This might surprise you",
+          "head": "5 ranked myths you still believe",
+          "mark": "myths"
+        },
+        {
+          "role": "tip",
+          "layout": "paper",
+          "kicker": "MYTH 1 OF 5",
+          "head": "Riot puts me in loser's queue",
+          "quote": true,
+          "body": "Riot says ranked uses your MMR, not your loss streak. Nothing in it forces worse teammates or unfairly strong opponents on you.",
+          "source": "Riot /dev 2018; Phroxzon (Riot), July 2025"
+        },
+        {
+          "role": "tip",
+          "layout": "log",
+          "kicker": "MYTH 2 OF 5",
+          "head": "One more game wins it back",
+          "quote": true,
+          "body": "In about 242,000 League games, players did 8 to 10% worse by the end of a session.",
+          "rows": [
+            [
+              "GAME 1"
+            ],
+            [
+              "GAME 2"
+            ],
+            [
+              "GAME 3"
+            ],
+            [
+              "ONE MORE",
+              "?"
+            ]
+          ],
+          "source": "Sapienza et al. 2018"
+        },
+        {
+          "role": "tip",
+          "layout": "tip-photo",
+          "bg": "v14-w2-eyes-down-alone",
+          "kicker": "MYTH 3 OF 5",
+          "head": "I'll know when I'm too tired",
+          "quote": true,
+          "body": "In a 3-hour study, signs of slipping judgment showed up at hours 2 and 3 while players barely felt tired.",
+          "source": "Matsui, Univ. of Tsukuba 2024"
+        },
+        {
+          "role": "tip",
+          "layout": "card",
+          "kicker": "MYTH 4 OF 5",
+          "head": "Pinging doesn't help",
+          "quote": true,
+          "body": "In 10,293 League games, more pings went with better play, though each extra ping added a little less.",
+          "source": "Leavitt et al. CHI 2016"
+        },
+        {
+          "role": "tip",
+          "layout": "card",
+          "kicker": "MYTH 5 OF 5",
+          "head": "Your replays are there forever",
+          "quote": true,
+          "body": "They expire each patch, and the client keeps only your last 20 games.",
+          "source": "Riot Support, Replays FAQ"
+        },
+        {
+          "role": "closer",
+          "layout": "flood",
+          "head": "Save this. Send it to the friend who still blames loser's queue.",
+          "body": "Sources are on the slides and in the caption."
+        }
+      ]
+    },
+    {
+      "id": "08",
+      "title": "Have you ever noticed you play worse on no sleep?",
+      "topic": "get-better",
+      "hookType": "insider info",
+      "opener": "Have you ever noticed ___",
+      "appCta": false,
+      "caption": "Slide 4 is the honest part. What time do you usually stop? #gamingtips #rankedgrind #soloqueue #lfg",
+      "sources": [
+        "https://pmc.ncbi.nlm.nih.gov/articles/PMC8794592/ (Moen et al. 2022, 27 CS:GO players; better performers slept more; correlation, small sample)",
+        "https://pmc.ncbi.nlm.nih.gov/articles/PMC11669541/ (Smithies, Toth and Campbell 2024, 40 Rocket League players, about 29 h awake: about 48.6 ms slower and about 4.9x lapses on a vigilance reaction test; sleepier, less motivated; in-game goal difference not affected)",
+        "https://pmc.ncbi.nlm.nih.gov/articles/PMC3119836/ (Mah et al. 2011, Sleep, n = 11 basketball players, practice drills: free throws +9%, threes +9.2%)",
+        "https://aasm.org/seven-or-more-hours-of-sleep-per-night-a-health-necessity-for-adults/ (AASM and SRS consensus 2015, ages 18 to 60)"
+      ],
+      "slides": [
+        {
+          "role": "hook",
+          "layout": "hook-photo",
+          "bg": "p02-sleepy-cat-on-desk",
+          "opener": "Have you ever noticed ___",
+          "openerInHead": true,
+          "head": "Have you ever noticed you play worse on no sleep?",
+          "mark": "no sleep"
+        },
+        {
+          "role": "tip",
+          "layout": "tip-photo",
+          "bg": "v02-w1-eyes-down-serious",
+          "head": "Better players slept more",
+          "body": "In a study of 27 CS:GO players, the better performers got more sleep. Small group, and a correlation, not proof.",
+          "source": "Moen et al. 2022"
+        },
+        {
+          "role": "tip",
+          "layout": "tip-photo",
+          "bg": "v03-w1-heavy-lidded-unimpressed",
+          "head": "One all-nighter: about 49 ms slower",
+          "body": "After about 29 hours awake, Rocket League players were slower on a reaction test and zoned out about 5x more often.",
+          "source": "Smithies et al. 2024"
+        },
+        {
+          "role": "tip",
+          "layout": "tip-photo",
+          "bg": "v08-w2-side-glance-pensive",
+          "head": "The honest part: their game results held up",
+          "body": "They just felt sleepier and less motivated.",
+          "source": "Smithies et al. 2024"
+        },
+        {
+          "role": "tip",
+          "layout": "tip-photo",
+          "bg": "v15-w2-closeup-determined-stare",
+          "head": "Athletes who slept more shot better",
+          "body": "College basketball players who aimed for 10 hours in bed shot about 9% better in practice drills. Small study, not gaming.",
+          "source": "Mah et al. 2011"
+        },
+        {
+          "role": "tip",
+          "layout": "tip-photo",
+          "bg": "v11-w2-hand-over-face-eyes-shut",
+          "head": "Adults need 7+ hours",
+          "body": "That's the sleep medicine consensus for ages 18 to 60.",
+          "source": "AASM and Sleep Research Society 2015"
+        },
+        {
+          "role": "closer",
+          "layout": "tip-photo",
+          "bg": "v17-w2-empty-room",
+          "head": "Set a stop time before game one.",
+          "body": "Save this for tonight.",
+          "take": "MY TAKE"
+        }
+      ]
+    },
+    {
+      "id": "09",
+      "title": "What to say to your duo after a loss",
+      "topic": "duo",
+      "hookType": "promise of value",
+      "opener": "You need to hear this",
+      "appCta": false,
+      "caption": "Which one is hardest for you? Sources are on the slides. #gamingtips #rankedgrind #soloqueue #lfg",
+      "sources": [
+        "https://dl.acm.org/doi/10.1145/3411764.3445143 (Wu, Lee and Steinkuehler, CHI 2021, 95 high school League players: tilted most often by their own teammates rather than opponents)",
+        "https://dl.acm.org/doi/10.1145/3549488 (Tan, Rogers, Nacke, Drachen and Wade, CHI PLAY 2022, 48 teams: the high-cohesion team's chat ran apology then encouragement, the low-cohesion team's ran disagree then disagree and frustration then frustration; cohesion mattered to satisfaction regardless of result)",
+        "https://www.tandfonline.com/doi/full/10.1080/15213269.2020.1868322 (Monge and O'Brien 2022, Media Psychology: a confederate flamed participants; worse performance and more surrender proposals)"
+      ],
+      "slides": [
+        {
+          "role": "hook",
+          "layout": "hook-photo",
+          "bg": "v09-w2-pointing-at-viewer",
+          "opener": "You need to hear this",
+          "head": "What to say to your duo after a loss",
+          "mark": "after a loss",
+          "zone": {
+            "bottom": 1340
+          }
+        },
+        {
+          "role": "tip",
+          "layout": "rails",
+          "kicker": "1 OF 6",
+          "head": "One line after a lost teamfight",
+          "rails": [
+            [
+              "YOU SAY",
+              "My bad on that teamfight."
+            ],
+            [
+              "YOUR DUO SAYS",
+              "All good, we got the next one."
+            ]
+          ],
+          "take": "MY TAKE"
+        },
+        {
+          "role": "tip",
+          "layout": "card",
+          "kicker": "2 OF 6",
+          "head": "Own it, then lift them up",
+          "body": "In a study of League teams, the close-knit team answered apologies with encouragement.",
+          "source": "Tan et al. CHI PLAY 2022"
+        },
+        {
+          "role": "tip",
+          "layout": "log",
+          "kicker": "3 OF 6",
+          "head": "Don't start the loop",
+          "body": "In the same study, the team that didn't gel answered disagreement with more disagreement, and frustration with more frustration.",
+          "rows": [
+            [
+              "YOU",
+              "DISAGREE"
+            ],
+            [
+              "DUO",
+              "DISAGREE"
+            ],
+            [
+              "YOU",
+              "FRUSTRATION"
+            ],
+            [
+              "DUO",
+              "FRUSTRATION"
+            ]
+          ],
+          "source": "Tan et al. CHI PLAY 2022"
+        },
+        {
+          "role": "tip",
+          "layout": "card",
+          "kicker": "4 OF 6",
+          "head": "Know who tilts you",
+          "body": "In a survey of 95 League players, teammates tilted them more than opponents did.",
+          "source": "Wu et al. CHI 2021"
+        },
+        {
+          "role": "tip",
+          "layout": "paper",
+          "kicker": "5 OF 6",
+          "head": "Flaming your duo backfires",
+          "mark": "backfires",
+          "body": "When one player flamed, the whole team played worse and started more surrender votes.",
+          "source": "Monge and O'Brien 2022"
+        },
+        {
+          "role": "tip",
+          "layout": "card",
+          "kicker": "6 OF 6",
+          "head": "It matters even when you lose",
+          "body": "Close-knit teams were happier with the game whether they won or not.",
+          "source": "Tan et al. CHI PLAY 2022"
+        },
+        {
+          "role": "closer",
+          "layout": "flood",
+          "head": "Send this to your duo.",
+          "body": "Before your next loss, not after."
+        }
+      ]
+    },
+    {
+      "id": "10",
+      "title": "Your duo can't read your mind. Make these 5 calls in game.",
+      "topic": "duo",
+      "hookType": "promise of value",
+      "opener": "I just realized something",
+      "appCta": false,
+      "caption": "Which one does your duo never say? #gamingtips #rankedgrind #soloqueue #lfg",
+      "sources": [
+        "https://www.researchgate.net/publication/395066561 (Eldadi, Fitoussi and Tenenbaum 2025, Journal of Sport and Exercise Psychology 47(5): 4,040 CS:GO statements; experts' talk stayed on the task, non-experts drifted between off-task and emotional talk)",
+        "https://wiki.leagueoflegends.com/en-us/Ping (clicking an enemy summoner spell on the scoreboard posts '[Summoner (Champion)]: [spell]' to team chat, no timer; Cameron to test once in his client)",
+        "https://dl.acm.org/doi/10.1145/2998181.2998185 and https://www.researchgate.net/publication/313739142 (Kim, Engel, Woolley, Lin, McArthur and Malone, CSCW 2017, 248 teams: tacit coordination played a larger role than verbal communication)"
+      ],
+      "slides": [
+        {
+          "role": "hook",
+          "layout": "hook-photo",
+          "bg": "v01-w1-thinking-hand-on-chin",
+          "opener": "I just realized something",
+          "head": "Your duo can't read your mind. Make these 5 calls in game.",
+          "mark": "5 calls"
+        },
+        {
+          "role": "tip",
+          "layout": "rails",
+          "kicker": "CALL 1 OF 5",
+          "head": "Where, how many, what to do",
+          "body": "Expert CS:GO teams kept their talk on the task, not on feelings.",
+          "rails": [
+            [
+              "YOU SAY",
+              "Mid missing, two bot, back off."
+            ],
+            [
+              "YOUR DUO SAYS",
+              "Backing."
+            ]
+          ],
+          "take": "MY TAKE",
+          "source": "Eldadi et al. 2025"
+        },
+        {
+          "role": "tip",
+          "layout": "card",
+          "kicker": "CALL 2 OF 5",
+          "head": "Their Flash is down",
+          "body": "Hold Tab and click the enemy's Flash on the scoreboard. It posts their Flash in team chat. Then say when it's back.",
+          "source": "League Wiki, Ping"
+        },
+        {
+          "role": "tip",
+          "layout": "card",
+          "kicker": "CALL 3 OF 5",
+          "head": "\"Dragon next\"",
+          "body": "Call it a minute before it spawns, so you both have time to push your waves and walk over.",
+          "take": "MY TAKE"
+        },
+        {
+          "role": "tip",
+          "layout": "card",
+          "kicker": "CALL 4 OF 5",
+          "head": "\"Recall now\"",
+          "body": "Reset at the same time so you both come back with items.",
+          "take": "MY TAKE"
+        },
+        {
+          "role": "tip",
+          "layout": "flood",
+          "kicker": "CALL 5 OF 5",
+          "head": "\"Go\" or \"no\"",
+          "body": "One of you makes the final call in a teamfight. Argue after the game, not during.",
+          "take": "MY TAKE"
+        },
+        {
+          "role": "tip",
+          "layout": "paper",
+          "head": "Over time, you'll need fewer words",
+          "mark": "fewer words",
+          "body": "In a League team study, unspoken coordination played a bigger role than talking did.",
+          "take": "MY TAKE",
+          "source": "Kim et al. CSCW 2017"
+        },
+        {
+          "role": "closer",
+          "layout": "slab",
+          "head": "Save this for your next duo session.",
+          "body": "Which call does your duo never make?"
+        }
+      ]
+    }
+  ]
+}
