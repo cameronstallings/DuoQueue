@@ -66,8 +66,15 @@ export function captionTxt(show) {
     L.push("- No disclosure. Nothing in this post names DuoQueue, so leave Disclose commercial content off.");
     L.push("  Don't add DuoQueue or #duoqueue to the description or a comment either.");
   }
-  L.push("- Sound: TikTok puts a song on photo posts by itself. Change it to one from Commercial Sounds");
-  L.push("  (Add sound, Sounds, then the Commercial Sounds list), or turn the volume to zero.");
+  if (show.appCta) {
+    // A post that promotes DuoQueue may only use TikTok's Commercial Music Library (US Music Terms).
+    L.push("- Sound: COMMERCIAL SOUNDS ONLY. This post promotes DuoQueue, so pick a song from Add sound,");
+    L.push("  Sounds, then the Commercial Sounds list, or turn the volume to zero.");
+  } else {
+    // A post that promotes nothing may use the general library, trending songs included.
+    L.push("- Sound: any sound is fine, trending songs included, because this post promotes nothing.");
+    L.push("  Pick one that fits a gaming-tips mood (a chill or lo-fi beat) at normal volume.");
+  }
   L.push("- Cover: slide 01.");
   L.push("- No #leagueoflegends, #lol or #riot, and no screenshots of the app or the game.");
   if (show.appCta) {
@@ -150,8 +157,8 @@ export function howToPostTxt(shows, postOrder, { staleFolders = [], oldDraft = f
   L.push("   (contact-sheet.jpg shows the order if Photos mixes them up).");
   L.push("   Make sure it posts as a PHOTO post people flip through, not turned into a video.");
   L.push("3. Paste the TITLE and DESCRIPTION from caption.txt.");
-  L.push("4. Sound: TikTok adds a song by itself. Change it to one from Commercial Sounds (Add sound,");
-  L.push("   Sounds, Commercial Sounds), or turn the volume to zero.");
+  L.push("4. Sound: 07 to 10 promote nothing, so any sound is fine, trending songs included. 01 to 06");
+  L.push("   promote DuoQueue, so use Commercial Sounds only (Add sound, Sounds, Commercial Sounds).");
   L.push("5. 01 to 06 only: More options, then Content disclosure and ads, switch on Disclose commercial");
   L.push("   content, then pick Your brand. 07 to 10: leave it off.");
   L.push("6. Post. Then fill in that row of posting-log.csv.");
