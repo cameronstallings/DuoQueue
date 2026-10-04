@@ -211,7 +211,7 @@ function layoutHtml(slide, n, bgUrl) {
         html: `<div class="grid"></div>${slide.ghost ? `<div class="ghost in-slab" data-decor>${esc(slide.ghost)}</div>` : ""}${header(n)}
 <div class="fit wide${slide.ghost ? "" : " center"}" data-name="slab" style="top:${slide.ghost ? 380 : 300}px;bottom:420px">
   <div style="display:flex;flex-direction:column">
-    ${slide.opener ? `<span class="chip opener" data-block="opener">${esc(smart(slide.opener.replace(/\.$/, "")))}</span>` : ""}
+    ${slide.opener && !slide.openerInHead ? `<span class="chip opener" data-block="opener">${esc(smart(slide.opener.replace(/\.$/, "")))}</span>` : ""}
     <h1 class="head h-slab" data-block="head">${headHtml(slide)}</h1>
     ${slide.body ? `<p class="lead" data-block="lead">${txt(slide.body)}</p>` : ""}
   </div>

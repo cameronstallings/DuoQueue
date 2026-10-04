@@ -32,11 +32,11 @@
       "slides": [
         {
           "role": "hook",
-          "layout": "hook-photo",
-          "bg": "v12-w2-flat-unimpressed-stare",
+          "layout": "slab",
           "opener": "Here is the hard truth",
           "head": "6 habits keeping you hardstuck",
-          "mark": "hardstuck"
+          "mark": "hardstuck",
+          "ghost": "6"
         },
         {
           "role": "tip",
@@ -87,8 +87,7 @@
         },
         {
           "role": "tip",
-          "layout": "tip-photo",
-          "bg": "v07-w1-ranting-squint",
+          "layout": "card",
           "kicker": "HABIT 5 OF 6",
           "head": "Arguing in chat",
           "body": "Type /fullmute plus their name and play. Your mental can lose a game before your nexus does.",
@@ -211,11 +210,11 @@
       "slides": [
         {
           "role": "hook",
-          "layout": "hook-photo",
-          "bg": "v10-w2-closeup-deflated-looking-down",
+          "layout": "slab",
           "opener": "Nobody talks about this",
           "head": "5 signs you should stop queuing tonight",
-          "mark": "stop queuing"
+          "mark": "stop queuing",
+          "ghost": "5"
         },
         {
           "role": "tip",
@@ -241,8 +240,7 @@
         },
         {
           "role": "tip",
-          "layout": "tip-photo",
-          "bg": "v15-w2-closeup-determined-stare",
+          "layout": "card",
           "kicker": "SIGN 2 OF 5",
           "head": "You just won two in a row",
           "body": "A Dignitas guide says quit while you're ahead. Bank the wins and log off.",
@@ -250,8 +248,7 @@
         },
         {
           "role": "tip",
-          "layout": "tip-photo",
-          "bg": "v06-w1-exasperated-head-back",
+          "layout": "paper",
           "kicker": "SIGN 3 OF 5",
           "head": "You're angry, not just annoyed",
           "body": "In a survey of 1,007 gamers, anger was the strongest predictor of tilt.",
@@ -275,8 +272,7 @@
         },
         {
           "role": "tip",
-          "layout": "tip-photo",
-          "bg": "v17-w2-empty-room",
+          "layout": "card",
           "head": "Taking a break? Walk, don't sit",
           "body": "In 2-hour gaming sessions, a 6-minute walk sharpened thinking more than a sitting break. Game scores didn't change.",
           "source": "DiFrancisco-Donoghue et al. 2021"
@@ -309,11 +305,11 @@
       "slides": [
         {
           "role": "hook",
-          "layout": "hook-photo",
-          "bg": "v16-w2-explaining-brow-raised",
+          "layout": "slab",
           "opener": "I wish somebody told me this sooner",
           "head": "5 things good duos settle before champ select",
-          "mark": "champ select"
+          "mark": "champ select",
+          "ghost": "5"
         },
         {
           "role": "tip",
@@ -390,14 +386,10 @@
       "slides": [
         {
           "role": "hook",
-          "layout": "hook-photo",
-          "bg": "v13-w2-one-finger-up",
+          "layout": "slab",
           "opener": "You might disagree",
           "head": "The best duo role combos, ranked",
-          "mark": "role combos,",
-          "zone": {
-            "top": 1060
-          }
+          "mark": "role combos,"
         },
         {
           "role": "tip",
@@ -476,12 +468,12 @@
       "slides": [
         {
           "role": "hook",
-          "layout": "hook-photo",
-          "bg": "v04-w1-dead-straight-stare",
+          "layout": "slab",
           "opener": "Stop scrolling for a second",
           "head": "4 things to know before you duo in ranked",
           "mark": "before you duo",
-          "size": 0.86
+          "size": 0.86,
+          "ghost": "4"
         },
         {
           "role": "tip",
@@ -545,11 +537,11 @@
       "slides": [
         {
           "role": "hook",
-          "layout": "hook-photo",
-          "bg": "v05-w1-head-tilt-deadpan",
+          "layout": "slab",
           "opener": "This might surprise you",
           "head": "5 ranked myths you still believe",
-          "mark": "myths"
+          "mark": "myths",
+          "ghost": "5"
         },
         {
           "role": "tip",
@@ -586,8 +578,7 @@
         },
         {
           "role": "tip",
-          "layout": "tip-photo",
-          "bg": "v14-w2-eyes-down-alone",
+          "layout": "card",
           "kicker": "MYTH 3 OF 5",
           "head": "I'll know when I'm too tired",
           "quote": true,
@@ -646,48 +637,42 @@
         },
         {
           "role": "tip",
-          "layout": "tip-photo",
-          "bg": "v02-w1-eyes-down-serious",
+          "layout": "card",
           "head": "Better players slept more",
           "body": "In a study of 27 CS:GO players, the better performers got more sleep. Small group, and a correlation, not proof.",
           "source": "Moen et al. 2022"
         },
         {
           "role": "tip",
-          "layout": "tip-photo",
-          "bg": "v03-w1-heavy-lidded-unimpressed",
+          "layout": "paper",
           "head": "One all-nighter: about 49 ms slower",
           "body": "After about 29 hours awake, Rocket League players were slower on a reaction test and zoned out about 5x more often.",
           "source": "Smithies et al. 2024"
         },
         {
           "role": "tip",
-          "layout": "tip-photo",
-          "bg": "v08-w2-side-glance-pensive",
+          "layout": "card",
           "head": "The honest part: their game results held up",
           "body": "They just felt sleepier and less motivated.",
           "source": "Smithies et al. 2024"
         },
         {
           "role": "tip",
-          "layout": "tip-photo",
-          "bg": "v15-w2-closeup-determined-stare",
+          "layout": "paper",
           "head": "Athletes who slept more shot better",
           "body": "College basketball players who aimed for 10 hours in bed shot about 9% better in practice drills. Small study, not gaming.",
           "source": "Mah et al. 2011"
         },
         {
           "role": "tip",
-          "layout": "tip-photo",
-          "bg": "v11-w2-hand-over-face-eyes-shut",
+          "layout": "card",
           "head": "Adults need 7+ hours",
           "body": "That's the sleep medicine consensus for ages 18 to 60.",
           "source": "AASM and Sleep Research Society 2015"
         },
         {
           "role": "closer",
-          "layout": "tip-photo",
-          "bg": "v17-w2-empty-room",
+          "layout": "flood",
           "head": "Set a stop time before game one.",
           "body": "Save this for tonight.",
           "take": "MY TAKE"
@@ -710,14 +695,10 @@
       "slides": [
         {
           "role": "hook",
-          "layout": "hook-photo",
-          "bg": "v09-w2-pointing-at-viewer",
+          "layout": "slab",
           "opener": "You need to hear this",
           "head": "What to say to your duo after a loss",
-          "mark": "after a loss",
-          "zone": {
-            "bottom": 1340
-          }
+          "mark": "after a loss"
         },
         {
           "role": "tip",
@@ -819,11 +800,11 @@
       "slides": [
         {
           "role": "hook",
-          "layout": "hook-photo",
-          "bg": "v01-w1-thinking-hand-on-chin",
+          "layout": "slab",
           "opener": "I just realized something",
           "head": "Your duo can't read your mind. Make these 5 calls in game.",
-          "mark": "5 calls"
+          "mark": "5 calls",
+          "ghost": "5"
         },
         {
           "role": "tip",
