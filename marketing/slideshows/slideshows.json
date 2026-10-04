@@ -32,11 +32,11 @@
       "slides": [
         {
           "role": "hook",
-          "layout": "slab",
+          "layout": "hook-photo",
           "opener": "Here is the hard truth",
           "head": "6 habits keeping you hardstuck",
           "mark": "hardstuck",
-          "ghost": "6"
+          "bg": "s01-empty-chair-dim-room"
         },
         {
           "role": "tip",
@@ -128,11 +128,11 @@
       "slides": [
         {
           "role": "hook",
-          "layout": "slab",
+          "layout": "hook-photo",
           "opener": "Let me save you some time",
           "head": "How to review a ranked game in 10 minutes",
           "mark": "10 minutes",
-          "ghost": "10"
+          "bg": "s02-lamp-over-notebook"
         },
         {
           "role": "tip",
@@ -210,11 +210,11 @@
       "slides": [
         {
           "role": "hook",
-          "layout": "slab",
+          "layout": "hook-photo",
           "opener": "Nobody talks about this",
           "head": "5 signs you should stop queuing tonight",
           "mark": "stop queuing",
-          "ghost": "5"
+          "bg": "s03-clock-near-midnight"
         },
         {
           "role": "tip",
@@ -305,11 +305,11 @@
       "slides": [
         {
           "role": "hook",
-          "layout": "slab",
+          "layout": "hook-photo",
           "opener": "I wish somebody told me this sooner",
           "head": "5 things good duos settle before champ select",
           "mark": "champ select",
-          "ghost": "5"
+          "bg": "s04-mic-and-headphones-desk"
         },
         {
           "role": "tip",
@@ -386,10 +386,11 @@
       "slides": [
         {
           "role": "hook",
-          "layout": "slab",
+          "layout": "hook-photo",
           "opener": "You might disagree",
           "head": "The best duo role combos, ranked",
-          "mark": "role combos,"
+          "mark": "role combos,",
+          "bg": "s05-red-and-blue-controllers"
         },
         {
           "role": "tip",
@@ -468,12 +469,12 @@
       "slides": [
         {
           "role": "hook",
-          "layout": "slab",
+          "layout": "hook-photo",
           "opener": "Stop scrolling for a second",
           "head": "4 things to know before you duo in ranked",
           "mark": "before you duo",
           "size": 0.86,
-          "ghost": "4"
+          "bg": "s06-two-controllers"
         },
         {
           "role": "tip",
@@ -537,11 +538,11 @@
       "slides": [
         {
           "role": "hook",
-          "layout": "slab",
+          "layout": "hook-photo",
           "opener": "This might surprise you",
           "head": "5 ranked myths you still believe",
           "mark": "myths",
-          "ghost": "5"
+          "bg": "s07-keyboard-lit-in-dark"
         },
         {
           "role": "tip",
@@ -695,10 +696,11 @@
       "slides": [
         {
           "role": "hook",
-          "layout": "slab",
+          "layout": "hook-photo",
           "opener": "You need to hear this",
           "head": "What to say to your duo after a loss",
-          "mark": "after a loss"
+          "mark": "after a loss",
+          "bg": "s09-mic-pink-light"
         },
         {
           "role": "tip",
@@ -800,11 +802,11 @@
       "slides": [
         {
           "role": "hook",
-          "layout": "slab",
+          "layout": "hook-photo",
           "opener": "I just realized something",
           "head": "Your duo can't read your mind. Make these 5 calls in game.",
           "mark": "5 calls",
-          "ghost": "5"
+          "bg": "s10-headset-on-stand"
         },
         {
           "role": "tip",

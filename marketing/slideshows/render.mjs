@@ -196,7 +196,7 @@ async function main() {
   console.log(`copy check passed for ${shows.length} slideshow(s)`);
 
   // 2. backgrounds
-  ensureBackgrounds([...new Set(shows.flatMap((s) => s.slides.map((sl) => sl.bg).filter(Boolean)))]);
+  await ensureBackgrounds([...new Set(shows.flatMap((s) => s.slides.map((sl) => sl.bg).filter(Boolean)))]);
 
   // 3. render
   fs.mkdirSync(args.out, { recursive: true });

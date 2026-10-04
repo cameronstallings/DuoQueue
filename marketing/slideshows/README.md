@@ -102,10 +102,11 @@ A slide has a `role` (`hook`, `tip`, `cta`, `closer`), a `layout`, and text fiel
   know" fits on one line). The fit only ever shrinks from there.
 - `quote: true` wraps the headline in quotes (used for the myths in 07).
 - `take`: the opinion chip text, `MY TAKE` or `MY TAKE ON THE RANKING`.
-- `zone`: `{ "top": y, "bottom": y }` moves the text area on a photo so it misses a face or hand
-  (09 keeps its text above his pointing hand; 05 keeps it below his raised finger).
-- `bg`: a key from `backgrounds.mjs`. Only Cameron, his cats, or his empty apartment. Never
-  IMG_6075 or IMG_6236 (other people), IMG_2785 (shirtless selfie) or IMG_2825 (sword).
+- `zone`: `{ "top": y, "bottom": y }` moves the text area on a photo so it misses the subject.
+- `bg`: a key from `backgrounds.mjs`. FACELESS by Cameron's call (4 Oct 2026): free Unsplash
+  photos of gear and rooms, or his cat. Never a still of him, never another person, no readable
+  brand logo, no game on any screen. Never IMG_6075 or IMG_6236 (other people), IMG_2785
+  (shirtless selfie) or IMG_2825 (sword).
 - Straight quotes become curly ones on the slides; captions stay plain.
 
 ## Files
@@ -114,9 +115,10 @@ A slide has a `role` (`hook`, `tip`, `cta`, `closer`), a `layout`, and text fiel
 - `render.mjs`: the run (lint, backgrounds, render, check, captions, contact sheets)
 - `verify.mjs`: checks the finished folder from disk: every PNG complete and 1080x1920, the right
   number of slides, captions with the right disclosure note, contact sheets, report extents
-- `backgrounds.mjs`: builds `cache/bg/*.jpg` (2160x3840) from the RAW takes in
-  `Videos\UGC\week-1|week-2` with the approved tone map, and crops the photos in
+- `backgrounds.mjs`: builds `cache/bg/*.jpg` (2160x3840): downloads the chosen free Unsplash
+  photos once into `cache/stock/` and crops them to 9:16, and crops the cat photo in
   `Pictures\duoqueue-filming` (the monitor in IMG_2746 shows a game screen and is cropped out)
+- `stock/CREDITS.md`: who took each stock photo, with its Unsplash page
 - `lib/templates.mjs`, `lib/slide.css`: the HTML and CSS for every layout
 - `lib/page.js`: runs in the page: fits the type, places the ghost numbers and the photo fade,
   shrinks unnumbered cards, measures text, contrast
