@@ -73,7 +73,7 @@ export function captionTxt(show) {
   } else {
     // A post that promotes nothing may use the general library, trending songs included.
     L.push("- Sound: any sound is fine, trending songs included, because this post promotes nothing.");
-    L.push("  Pick one that fits a gaming-tips mood (a chill or lo-fi beat) at normal volume.");
+    L.push("  Pick one that fits a gaming-tips mood (a chill or lo-fi track) at normal volume.");
   }
   L.push("- Cover: slide 01.");
   L.push("- No #leagueoflegends, #lol or #riot, and no screenshots of the app or the game.");
