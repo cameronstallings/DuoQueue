@@ -258,10 +258,10 @@ ${PAGE_JS}
 }
 
 // Contact sheet: every slide of one slideshow on one image.
-export function contactSheetHtml({ title, info, slides }) {
+export function contactSheetHtml({ title, info, slides, tileHeight = 720 }) {
   const cols = 4;
   const tw = 405;
-  const th = 720;
+  const th = tileHeight; // 720 for the 9:16 TikTok slides, 540 for the 3:4 Instagram crops
   const gap = 24;
   const padX = 44;
   const rows = Math.ceil(slides.length / cols);

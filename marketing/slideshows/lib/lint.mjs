@@ -19,11 +19,12 @@ export function slideStrings(slide) {
   return out;
 }
 
-export function lintShow(show, { seriesLabel }) {
+export function lintShow(show, { seriesLabel, maxSlides = 8 }) {
   const errs = [];
   const where = (i, k) => `${show.id} slide ${i + 1} ${k}`;
   const n = show.slides.length;
-  if (n < 5 || n > 8) errs.push(`${show.id}: ${n} slides (want 5 to 8)`);
+  // 8 for TikTok; instagram.mjs passes 9, since its 07 to 10 gain a CTA slide (Instagram takes 20)
+  if (n < 5 || n > maxSlides) errs.push(`${show.id}: ${n} slides (want 5 to ${maxSlides})`);
   if (show.title.length > 90) errs.push(`${show.id}: title is ${show.title.length} characters (TikTok max 90)`);
   if (!/^\d\d$/.test(show.id)) errs.push(`${show.id}: id must be two digits`);
 

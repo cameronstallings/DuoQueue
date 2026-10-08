@@ -37,6 +37,24 @@ Output goes to `C:\Users\stall\Videos\UGC\Ready to post\Slideshows\`:
 Needs Node 22 or newer, Google Chrome (or set `CHROME_PATH`), and for the backgrounds an ffmpeg
 build with libplacebo (the gyan.dev full build has it).
 
+## Instagram carousels
+
+```
+node instagram.mjs               # all ten, into Videos\UGC\Ready to post\Instagram carousels
+node instagram.mjs 07 09         # only these
+```
+
+Instagram's tallest feed photo is 3:4 (1080x1440), and it crops anything taller itself; a
+centred crop would cut the top line of text. `instagram.mjs` renders and checks every slide
+exactly as `render.mjs` does, then captures a 3:4 window, x 0..1000 by y 198..1531, at device
+scale 1.08. All text sits in x 72..924, y 231..1491, so it lands centred, and the window starts
+under the paper band. A slide whose text would fall within 20 px of the crop edge fails.
+
+07 to 10 gain a closing DuoQueue slide (`ADDED_CTA`, cta layout), since Instagram has no
+account test to protect, which makes 09 and 10 nine slides (`lintShow` takes `maxSlides`).
+Captions put the title first (Instagram has no title field), add the Riot line and #duoqueue,
+and tell him to add a song (music lets a photo carousel show in the Reels tab).
+
 ## What the run checks
 
 The copy is checked before anything renders (`lib/lint.mjs`). The run stops on:
