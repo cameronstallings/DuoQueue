@@ -1,21 +1,21 @@
-// Instagram carousel versions of the TikTok slideshows (8 Oct 2026). TikTok gives the account 0
-// views, and Instagram is where Cameron's reach is.
+// Instagram versions of the TikTok slideshows, at Reels size (9:16, 1080x1920).
 //
-//   node instagram.mjs               all ten, into Videos\UGC\Ready to post\Instagram carousels
+//   node instagram.mjs               all ten, into Videos\UGC\Ready to post\Instagram reels
 //   node instagram.mjs 07 09         only these
 //   node instagram.mjs --out <dir>   somewhere else
 //
-// Every slide is rendered and checked exactly as render.mjs does at 1080x1920 (safe zone, fit,
-// overlap, fonts, contrast), then captured again as a 3:4 crop. Instagram's tallest feed photo is
-// 3:4 (1080x1440), it crops anything taller itself, and a centred crop of these slides would cut
-// their top line of text. The crop window is x 0..1000, y 198..1531 in slide pixels: every line
-// of text on every slide sits in x 72..924, y 231..1491 (cache/report.json, 3 Oct batch), so the
-// text lands centred with about 35 px above and 40 px below, and the window starts just under the
-// paper band (y 0..198) so no sliver of it shows. Chrome draws the crop at device scale 1.08, so
-// the text is rasterised at its final size rather than scaled up afterwards.
+// Cameron turns each set of slides into a Reel with music on his phone (Instagram's desktop
+// site can't add music). The first Instagram versions were 3:4 feed crops, and in a Reel those
+// were zoomed to fill the 9:16 screen and cut off at the sides (12 Oct 2026, his call: "make it
+// the right size... don't keep them anywhere if they don't fit"). So these are full 1080x1920
+// slides on the same layout as the TikTok ones: every line of text stays inside x 60..940 and
+// y 200..1500, clear of the button column on the right and the caption over the bottom, which
+// Reels and TikTok both put in the same places.
 //
-// 07 to 10 never named DuoQueue on TikTok (they were the account test). Instagram has no such
-// test, so each gains a closing slide in the same cta layout 01 to 06 end on.
+// Every slide is rendered and checked exactly as render.mjs does (safe zone, fit, overlap,
+// fonts, contrast). 07 to 10 never named DuoQueue on TikTok (they were the account test);
+// Instagram has no such test, so each gains a closing slide in the same cta layout 01 to 06
+// end on.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -28,14 +28,9 @@ import { ensureBackgrounds, bgSourceNote } from "./backgrounds.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const CACHE = path.join(HERE, "cache");
-const DEFAULT_OUT = "C:\\Users\\stall\\Videos\\UGC\\Ready to post\\Instagram carousels";
+const DEFAULT_OUT = "C:\\Users\\stall\\Videos\\UGC\\Ready to post\\Instagram reels";
 const W = 1080;
 const H = 1920;
-const CROP = { x: 0, y: 198, width: 1000, height: 4000 / 3 };
-const SCALE = 1.08; // 1000 x 1333.3 slide px -> 1080 x 1440
-const OUT_W = 1080;
-const OUT_H = 1440;
-const MARGIN = 20; // text must keep this far inside the crop
 const pad2 = (n) => String(n).padStart(2, "0");
 
 // The closing slide 07 to 10 gain. Same line and small text as 01 to 06; each head is its own,
@@ -86,17 +81,15 @@ export function instagramShows(all) {
 function captionTxt(show) {
   const n = show.slides.length;
   const L = [];
-  L.push(`CAROUSEL ${show.id}: ${show.title}`);
-  L.push(`Instagram feed post, ${n} photos at 3:4. Add 01.png to ${pad2(n)}.png in order, 01 first.`);
+  L.push(`REEL ${show.id}: ${show.title}`);
+  L.push(`Instagram Reel made from ${n} photos at 9:16. Add 01.png to ${pad2(n)}.png in order, 01 first.`);
   L.push("");
   L.push("CAPTION (paste it all):");
   L.push(show.caption);
   L.push("");
   L.push("BEFORE YOU POST:");
-  L.push("- Check the preview shows each whole slide. If Instagram crops them square, change the crop");
-  L.push("  before you tap Next, so the top and bottom lines of text aren't cut off.");
-  L.push("- Add a song. Photo carousels with music can also show in the Reels tab, which reaches people");
-  L.push("  who don't follow you. If Instagram offers no songs for this post, skip it.");
+  L.push("- In the Instagram app: + then Reel, pick the slides from your camera roll in order, add a song,");
+  L.push("  tap Next, and paste the caption.");
   L.push("- No #leagueoflegends, #lol or #riot.");
   if (show.appended) L.push(`- Slide ${pad2(n)} is new for Instagram: the TikTok version of this one never named DuoQueue.`);
   L.push("");
@@ -114,20 +107,6 @@ function captionTxt(show) {
   return L.join("\n") + "\n";
 }
 
-async function cropShot(page) {
-  await page.eval('document.body.classList.remove("probe"), true');
-  await page.send("Emulation.setDeviceMetricsOverride", { width: W, height: H, deviceScaleFactor: SCALE, mobile: false });
-  await page.eval("new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(true))))");
-  const r = await page.send("Page.captureScreenshot", {
-    format: "png",
-    clip: { ...CROP, scale: 1 },
-    captureBeyondViewport: false,
-    fromSurface: true,
-  });
-  await page.setSize(W, H);
-  return Buffer.from(r.data, "base64");
-}
-
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const data = JSON.parse(fs.readFileSync(path.join(HERE, "slideshows.json"), "utf8"));
@@ -141,7 +120,7 @@ async function main() {
     console.error("COPY CHECK FAILED:\n  " + lintErrors.join("\n  "));
     process.exit(1);
   }
-  console.log(`copy check passed for ${shows.length} carousel(s)`);
+  console.log(`copy check passed for ${shows.length} reel(s)`);
 
   await ensureBackgrounds([...new Set(shows.flatMap((s) => s.slides.map((sl) => sl.bg).filter(Boolean)))]);
   fs.mkdirSync(args.out, { recursive: true });
@@ -157,9 +136,6 @@ async function main() {
         const slide = show.slides[i];
         const r = await renderSlide(page, show, slide, i);
         const res = checkSlide(r);
-        const e = res.extent;
-        if (e.minLeft < CROP.x + MARGIN || e.maxRight > CROP.x + CROP.width - MARGIN) res.errors.push(`text x ${e.minLeft}..${e.maxRight} outside the crop`);
-        if (e.minTop < CROP.y + MARGIN || e.maxBottom > CROP.y + CROP.height - MARGIN) res.errors.push(`text y ${e.minTop}..${e.maxBottom} outside the crop`);
         const name = `${pad2(i + 1)}.png`;
         if (res.errors.length) {
           failed++;
@@ -167,14 +143,14 @@ async function main() {
           for (const err of res.errors) console.log(`    ERROR ${err}`);
           continue;
         }
-        const png = await cropShot(page);
         const file = path.join(folder, name);
-        fs.writeFileSync(file, png);
+        fs.writeFileSync(file, r.png);
         const back = pngSize(fs.readFileSync(file));
-        if (back.width !== OUT_W || back.height !== OUT_H) throw new Error(`${file} is ${back.width}x${back.height}, want ${OUT_W}x${OUT_H}`);
+        if (back.width !== W || back.height !== H) throw new Error(`${file} is ${back.width}x${back.height}, want ${W}x${H}`);
         written.push({ file, label: slideLabel(slide) });
+        const e = res.extent;
         console.log(
-          `${show.id}/${name} ok   ${slide.layout.padEnd(10)} text y ${(e.minTop - CROP.y).toFixed(0)}..${(e.maxBottom - CROP.y).toFixed(0)} of ${CROP.height.toFixed(0)}` +
+          `${show.id}/${name} ok   ${slide.layout.padEnd(10)} text x ${e.minLeft.toFixed(0)}..${e.maxRight.toFixed(0)} y ${e.minTop.toFixed(0)}..${e.maxBottom.toFixed(0)}` +
             (res.warnings.length ? `  warn: ${res.warnings.join("; ")}` : ""),
         );
       }
@@ -185,8 +161,8 @@ async function main() {
       fs.writeFileSync(path.join(folder, "caption.txt"), cap);
 
       if (written.length === show.slides.length) {
-        const info = `${show.slides.length} slides, 1080x1440 (3:4) for Instagram.${show.appended ? ` Slide ${pad2(show.slides.length)} is new: the TikTok version never named DuoQueue.` : ""}`;
-        const sheet = contactSheetHtml({ title: folderName(show), info, slides: written, tileHeight: 540 });
+        const info = `${show.slides.length} slides, 1080x1920 (9:16) for an Instagram Reel.${show.appended ? ` Slide ${pad2(show.slides.length)} is new: the TikTok version never named DuoQueue.` : ""}`;
+        const sheet = contactSheetHtml({ title: folderName(show), info, slides: written });
         const sheetHtml = path.join(CACHE, "html", `${show.id}-ig-sheet.html`);
         fs.writeFileSync(sheetHtml, sheet.html);
         await page.setSize(sheet.width, sheet.height);
