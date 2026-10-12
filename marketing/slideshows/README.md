@@ -37,18 +37,22 @@ Output goes to `C:\Users\stall\Videos\UGC\Ready to post\Slideshows\`:
 Needs Node 22 or newer, Google Chrome (or set `CHROME_PATH`), and for the backgrounds an ffmpeg
 build with libplacebo (the gyan.dev full build has it).
 
-## Instagram reels
+## Instagram: swipe posts and reels
 
 ```
-node instagram.mjs               # all ten, into Videos\UGC\Ready to post\Instagram reels
-node instagram.mjs 07 09         # only these
+node instagram.mjs               # both shapes, all ten, into Videos\UGC\Ready to post
+node instagram.mjs swipe 07 09   # one shape, only these
 ```
 
-Cameron makes each set of slides into an Instagram Reel with music on his phone. The slides are
-full 1080x1920 (9:16), on the same layout and safe zone as the TikTok ones (text inside x 60..940,
-y 200..1500, clear of the button column and the bottom caption, which Reels puts in the same
-places). An earlier 3:4 feed-crop version was dropped on 12 Oct 2026: Reels zoomed it to fill the
-screen and cut text off at the sides.
+Two shapes, because Cameron posts both (12 Oct 2026, testing which reaches more people):
+
+- **swipe** (`Instagram swipe posts`): 1080x1440 (3:4), photos people swipe through with a song
+  added in the app. 3:4 is the tallest a feed photo can be. Each slide is captured as a 3:4 window,
+  x 0..1000 by y 198..1531, at device scale 1.08; all text sits in x 72..924, y 231..1491, so it
+  lands centred, and a slide whose text would fall within 20 px of the crop edge fails.
+- **reel** (`Instagram reels`): 1080x1920 (9:16), turned into a Reel with music. A 3:4 photo in a
+  Reel is zoomed to fill the screen and cut off at the sides, so Reels get the full slide, on the
+  same layout and safe zone as the TikTok ones.
 
 07 to 10 gain a closing DuoQueue slide (`ADDED_CTA`, cta layout), since Instagram has no
 account test to protect, which makes 09 and 10 nine slides (`lintShow` takes `maxSlides`).
