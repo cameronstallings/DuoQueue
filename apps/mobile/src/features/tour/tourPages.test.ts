@@ -138,9 +138,12 @@ describe("tour copy", () => {
     expect(TOUR_COPY.card.body).toMatch(/^The picture first, then prompts\./);
     expect(TOUR_COPY.canDuo.title).toBe(`Lit up means you can${NBSP}queue.`);
     expect(TOUR_COPY.locked.title).toBe(`Both queue up. Duo${NBSP}locked.`);
+    // "Queue up" names the deck's new button in 1.0.2, so the like is "duo" here; the title and
+    // DUO LOCKED itself keep "both queued up".
     expect(TOUR_COPY.locked.body).toBe(
-      `Swipe the card or tap the bolt to queue up. When they queue up with you too, chat opens. Free accounts get ${FREE_DAILY_SWIPES} swipes a day.`,
+      `Swipe the card or tap the bolt to duo. When they duo you back, chat opens. Free accounts get ${FREE_DAILY_SWIPES} swipes a day.`,
     );
+    expect(TOUR_COPY.locked.body).not.toMatch(/queue up/i);
     expect(TOUR_COPY.yours.title).toBe("This is your card.");
     expect(TOUR_FOOT).toEqual({ skip: "Skip", start: "Start swiping", dotsLabel: "Tour page" });
   });

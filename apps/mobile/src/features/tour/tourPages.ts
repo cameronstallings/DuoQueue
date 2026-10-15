@@ -146,7 +146,9 @@ export const TOUR_COPY: Record<TourPage, TourCopy> = {
   locked: {
     heading: "Duo locked",
     title: `Both queue up. Duo${NBSP}locked.`,
-    body: `Swipe the card or tap the bolt to queue up. When they queue up with you too, chat opens. Free accounts get ${FREE_DAILY_SWIPES} swipes a day.`,
+    // "duo", not "queue up": from 1.0.2 "Queue up" is the deck's button for going online, so it
+    // can no longer also mean a like. The title and DUO LOCKED keep "both queued up".
+    body: `Swipe the card or tap the bolt to duo. When they duo you back, chat opens. Free accounts get ${FREE_DAILY_SWIPES} swipes a day.`,
   },
   yours: {
     heading: "Your card",
