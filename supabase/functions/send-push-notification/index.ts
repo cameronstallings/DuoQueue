@@ -187,7 +187,9 @@ async function notifyProfile(
     .eq("profile_id", profileId);
 
   const tokenList = (tokens ?? []).map((t) => t.expo_push_token as string);
-  await sendExpoPush(tokenList, title, body, pushData(extra, category));
+  // Every push from here is about a real person (a match, a message, a ping, a party), so it
+  // makes a sound; see ExpoPushOptions in _shared/expo-push.ts.
+  await sendExpoPush(tokenList, title, body, pushData(extra, category), { sound: true });
 }
 
 // ---------------------------------------------------------------------------------------------

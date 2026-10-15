@@ -54,9 +54,9 @@ function OnlineNowRow({ item }: { item: OnlineNowCard }) {
     <Card style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md }}>
       <PresenceAvatar uri={cardPicture(item)} name={item.display_name} size={56} isActive />
       <View style={{ flex: 1 }}>
-        <Text style={[type.bodyStrong, { color: colors.text }]}>
-          {item.display_name}, {item.age}
-        </Text>
+        {/* Name only: an age next to a name in a list of people reads like a dating app, which
+            DuoQueue is not. The deck card already leaves it out. */}
+        <Text style={[type.bodyStrong, { color: colors.text }]}>{item.display_name}</Text>
         <Text style={[type.caption, { color: colors.textMuted }]}>{timeAgo(item.lastActiveAt)}</Text>
         {item.shared_games_count > 0 && (
           <Text style={[type.caption, { color: colors.textMuted }]}>

@@ -13,7 +13,12 @@ export function useHeartbeat() {
 
   useEffect(() => {
     function beat() {
-      void supabase.rpc("heartbeat");
+      // A Supabase query only goes out when something awaits it or calls .then(). The bare
+      // `void supabase.rpc("heartbeat")` this used to be built the request and dropped it, so
+      // no heartbeat was ever sent and last_active_at stopped moving after 2 Oct 2026.
+      supabase.rpc("heartbeat").then(({ error }) => {
+        if (error) console.warn("Heartbeat failed:", error.message);
+      });
     }
     function start() {
       beat();

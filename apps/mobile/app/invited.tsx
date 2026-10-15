@@ -146,10 +146,10 @@ export default function InvitedScreen() {
                 becoming an error. */}
             {!isPending && !isError && card ? (
               <>
-                <Text style={[type.caption, { color: colors.textMuted }]}>
-                  {card.age}
-                  {card.region ? ` · ${card.region.toUpperCase()}` : ""}
-                </Text>
+                {/* Region only, no age: an age on a person's card reads like a dating app. */}
+                {card.region ? (
+                  <Text style={[type.caption, { color: colors.textMuted }]}>{card.region.toUpperCase()}</Text>
+                ) : null}
                 {card.topGames.length > 0 && (
                   <View
                     style={{

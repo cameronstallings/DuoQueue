@@ -43,7 +43,9 @@ const mocks = vi.hoisted(() => {
     /** When true, `.maybeSingle()` never answers — a read still in flight, and staying there. */
     hangRead: false,
     selects: 0,
-    /** Patches that reached `profiles.update(...)`, i.e. the `last_active_at` stamp. */
+    /** Patches that reached `profiles.update(...)`. The `last_active_at` stamp is NOT one of
+     * them any more: it goes through `rpc("heartbeat")` (see rpcCalls), because 0055 took the
+     * column out of the client's UPDATE grant. */
     updates: [] as Row[],
     /**
      * The single lever for "what happened while the read was in flight" — a token lapsing, a
@@ -662,8 +664,10 @@ describe("the once-per-user onProfileReady latch", () => {
     await flush();
 
     expect(state.pushRegistrations).toEqual(["u1"]);
-    expect(state.updates).toHaveLength(1);
-    expect(Object.keys(state.updates[0] ?? {})).toEqual(["last_active_at"]);
+    // Through heartbeat(), never a direct write: the column is not client-writable since 0055,
+    // and the direct .update() this used to be failed on every sign-in.
+    expect(state.rpcCalls.filter((c) => c.fn === "heartbeat")).toHaveLength(1);
+    expect(state.updates).toEqual([]);
   });
 
   it("does not spend the one-shot iOS permission prompt before there is a profile", async () => {
@@ -679,6 +683,7 @@ describe("the once-per-user onProfileReady latch", () => {
     expect(store.getState().profileStatus).toBe("missing");
     expect(state.pushRegistrations).toEqual([]);
     expect(state.updates).toEqual([]);
+    expect(state.rpcCalls.filter((c) => c.fn === "heartbeat")).toEqual([]);
     // The session itself is enough for RevenueCat, which must not touch `profiles`.
     expect(state.purchasesConfigured).toEqual(["u1"]);
   });
@@ -744,12 +749,12 @@ describe("the once-per-user onProfileReady latch", () => {
     await store.getState().completeSignup({ dob: "1994-03-03", timezone: "America/Chicago" });
     await flush();
 
-    expect(state.rpcCalls).toEqual([
-      {
-        fn: "complete_signup",
-        args: { p_dob: "1994-03-03", p_timezone: "America/Chicago", p_display_name: null },
-      },
-    ]);
+    expect(state.rpcCalls[0]).toEqual({
+      fn: "complete_signup",
+      args: { p_dob: "1994-03-03", p_timezone: "America/Chicago", p_display_name: null },
+    });
+    // ...and then the profile being ready stamps last_active_at, once.
+    expect(state.rpcCalls.slice(1).map((c) => c.fn)).toEqual(["heartbeat"]);
     // Not optional: this is what lets routing leave the age gate.
     expect(store.getState().profileStatus).toBe("loaded");
     expect(state.pushRegistrations).toEqual(["u1"]);
@@ -792,7 +797,8 @@ describe("completeSignup", () => {
 
     await store.getState().completeSignup({ dob: "1994-03-03", timezone: "UTC", displayName: "Nova" });
 
-    expect(state.rpcCalls[0]?.args.p_display_name).toBe("Nova");
+    // initialize() found a profile, so a heartbeat went out first; find the signup call itself.
+    expect(state.rpcCalls.find((c) => c.fn === "complete_signup")?.args.p_display_name).toBe("Nova");
   });
 });
 

@@ -170,13 +170,12 @@ function onProfileReady(userId: string): void {
   profileReadyFor = userId;
   void clearPendingDisplayName();
   void registerForPushNotifications(userId);
-  void supabase
-    .from("profiles")
-    .update({ last_active_at: new Date().toISOString() })
-    .eq("id", userId)
-    .then(({ error }) => {
-      if (error) console.warn("Failed to update last_active_at:", error.message);
-    });
+  // Through heartbeat(), which stamps the server's now(): migration 0055 took last_active_at out
+  // of the client's UPDATE grant, so the direct .update() this used to be had failed on every
+  // sign-in since. The userId argument is implied: heartbeat() writes auth.uid()'s own row.
+  supabase.rpc("heartbeat").then(({ error }) => {
+    if (error) console.warn("Failed to update last_active_at:", error.message);
+  });
 }
 
 /**
