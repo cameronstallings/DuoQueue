@@ -15,7 +15,9 @@ import {
   joinNames,
   partyConsent,
   partyInviteErrorMessage,
+  partyJoinErrorOutcome,
   partyLfgErrorMessage,
+  partyLfgStartFailure,
   partyLiveLine,
   partyMemberLine,
 } from "./partyCopy";
@@ -126,7 +128,7 @@ describe("the party LFG post's words", () => {
     const first = partyConsent({ time: "11:40 PM", otherName: "Alex", firstPost: true });
     expect(first.title).toBe("Share a post to find a third?");
     expect(first.body).toBe(
-      "Anyone who joins DuoQueue with your code can take the last seat in this party. The code works until 11:40 PM, plus 15 minutes for anyone already signing up. Alex will see a note in your party chat. Only share it where adults look for teammates.",
+      "Anyone who joins DuoQueue with your code can take the last seat in this party. Players with the code can see both your names and ages. The code works until 11:40 PM, plus 15 minutes for anyone already signing up. Alex will see a note in your party chat. Only share it where adults look for teammates.",
     );
     expect(first.confirm).toBe("Share post");
     expect(first.cancel).toBe("Not now");
@@ -135,14 +137,14 @@ describe("the party LFG post's words", () => {
   it("asks the member who did not start the post too, since it carries their own rank", () => {
     const second = partyConsent({ time: "11:40 PM", otherName: "Sam", firstPost: false });
     expect(second.body).toBe(
-      "Anyone who joins DuoQueue with your party's code can take the last seat in this party. The code works until 11:40 PM, plus 15 minutes for anyone already signing up. Your post shows your own rank. Only share it where adults look for teammates.",
+      "Anyone who joins DuoQueue with your party's code can take the last seat in this party. Players with the code can see both your names and ages. The code works until 11:40 PM, plus 15 minutes for anyone already signing up. Your post shows your own rank. Only share it where adults look for teammates.",
     );
     expect(second.body).not.toContain("note in your party chat");
   });
 
   it("still reads when the time or the other name is unknown", () => {
     expect(partyConsent({ time: null, otherName: null, firstPost: true }).body).toBe(
-      "Anyone who joins DuoQueue with your code can take the last seat in this party. The code works for 2 hours, plus 15 minutes for anyone already signing up. Your partner will see a note in your party chat. Only share it where adults look for teammates.",
+      "Anyone who joins DuoQueue with your code can take the last seat in this party. Players with the code can see both your names and ages. The code works for 2 hours, plus 15 minutes for anyone already signing up. Your partner will see a note in your party chat. Only share it where adults look for teammates.",
     );
   });
 
@@ -171,14 +173,39 @@ describe("partyLfgErrorMessage", () => {
     ).toBe(PARTY_FULL_MESSAGE);
   });
 
-  it("says a party needs two players, by its hint or by its token", () => {
+  it("says who can post in its own words, never 0089's hint, which is false for an unmatched pair of two", () => {
+    expect(PARTY_LFG_COPY.notReady).toBe("Only two matched players with active accounts can post for a third.");
     expect(
       partyLfgErrorMessage(
-        raise("party_not_ready", "A party needs two players before it can look for a third."),
+        raise("party_not_ready", "A party needs two players before it can look for a third.", "party_not_ready"),
         fallback,
       ),
-    ).toBe("A party needs two players before it can look for a third.");
+    ).toBe(PARTY_LFG_COPY.notReady);
     expect(partyLfgErrorMessage(raise("party_not_ready"), fallback)).toBe(PARTY_LFG_COPY.notReady);
+  });
+
+  it("shows partner_not_ready's hint, which names who to ask, as a step and not an error", () => {
+    const hint = "Ask Alex to open this party on the latest DuoQueue first. Then they can see your post and stop it.";
+    const err = raise("party_not_ready", hint, "partner_not_ready");
+    expect(partyLfgErrorMessage(err, fallback)).toBe(hint);
+    expect(partyLfgStartFailure(err)).toEqual({ kind: "step", title: "One more step", message: hint });
+    // Without its hint it still says the step, never "only two matched players".
+    expect(partyLfgStartFailure(raise("party_not_ready", null, "partner_not_ready"))).toEqual({
+      kind: "step",
+      title: "One more step",
+      message: PARTY_LFG_COPY.partnerFirst,
+    });
+  });
+
+  it("makes every other Share failure an error toast", () => {
+    expect(partyLfgStartFailure(raise("party_not_ready", null, "party_not_ready"))).toEqual({
+      kind: "error",
+      message: PARTY_LFG_COPY.notReady,
+    });
+    expect(partyLfgStartFailure(new TypeError("Network request failed"))).toEqual({
+      kind: "error",
+      message: PARTY_LFG_COPY.startFailed,
+    });
   });
 
   it("shows any other server sentence written as a hint", () => {
@@ -213,6 +240,31 @@ describe("joining with a code", () => {
     expect(partyMemberLine("Sam", null)).toBe("Sam");
   });
 
+  it("leaves the arrival on a Join refusal that will not change, and stays when a second tap can help", () => {
+    // 0089's kill switch revokes execute (42501), and a function that is gone is PGRST202: the
+    // party is not available, as every other read of this feature says.
+    expect(partyJoinErrorOutcome({ code: "42501", message: "permission denied for function join_party_by_code" })).toEqual(
+      { message: PARTY_JOIN_RESULT_COPY.unavailable, leave: true },
+    );
+    expect(partyJoinErrorOutcome({ code: "PGRST202", message: "Could not find the function" })).toEqual({
+      message: PARTY_JOIN_RESULT_COPY.unavailable,
+      leave: true,
+    });
+    expect(partyJoinErrorOutcome(raise("account_banned"))).toEqual({ message: PARTY_LFG_COPY.banned, leave: true });
+    expect(partyJoinErrorOutcome(raise("profile_not_ready", "Finish setting up your profile first."))).toEqual({
+      message: "Finish setting up your profile first.",
+      leave: true,
+    });
+    expect(partyJoinErrorOutcome(raise("rate_limit_exceeded:join_party_by_code"))).toEqual({
+      message: TOO_MANY_TRIES_MESSAGE,
+      leave: false,
+    });
+    expect(partyJoinErrorOutcome(new TypeError("Network request failed"))).toEqual({
+      message: INVITE_FALLBACK_MESSAGE,
+      leave: false,
+    });
+  });
+
   it("says why there was no seat", () => {
     expect(PARTY_JOIN_RESULT_COPY.full).toBe(
       "That party's last seat was taken before you got there. You can still find players here.",
@@ -232,6 +284,9 @@ describe("joining with a code", () => {
     );
     expect(PARTY_CODE_FIELD_COPY.open).toBe("Have a party code?");
     expect(PARTY_CODE_FIELD_COPY.full).toBe("That party's last seat is spoken for.");
+    // Offline or a timeout: nothing is said about the code itself.
+    expect(PARTY_CODE_FIELD_COPY.checkFailed).toBe("Couldn't check that code. Tap to try again.");
+    expect(PARTY_CODE_FIELD_COPY.checkFailed).not.toMatch(/did not work/);
   });
 });
 

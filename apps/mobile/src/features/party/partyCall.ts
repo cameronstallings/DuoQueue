@@ -115,29 +115,44 @@ export type PartyLfgView =
 
 /**
  * What the party screen's LFG row shows.
- *  - hidden: the feature is unavailable, or the party is not exactly two (a full party has no
- *    seat to offer, and one player alone is not a party looking for a third);
- *  - loading: the members or the first read are still coming (a skeleton the height of the
- *    button, never a spinner);
+ *  - hidden: the feature is unavailable or not known to be available yet (before 0089 the
+ *    screen is build 19's exactly, with no skeleton that comes and goes), the members could not
+ *    be read, the party is not exactly two (a full party has no seat to offer, and one player
+ *    alone is not a party looking for a third), or there is no live post and the two cannot
+ *    make one (partyPairCanPost: a Share that the server refuses every time is a dead button);
+ *  - loading: the feature is known to be there and the members, the first read or the pair
+ *    check are still coming (a skeleton the height of the button, never a spinner);
  *  - idle: no live post, so "Share LFG post";
  *  - live: the post, whose it is and until when, with Stop. A post whose time has passed on this
  *    phone's clock reads idle until the next read drops it.
  */
 export function partyLfgView(input: {
-  available: boolean;
+  /** True or false once a read or the probe (usePartyLfgAvailability) has answered; null before. */
+  available: boolean | null;
   pending: boolean;
   memberCount: number | null;
+  /** The member list's read failed (and there is no earlier one). */
+  membersFailed: boolean;
+  /** partyPairCanPost: null while it cannot be told yet. */
+  pairCanPost: boolean | null;
   call: PartyCallRow | null;
   nowMs: number;
 }): PartyLfgView {
-  if (!input.available) return { kind: "hidden" };
-  if (input.memberCount === null) return { kind: "loading" };
-  if (input.memberCount !== 2) return { kind: "hidden" };
+  if (input.available === false) return { kind: "hidden" };
+  if (input.memberCount === null) {
+    return input.membersFailed || input.available !== true ? { kind: "hidden" } : { kind: "loading" };
+  }
+  if (input.memberCount !== 2 || input.available !== true) return { kind: "hidden" };
   if (input.pending) return { kind: "loading" };
   const call = input.call;
-  if (!call) return { kind: "idle" };
-  const untilMs = Date.parse(call.expires_at);
-  if (!Number.isFinite(untilMs) || untilMs <= input.nowMs) return { kind: "idle" };
+  const untilMs = call ? Date.parse(call.expires_at) : Number.NaN;
+  if (!call || !Number.isFinite(untilMs) || untilMs <= input.nowMs) {
+    // No live post: Share only for a pair the server will let post. A live post (below) is
+    // always shown, whatever this phone's pair check says, so its Stop is never out of reach.
+    if (input.pairCanPost === false) return { kind: "hidden" };
+    if (input.pairCanPost === null) return { kind: "loading" };
+    return { kind: "idle" };
+  }
   const name = call.sharer_name?.trim();
   return {
     kind: "live",
@@ -148,6 +163,76 @@ export function partyLfgView(input: {
     gameName: call.game_name,
     untilMs,
   };
+}
+
+/**
+ * Whether this party of two can make a post, as far as this phone can tell: 0089's
+ * start_party_call only lets two players post who share a LIVE 1:1 match and are both ready
+ * (active, onboarded, not banned or suspended). A party of two can be neither: a founder who
+ * blocked the other founder after a third joined from the deck leaves the founder and the third,
+ * who were never matched; the founders can unmatch; a member can pause their account. Without
+ * this check Share was a button that failed every time.
+ *
+ *  - false: a member is hidden from this viewer (public_profiles drops exactly the not-ready
+ *    accounts), or the match list has loaded and the other member is not in it (it lists live
+ *    matches only, unmatched_at null);
+ *  - true: both visible and the other member is a live match, or the match list failed (the
+ *    server decides, and its refusal now reads true: partyLfgErrorMessage);
+ *  - null: not known yet (the viewer, the members or the match list are still loading).
+ */
+export function partyPairCanPost(input: {
+  myId: string | null | undefined;
+  memberIds: readonly string[] | null;
+  visibleCount: number;
+  /** Every live match's other player, or null while the match list loads. */
+  matchedIds: readonly string[] | null;
+  matchesFailed: boolean;
+}): boolean | null {
+  if (!input.myId || !input.memberIds) return null;
+  if (input.memberIds.length !== 2) return false;
+  if (input.visibleCount < input.memberIds.length) return false;
+  const other = input.memberIds.find((id) => id !== input.myId);
+  if (!other) return false;
+  if (input.matchedIds) return input.matchedIds.includes(other);
+  return input.matchesFailed ? true : null;
+}
+
+/**
+ * Matches > "Have a party code?": what resolve_party_code said about the typed code. An error is
+ * its own answer, never "not found": offline or a timeout says nothing about the code, so the
+ * field must not tell the player the code did not work (nor buzz an error), and the error is not
+ * cached as an answer (the query throws, so the same code is asked again).
+ *  - idle: no whole code typed;
+ *  - checking: the question is out (including a retry after an error);
+ *  - error: it could not be asked (failed, or paused because the phone is offline);
+ *  - not-found: zero rows, or a status this app does not know;
+ *  - found: live, full or ended.
+ */
+export type PartyCodeLookup =
+  | { kind: "idle" }
+  | { kind: "checking" }
+  | { kind: "error" }
+  | { kind: "not-found" }
+  | { kind: "found"; row: ResolvedPartyCode };
+
+export function partyCodeLookupState(input: {
+  asked: boolean;
+  /** The query's data: the row, null for not a party code, undefined before any answer. */
+  data: ResolvedPartyCode | null | undefined;
+  isError: boolean;
+  isFetching: boolean;
+  isPaused: boolean;
+}): PartyCodeLookup {
+  if (!input.asked) return { kind: "idle" };
+  if (input.data !== undefined) {
+    const row = input.data;
+    return row && (row.status === "live" || row.status === "full" || row.status === "ended")
+      ? { kind: "found", row }
+      : { kind: "not-found" };
+  }
+  if (input.isPaused) return { kind: "error" };
+  if (input.isFetching) return { kind: "checking" };
+  return input.isError ? { kind: "error" } : { kind: "checking" };
 }
 
 export type PartyPreview =

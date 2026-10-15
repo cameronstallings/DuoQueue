@@ -36,7 +36,11 @@ export default function PartyDeckScreen() {
   // Polled while this screen is up, because the moment that matters here (the third person
   // accepting, or saying no) happens on somebody else's phone. A party push or a return to the
   // app refreshes both sooner (usePartyFreshness); the poll covers anyone with pushes off.
-  const { data: members, isLoading: membersLoading } = usePartyMembers(partyId, { refetchInterval: PARTY_POLL_MS });
+  const {
+    data: members,
+    isLoading: membersLoading,
+    isError: membersError,
+  } = usePartyMembers(partyId, { refetchInterval: PARTY_POLL_MS });
   const { data: pendingInvites } = usePartyPendingInvites(partyId);
   const { cards, isLoading, error, popTop, restoreTop, refetch } = usePartyDeck(partyId);
   const swipeAction = usePartySwipeAction(partyId);
@@ -46,8 +50,10 @@ export default function PartyDeckScreen() {
   // (0070), so the deck would only be swipes that go nowhere. The chat is the party now.
   const isFull = (members?.ids.length ?? 0) >= PARTY_CAP;
   const waitingOn = joinNames((pendingInvites ?? []).map((invite) => invite.display_name));
-  const lfg = usePartyLfg(partyId, members);
-  const lfgShown = lfg.view.kind !== "hidden";
+  const lfg = usePartyLfg(partyId, members, membersError);
+  // Only a row that is really there (Share, or the live post) changes the caption: a skeleton
+  // must not, or the caption would switch and switch back before 0089 is live.
+  const lfgShown = lfg.view.kind === "idle" || lfg.view.kind === "live";
 
   function openChat() {
     router.push({ pathname: "/party/[partyId]/chat", params: { partyId } });

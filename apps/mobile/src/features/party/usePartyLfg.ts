@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { Alert, Share } from "react-native";
 import * as Clipboard from "expo-clipboard";
+import { useQuery } from "@tanstack/react-query";
 
+import { fetchMatches, MATCHES_QUERY_KEY } from "@/features/chat/useMatches";
 import { REGION_LABELS } from "@/features/onboarding/profile-labels";
 import { useEditableProfileDetails } from "@/features/profile/useEditableProfileDetails";
 import { partyLfgPost, lfgRankParts, lfgTags } from "@/features/queue/lfgPost";
@@ -11,10 +13,10 @@ import { inviteUrl } from "@/lib/invite";
 import { useSessionStore } from "@/store/session-store";
 import { useToastStore } from "@/store/toast-store";
 
-import { PARTY_CALL_TTL_MS, partyLfgView, type PartyLfgView } from "./partyCall";
-import { PARTY_LFG_COPY, partyConsent, partyLfgErrorMessage } from "./partyCopy";
-import type { PartyMembers } from "./useParty";
-import { useEndPartyCall, usePartyCall, useStartPartyCall } from "./usePartyCall";
+import { PARTY_CALL_TTL_MS, partyLfgView, partyPairCanPost, type PartyLfgView } from "./partyCall";
+import { PARTY_LFG_COPY, partyConsent, partyLfgErrorMessage, partyLfgStartFailure } from "./partyCopy";
+import { PARTY_POLL_MS, type PartyMembers } from "./useParty";
+import { useEndPartyCall, usePartyCall, usePartyLfgAvailability, useStartPartyCall } from "./usePartyCall";
 
 /** How long Copy post reads "Post copied" (as in the Queue Up sheet). */
 const COPIED_MS = 2000;
@@ -56,7 +58,12 @@ export interface PartyLfg {
  * in it, their region and up to two playstyle tags, when the code stops working, the link and the
  * code. No age, and nothing about the other member.
  */
-export function usePartyLfg(partyId: string | undefined, members: PartyMembers | undefined): PartyLfg {
+export function usePartyLfg(
+  partyId: string | undefined,
+  members: PartyMembers | undefined,
+  /** The member list's read failed with nothing read before it: the row hides. */
+  membersFailed: boolean,
+): PartyLfg {
   const profile = useSessionStore((s) => s.profile);
   const myId = useSessionStore((s) => s.session?.user.id);
   const showToast = useToastStore((s) => s.showToast);
@@ -68,14 +75,37 @@ export function usePartyLfg(partyId: string | undefined, members: PartyMembers |
   // The sharer's own games and playstyles, for the rank and tags lines. Read only for a party that
   // can post at all; already cached when the player has opened their profile.
   const details = useEditableProfileDetails(memberCount === 2 ? profile?.id : undefined);
+  // Whether the server has 0089 at all, known before this party's first read answers when the
+  // probe is cached (Matches asks it), so a server without 0089 never shows a skeleton that then
+  // goes away: the row and the deck caption stay build 19's.
+  const probe = usePartyLfgAvailability();
+  // The pair check (partyPairCanPost) reads the match list the Matches tab already polls. Its own
+  // observer has no interval, so it adds no second poll; it refetches only when the cache is
+  // older than the party screen's own cadence.
+  const matches = useQuery({
+    queryKey: MATCHES_QUERY_KEY,
+    queryFn: fetchMatches,
+    enabled: memberCount === 2,
+    staleTime: PARTY_POLL_MS,
+  });
 
-  // A failed first read (offline) hides the row rather than offering a post it cannot vouch for;
-  // the next poll brings it back.
-  const available = read.data ? read.data.available : !read.isError;
+  // A read answers for itself (PGRST202 or 42501: unavailable). A failed first read (offline)
+  // hides the row rather than offering a post it cannot vouch for; the next poll brings it back.
+  // Before any read has answered, the probe decides, and null (not known yet) draws nothing.
+  const available = read.data ? read.data.available : read.isError ? false : probe;
+  const pairCanPost = partyPairCanPost({
+    myId,
+    memberIds: members ? members.ids : null,
+    visibleCount: members ? members.profiles.length : 0,
+    matchedIds: matches.data ? matches.data.map((m) => m.other_profile_id) : null,
+    matchesFailed: matches.isError,
+  });
   const view = partyLfgView({
     available,
     pending: read.isPending,
     memberCount,
+    membersFailed: membersFailed && !members,
+    pairCanPost,
     call: read.data?.available ? read.data.call : null,
     nowMs: Date.now(),
   });
@@ -154,8 +184,14 @@ export function usePartyLfg(partyId: string | undefined, members: PartyMembers |
         untilMs: Number.isFinite(untilMs) ? untilMs : Date.now() + PARTY_CALL_TTL_MS,
       });
     } catch (err) {
+      const failure = partyLfgStartFailure(err);
+      if (failure.kind === "step") {
+        // "Ask {name} to open this party on the latest DuoQueue first": a step, not a failure.
+        Alert.alert(failure.title, failure.message);
+        return;
+      }
       // The error toast buzzes by itself (toast-store), so no haptic here.
-      showToast(partyLfgErrorMessage(err, PARTY_LFG_COPY.startFailed), "error");
+      showToast(failure.message, "error");
     }
   }
 

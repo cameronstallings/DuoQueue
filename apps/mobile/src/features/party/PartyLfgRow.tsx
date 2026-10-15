@@ -33,8 +33,11 @@ function TextLink({ label, onPress, disabled }: { label: string; onPress: () => 
  *   live     "Your LFG post works until 11:40 PM." (or "{name}'s ...") with "Stop post", then
  *            "Share again" (the sharer) or "Share post" (the other member, asked first) and
  *            "Copy post" ("Post copied" for 2 s)
- *   loading  a skeleton the height of one sm button, never a spinner
- *   hidden   nothing: a full party, a party of one, or 0089 not live (build 19's screen exactly)
+ *   loading  a skeleton the height of one sm button, never a spinner, and only once 0089 is
+ *            known to be there
+ *   hidden   nothing: a full party, a party of one, a pair the server will not let post, 0089
+ *            not live or not known to be yet, or the members could not be read (build 19's
+ *            screen exactly)
  *
  * Each state fades in where the last was (keyed), so the deck below moves only by the row's own
  * height, once.

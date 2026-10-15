@@ -1,13 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { isInviteCodeShape } from "@/lib/invite";
 import { supabase } from "@/lib/supabase";
 
 import {
   isPartyLfgUnavailable,
   PARTY_LFG_RPC,
+  partyCodeLookupState,
   type PartyCallRow,
+  type PartyCodeLookup,
   type PartyCodePreviewRow,
   type PartyJoinRow,
+  type ResolvedPartyCode,
   type StartedPartyCall,
 } from "./partyCall";
 import {
@@ -91,10 +95,11 @@ const PROBE_CODE = "0000000000";
 /**
  * Whether the server has the party LFG post (0089) and it is switched on: one read of
  * resolve_party_code with a code that cannot exist, kept for 10 minutes. False on PGRST202 (not
- * live), 42501 (the kill switch) and on any failure, so Matches > "Have a party code?" only shows
- * when a code could work; before 0089 Matches is exactly build 19's.
+ * live), 42501 (the kill switch) and on any failure; null until it has answered. The party screen
+ * reads the null too, so its LFG row draws nothing (no skeleton) until the feature is known to be
+ * there.
  */
-export function usePartyLfgAvailable(): boolean {
+export function usePartyLfgAvailability(): boolean | null {
   const query = useQuery({
     queryKey: ["party-lfg-available"],
     queryFn: async (): Promise<boolean> => {
@@ -104,7 +109,42 @@ export function usePartyLfgAvailable(): boolean {
     staleTime: 10 * 60_000,
     retry: false,
   });
-  return query.data === true;
+  return query.data ?? null;
+}
+
+/** usePartyLfgAvailability as a yes or no: Matches > "Have a party code?" only shows when a code
+ * could work, so before 0089 Matches is exactly build 19's. */
+export function usePartyLfgAvailable(): boolean {
+  return usePartyLfgAvailability() === true;
+}
+
+/**
+ * Matches > "Have a party code?": resolve_party_code for a typed code, with an error kept apart
+ * from "not a party code" (partyCodeLookupState). The query throws on an error, so an error is
+ * never cached as an answer and the same code is asked again (retype, or tap the line). The
+ * front door's field keeps useResolvePartyCode, where any error falls through to its old lines.
+ */
+export function usePartyCodeLookup(code: string | null): { state: PartyCodeLookup; retry: () => void } {
+  const asked = code !== null && isInviteCodeShape(code);
+  const query = useQuery({
+    queryKey: ["party-code-lookup", code],
+    queryFn: async (): Promise<ResolvedPartyCode | null> => {
+      const { data, error } = await supabase.rpc(PARTY_LFG_RPC.resolve, { p_code: code });
+      if (error) throw error;
+      return ((data ?? []) as ResolvedPartyCode[])[0] ?? null;
+    },
+    enabled: asked,
+    staleTime: 30_000,
+    retry: false,
+  });
+  const state = partyCodeLookupState({
+    asked,
+    data: query.data,
+    isError: query.isError,
+    isFetching: query.isFetching,
+    isPaused: query.isPaused,
+  });
+  return { state, retry: () => void query.refetch() };
 }
 
 /**

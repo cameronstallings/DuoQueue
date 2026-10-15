@@ -4,11 +4,14 @@ import {
   isPartyLfgUnavailable,
   PARTY_CALL_TTL_MS,
   PARTY_LFG_RPC,
+  partyCodeLookupState,
   partyJoinOutcome,
   partyLfgView,
+  partyPairCanPost,
   partyPreviewOf,
   type PartyCallRow,
   type PartyCodePreviewRow,
+  type ResolvedPartyCode,
 } from "./partyCall";
 
 const NOW = Date.parse("2026-10-15T22:00:00.000Z");
@@ -27,7 +30,15 @@ function call(over: Partial<PartyCallRow> = {}): PartyCallRow {
   };
 }
 
-const base = { available: true, pending: false, memberCount: 2, call: null, nowMs: NOW };
+const base = {
+  available: true as boolean | null,
+  pending: false,
+  memberCount: 2 as number | null,
+  membersFailed: false,
+  pairCanPost: true as boolean | null,
+  call: null as PartyCallRow | null,
+  nowMs: NOW,
+};
 
 describe("the server names this feature depends on", () => {
   it("names every 0089 RPC in one place", () => {
@@ -61,9 +72,33 @@ describe("partyLfgView", () => {
     expect(partyLfgView({ ...base, memberCount: 0, call: call() })).toEqual({ kind: "hidden" });
   });
 
-  it("waits (a skeleton) while the members or the first read are pending", () => {
+  it("waits (a skeleton) while the members, the first read or the pair check are pending", () => {
     expect(partyLfgView({ ...base, memberCount: null })).toEqual({ kind: "loading" });
     expect(partyLfgView({ ...base, pending: true })).toEqual({ kind: "loading" });
+    expect(partyLfgView({ ...base, pairCanPost: null })).toEqual({ kind: "loading" });
+  });
+
+  it("draws nothing, not a skeleton, until the feature is known to be there", () => {
+    // Before 0089: no skeleton that comes and goes, so the screen is build 19's exactly.
+    expect(partyLfgView({ ...base, available: null, memberCount: null })).toEqual({ kind: "hidden" });
+    expect(partyLfgView({ ...base, available: null, pending: true })).toEqual({ kind: "hidden" });
+    expect(partyLfgView({ ...base, available: null })).toEqual({ kind: "hidden" });
+  });
+
+  it("hides when the members could not be read, instead of a skeleton that never goes", () => {
+    expect(partyLfgView({ ...base, memberCount: null, membersFailed: true })).toEqual({ kind: "hidden" });
+  });
+
+  it("hides Share for a pair the server will not let post", () => {
+    expect(partyLfgView({ ...base, pairCanPost: false })).toEqual({ kind: "hidden" });
+    expect(
+      partyLfgView({ ...base, pairCanPost: false, call: call({ expires_at: new Date(NOW).toISOString() }) }),
+    ).toEqual({ kind: "hidden" });
+  });
+
+  it("still shows a live post, and its Stop, whatever the pair check says", () => {
+    expect(partyLfgView({ ...base, pairCanPost: false, call: call() })).toMatchObject({ kind: "live" });
+    expect(partyLfgView({ ...base, pairCanPost: null, call: call() })).toMatchObject({ kind: "live" });
   });
 
   it("is idle with no live post", () => {
@@ -92,6 +127,73 @@ describe("partyLfgView", () => {
       kind: "idle",
     });
     expect(partyLfgView({ ...base, call: call({ expires_at: "garbage" }) })).toEqual({ kind: "idle" });
+  });
+});
+
+describe("partyPairCanPost (0089's who can post, as far as the phone can tell)", () => {
+  const pair = { myId: "me", memberIds: ["me", "them"], visibleCount: 2, matchedIds: ["them", "x"], matchesFailed: false };
+
+  it("lets two visible players who are a live match post", () => {
+    expect(partyPairCanPost(pair)).toBe(true);
+  });
+
+  it("refuses a pair that is not a live match (a founder and a deck third left after a block, or an unmatch)", () => {
+    expect(partyPairCanPost({ ...pair, matchedIds: ["x"] })).toBe(false);
+    expect(partyPairCanPost({ ...pair, matchedIds: [] })).toBe(false);
+  });
+
+  it("refuses a pair with a member this viewer cannot see (paused, banned, suspended, not set up)", () => {
+    expect(partyPairCanPost({ ...pair, visibleCount: 1 })).toBe(false);
+  });
+
+  it("refuses anything but two", () => {
+    expect(partyPairCanPost({ ...pair, memberIds: ["me"] })).toBe(false);
+    expect(partyPairCanPost({ ...pair, memberIds: ["me", "them", "x"], visibleCount: 3 })).toBe(false);
+  });
+
+  it("does not know yet while the viewer, the members or the match list are loading", () => {
+    expect(partyPairCanPost({ ...pair, myId: undefined })).toBeNull();
+    expect(partyPairCanPost({ ...pair, memberIds: null })).toBeNull();
+    expect(partyPairCanPost({ ...pair, matchedIds: null })).toBeNull();
+  });
+
+  it("leaves it to the server when the match list failed", () => {
+    expect(partyPairCanPost({ ...pair, matchedIds: null, matchesFailed: true })).toBe(true);
+  });
+});
+
+describe("partyCodeLookupState (Matches > Have a party code?)", () => {
+  const idle = { asked: true, data: undefined, isError: false, isFetching: false, isPaused: false };
+  const row = (status: ResolvedPartyCode["status"]): ResolvedPartyCode => ({
+    status,
+    sharer_name: "Sam",
+    game_name: "League of Legends",
+  });
+
+  it("is idle until a whole code is typed", () => {
+    expect(partyCodeLookupState({ ...idle, asked: false })).toEqual({ kind: "idle" });
+  });
+
+  it("is checking while the question is out, a retry after an error included", () => {
+    expect(partyCodeLookupState({ ...idle, isFetching: true })).toEqual({ kind: "checking" });
+    expect(partyCodeLookupState({ ...idle, isFetching: true, isError: true })).toEqual({ kind: "checking" });
+    expect(partyCodeLookupState(idle)).toEqual({ kind: "checking" });
+  });
+
+  it("keeps an error apart from not found: offline or a timeout says nothing about the code", () => {
+    expect(partyCodeLookupState({ ...idle, isError: true })).toEqual({ kind: "error" });
+    expect(partyCodeLookupState({ ...idle, isPaused: true })).toEqual({ kind: "error" });
+  });
+
+  it("is not found only for zero rows or a status this app does not know", () => {
+    expect(partyCodeLookupState({ ...idle, data: null })).toEqual({ kind: "not-found" });
+    expect(partyCodeLookupState({ ...idle, data: row("weird" as never) })).toEqual({ kind: "not-found" });
+  });
+
+  it("finds live, full and ended codes", () => {
+    for (const status of ["live", "full", "ended"] as const) {
+      expect(partyCodeLookupState({ ...idle, data: row(status) })).toEqual({ kind: "found", row: row(status) });
+    }
   });
 });
 
