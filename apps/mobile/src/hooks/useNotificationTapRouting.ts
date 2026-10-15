@@ -168,6 +168,9 @@ function openChat(matchId: string, nav: NavigationReader): () => void {
   // refetches when it mounts.
   void queryClient.invalidateQueries({ queryKey: chatQueryKey(matchId), refetchType: "none" });
   void queryClient.invalidateQueries({ queryKey: MATCHES_QUERY_KEY });
+  // A session proposal is pushed as a message for this match (0073); its card is a separate
+  // query, refetched now so an already-open chat shows the Confirm banner the tap promised.
+  void queryClient.invalidateQueries({ queryKey: ["match-sessions", matchId] });
 
   return viaMatches(nav, {
     opening: (front) => chatOpening(front, matchId),

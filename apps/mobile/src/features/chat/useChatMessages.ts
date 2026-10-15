@@ -67,17 +67,32 @@ export function useChatMessages(matchId: string) {
     });
   }, [matchId, queryClient]);
 
-  useOnAppResume(useCallback(() => void catchUp(), [catchUp]));
+  // The session card (a proposed time to play) is its own query. Since 0073 a proposal arrives
+  // as a "new_message" push for this match, so everything that re-reads the thread re-reads the
+  // card too; otherwise a proposal sent while the chat was open never showed its Confirm banner.
+  const refreshSession = useCallback(() => {
+    if (matchId) void queryClient.invalidateQueries({ queryKey: ["match-sessions", matchId] });
+  }, [matchId, queryClient]);
+
+  useOnAppResume(
+    useCallback(() => {
+      void catchUp();
+      refreshSession();
+    }, [catchUp, refreshSession]),
+  );
 
   useEffect(() => {
     // Any open thread re-reads itself on any message push. The push now names its match
     // (`data.matchId`), but one from the server before that names none, and re-reading a thread
     // that did not change costs one small query.
     const subscription = Notifications.addNotificationReceivedListener((notification) => {
-      if (notification.request.content.data?.category === "new_message") void catchUp();
+      if (notification.request.content.data?.category === "new_message") {
+        void catchUp();
+        refreshSession();
+      }
     });
     return () => subscription.remove();
-  }, [catchUp]);
+  }, [catchUp, refreshSession]);
 
   useEffect(() => {
     if (!matchId) return;

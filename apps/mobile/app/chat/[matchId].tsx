@@ -399,6 +399,9 @@ export default function ChatScreen() {
   const { otherIsTyping, notifyTyping } = useTypingIndicator(matchId);
   const { data: hiddenWords } = useHiddenWords();
   const discordShare = useDiscordShare(matchId);
+  // Without a Discord name there is nothing to share, and since 0073 the server refuses the
+  // share, so the item is hidden instead of doing nothing when tapped.
+  const hasDiscordName = useSessionStore((s) => !!s.profile?.discord_username?.trim());
   const unmatch = useUnmatch();
   const blockUser = useBlockUser();
   const reportUser = useReportUser();
@@ -792,12 +795,14 @@ export default function ChatScreen() {
             label="Schedule a session"
             onPress={() => openFromMenu(() => setScheduleVisible(true))}
           />
-          <ActionRow
-            icon="logo-discord"
-            label={hasSharedDiscord ? "Discord already shared" : "Share my Discord"}
-            onPress={handleShareDiscord}
-            disabled={hasSharedDiscord}
-          />
+          {hasDiscordName ? (
+            <ActionRow
+              icon="logo-discord"
+              label={hasSharedDiscord ? "Discord already shared" : "Share my Discord"}
+              onPress={handleShareDiscord}
+              disabled={hasSharedDiscord}
+            />
+          ) : null}
         </View>
 
         <View style={{ marginTop: spacing.md, gap: spacing.xs }}>

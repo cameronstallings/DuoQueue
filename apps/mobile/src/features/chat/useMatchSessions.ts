@@ -3,8 +3,13 @@ import type { MatchSessionRow } from "@duoqueue/shared-types";
 
 import { supabase } from "@/lib/supabase";
 
+/** How long after its start time a session still counts as happening. */
+export const SESSION_STALE_AFTER_MS = 2 * 60 * 60 * 1000;
+
 /** The single active proposal for a match, if any — propose_session cancels prior
- * pending rows server-side, so "active" just means the newest non-terminal row. */
+ * pending rows server-side, so "active" just means the newest non-terminal row whose time has
+ * not long passed. Without the time filter a confirmed session stayed "Playing ..." in the chat
+ * forever, because the server only ever expires PENDING rows (0077). */
 export function useActiveMatchSession(matchId: string | undefined) {
   return useQuery({
     queryKey: ["match-sessions", matchId],
@@ -14,6 +19,7 @@ export function useActiveMatchSession(matchId: string | undefined) {
         .select("*")
         .eq("match_id", matchId)
         .in("status", ["pending", "confirmed"])
+        .gt("scheduled_at", new Date(Date.now() - SESSION_STALE_AFTER_MS).toISOString())
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
