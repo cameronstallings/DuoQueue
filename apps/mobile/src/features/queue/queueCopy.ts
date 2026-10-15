@@ -5,7 +5,7 @@ import type { PopOutcome } from "./queueState";
 /**
  * Every word Queue Up says: the header pill's sheet, the Duo Pop card, the Duo Pops opt-in card,
  * the empty deck, Online Now and the ended Duo Call line. One module so a single test sweeps all
- * of it (queueCopy.test.ts): no em or en dashes, never "beats", nothing that reads as dating
+ * of it (queueCopy.test.ts): no em or en dashes, always "moments", nothing that reads as dating
  * (DuoQueue is 18+ and for teammates, and was rejected once under 2.3.6), never "Accept" or
  * "Lock In" (a Duo Pop is answered with "I'm in" and "Not now"), and only honest counts: a line
  * says how many players were told only when the server told them. The Settings row for Duo Pops
