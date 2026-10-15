@@ -3,13 +3,16 @@ import * as Device from "expo-device";
 import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
 
+import { shouldPlayForegroundSound } from "@/lib/pushSound";
 import { supabase } from "@/lib/supabase";
 
+// In the foreground only a Duo Pop plays a sound (its ten-minute window is the point); every
+// other push stays a silent banner while the app is open. The rule lives in pushSound.ts.
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
+  handleNotification: async (notification) => ({
     shouldShowBanner: true,
     shouldShowList: true,
-    shouldPlaySound: false,
+    shouldPlaySound: shouldPlayForegroundSound(notification.request.content.data),
     shouldSetBadge: false,
   }),
 });

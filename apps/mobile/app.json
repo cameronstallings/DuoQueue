@@ -55,7 +55,8 @@
         "expo-notifications",
         {
           "icon": "./assets/notification-icon.png",
-          "color": "#CDFF3D"
+          "color": "#CDFF3D",
+          "sounds": ["./assets/sounds/duo-pop.wav"]
         }
       ],
       [
