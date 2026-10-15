@@ -91,11 +91,9 @@ export function ProfileDetailContent({ card, onClose, readOnly = false }: Profil
   // Cascade-on-open: each labeled section steps in 35ms after the last, once.
   let staggerSlot = 0;
   function sectionEntering() {
-    return FadeInDown.springify()
-      .mass(1)
-      .stiffness(SPRINGS.stack.stiffness)
-      .damping(SPRINGS.stack.damping)
-      .delay(Math.min(staggerSlot++ * 35, 350));
+    // One line, so the release grep for springify sees the mass(1) beside it.
+    const delay = Math.min(staggerSlot++ * 35, 350);
+    return FadeInDown.springify().mass(1).stiffness(SPRINGS.stack.stiffness).damping(SPRINGS.stack.damping).delay(delay);
   }
 
   const closeButton = (

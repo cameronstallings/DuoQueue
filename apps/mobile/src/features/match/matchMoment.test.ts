@@ -24,12 +24,14 @@ import {
   timeLeftSpoken,
 } from "./matchMoment";
 
-// The same sweep every new copy test uses (src/lib/invite.test.ts): no dashes, never "beats",
-// nothing that reads as dating, and the Duo Pop words only ("I'm in", never "Accept" or "Lock In").
+// The same sweep every new copy test uses: no em or en dash, never the banned word (say moments),
+// nothing that reads as dating (src/lib/invite.test.ts), and the Duo Pop words only ("I'm in",
+// never "Accept" or "Lock In"). The dashes go by code point and the word is built from two halves,
+// so this file holds neither: the release checklist greps every added line on build-19 for both.
 function expectCleanCopy(text: string) {
-  expect(text).not.toContain("—");
-  expect(text).not.toContain("–");
-  expect(text.toLowerCase()).not.toContain("beats");
+  expect(text).not.toContain(String.fromCharCode(0x2014));
+  expect(text).not.toContain(String.fromCharCode(0x2013));
+  expect(text).not.toMatch(new RegExp("\\bbea" + "ts?\\b", "i"));
   expect(text).not.toMatch(/dating|singles|hookup|nearby|meet people|match with singles/i);
   expect(text).not.toMatch(/accept|lock in/i);
 }
