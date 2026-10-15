@@ -128,6 +128,26 @@ Re-running the seed script is safe any time — it's idempotent and won't duplic
 node scripts/seed-review-demo.mjs
 ```
 
+**1.0.2 WARNING, read 15 Oct 2026 (read-only SQL): the numbers above are not today's, and the
+plain seed is NOT safe to run as it is.**
+- The review account passed Dae and liked Devon on 10 Oct 2026, so only 11 personas pass
+  `deck_gate_hard` and `deck_gate_preferences` for it today (Bea, Chase, Kofi, Marcus, Nadia,
+  Ophelia, Remy, Sana, Tobin, Wren, Yuki), and neither CAN DUO card is among them. Priya (8
+  messages) and the three requests (Sana, Marcus, Kofi) are intact.
+- On 15 Oct the four pre-launch accounts KittyKat, Stallings, Cameron (the 15 Aug email one)
+  and John were flagged `is_demo = true`, so there are now 19 demo profiles, not 15. All four
+  have user-uploaded photos (JPGs in their own storage folders, not the generated PNGs; Cameron's
+  and John's are approved). Today they stay out of the review deck only because the review
+  account passed them on 17 Sept.
+- `resetReviewAccountState` deletes every swipe the review account made, and
+  `excludeRealAccountsFromDemoPool` re-passes only `is_demo = false` profiles. A plain re-seed
+  now would therefore put those four into the review deck with their own photos, which breaks
+  the "never a real or AI-generated face" sentence above.
+- Before submitting 1.0.2 (a script edit and a database write, both Cameron's OK): make the
+  seed also pass every `is_demo` profile that is not one of its own personas, run the plain seed,
+  then re-measure the table above. The 1.0.2 review notes (Part 4) say "a Deck of 13 profiles"
+  with Dae and Devon lit, which is true only after that.
+
 **Never submit after a `--filming` run.** That flag swaps the abstract art for real
 photographs so Cameron can record marketing footage, and it leaves them in the live
 database. It has already made the "never a real or AI-generated face" sentence above false
@@ -271,14 +291,21 @@ Every line below matches real, shipping UI copy — checked against the actual s
 the feature brief. Where a draft offered several options, one is picked as the default;
 alternates are kept underneath, clearly marked, in case you'd rather use them.
 
+**1.0.2 (build 19), updated 15 Oct 2026.** Every field for this version, with its count, is in
+`C:\Users\stall\Documents\DuoQueue-listing-1.0.2.txt` (the review notes are in
+`DuoQueue-review-notes-1.0.2.txt`, Part 4). Name and subtitle stay as 1.0.1 shipped them; the
+keywords, description and What's New change. Counts were measured by script: characters as
+pasted (a line break counts 1), plus the CRLF count for multi-line fields. Every field was also
+checked for U+2013/U+2014, the word "beats" and the dating words in `invite.test.ts`.
+
 ### 2.1 App Name (30 char max) — use this:
 
 ```
-DuoQueue: Gaming Partners
+DuoQueue: Find a Gaming Duo
 ```
-25 characters. Reads as unambiguously platonic to any reader, no risk of misreading.
+27 characters. Live since 1.0.1 (3 Oct 2026); unchanged for 1.0.2.
 
-**Alternates**, if you want to lean harder into the anti-dating framing:
+The 1.0 name was `DuoQueue: Gaming Partners` (25). **Its alternates**, kept for the record:
 - `DuoQueue: Platonic Gaming` (25 chars) — says it outright, no inference needed.
 - `DuoQueue - Not for Dating` (25 chars) — the boldest option; pre-empts a reviewer's
   pattern-match by naming and denying it in five words. Matches the app's dry tone well, but
@@ -288,60 +315,108 @@ DuoQueue: Gaming Partners
 ### 2.2 Subtitle (30 char max) — use this:
 
 ```
-Find your next co-op duo
+Teammates to duo queue with
 ```
-24 characters. Paired with the Name above, this covers distinct indexed vocabulary ("Gaming
-Partners" + "co-op duo") rather than repeating the same words across both fields.
+27 characters. Live since 1.0.1; unchanged for 1.0.2. It puts "queue" in an indexed field,
+which the one-word name "DuoQueue" does not.
 
-**Alternates**: `Not dating. Just gaming.` (24 chars) · `Teammates, not dates` (20 chars)
+The 1.0 subtitle was `Find your next co-op duo` (24). Its alternates: `Not dating. Just gaming.`
+(24 chars) · `Teammates, not dates` (20 chars)
 
-### 2.3 Keywords (100 char max) — use this:
+### 2.3 Keywords (100 byte max, comma-separated, no spaces) — use this:
 
 ```
-coop,squad,lfg,esports,streaming,anime,playstyle,ranked,crossplay,teammate,voice chat,safe
+lol,league,ranked,solo,lfg,squad,finder,partner,buddy,gamer,friends,party,coop,team,player,moba,mic
 ```
-90/100 characters. Deliberately has zero overlap with the Name/Subtitle above (Apple indexes
-those separately, so repeating "gaming," "duo," or "partners" here wastes budget).
+99/100 bytes, 17 terms, no duplicates (plan R2; "lol" and "league" approved by Cameron on 15 Oct).
+Against 1.0.1's list it adds `lol` and `league` and drops `matchmaking`. Still nothing that
+repeats the name or subtitle ("duo", "queue", "gaming", "teammates").
+
+**Open for Cameron (plan Q22):** confirm your Riot developer registration covers using "lol" and
+"league" as keywords, and whether "partner" and "buddy" (both live since 1.0.1) read as
+dating-adjacent for an 18+ app. Swapping either out before you submit 1.0.2 is only a change to
+this field (keywords change only with a version, so after submitting it waits for the next one).
+
+The 1.0 list, for the record (90/100): `coop,squad,lfg,esports,streaming,anime,playstyle,ranked,crossplay,teammate,voice chat,safe`.
 
 **Do not put `steam`, `discord`, `valorant`, or any other company or app name in this field.**
 Apple's keyword rules say flatly that "names of other apps or companies aren't allowed," with
 no exception for genuine integrations — an earlier draft of this doc had `steam` in here on
 exactly that reasoning, and it was wrong. Describing the Steam integration in the Description
-is fine and stays as written.
+is fine and stays as written. (`lol` and `league` are game words rather than company names, and
+Cameron approved them on 15 Oct; whether his Riot registration covers them is Q22 above.)
 
 ### 2.4 Promotional Text (170 char max) — use this:
 
 ```
-DuoQueue finds you a duo, not a date. See who you can duo with in League of Legends Ranked Solo/Duo, match on games and playstyle, then chat and queue up.
+Done with solo queue? Find a duo, not a date. League players in NA see Can duo on anyone whose rank can queue Ranked Solo/Duo with theirs. Match, chat, invite a third.
 ```
-154/170 characters (build 16: leads with the Can duo cell). This field is editable without a new build — it's meant to be your
-literal launch-day line.
+167/170 characters. Live since 1.0.1 and still true in 1.0.2, so the 1.0.2 paste file keeps it.
+This field is editable without a new build.
+
+**Optional, Cameron's call (not in the paste file):** a line that leads with Queue Up, 161/170:
+`Done with solo queue? Tap Queue up: in NA, players in your game who turned on Duo Pops get pinged, and the first to tap I'm in is your duo. Teammates, not dates.`
+Use it only after 1.0.2 is live, since 1.0.1 has no Queue up.
+
+The build 16 line, for the record (154/170): `DuoQueue finds you a duo, not a date. See who you can duo with in League of Legends Ranked Solo/Duo, match on games and playstyle, then chat and queue up.`
 
 ### 2.5 Description (4000 char max) — use this:
 
-2,350 characters, 2,365 counting CRLF line ends (build 17: adds unlimited active conversations
-and "chatting in your 5 most recently active matches", the server's rule, is_conversation_unlocked;
-build 16 added the one-picture card and the League Can duo paragraph; the paste-ready copy is
-also in `C:\Users\stall\Documents\DuoQueue-listing-build-16.txt`).
+**1.0.2 (build 19):** 3,865 characters, 3,891 counting CRLF line ends, measured 15 Oct 2026; the
+same text is in `C:\Users\stall\Documents\DuoQueue-listing-1.0.2.txt`. Built from the 1.0.1
+description (which went live from `DuoQueue-listing-1.0.1.txt`, not from the block that used to
+be here). What changed, and why each claim is true in build 19:
+- **QUEUE UP** is new: the header button and sheet (`src/features/queue/`), Online Now for the hour
+  and the push to matches (`start_queue_up` writes what `set_looking_now(true)` writes, 0085),
+  Duo Pops (up to 6, opted-in, NA, at most 3 a day, never 01:00 to 09:59 on the recipient's clock:
+  `duo_pop_recipients` and `duo_pop_clock_ok` in 0085; off by default: `queue_pop` defaults
+  false), and the LFG post with a call code (minted for every queue-up, 0085; "stops working
+  when you stop queueing" is the app's own line in `queueCopy.ts`).
+- **YOUR DECK** now says the deck puts your server first and favors recent players (0071's order:
+  same server group, then likers who share a game, then seen in 14 days, then Can duo, then the
+  score), instead of "puts the players you have the most in common with near the top".
+- **PLAY NOW OR PLAN IT** describes the chat buttons (`PlayTogetherChips`) and the Discord editor
+  in Settings > Connections; the "I'm free to duo right now" switch it used to name is gone.
+- The cap line says **10** most recently active matches (0084, applied 15 Oct).
+- "It's not a dating app." became "Teammates, not dates." (the front door's own words), and the
+  "PARTIES OF THREE" heading became "PARTY MODE" (no numbers about people in headings). "MORE
+  THAN ONE GAME" folded into the deck paragraph to make room.
+- The Riot paragraph is `RIOT_NOTICE` from `apps/mobile/src/lib/legal.ts` character for
+  character, with the comma after "Riot Games" that the 1.0.1 listing was missing.
 
 ```
-DuoQueue is not a dating app. It's how you find people to actually play with: a duo for co-op, a fourth for the raid, someone equally deep into the same show. No looks-first swiping, no gender filters. Just shared games, shows, and playstyle.
+DuoQueue is how you find people to duo queue with: a teammate for ranked, a third for your party, someone who plays the same games at the same hours. Teammates, not dates. One optional picture, no gender filters. Games come first.
 
-Your deck shows people matched on what you're both into: favorite games (skill level, rank if you've got one), shows you watch, playstyle (chill, competitive, late night, mic required, solo queue, team player), and when you're usually online. Every card is one picture if they added one (them, their setup, their pet, the character they main), then their prompts. Swipe to say you'd duo. Mutual swipe, you match, chat opens up.
+YOUR DECK
+Your deck puts players on your server first and favors people who have been on lately and what you have in common: games you both play (and at the same skill level), shows and anime you both watch, a language you share, and the hours you usually play. Every card shows one picture if they added one (them, their setup, their pet, the character they main), their League rank or main game, and how many games you share, then their prompts. Tap in for the full profile: games, shows, and playstyle. Swipe to say you'd duo. When you both swipe, you match and the chat opens. If your game isn't in the list, add it.
 
-Play League of Legends? Add your rank, and the players whose rank can queue Ranked Solo/Duo with yours light up with Can duo and sit nearer the top of your deck.
+QUEUE UP
+Ready to play? Tap Queue up and pick a game. For the next hour your matches can see you're free, and you show up in Online Now. In North America, up to 6 players in that game who turned on Duo Pops get one, and the first to tap I'm in is your duo. Duo Pops are off until you turn them on, come at most 3 a day, and never arrive between 1 am and 10 am. Each Queue up also gives you an LFG post with your own code to share anywhere. The code stops working when you stop queueing.
 
-Want a third? Party mode lets you and a match invite someone else in. Everyone swipes on the same profile, and it takes a unanimous yes before that person's invited to join.
+LEAGUE OF LEGENDS: CAN DUO
+Play League of Legends in North America? Add your rank, and players whose rank can queue Ranked Solo/Duo with yours light up with Can duo and sit nearer the top of your deck. It's based on the ranks you both listed and League's published duo rules, and the League client has the final say.
 
-From there it's yours to run: chat in-app, share a Discord username, add each other on Steam. DuoQueue gets you to "let's play," but it doesn't run the session for you.
+PARTY MODE
+Want a third? Tap Invite a third in a chat. You and your match swipe on the same players, and when you both say yes, that player gets an invite. Parties hold three, invites stay open for 7 days, and your party gets its own group chat.
 
-Safety, for real: DuoQueue is 18+ only. Every account confirms a date of birth of 18 or older to sign up. Every profile photo is automatically screened before anyone else sees it. Report or block from a profile or a chat. Blocking is immediate and complete: a blocked user can't see your profile again. A hidden-word filter mutes messages containing words you pick. A Safety Center covers meetup safety, scam patterns, and community guidelines.
+PLAY NOW OR PLAN IT
+In a chat, the buttons above the message box say you're free now, pick a time to play, or share your Discord username, which you can add right there or in Settings. Rate the session afterwards: good comms, chill after losses, and showed up on time appear on a player's profile once enough players say so. Link your Steam account in Settings and your profile shows Verified: Steam.
 
-DuoQueue+ is optional. It lifts the 25-swipes-a-day cap, adds filters for a specific game, platform, skill level, and playstyle, shows everyone who wants to duo at once instead of a daily trio, adds unlimited active conversations, and gives you a Super Ping a day that tells someone directly you want to duo. Weekly, monthly, 3-month, and 6-month plans, all auto-renewing until you cancel in your App Store account settings. Power-Ups are a separate one-time purchase that puts you near the top of other people's decks for 30 minutes. Everything else (matching, chatting in your 5 most recently active matches, party mode) is free.
+SAFETY, FOR REAL
+DuoQueue is 18+ only. Every account confirms a date of birth of 18 or older to sign up. Every profile photo is automatically screened before anyone else sees it. Report or block from a card in your deck, from a Duo Pop, or from a chat. Blocking is immediate and complete: a blocked user can't see your profile again. A hidden-word filter hides messages containing words you pick. A Safety Center covers meeting up safely, scams, and crisis support.
+
+DUOQUEUE+
+DuoQueue+ is optional. It lifts the 25-swipes-a-day cap, adds filters for a specific game or show, platform, skill level, playstyle, and recent activity, shows everyone who wants to duo with you at once instead of 3 a day, adds unlimited active conversations, and gives you a Super Ping a day that tells someone directly you want to duo. Weekly, monthly, 3-month, and 6-month plans, all auto-renewing until you cancel in your App Store account settings. Power-Ups are a separate one-time purchase that puts you near the top of other people's decks for 30 minutes. Everything else (matching, Queue up and Duo Pops, Online Now, Highlights, party mode, and chatting in your 10 most recently active matches) is free.
+
+DuoQueue isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.
 
 Terms of Use (EULA): https://duoqueue.io/terms
 Privacy Policy: https://duoqueue.io/privacy
 ```
+
+The build 17 description this section used to hold (2,350 characters, "chatting in your 5 most
+recently active matches") was superseded by the 1.0.1 listing on 2 Oct and is in git history
+before this change; do not paste it.
 
 **The last two lines are not optional and are not decoration.** The 1.0 submission was rejected
 under Guideline 3.1.2 on 2026-08-08 for exactly their absence: *"The submission offers
@@ -358,12 +433,17 @@ what you write:
 - **The conversation limit is real, and build 17 sells it (corrected 24 Sept 2026).** An
   earlier pass said "there is no conversation limit" because it grepped only for `raise
   exception`. The cap is enforced without one: `is_conversation_unlocked`
-  ([0004_chat.sql:71-118](../supabase/migrations/0004_chat.sql:71)) keeps a free account's 5
-  most recently active matches open, `send-message` answers `conversation_locked`
+  ([0004_chat.sql:71-118](../supabase/migrations/0004_chat.sql:71)) keeps a free account's 10
+  most recently active matches open (5 until migration 0084 raised it on 15 Oct 2026, Cameron's
+  decision 3 for 1.0.2; 0084 changed the literal in `is_conversation_unlocked`,
+  `get_matches_summary` and `is_conversation_unlocked_for`), `send-message` answers
+  `conversation_locked`
   ([index.ts:100-116](../supabase/functions/send-message/index.ts:100)), and Matches shows a
-  "Locked" chip. Cameron chose to keep it, so the description says chatting is free in your 5
+  "Locked" chip. Cameron chose to keep it, so the description says chatting is free in your 10
   most recently active matches and DuoQueue+ adds unlimited active conversations, and the
-  paywall, the Settings hint and the review notes say the same. "Most recently active", never
+  paywall (`FREE_ACTIVE_CONVERSATIONS = 10` in `paywallCopy.ts` on build-19) and the review
+  notes say the same. 1.0.1 phones still say 5 in their paywall until they update, which
+  understates the free tier rather than overstating it. "Most recently active", never
   "most recent": the server ranks by the latest of the match time and the last message, so a
   free account that chats in its two oldest matches keeps those open and locks a newer one.
 - **"Legendary Likes ... for extra visibility"** — they have no effect at all. `send_rose`
@@ -384,17 +464,23 @@ been linked yet, so the key's *presence* is proven but a real round-trip to Stea
 never been exercised. If you want certainty before review, link your own Steam account once
 from Settings → Connections and confirm the badge appears.
 
-### 2.6 What's New — save this for version 1.1, don't look for it now
+### 2.6 What's New in This Version (4000 char max) — 1.0.2, use this:
 
-**App Store Connect has no "What's New in This Version" field for a first release.** It
-appears from your second version onward. Skip it for 1.0; keep the text below for your first
-update.
-
-352 characters.
+588 characters, one paragraph, measured 15 Oct 2026 (also in `DuoQueue-listing-1.0.2.txt`).
 
 ```
-First release. Match on shared games, shows, and playstyle, then chat and figure out when to play. Party mode lets you and a match invite a third. Everyone has to swipe yes before that person joins. Link Steam for a verified stats badge. DuoQueue+ is available for unlimited swipes, unlimited conversations, and a daily Super Ping. Tell us what breaks.
+Queue up when you're ready to play. Your matches see you're free, and in North America, players in your game who turned on Duo Pops get one: the first to tap I'm in is your duo. Every Queue up comes with an LFG post and your own code to share anywhere. Build your card before you make an account. Share your Discord, say you're free now or pick a time with one tap in a chat. A badge on the Matches tab shows what's new. Forgot your password? Reset it with a code from your email. 10 free active chats instead of 5. Smoother motion throughout, with haptics you can switch off in Settings.
 ```
+
+It is the plan's R2 draft with three honesty fixes: Duo Pops reach only players who turned them on,
+and only in North America (the draft said "players in your game get a Duo Pop"); the LFG post
+claim is "to share anywhere", not that anything posts for you; and the Settings path for haptics
+(Settings > Appearance > Haptics, `HAPTICS_COPY`). Added: the Matches badge (`useMatchesBadge`)
+and password reset by code (live once the recovery template is, plan S4). "10 free active chats"
+is true since 0084 was applied on 15 Oct.
+
+The 1.0.1 What's New (parties of three, notification taps open the chat) is in
+`DuoQueue-listing-1.0.1.txt`. The 1.0 "First release" text that used to be here is in git history.
 
 ### 2.7 Screenshots — shot list
 
@@ -565,20 +651,35 @@ carried over from an earlier draft.
 | Purchase History | Yes | No | App Functionality (subscription/consumable entitlement) |
 | Reports & Blocks (who reported/blocked whom, and why) | Yes | No | App Functionality (Trust & Safety, abuse prevention) |
 
-**1.0.2: NOT DECIDED YET, Cameron's call before submitting build 19 (plan Q23 and R2).** The
-table above is the 1.0.1 label and does not cover three things 1.0.2 and the 15 Oct server
-changes collect. Decide each, update the table and the "Not collected" line below, and do it in
-the same commit that publishes privacy policy 1.6 (which already describes all three):
-- `push_tokens.device_info` (from 1.0.2, `src/lib/appStamp.ts`): app version, build, OTA update
-  id, channel, runtime, OS and OS version, linked to the account. Most likely "Other Diagnostic
-  Data, linked to the user, App Functionality". Not crash or performance data, so the "Not
-  collected" line can keep Crash Data and Performance Data.
-- Duo Pop records (`queue_ups`, migration 0085): who was sent a pop, who opened or declined it,
-  who answered. Per-user interaction records; most likely "Product Interaction, linked, App
-  Functionality", unless you decide an existing row covers them.
-- The notification delivery log (`push_log`, migration 0080, live for every build since 15 Oct):
-  per recipient, the kind of push, when, and whether Expo accepted it. Most likely "Other
-  Diagnostic Data" as well.
+**1.0.2 App Privacy: PROPOSAL FOR CAMERON, NOT A DECISION (plan Q23 and R2).** The table above
+is still the 1.0.1 label and nothing in it changes until you say yes. It does not cover three
+things that 1.0.2 and the 15 Oct server changes collect. Privacy policy 1.6 (the draft in
+`docs/legal/privacy-policy.md` on build-19, not published) already describes all three. The
+proposed answers, in Apple's own category names:
+
+| Proposed row | Covers | Linked to identity | Used for tracking | Purpose |
+|---|---|---|---|---|
+| Diagnostics: **Other Diagnostic Data** | `push_tokens.device_info` (1.0.2 only, `src/lib/appStamp.ts`): app version, build, runtime, update id and channel, embedded or not, OS and OS version, which kind of Supabase key, when it stamped. No device name, identifier or location. | Yes (the token row belongs to the account) | No | App Functionality (which versions are still in use, so problems get fixed and players can be told when an update is needed, the policy's words) |
+| (same row) | The notification delivery log (`push_log`, migration 0080, written for every push since 15 Oct, so it applies to 1.0.1 phones today): recipient, kind of push, time, tokens tried and accepted, Expo's status and error code. No title, text or names. 90 days. | Yes (`recipient_id`) | No | App Functionality (checking delivery, dropping pushes that do not arrive) |
+| Usage Data: **Product Interaction** | Duo Pop records (`queue_ups`, migration 0085): who was sent a pop, who opened it, who tapped Not now, who tapped I'm in, the call code. 30 days, and a deleted account's id is removed at once. | Yes | No | App Functionality (who may get a pop, the 3-a-day and 3-hour caps, the 7-day Not now memory) |
+
+Why these, and what is left to your judgement:
+- **Other Diagnostic Data** fits both technical records; neither is crash or performance data,
+  so the "Not collected" line below keeps Crash Data and Performance Data. If you accept, that
+  line and the Part 0 sentence "the privacy table in Part 3 doesn't need a Diagnostics row" both
+  change.
+- **Analytics as a second purpose** for the version stamp is the judgement call: the policy says
+  it is used "to see which app versions are still in use". The proposal says App Functionality
+  only, because what it drives is fixes and update prompts (the minimum version in
+  `site/app-status.json`), not product decisions. Add Analytics if you read it the other way.
+- **Product Interaction** is new to the label. The swipes (likes and passes) the app has always
+  recorded are the same kind of data and were never listed; this row would honestly cover them
+  too.
+- `push_log` is live for 1.0.1 today, so that part of the label is already behind, not only from
+  1.0.2.
+- When: in App Store Connect at plan R4 step 7. Then update this table and the "Not collected"
+  line to match what you entered, in the same commit that publishes privacy policy 1.6 (when
+  1.0.2 is released, not before).
 
 **Sign in with Apple adds no new row.** What Apple shares maps onto rows already in the table:
 the email address (or its private relay address, if the user picks Hide My Email) is Email
@@ -682,14 +783,37 @@ Revisit this answer if a future release adds any cryptography beyond HTTPS + thi
 
 ## Part 4 — Draft App Review notes (paste into App Review Information → Notes)
 
-Edit the one bracketed placeholder (subscription prices) once Part 2.5 is done; everything
-else is ready to paste as-is.
+**1.0.2 (build 19) paste, written 15 Oct 2026: the block at the end of this Part.** The same text,
+with three checks to do before pasting, is in
+`C:\Users\stall\Documents\DuoQueue-review-notes-1.0.2.txt`. Measured 3,968 characters counting
+CRLF line ends (3,935 counting a line break as 1); the limit is 4,000, so count again after any
+edit. Built from the 1.0.1 paste (in `DuoQueue-listing-1.0.1.txt`), with:
+- the sign-in path first, in Group A's words: "The demo account signs in from the first screen:
+  tap "I already have an account", then enter the email and password below." (1.0.2's front door
+  has no email fields; `FRONT_DOOR_COPY.haveAccount` in `frontDoorCopy.ts`);
+- NEW IN 1.0.2: Queue up and the LFG post (shared only through the iOS share sheet or Copy post;
+  the app never posts by itself); Duo Pops opt-in, North America only, at most 3 a day, never
+  between 1 am and 10 am local, and the review account cannot receive one (0085's recipients
+  must share the sender's `is_demo`, and no synthetic profile ever queues up), so its Queue up
+  shows the honest "No one in League of Legends could get a Duo Pop right now" line (`no_players`
+  in `outcomeLine`; the review account is NA East with League first, onboarded long ago, and has
+  no reports against it, read 15 Oct); sign-up with the date of birth first and the account
+  created at "Save your card"; "Forgot password?" sends a 6-digit code; the chat buttons; no
+  notification prompt at sign-up; the free chat cap of 10;
+- SIGN IN WITH APPLE rewritten for 1.0.2 (Apple is on "Save your card" and "I already have an
+  account", not the front door);
+- the deck line no longer claims Dae and Devon are the first two cards (0071 changed the order;
+  they still carry the lit cell), and the paywall item and IN-APP PURCHASES are folded into one
+  HOW TO EXERCISE line to stay under 4,000.
 
-**Length.** App Store Connect caps Notes at 4,000 characters, and the notes pasted for build 9
-(these plus the 2.1 questionnaire answers) were already at 3,992. The block below is longer than
-4,000 on its own, so it is a source to cut from, not a single paste. The SIGN IN WITH APPLE
-paragraph is new for build 11 and must go in: trim HOW TO EXERCISE EACH FEATURE or IN-APP
-PURCHASES to make room rather than dropping it.
+**Before pasting, three things must be true**, or the notes describe something the reviewer
+will not see: the demo deck is repaired as the 1.0.2 WARNING in Part 1.5 says (today only 11
+personas pass the gates and neither CAN DUO card is among them); Queue Up's server pieces are
+live (0085 and the new `send-push-notification`, plan S2 and S3), or the sheet falls back to the
+queued-by-profile phase and shows no Duo Pop line; and the recovery template is live (plan S4),
+or "Forgot password?" emails a link.
+
+**Length.** App Store Connect caps Notes at 4,000 characters, counting CRLF line ends.
 
 **Build 11 paste (done, 23 Sept 2026).** The cut version that went in for build 11 is kept
 outside the repo at `C:\Users\stall\Documents\DuoQueue-review-notes-build-11.txt`: 3,775
@@ -712,108 +836,45 @@ item 4 says "swipe left twice to page 3" and that DuoQueue+ keeps every conversa
 Measured 3,954 characters counting CRLF line ends (3,952 without the final line end). Count
 again after any edit (App Store Connect's limit is 4,000, counting CRLF line ends).
 
+The long pre-1.0.1 source block that used to sit here (over 4,000 characters, "free accounts can
+message in their 5 most recently active matches") is in git history before this change. The
+1.0.2 paste:
+
 ```
 WHAT THIS APP IS
-DuoQueue helps people find platonic gaming partners ("duos"): teammates to play games, watch
-shows, or co-op with. People are matched on shared games, shows, and playstyle, not romantic
-interest. It uses a swipe-card interface to browse candidate profiles quickly, the same
-interaction pattern dating apps use, but here it drives a non-romantic, activity-based match:
-there is no gender-based filtering anywhere in the app (no screen offers it and no client code
-sets a gender preference), no romantic language on any screen, and every piece of in-app
-vocabulary was written to describe teammates, not dates ("duo," "Power-Up," "Super Ping,"
-"Who wants to duo," "Requests," "Highlights").
+DuoQueue helps adults find platonic gaming partners ("duos"), matched on shared games, playstyle and schedule, not romantic interest. No gender filtering, no romantic language; the vocabulary describes teammates ("duo," "Queue up," "Duo Pop," "Requests").
+League rank: players whose ranks can queue Ranked Solo/Duo together (Riot's published rules) both show a lit "CAN DUO" cell. "League of Legends" is plain text only: no Riot art, logos, sounds or footage in the app or its store media. Riot's legal notice is at the bottom of Settings.
 
-DEMO ACCOUNT FOR REVIEW
+DEMO ACCOUNT
+The demo account signs in from the first screen: tap "I already have an account", then enter the email and password below.
   Email:    review@duoqueue.io
   Password: ipTH0uV9uRfA9O2xsg7eb6WH
+Pre-confirmed and onboarded, no email code. You will see a Deck of 13 profiles (the account is League Gold II, so Dae and Devon show the lit "CAN DUO" cell and Ophelia does not), a match with "Priya" (8 messages, newest unread), and three profiles under "Requests". These synthetic profiles are visible ONLY to this account, enforced server-side by row-level security, and their pictures are abstract artwork. Store screenshots show real people, with consent.
 
-This account is pre-confirmed and fully onboarded. Sign in directly, no CAPTCHA or email code.
-On sign-in you will immediately see:
-  - A populated Deck of 13 candidate profiles, each with a display name, age, bio, prompt
-    answers, games with skill levels, shows, platforms, playstyle tags, and an approved picture.
-  - One existing match (with "Priya") already containing an 8-message conversation about
-    scheduling a Valorant session, with the newest message left unread, so Priya's row in the
-    Matches list shows as unread the moment you sign in.
-  - Three profiles waiting under "Requests" (the "Who wants to duo" screen).
-
-Why this data exists: these profiles are synthetic accounts created specifically for App Review,
-flagged internally so they're visible ONLY to this review account. Real users never see them,
-and this account never appears to real users either. That's enforced server-side (Postgres
-row-level security), not just hidden in the client. We chose this over seeding fake profiles
-into the general pool because that would mean real users occasionally matching with an account
-nobody is behind, which we consider a worse outcome. All profile photos shown are abstract
-generated artwork (geometric patterns, no faces, real or AI-generated).
+NEW IN 1.0.2
+1. Queue up (top right of the Deck): pick a game and tap Queue up. For an hour the player shows as free to matches and in Online Now, and gets a plain-text LFG post with a code: "Share my LFG post" opens the iOS share sheet, "Copy post" copies it, and the app never posts by itself. The code stops working after the queue ends.
+2. Duo Pops: with "Ping players" on, Queue up pings up to 6 players in the same game, and the first to tap "I'm in" is matched with the sender. Opt-in (off by default; on from a card with "Not now" or in Settings > Notifications), North America only, at most 3 a day, never between 1 am and 10 am local time. Demo and real accounts never pop each other, so the review account cannot receive one, and its Queue up says "No one in League of Legends could get a Duo Pop right now."
+3. Sign-up: "Get started" asks for a date of birth first (under 18 refused), then builds the card; the account is created at "Save your card" (Apple or email, Terms line above the buttons). No email code.
+4. "Forgot password?" emails a 6-digit code.
+5. Chat: Discord, I'm free now and Pick a time buttons above the message box (Discord also in Settings > Connections).
+6. Notifications are never asked at sign-up: an in-app card with "Not now" comes first, after a Duo or a match.
+7. Free accounts can message in their 10 most recently active matches (was 5).
 
 SIGN IN WITH APPLE
-Offered on the sign-in and sign-up screens. Apple does not share a date of birth, so a new
-Apple account is asked for one on a "Confirm your age" screen right after signing in, before
-any profile exists; a date under 18 is refused there, the same as on the email path. The name
-you choose to share with Apple is prefilled on the first setup step. An Apple-created account
-does not see the demo profiles above (they are visible only to the email review account), so
-its Deck will be empty or nearly empty before launch; please use the email review account for
-the full demo. Deleting an Apple account revokes the app's Sign in with Apple access with
-Apple (iOS may first ask you to confirm with your Apple ID), and DuoQueue is then removed from
-Settings > Apple ID > Sign in with Apple. An account can also be deleted before it is
-finished: "Delete this sign-in" on the age screen, or "Sign out or delete" on any setup step.
+On "Save your card" and "I already have an account". A new Apple ID takes the date of birth from the age screen or, with no card, asks for it on "Confirm your age" before any profile exists (under 18 refused). Apple-created accounts do not see the demo profiles. Deleting an Apple account revokes Sign in with Apple through Apple's REST API; an unfinished one can be deleted from the age screen or any setup step.
 
-HOW TO EXERCISE EACH FEATURE
-1. Swipe the Deck: from the first tab ("Deck"), swipe or use the on-screen buttons to pass or
-   duo with any of the 13 candidate profiles.
-2. Open the existing conversation: Matches tab → tap "Priya" to open the 8-message conversation.
-   Sending a new message works normally.
-3. View a full profile: tap the panel under a card's picture in the Deck (or a name in Matches)
-   to open full profile detail, showing the picture, prompts, games, schedule, and vibe tags.
-4. Try the paywall: Settings tab -> "Subscription" section -> "DuoQueue+". It is three pages:
-   swipe left twice (with VoiceOver, swipe up on the page dots) to reach page 3, which lists
-   four auto-renewing plans (Weekly /
-   Monthly / 3-Month / 6-Month) plus a one-time Power-Up consumable. The X closes it from every
-   page and page 3 ends with "Continue with Free", so it never traps you. The same screen is
-   reachable from the Deck tab via "Filters" -> "Unlock DuoQueue+".
-4b. Manage or cancel a subscription: Settings tab -> "Subscription" -> "Manage subscription",
-   which opens the App Store's own subscription management. Purchases made through Apple can
-   only be changed there, so the app links to it rather than implying it can cancel for you.
-5. Blocking and reporting: open the "Priya" conversation, tap the ••• menu, choose "Report" or
-   "Block." The same two actions are available from any party chat's member list.
-6. Account deletion (Guideline 5.1.1(v)): Settings tab → "Sign out or delete account" → red
-   "Delete account" card. Requires two confirmations before permanently deleting the account,
-   profile, photos, matches, and messages. Please use a fresh test account of your own to
-   exercise this, since it will remove the review account. For an account created with Sign in
-   with Apple, deletion also revokes the app's access with Apple (see SIGN IN WITH APPLE above).
+HOW TO EXERCISE
+1. Paywall: Settings > DuoQueue+ (or Deck > Filters), swipe left twice to page 3: four auto-renewing plans (Weekly, Monthly, 3-Month, 6-Month) and a one-time Power-Up, renewal terms under the purchase button, Restore purchases, Terms, Privacy Policy and "Continue with Free".
+2. Block and report: Priya chat, ••• menu > Report or Block.
+3. Account deletion (5.1.1(v)): Settings > "Sign out or delete account" > "Delete account", two confirmations. Please use a fresh account.
 
-IN-APP PURCHASES
-DuoQueue+ is a subscription (Weekly [$4.99/wk] / Monthly [$7.99/mo] / 3-Month [$17.99] /
-6-Month [$29.99]) that lifts the free tier's 25-swipes-per-day cap, adds advanced filters,
-shows everyone who has sent a request at once, keeps every conversation open (free accounts
-can message in their 5 most recently active matches), and grants one daily "Super Ping." All
-four tiers are auto-renewing; page 3 of the paywall states this directly under the purchase
-button, for the selected plan ("DuoQueue+ Monthly, $7.99 a month, charged to your Apple Account
-when you confirm. It renews at $7.99 a month unless cancelled at least 24 hours before the
-period ends..."), and Restore purchases is on the same page. One consumable purchase is also
-offered, visually separated from the subscription
-tiers: a "Power-Up," which raises the buyer's position in other users' decks for 30 minutes.
-
-MODERATION AND SAFETY
-- Profile photos are automatically screened before anyone else can see them (nudity, gore,
-  apparent-minor detection); anything the automated check can't confidently clear is held for
-  manual review rather than shown.
-- Users can report anyone (1:1 or party chat) with one of five categories: Harassment, Spam,
-  Inappropriate content, Underage, or Other, plus optional free-text detail.
-- Users can block anyone. Blocking is enforced server-side: a blocked user cannot re-fetch the
-  blocker's profile, photos, or any other data through the API.
-- Users can add "hidden words" that mask any inbound message containing them until revealed.
-- Published, monitored safety/contact address: support@duoqueue.io.
+SAFETY
+Photos are auto-screened (nudity, gore, apparent minors) before anyone sees them; uncertain ones go to manual review. Five report categories, including Underage. Server-side blocking. A hidden-word filter.
 
 AGE RATING
-We have set this app to 18+ using the Override to Higher Age Rating control, deliberately and
-above the rating the questionnaire computed. DuoQueue is adults-only by design and our Terms of
-Service require users to be 18 or older, so we would rather the store listing say so plainly
-than rely on the computed rating. Sign-up requires a date of birth, the app computes
-whether that date is at least 18 years in the past, and the date picker's own maximum selectable
-date is capped at 18 years ago. With email sign-up the date is asked before the account is
-created; with Sign in with Apple it is asked right after sign-in, and the server will not create
-a profile without it. There is no path to a profile that skips this.
+18+ via the Override to Higher Age Rating, deliberately; our Terms require 18+. The server creates no profile without a date of birth of 18 or older.
 
-Contact: support@duoqueue.io for anything App Review needs during evaluation. We'll respond quickly.
+Contact: support@duoqueue.io
 ```
 
 ---
@@ -882,6 +943,22 @@ Submit, not before.
       policy includes the Sign in with Apple additions (`docs/legal/privacy-policy.md`,
       republished to duoqueue.io).
 
+**1.0.2 (build 19) additions** (the order of the work itself is plan R4 in
+`docs/superpowers/plans/2026-10-15-build-19.md`):
+- [ ] The demo deck is repaired: the seed passes every `is_demo` profile that is not one of its
+      own personas, the plain seed was re-run with Cameron's OK, and a re-measure shows 13 cards
+      with Dae and Devon lit and no `profile_media` outside `assets/demo` (Part 1.5 WARNING).
+- [ ] 0084 (free chat cap 10) is live before release: the description, What's New, review notes
+      and the 1.0.2 paywall all say 10. (Applied 15 Oct 2026.)
+- [ ] 0085 and the new `send-push-notification` are live before App Review, function first
+      (plan S6), and S6's read-only check returns the six Queue Up functions.
+- [ ] The recovery template (6-digit code) is live before release (plan S4).
+- [ ] Listing pasted from `DuoQueue-listing-1.0.2.txt`: keywords (99 bytes), description,
+      What's New; name, subtitle and promotional text unchanged. Q22 answered first.
+- [ ] Notes pasted from `DuoQueue-review-notes-1.0.2.txt` (3,968 counting CRLF line ends).
+- [ ] App Privacy answered per the Part 3 PROPOSAL or your changes to it, and privacy policy 1.6
+      published when 1.0.2 is released (its effective date set that day).
+
 ---
 
 ## Decisions already made (both are done in code — recorded here so you know why)
@@ -909,11 +986,11 @@ Guideline 3.1.1 problem and a refund magnet, so **the storefront tile is removed
 
 **2. Unlimited active conversations are a real DuoQueue+ benefit (corrected for build 17).**
 This note used to say free accounts had no conversation cap. They do: `is_conversation_unlocked`
-(0004_chat.sql:71-118) keeps a free account's 5 most recently active matches open and locks
-older ones until the player unmatches one or upgrades, and `send-message` refuses a locked
-conversation. Build 17 keeps the cap and lists it: page 2 of the paywall, the plans caption,
-the Settings hint, the description and the review notes all say DuoQueue+ keeps every
-conversation open.
+(0004_chat.sql:71-118) keeps a free account's 10 most recently active matches open (5 until
+migration 0084, applied 15 Oct 2026 for 1.0.2) and locks older ones until the player unmatches
+one or upgrades, and `send-message` refuses a locked conversation. Build 17 kept the cap and
+listed it; 1.0.2 raises it to 10, and page 2 of the paywall (`FREE_ACTIVE_CONVERSATIONS`), the
+description and the review notes all say 10 and that DuoQueue+ keeps every conversation open.
 
 ---
 

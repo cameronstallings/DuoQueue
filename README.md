@@ -36,7 +36,8 @@ This repo implements the **full build plan, Phases 1-6**:
   free user taps one).
 - Phase 3: real-time 1:1 chat (Supabase Realtime, typing indicators, read receipts,
   text-only), the `send-message` Edge Function (profanity/abuse filter applied before
-  delivery, server-enforced free-tier 5-active-conversation cap), consent-gated Discord
+  delivery, server-enforced free-tier 10-active-conversation cap, 5 before migration
+  0084), consent-gated Discord
   sharing (`get_shared_discord_username` — the *only* way to read someone else's Discord
   username, and only after they've explicitly shared it in that match), and
   unmatch/block/report.
@@ -430,9 +431,9 @@ zero grants to `anon` or `authenticated`):
 - Messages have no client INSERT grant at all (`supabase/migrations/0004_chat.sql`) —
   every send goes through the `send-message` Edge Function, which re-validates match
   participation, applies the profanity/abuse filter, and checks
-  `is_conversation_unlocked()` (the free-tier 5-concurrent-conversation cap, ranked by
-  most recent activity) before writing with the service role. Read receipts use a
-  column-level grant (`grant update (read_at) on messages`) so a client can mark
+  `is_conversation_unlocked()` (the free-tier 10-concurrent-conversation cap, 5 before
+  migration 0084, ranked by most recent activity) before writing with the service role.
+  Read receipts use a column-level grant (`grant update (read_at) on messages`) so a client can mark
   messages read without ever being able to touch `content` or `sender_id`.
 - A Discord username is never exposed in bulk or via any view — the *only* read path is
   `get_shared_discord_username(match_id, shared_by)`, which re-checks a non-revoked
