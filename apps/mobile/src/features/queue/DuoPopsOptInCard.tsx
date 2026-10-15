@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "expo-router";
-import Animated, { FadeInDown, useReducedMotion } from "react-native-reanimated";
+import Animated, {
+  FadeInDown,
+  ReduceMotion,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { EdgeCard } from "@/components/EdgeCard";
@@ -40,7 +47,8 @@ import { useDuoPopsSetting } from "./useDuoPopsSetting";
  *   "empty"  at the top of the empty deck's column, in flow, decided once when the empty deck
  *            mounts, from caches the deck has already warmed. Anything not loaded at that moment
  *            means nothing this time: a card that arrived late would shove the empty deck's
- *            buttons down under the player's thumb.
+ *            buttons down under the player's thumb. For the same reason an answered card fades
+ *            out and keeps its box, rather than pulling them up.
  *
  * Never outside NA (pops only go between NA players), never before the `queue_pop` column
  * exists (0085), never twice per account on a phone, never within a week of another ask, and
@@ -265,7 +273,7 @@ function DeckDuoPopsCard({ active }: { active: boolean }) {
 }
 
 function EmptyDuoPopsCard() {
-  const { spacing } = useTheme();
+  const { motion, spacing } = useTheme();
   const { userId, wanted, enable, markSeen } = useEligibility();
 
   // Decided once, in the first render, from what is already in memory.
@@ -301,12 +309,23 @@ function EmptyDuoPopsCard() {
   }, [offer, markSeen]);
   useEffect(() => () => usePushAskStore.getState().releaseDeck("duo-pops"), []);
 
+  // Answered, it fades out but KEEPS ITS BOX, as DUO LOCKED's pre-ask does. It sits in flow above
+  // an EmptyState that is centred in the rest of the column, so a card that left the layout moved
+  // the icon, the title and Queue up by half its height in one frame, right under the thumb that
+  // had just tapped. The empty box goes when the empty deck does.
+  const [dismissed, setDismissed] = useState(false);
+  const opacity = useSharedValue(1);
+  useEffect(() => {
+    if (dismissed) opacity.value = withTiming(0, { duration: motion.quick, reduceMotion: ReduceMotion.Never });
+  }, [dismissed, opacity, motion.quick]);
+  const fade = useAnimatedStyle(() => ({ opacity: opacity.value }));
+
   const actions = useOptInActions({
     userId,
     enable,
     onClose: () => {
       markSeen();
-      setShown(false);
+      setDismissed(true);
       usePushAskStore.getState().releaseDeck("duo-pops");
     },
   });
@@ -315,18 +334,22 @@ function EmptyDuoPopsCard() {
   return (
     <Animated.View
       entering={revealEntering()}
-      exiting={quickExiting()}
+      pointerEvents={dismissed ? "none" : "auto"}
+      accessibilityElementsHidden={dismissed}
+      importantForAccessibility={dismissed ? "no-hide-descendants" : "auto"}
       style={{ alignSelf: "stretch", marginBottom: spacing.sm }}
     >
-      <EdgeCard
-        title={DUO_POPS_OPT_IN_COPY.title}
-        body={DUO_POPS_OPT_IN_COPY.body}
-        primaryLabel={DUO_POPS_OPT_IN_COPY.primary}
-        onPrimary={() => void actions.turnOn()}
-        primaryLoading={actions.busy}
-        secondaryLabel={DUO_POPS_OPT_IN_COPY.secondary}
-        onSecondary={actions.notNow}
-      />
+      <Animated.View style={fade}>
+        <EdgeCard
+          title={DUO_POPS_OPT_IN_COPY.title}
+          body={DUO_POPS_OPT_IN_COPY.body}
+          primaryLabel={DUO_POPS_OPT_IN_COPY.primary}
+          onPrimary={() => void actions.turnOn()}
+          primaryLoading={actions.busy}
+          secondaryLabel={DUO_POPS_OPT_IN_COPY.secondary}
+          onSecondary={actions.notNow}
+        />
+      </Animated.View>
     </Animated.View>
   );
 }
