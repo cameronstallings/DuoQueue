@@ -113,7 +113,13 @@ export function QueueUpSheet({ visible, onClose, showOnlineLink = true }: QueueU
   const queryClient = useQueryClient();
   const showToast = useToastStore((s) => s.showToast);
   const profile = useSessionStore((s) => s.profile);
-  const details = useEditableProfileDetails(profile?.id);
+  // The games are read from the first time the sheet opens (the deck mounts it for its whole
+  // life, so not before), and kept after, so closing never swaps the body for a skeleton mid-fade.
+  const [opened, setOpened] = useState(visible);
+  useEffect(() => {
+    if (visible) setOpened(true);
+  }, [visible]);
+  const details = useEditableProfileDetails(opened || visible ? profile?.id : undefined);
   const queueState = useQueueState();
   const status = useMyQueueUp({ enabled: visible });
   const start = useStartQueueUp();
