@@ -34,12 +34,17 @@ export function useNotificationSettings() {
   });
 
   /**
-   * Optimistic, so a switch moves the moment it is flipped and stays there. Before 1.0.2 the
-   * switch was bound to the server row, so it snapped back to its old position while the update
-   * was in flight and flicked over again when the refetch landed. Now the patch is written into
-   * the cache first; a failure puts the old row back and says so in an error toast (which buzzes
-   * by itself). The re-read waits until the last of several quick flips has settled, so an early
+   * Optimistic, so a switch stays where it was flipped while the save is in flight. Before 1.0.2
+   * the switch was bound to the server row, so it snapped back to its old position for the whole
+   * round trip and flicked over again when the refetch landed. Now the patch is written into the
+   * cache first; a failure puts the old row back and says so in an error toast (which buzzes by
+   * itself). The re-read waits until the last of several quick flips has settled, so an early
    * refetch cannot flick a later switch back.
+   *
+   * The cache write alone still lands a frame or two after the flip (onMutate awaits
+   * cancelQueries, and react-query notifies on a setTimeout 0), which is long enough for React
+   * Native's Switch to put itself back once. The screen closes that gap with its own pending
+   * value, set in the same event as the flip (app/settings/notifications.tsx).
    */
   const update = useMutation({
     mutationKey: UPDATE_MUTATION_KEY,

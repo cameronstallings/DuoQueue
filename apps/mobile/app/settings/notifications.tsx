@@ -72,12 +72,31 @@ export default function NotificationSettings() {
   const { settings, isLoading, error, update, refetch } = useNotificationSettings();
   const { data: permission } = usePushPermission();
   const [asking, setAsking] = useState(false);
+  // NO SNAP-BACK. React Native's Switch puts itself back to its `value` prop in the render that
+  // follows a flip unless that prop has already changed (Switch.js's layout effect sends
+  // setValue(old)). The optimistic cache write in useNotificationSettings cannot be in that
+  // render: onMutate awaits cancelQueries, and react-query tells its observers on a setTimeout
+  // 0, so the switch flicked back and then over again. This map is set in the same event as
+  // the flip, so React renders both together and the switch never moves backwards. Each entry
+  // is cleared once its save settles, by which time the cache holds the answer (or, after a
+  // failure, the rolled-back row, and the switch slides back with the error toast).
+  const [pending, setPending] = useState<Partial<Record<NotificationCategory, boolean>>>({});
 
   const banner =
     !permission || permission.status === "granted" ? null : permission.canAskAgain ? "undetermined" : "denied";
 
   function onToggle(category: NotificationCategory, next: boolean) {
-    update.mutate({ [category]: next });
+    setPending((p) => ({ ...p, [category]: next }));
+    const settle = () =>
+      setPending((p) => {
+        // A later flip of the same row owns the entry now; leave it for that save to clear.
+        if (p[category] !== next) return p;
+        const rest = { ...p };
+        delete rest[category];
+        return rest;
+      });
+    // The failure toast and the rollback live in the mutation (onError); this only lets go.
+    void update.mutateAsync({ [category]: next }).then(settle, settle);
     if (turningOnNeedsPermission(next, permission)) void askForPush(profileId, queryClient);
   }
 
@@ -128,7 +147,7 @@ export default function NotificationSettings() {
                       <ToggleRow
                         label={c.label}
                         hint={c.hint}
-                        value={settings[c.value] === true}
+                        value={pending[c.value] ?? (settings[c.value] === true)}
                         onValueChange={(next) => onToggle(c.value, next)}
                       />
                     </View>
