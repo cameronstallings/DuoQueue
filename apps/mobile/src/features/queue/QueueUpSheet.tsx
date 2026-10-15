@@ -29,7 +29,7 @@ import { isNaRegion } from "./duoPopsOptIn";
 import { InlineError } from "./InlineError";
 import { lfgPost, lfgRankParts, lfgTags } from "./lfgPost";
 import { lockedLine, outcomeLine, QUEUE_COPY, queueErrorMessage, untilLine } from "./queueCopy";
-import { sheetViewOf } from "./queueState";
+import { popRecheckAtMs, sheetClockMs, sheetViewOf } from "./queueState";
 import { useQueueUpSheetStore } from "./queueUpSheetStore";
 import { useMyQueueUp, useStartQueueUp, useStopQueueUp } from "./useQueueUp";
 import { useQueueState } from "./useQueueState";
@@ -104,9 +104,11 @@ interface QueueUpSheetProps {
  *   Duo locked     who grabbed the pop, and Send a message.
  *
  * Honest by construction: every count and reason is the server's (start_queue_up's row, or
- * get_my_queue_up's on open), nothing polls (one read when it opens, the clock ticks every 15 s
- * only while it is open), and nothing posts by itself: Share opens the iOS share sheet with the
- * player's own text, and they choose where it goes.
+ * get_my_queue_up's on open), nothing polls (one read when it opens, one more just after the
+ * 10-minute pop window closes, and the clock ticks every 15 s only while it is open), "nobody
+ * grabbed it" is only ever said from a read taken after that window (queueState.sheetClockMs),
+ * and nothing posts by itself: Share opens the iOS share sheet with the player's own text, and
+ * they choose where it goes.
  *
  * Motion: each phase fades in as the last fades out (keyed), and the box between them glides to
  * its new height (a layout transition; if it misbehaves inside the Modal on a device, drop only
@@ -162,7 +164,17 @@ export function QueueUpSheet({ visible, onClose, showOnlineLink = true }: QueueU
   const gameId = chosenGameId && games.some((g) => g.gameId === chosenGameId) ? chosenGameId : (games[0]?.gameId ?? null);
   const inNa = isNaRegion(profile?.region);
   const row = status.data ?? null;
-  const view = sheetViewOf(row, nowMs);
+  // "Nobody grabbed it" only from a read taken after the pop window closed (sheetClockMs), and
+  // that read is asked for once, just after it closes, while the sheet is open: a sender with
+  // notifications off would otherwise be told nobody answered over a duo that exists.
+  const view = sheetViewOf(row, sheetClockMs(row, nowMs, status.dataUpdatedAt));
+  const recheckAt = visible ? popRecheckAtMs(row, status.dataUpdatedAt) : null;
+  const refetchStatus = status.refetch;
+  useEffect(() => {
+    if (recheckAt === null) return;
+    const timer = setTimeout(() => void refetchStatus(), Math.max(0, recheckAt - Date.now()));
+    return () => clearTimeout(timer);
+  }, [recheckAt, refetchStatus]);
 
   // Queued by the profile but the row has not come back yet: one skeleton the size of the queued
   // body, so the sheet does not flash the idle form first. A failed read says so.

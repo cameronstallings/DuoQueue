@@ -4,10 +4,13 @@ import {
   msUntilLabelChange,
   PLEX_CHIP_ADVANCE,
   pillContentWidth,
+  POP_RECHECK_GRACE_MS,
+  popRecheckAtMs,
   QUEUE_UP_PILL,
   queueStateOf,
   queueUpButtonLabel,
   queueUpEmptyDeckLabel,
+  sheetClockMs,
   sheetViewOf,
 } from "./queueState";
 import type { QueueUpRow } from "./types";
@@ -186,5 +189,43 @@ describe("sheetViewOf", () => {
   it("reads a malformed window as passed, and a malformed pop expiry as no answer", () => {
     expect(sheetViewOf(row({ looking_until: "garbage" }), NOW)).toEqual({ kind: "idle" });
     expect(sheetViewOf(row({ pop_expires_at: "garbage" }), NOW)).toMatchObject({ outcome: "no_answer" });
+  });
+});
+
+describe("the pop window's end is confirmed by a read, never by the phone's clock", () => {
+  const popEnds = NOW + 5 * MIN;
+
+  it("keeps the sheet's clock inside the window until a read taken after it has landed", () => {
+    const live = row();
+    // Read before the window closed, and the 15 s tick has gone past it: still "popping".
+    expect(sheetClockMs(live, popEnds + 30_000, NOW)).toBe(popEnds - 1);
+    expect(sheetViewOf(live, sheetClockMs(live, popEnds + 30_000, NOW))).toMatchObject({ outcome: "popping" });
+    // Inside the window the clock is the clock.
+    expect(sheetClockMs(live, NOW + MIN, NOW)).toBe(NOW + MIN);
+    // A read from after the window: the clock runs, and "nobody grabbed it" is the server's word.
+    expect(sheetClockMs(live, popEnds + 30_000, popEnds + 1_000)).toBe(popEnds + 30_000);
+    expect(sheetViewOf(live, sheetClockMs(live, popEnds + 30_000, popEnds + 1_000))).toMatchObject({
+      outcome: "no_answer",
+    });
+  });
+
+  it("leaves the clock alone when there is no window to wait on", () => {
+    const later = popEnds + 30_000;
+    expect(sheetClockMs(null, later, NOW)).toBe(later);
+    expect(sheetClockMs(undefined, later, NOW)).toBe(later);
+    expect(sheetClockMs(row({ pop_note: "ping_off" }), later, NOW)).toBe(later);
+    expect(sheetClockMs(row({ locked_at: iso(NOW), match_id: "m" }), later, NOW)).toBe(later);
+    expect(sheetClockMs(row({ ended_at: iso(NOW) }), later, NOW)).toBe(later);
+    expect(sheetClockMs(row({ pop_expires_at: "garbage" }), later, NOW)).toBe(later);
+  });
+
+  it("asks for one re-read just after the window closes, only while unconfirmed", () => {
+    expect(popRecheckAtMs(row(), NOW)).toBe(popEnds + POP_RECHECK_GRACE_MS);
+    expect(popRecheckAtMs(row(), popEnds + 1)).toBeNull();
+    expect(popRecheckAtMs(null, NOW)).toBeNull();
+    expect(popRecheckAtMs(row({ pop_note: "no_players" }), NOW)).toBeNull();
+    expect(popRecheckAtMs(row({ locked_at: iso(NOW), match_id: "m" }), NOW)).toBeNull();
+    expect(popRecheckAtMs(row({ ended_at: iso(NOW) }), NOW)).toBeNull();
+    expect(popRecheckAtMs(row({ pop_expires_at: "garbage" }), NOW)).toBeNull();
   });
 });

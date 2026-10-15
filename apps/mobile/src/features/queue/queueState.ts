@@ -136,3 +136,40 @@ export function sheetViewOf(row: QueueUpRow | null | undefined, nowMs: number): 
     canShare: row.call_code !== null,
   };
 }
+
+/** How long after the pop window closes the sheet re-reads the row: past the server's own
+ * pop_expires_at, after which answer_duo_pop refuses every I'm in, so the read is final. */
+export const POP_RECHECK_GRACE_MS = 1000;
+
+/** The end of the row's Duo Pop window when the last read cannot yet say how it ended (pops were
+ * sent, nobody is in, it was not stopped, and the read was taken before the window closed), else
+ * null. */
+function unconfirmedPopEnd(row: QueueUpRow, readAtMs: number): number | null {
+  if (row.pop_note !== null || row.locked_at !== null || row.ended_at !== null) return null;
+  const popUntil = parseMs(row.pop_expires_at);
+  if (popUntil === null || readAtMs >= popUntil) return null;
+  return popUntil;
+}
+
+/**
+ * The clock the sheet reads its row against (`sheetViewOf`). "Nobody grabbed it this time" is
+ * only said from a read taken AFTER the pop window closed. Without this, the phone's clock alone
+ * turned "popping" into "no answer" ten minutes in, even when someone had tapped I'm in and the
+ * match existed: a sender with notifications off learns of a lock only from a read, and an open
+ * sheet read the row once, when it opened. So while the last read predates the window's end, the
+ * clock stops a millisecond short of it (the sheet keeps saying how many players were told), and
+ * `popRecheckAtMs` asks for the read that settles it. Every other row reads the real clock.
+ */
+export function sheetClockMs(row: QueueUpRow | null | undefined, nowMs: number, readAtMs: number): number {
+  if (!row) return nowMs;
+  const popUntil = unconfirmedPopEnd(row, readAtMs);
+  return popUntil === null ? nowMs : Math.min(nowMs, popUntil - 1);
+}
+
+/** When the open sheet should re-read its row (once, just after the pop window closes), or null
+ * when the last read already settles it. One read per queue-up, never a poll. */
+export function popRecheckAtMs(row: QueueUpRow | null | undefined, readAtMs: number): number | null {
+  if (!row) return null;
+  const popUntil = unconfirmedPopEnd(row, readAtMs);
+  return popUntil === null ? null : popUntil + POP_RECHECK_GRACE_MS;
+}
