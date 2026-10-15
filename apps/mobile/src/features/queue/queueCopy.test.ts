@@ -94,7 +94,10 @@ describe("the small lines", () => {
       "Kai is queueing League of Legends now. The first player to tap I'm in gets the duo.",
     );
     expect(popSentence("Kai", null)).toBe("Kai is queueing now. The first player to tap I'm in gets the duo.");
-    expect(popEndedTitle("Kai")).toBe("Kai stopped queueing");
+    // Not "stopped queueing": since 0088 a sender's queue-up also ends when they find a duo
+    // another way (another pop, or their LFG post's code), and they never stopped.
+    expect(popEndedTitle("Kai")).toBe("Kai isn't queued anymore");
+    expect(popEndedTitle("Kai")).not.toMatch(/stopped/i);
     expect(popLockedTitle("Kai")).toBe("You're duo locked with Kai");
   });
 

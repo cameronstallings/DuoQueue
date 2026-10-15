@@ -98,7 +98,9 @@ interface PopOverContentProps {
 /**
  * The Pop card once it is over. Someone else got there first, or the ten minutes ran out: say so,
  * and offer the one thing that turns it around (Queue up, so players in your game hear from you).
- * The sender stopped: Close. Already matched: Open chat. Gone for any other reason: Close.
+ * The sender isn't queued anymore (Stop, their hour, or a duo found another way): Close. Already
+ * matched (crossed I'm in taps, which 0088 answers "already_matched" before "ended"): Open chat.
+ * Gone for any other reason: Close.
  */
 export function PopOverContent({ result, name, onQueueUp, onClose, onOpenChat }: PopOverContentProps) {
   const { colors, spacing, type } = useTheme();

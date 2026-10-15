@@ -118,9 +118,14 @@ export function popSentence(name: string, game: string | null): string {
   return `${name} is queueing ${what}. The first player to tap I'm in gets the duo.`;
 }
 
-/** The Pop card when the sender stopped queueing before anyone was in. */
+/** The Pop card when the sender's queue-up is over and nobody took this pop: they tapped Stop,
+ * their hour ran out, or (since 0088's one duo per Queue up) they found a duo another way, by
+ * answering someone else's pop or by someone joining with their LFG post's code. "isn't queued
+ * anymore" is true of all of them; "stopped queueing" was false of the last. A pair that ended
+ * up matched to each other (two crossed I'm in taps) gets "already_matched" from the server
+ * instead, with Open chat. */
 export function popEndedTitle(name: string): string {
-  return `${name} stopped queueing`;
+  return `${name} isn't queued anymore`;
 }
 
 /** The Pop card when the sender's call already has its duo. answer_duo_pop and get_duo_pop say
