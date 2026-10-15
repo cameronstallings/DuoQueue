@@ -8,11 +8,15 @@ import { COMMIT_COPY, DISCORD_COPY } from "@/features/auth/frontDoorCopy";
 import { firstIncompleteStep } from "@/features/onboarding/commitDraft";
 import { stepPath } from "@/features/onboarding/steps";
 import { WizardStep } from "@/features/onboarding/WizardStep";
+import { toUserMessage } from "@/lib/userMessage";
 import { useInviteStore } from "@/store/invite-store";
 import { useOnboardingStore } from "@/store/onboarding-store";
 import { useSessionStore } from "@/store/session-store";
 import { useToastStore } from "@/store/toast-store";
 import { useTheme } from "@/theme/useTheme";
+
+/** The same fallback the store's own `submitError` uses (onboarding-store.ts). */
+const FINISH_FAILED = "Something went wrong finishing your profile.";
 
 /**
  * Step 8: the Discord name, optional and private.
@@ -87,7 +91,10 @@ export default function DiscordStep() {
       const invited = useInviteStore.getState().arrival !== null;
       router.replace(invited ? "/invited" : "/welcome");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      // Never the raw message: PostgrestError extends Error, so `err.message` would put
+      // Postgres's own text (a constraint name, an RLS line) on screen. toUserMessage keeps the
+      // sentences this codebase wrote (a P0001 hint, our own Errors) and hides the rest.
+      setError(toUserMessage(err, FINISH_FAILED));
     }
   }
 

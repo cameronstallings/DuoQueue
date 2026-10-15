@@ -409,8 +409,10 @@ export const useOnboardingStore = create<OnboardingState>()(
         } catch (err) {
           const message = toUserMessage(err, "Something went wrong finishing your profile.");
           set({ submitting: false, submitError: message });
-          // Rethrow as a real Error so the screen's `err instanceof Error` branch holds and
-          // shows this message rather than falling back to its own generic string.
+          // An Error is rethrown AS ITSELF (the commit tells ProfileAlreadySetUpError apart by
+          // class, and reads a P0001 hint off a PostgrestError), anything else as an Error with
+          // the mapped line. Either way a caller shows `toUserMessage(err, ...)`, never
+          // `err.message`: PostgrestError extends Error, and its message is Postgres's own text.
           throw err instanceof Error ? err : new Error(message);
         }
       },
