@@ -43,6 +43,8 @@ const mocks = vi.hoisted(() => {
     completeSignupError: null as unknown,
     submitError: null as unknown,
     pictureUploadFailed: false,
+    /** The session leaves while submit is in flight (a sign-out, an expired session). */
+    signOutDuringSubmit: false,
     alerts: [] as { title: string; message: string; buttons: { text: string; onPress?: () => void }[] }[],
     toasts: [] as { message: string; status: string }[],
   };
@@ -59,8 +61,10 @@ const mocks = vi.hoisted(() => {
     refreshProfile: async () => {
       events.push("refreshProfile");
     },
+    // Like the real one, the session is gone by the time sign-out has run.
     signOut: async () => {
       events.push("signOut");
+      session.setState({ status: "signed_out", profileStatus: "unknown", profile: null });
     },
   });
 
@@ -93,6 +97,7 @@ const mocks = vi.hoisted(() => {
       },
       submit: async () => {
         events.push("submit");
+        if (control.signOutDuringSubmit) session.setState({ status: "signed_out", profileStatus: "unknown", profile: null });
         if (control.submitError) throw control.submitError;
         return { pictureUploadFailed: control.pictureUploadFailed };
       },
@@ -121,6 +126,7 @@ const mocks = vi.hoisted(() => {
     control.completeSignupError = null;
     control.submitError = null;
     control.pictureUploadFailed = false;
+    control.signOutDuringSubmit = false;
     control.alerts = [];
     control.toasts = [];
     session.setState({ status: "signed_in", profileStatus: "loaded", profile: { onboarding_completed: false } });
@@ -250,14 +256,16 @@ describe("run: a new Apple account (no profile row)", () => {
     expect(useCommitStore.getState().phase).toBe("done");
   });
 
-  it("signs a banned account out from the alert", async () => {
+  it("signs a banned account out from the alert, dropping the draft first", async () => {
     control.completeSignupError = { message: "This account has been banned and cannot be re-created." };
     await runToEnd();
     expect(events).not.toContain("submit");
     expect(control.alerts).toHaveLength(1);
     expect(control.alerts[0]?.title).toBe(COMMIT_COPY.bannedTitle);
+    // The screen stays up under the alert until the session has gone.
+    expect(useCommitStore.getState().phase).toBe("running");
     control.alerts[0]?.buttons[0]?.onPress?.();
-    expect(events).toContain("signOut");
+    expect(events.slice(-2)).toEqual(["discardDraft", "signOut"]);
     expect(useCommitStore.getState().phase).toBe("idle");
   });
 
@@ -346,6 +354,50 @@ describe("run: everything else", () => {
     useCommitStore.setState({ phase: "done", destination: "/welcome", welcomeName: "Cameron" });
     useCommitStore.getState().consume();
     expect(useCommitStore.getState()).toMatchObject({ phase: "idle", destination: null, welcomeName: "", error: null });
+  });
+});
+
+describe("the session leaving", () => {
+  it("drops a failed commit on sign-out, so the next sign-in starts from its own route", async () => {
+    control.submitError = new Error("offline");
+    await runToEnd();
+    expect(useCommitStore.getState().phase).toBe("error");
+
+    session.setState({ status: "signed_out", profileStatus: "unknown", profile: null });
+
+    expect(useCommitStore.getState()).toMatchObject({ phase: "idle", error: null, destination: null, welcomeName: "" });
+  });
+
+  it("drops the welcome and done phases too", () => {
+    useCommitStore.setState({ phase: "done", destination: "/welcome", welcomeName: "Cameron" });
+    session.setState({ status: "signed_out" });
+    expect(useCommitStore.getState()).toMatchObject({ phase: "idle", destination: null });
+  });
+
+  it("stops a run that is still waiting for the profile read when the session leaves", async () => {
+    session.setState({ profileStatus: "unknown", profile: null });
+    const done = useCommitStore.getState().run();
+    await vi.advanceTimersByTimeAsync(500);
+    session.setState({ status: "signed_out" });
+    await vi.runAllTimersAsync();
+    await done;
+    expect(useCommitStore.getState().phase).toBe("idle");
+    expect(events).toEqual([]);
+  });
+
+  it("writes nothing after a submit the session left during", async () => {
+    control.signOutDuringSubmit = true;
+    await runToEnd();
+    expect(events).toEqual(["submit"]);
+    expect(useCommitStore.getState().phase).toBe("idle");
+  });
+
+  it("does not start without a session (a Try again that landed after a sign-out)", async () => {
+    session.setState({ status: "signed_out" });
+    useCommitStore.getState().retry();
+    await vi.runAllTimersAsync();
+    expect(events).toEqual(["refreshProfile"]);
+    expect(useCommitStore.getState().phase).toBe("idle");
   });
 });
 

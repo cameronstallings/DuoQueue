@@ -35,6 +35,12 @@ import { toUserMessage } from "../lib/userMessage";
  * (`complete_signup` answers "already has a profile", submit's delete-then-insert is idempotent,
  * and a finished card takes the returning path).
  *
+ * IT BELONGS TO ONE SESSION. app/index.tsx draws the commit's phase AHEAD of the route for as long
+ * as somebody is signed in, so a phase left behind by a session that has gone would greet the
+ * next sign-in on this phone (any account) with "Your card isn't saved yet" instead of its own
+ * screen. So the phase is dropped the moment the session leaves (the subscription at the bottom),
+ * and a run still waiting on something when that happens stops at its next step (`generation`).
+ *
  * It imports the session, onboarding, invite and toast stores, and none of them imports it back.
  */
 
@@ -59,6 +65,14 @@ interface CommitState {
 const PROFILE_WAIT_MS = 8000;
 const INVITE_WAIT_MS = 5000;
 const WELCOME_HOLD_MS = 900;
+
+/**
+ * Bumped whenever the commit is let go of (`consume`, which the session leaving also calls). A run
+ * captures it when it starts and checks it after every await, so a run that was waiting on the
+ * network when the player signed out cannot come back afterwards and write a phase, a toast or a
+ * discard for an account that is no longer here.
+ */
+let generation = 0;
 
 interface Subscribable<T> {
   getState: () => T;
@@ -127,7 +141,10 @@ export const useCommitStore = create<CommitState>((set, get) => {
     welcomeName: "",
     destination: null,
 
-    consume: () => set({ phase: "idle", error: null, welcomeName: "", destination: null }),
+    consume: () => {
+      generation += 1;
+      set({ phase: "idle", error: null, welcomeName: "", destination: null });
+    },
 
     retry: () => {
       void (async () => {
@@ -139,10 +156,17 @@ export const useCommitStore = create<CommitState>((set, get) => {
     run: async () => {
       const { phase } = get();
       if (phase === "running" || phase === "welcome" || phase === "done") return;
+      // A commit writes onto the signed-in account; with none (a Try again that landed after a
+      // sign-out, say) there is nothing to write to.
+      if (useSessionStore.getState().status !== "signed_in") return;
       set({ phase: "running", error: null });
+      const started = generation;
+      /** The commit was let go of while this run was waiting: stop without touching anything. */
+      const abandoned = () => generation !== started;
 
       // (1) The new session's profile read. Until it answers there is nothing to decide on.
       await waitUntil(useSessionStore, (s) => s.profileStatus !== "unknown", PROFILE_WAIT_MS);
+      if (abandoned()) return;
       const session = useSessionStore.getState();
 
       // (2) What the account already holds.
@@ -174,12 +198,23 @@ export const useCommitStore = create<CommitState>((set, get) => {
             displayName: draft.displayName.trim() || null,
           });
         } catch (err) {
+          if (abandoned()) return;
           const outcome = completeSignupOutcome(err, MIN_AGE);
           if (outcome.kind === "banned") {
+            // The phase stays "running" under the alert, so "/" keeps this screen up until the
+            // session has gone (and the subscription below drops the phase). The draft goes
+            // FIRST: sign-out flips the route to signed-out before its own reset of the draft,
+            // and in that gap a draft with a DOB would route through the wizard on its way to
+            // the front door.
             Alert.alert(COMMIT_COPY.bannedTitle, outcome.message, [
-              { text: "OK", onPress: () => void useSessionStore.getState().signOut() },
+              {
+                text: "OK",
+                onPress: () => {
+                  useOnboardingStore.getState().discardDraft();
+                  void useSessionStore.getState().signOut();
+                },
+              },
             ]);
-            set({ phase: "idle" });
             return;
           }
           if (outcome.kind === "rejected") {
@@ -194,6 +229,7 @@ export const useCommitStore = create<CommitState>((set, get) => {
           }
           // "already-complete": a retry after a commit that got this far. Carry on.
         }
+        if (abandoned()) return;
       }
 
       // (3) A draft that is not finished (a stale one, or one restored with a field dropped) goes
@@ -213,6 +249,7 @@ export const useCommitStore = create<CommitState>((set, get) => {
       try {
         ({ pictureUploadFailed } = await useOnboardingStore.getState().submit());
       } catch (err) {
+        if (abandoned()) return;
         if (err instanceof ProfileAlreadySetUpError) {
           returning();
           return;
@@ -220,6 +257,7 @@ export const useCommitStore = create<CommitState>((set, get) => {
         set({ phase: "error", error: toUserMessage(err, AUTH_COPY.generic) });
         return;
       }
+      if (abandoned()) return;
 
       // (5) An invite code typed at the front door is redeemed by useInviteRedemption the moment
       // the profile exists; give it a moment, so the friend who sent it is the first screen.
@@ -229,6 +267,7 @@ export const useCommitStore = create<CommitState>((set, get) => {
           (s) => s.pendingCode === null || s.redemption === "done" || s.redemption === "failed",
           INVITE_WAIT_MS,
         );
+        if (abandoned()) return;
       }
 
       // (6) Chosen before the refresh, which is what lets the guards move on.
@@ -236,6 +275,7 @@ export const useCommitStore = create<CommitState>((set, get) => {
 
       // (7) onboarding_completed is true from here, so the route answers "app".
       await useSessionStore.getState().refreshProfile();
+      if (abandoned()) return;
 
       // (8) The draft has done its job.
       const welcomeName = firstName(useOnboardingStore.getState().displayName);
@@ -245,7 +285,17 @@ export const useCommitStore = create<CommitState>((set, get) => {
       // (9) "Welcome, Cameron." for a moment, then app/index.tsx takes the destination.
       set({ phase: "welcome", welcomeName, destination });
       await sleep(WELCOME_HOLD_MS);
+      if (abandoned()) return;
       set({ phase: "done" });
     },
   };
+});
+
+// The session leaving lets go of the commit, whatever phase it reached: Sign out on the error
+// screen, the banned alert's OK, or a session that ended on its own. Without this, an "error"
+// phase outlived its account and was drawn ahead of the next sign-in's route (app/index.tsx).
+useSessionStore.subscribe((s) => {
+  if (s.status === "signed_in") return;
+  if (useCommitStore.getState().phase === "idle") return;
+  useCommitStore.getState().consume();
 });
