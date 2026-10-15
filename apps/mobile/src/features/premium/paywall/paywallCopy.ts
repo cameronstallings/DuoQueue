@@ -41,10 +41,11 @@ export interface HeadingCopy {
   body: string;
 }
 
-/** The server's free limits: 3 requests a day (0059:730-731), 5 active conversations
- * (is_conversation_unlocked, 0004_chat.sql:71-118). */
+/** The server's free limits: 3 requests a day (0059:730-731), 10 active conversations
+ * (is_conversation_unlocked, raised from 5 for 1.0.2 by the chat-cap migration S1, 0084;
+ * 0004_chat.sql:111 had 5). */
 export const FREE_REQUESTS_PER_DAY = 3;
-export const FREE_ACTIVE_CONVERSATIONS = 5;
+export const FREE_ACTIVE_CONVERSATIONS = 10;
 
 const DECK_BODY_TAIL = "DuoQueue+ has no daily limit, and filters that fill your deck with players you'd actually queue with.";
 

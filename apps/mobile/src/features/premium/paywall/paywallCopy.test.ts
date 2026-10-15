@@ -303,6 +303,6 @@ describe("the copy rules", () => {
   });
 
   it("uses the free limits the server enforces", () => {
-    expect([FREE_REQUESTS_PER_DAY, FREE_ACTIVE_CONVERSATIONS]).toEqual([3, 5]);
+    expect([FREE_REQUESTS_PER_DAY, FREE_ACTIVE_CONVERSATIONS]).toEqual([3, 10]);
   });
 });
