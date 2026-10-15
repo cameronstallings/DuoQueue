@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { sessionRoute } from "@/features/auth/sessionRouting";
 import { useHeartbeat } from "@/features/online-now/useHeartbeat";
+import { useMatchesBadge } from "@/features/chat/useMatchesBadge";
 import { usePartyFreshness } from "@/features/party/usePartyFreshness";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
@@ -80,6 +81,9 @@ export default function TabsLayout() {
   // Here because the tab layout stays mounted under every party screen: a party push or a
   // return to the app refreshes the banner, "Your parties" and an open party alike.
   usePartyFreshness();
+  // Above the redirects (rules of hooks). Unread chats, party invites and unseen matches; it
+  // keeps its RPCs off by itself while signed out or mid-signup.
+  const matchesBadge = useMatchesBadge();
 
   /**
    * The chokepoint for every tab route, which is why the age-gate branch has to be here and
@@ -116,6 +120,7 @@ export default function TabsLayout() {
           paddingTop: 6,
         },
         tabBarLabelStyle: type.tick,
+        tabBarBadgeStyle: matchesBadge.style,
         sceneStyle: { backgroundColor: colors.background },
       }}
     >
@@ -127,6 +132,7 @@ export default function TabsLayout() {
             options={{
               title: config.title,
               tabBarIcon: ({ focused, color }) => <TabIcon config={config} focused={focused} color={color} />,
+              tabBarBadge: name === "matches" ? matchesBadge.label : undefined,
             }}
           />
         ),

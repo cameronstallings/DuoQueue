@@ -12,6 +12,7 @@ import { Name } from "@/components/Name";
 import { Skeleton } from "@/components/Skeleton";
 import { SectionLabel } from "@/components/SectionLabel";
 import { useMatches, type MatchListItem } from "@/features/chat/useMatches";
+import { useMatchesTabFocus } from "@/features/chat/matchesTabFocus";
 import { PartyInvitesBanner } from "@/features/party/PartyInvitesBanner";
 import { PartyListSection } from "@/features/party/PartyListSection";
 import { refreshParties } from "@/features/party/useParty";
@@ -165,8 +166,12 @@ export default function MatchesScreen() {
   const focusedOnce = useRef(false);
   useFocusEffect(
     useCallback(() => {
+      // While this tab is in front, every match on it counts as seen (the tab badge's "new"
+      // part clears); a chat pushed over it, or another tab, ends that.
+      useMatchesTabFocus.getState().setFocused(true);
       if (focusedOnce.current) void refreshParties(queryClient);
       focusedOnce.current = true;
+      return () => useMatchesTabFocus.getState().setFocused(false);
     }, [queryClient]),
   );
 
