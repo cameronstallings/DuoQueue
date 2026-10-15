@@ -54,6 +54,11 @@ export function isDuoLockedCelebrated(popId: string): boolean {
   return wasCelebrated(celebrated, popId);
 }
 
+/** The pops this phone has already played DUO LOCKED for, newest first (for celebrateOnResume). */
+export function celebratedPops(): readonly string[] {
+  return celebrated;
+}
+
 /** The moment the screen it opens takes over. "push" from a push or a resume (a sheet over the
  * deck or wherever the player is); "replace" when the caller is itself a screen to swap out. */
 export interface OpenDuoLockedInput {

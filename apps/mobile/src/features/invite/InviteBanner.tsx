@@ -6,6 +6,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { Card } from "@/components/Card";
 import { TextField } from "@/components/TextField";
 import { FRONT_DOOR_COPY } from "@/features/auth/frontDoorCopy";
+import { CALL_ENDED_COPY } from "@/features/queue/queueCopy";
+import { useCallCodeEnded } from "@/features/queue/useQueueUp";
 import { hapticSelection, hapticSuccess } from "@/lib/haptics";
 import {
   INVITE_CODE_LENGTH,
@@ -56,6 +58,8 @@ export function InviteBanner({
   // whatever is half-typed in the field.
   const active = pendingCode ?? (isInviteCodeShape(normalizeInviteCode(typed)) ? normalizeInviteCode(typed) : null);
   const { inviter, isPending, notFound } = useResolveInviteCode(active);
+  // A Duo Call code whose queue-up is over resolves to nobody, like a typo; asked only then.
+  const callEnded = useCallCodeEnded(active, notFound);
 
   async function handleExpand() {
     hapticSelection();
@@ -146,9 +150,13 @@ export function InviteBanner({
       {isPending ? (
         <Text style={[type.caption, { color: colors.textMuted }]}>Checking that code...</Text>
       ) : notFound ? (
-        <Text style={[type.caption, { color: colors.danger }]}>
-          That code did not work. Check it against the message you were sent.
-        </Text>
+        callEnded ? (
+          <Text style={[type.caption, { color: colors.textMuted }]}>{CALL_ENDED_COPY}</Text>
+        ) : (
+          <Text style={[type.caption, { color: colors.danger }]}>
+            That code did not work. Check it against the message you were sent.
+          </Text>
+        )
       ) : (
         <Text style={[type.caption, { color: colors.textMuted }]}>
           {INVITE_CODE_LENGTH} characters, from the message a friend sent you. Optional.

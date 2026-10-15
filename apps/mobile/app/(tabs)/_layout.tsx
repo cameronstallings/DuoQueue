@@ -8,6 +8,7 @@ import { useHeartbeat } from "@/features/online-now/useHeartbeat";
 import { useMatchesBadge } from "@/features/chat/useMatchesBadge";
 import { usePushAskWarmup } from "@/features/push/usePushAskWarmup";
 import { usePartyFreshness } from "@/features/party/usePartyFreshness";
+import { usePopPushes } from "@/features/queue/usePopPushes";
 import { useTheme } from "@/theme/useTheme";
 
 const TAB_CONFIG = {
@@ -85,6 +86,8 @@ export default function TabsLayout() {
   const matchesBadge = useMatchesBadge();
   // Keeps the notification ask's two inputs warm, so DUO LOCKED can decide in its first render.
   usePushAskWarmup();
+  // Duo Pops landing while the app is open, and the sender's DUO LOCKED (from the push or on resume).
+  usePopPushes();
 
   /**
    * The chokepoint for every tab route, which is why the age-gate branch has to be here and
