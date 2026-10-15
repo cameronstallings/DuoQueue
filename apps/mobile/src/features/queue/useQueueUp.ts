@@ -12,7 +12,12 @@ import type { QueueUpRow } from "./types";
  * Duo Call code has ended. Every RPC here is 0085's, which is written but not applied while 1.0.2
  * is built, so each one fails soft:
  *  - get_my_queue_up answering PGRST202 (no such function) is "no queue-up", never an error;
- *  - start_queue_up's PGRST202 becomes the honest "Queue Up isn't ready yet" toast;
+ *  - start_queue_up's PGRST202 falls back to set_looking_now(true), which is live: exactly what
+ *    1.0.1's "I'm free to duo right now" switch did, the switch this button replaced. Without it,
+ *    a 1.0.2 phone on a server without 0085 could not go online at all, and every Queue up (App
+ *    Review's included) would end in "Queue Up isn't ready yet". The sheet then shows the
+ *    "profile" phase: queued by the flag, "Your matches can see you're free.", and Stop. No Duo
+ *    Pops and no code are claimed, because none were sent;
  *  - stop_queue_up's PGRST202 falls back to set_looking_now(false), which is live, so a player
  *    who is free to duo can always stop being;
  *  - call_code_ended answers false on any error, so the invite field keeps its old line.
@@ -67,22 +72,38 @@ function refreshAfterQueueChange(queryClient: ReturnType<typeof useQueryClient>)
  * Queue up: start_queue_up(game, ping). The answer is the row itself (start is idempotent: a
  * second tap while queued returns the live row and pings nobody), written straight into the
  * sheet's cache, so the sheet shows the server's own result without a second read.
+ *
+ * Null when 0085 is not live and the player was set free to duo instead (the header). The profile
+ * is refreshed BEFORE that resolves, so the button keeps its busy label until the flag is really
+ * on and the sheet goes straight from the form to "You're queued", never back to the form first.
  */
 export function useStartQueueUp() {
   const queryClient = useQueryClient();
   const profileId = useSessionStore((s) => s.session?.user.id);
 
   return useMutation({
-    mutationFn: async ({ gameId, ping }: { gameId: string; ping: boolean }): Promise<QueueUpRow> => {
+    mutationFn: async ({ gameId, ping }: { gameId: string; ping: boolean }): Promise<QueueUpRow | null> => {
       const { data, error } = await supabase.rpc("start_queue_up", { p_game_id: gameId, p_ping: ping });
-      if (error) throw error;
+      if (error) {
+        if (!isMissingFunction(error)) throw error;
+        // 0085 is not live: free to duo, as the 1.0.1 switch was (matches still get 0074's push).
+        const { error: fallbackError } = await supabase.rpc("set_looking_now", { p_looking: true });
+        if (fallbackError) throw fallbackError;
+        try {
+          await useSessionStore.getState().refreshProfile();
+        } catch {
+          // The flag is on either way; the profile catches up on its next read.
+        }
+        return null;
+      }
       const row = ((data ?? []) as QueueUpRow[])[0];
       if (!row) throw new Error("start_queue_up returned no row");
       return row;
     },
     onSuccess: (row) => {
       queryClient.setQueryData(queueUpQueryKey(profileId), row);
-      refreshAfterQueueChange(queryClient);
+      if (row) refreshAfterQueueChange(queryClient);
+      else void queryClient.invalidateQueries({ queryKey: ["online-now"] });
     },
     onError: (err) => {
       useToastStore.getState().showToast(queueErrorMessage(err, QUEUE_COPY.startFailed), "error");
