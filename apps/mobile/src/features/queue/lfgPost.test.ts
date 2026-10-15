@@ -82,7 +82,9 @@ describe("lfgPost", () => {
   });
 
   it("uses no dashes", () => {
-    expect(lfgPost(league())).not.toMatch(/[–—]/);
+    // En and em dash, by code point, so this file itself contains neither.
+    const dashes = new RegExp(`[${String.fromCharCode(0x2013, 0x2014)}]`);
+    expect(lfgPost(league())).not.toMatch(dashes);
   });
 });
 

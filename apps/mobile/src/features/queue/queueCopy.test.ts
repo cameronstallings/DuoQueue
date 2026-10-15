@@ -177,7 +177,9 @@ describe("the copy sweep", () => {
   });
 
   it("has no em or en dashes", () => {
-    for (const s of strings) expect(s, s).not.toMatch(/[–—]/);
+    // En and em dash, by code point, so this file itself contains neither.
+    const dashes = new RegExp(`[${String.fromCharCode(0x2013, 0x2014)}]`);
+    for (const s of strings) expect(s, s).not.toMatch(dashes);
   });
 
   it("never says beats", () => {
