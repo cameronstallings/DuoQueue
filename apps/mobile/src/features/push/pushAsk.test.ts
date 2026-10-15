@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   PUSH_ASK_INTERVAL_MS,
   PUSH_ON_TOAST,
+  askOutcome,
   canHoldDeckSlot,
   mergePushAskRecord,
   parsePushAskRecord,
@@ -71,6 +72,35 @@ describe("permissionStateOf", () => {
     expect(permissionStateOf("granted")).toEqual(undetermined);
     expect(permissionStateOf({ status: "denied" })).toEqual({ status: "denied", canAskAgain: false });
     expect(permissionStateOf({ canAskAgain: false })).toEqual({ status: "undetermined", canAskAgain: false });
+  });
+});
+
+describe("askOutcome: what a tap on Turn on leads to", () => {
+  // `after` is ensurePushPermission()'s answer. Expo on iOS reports canAskAgain false as soon as
+  // the status is denied, so a Don't Allow on the prompt this tap raised reads exactly like a
+  // denial from months ago; only the state BEFORE the tap tells the two apart.
+  const deniedNow = { granted: false, canAskAgain: false };
+
+  it("registers the token when the answer is yes", () => {
+    expect(askOutcome(undetermined, { granted: true, canAskAgain: true })).toBe("register-token");
+    expect(askOutcome(granted, { granted: true, canAskAgain: true })).toBe("register-token");
+    expect(askOutcome(denied, { granted: true, canAskAgain: false })).toBe("register-token");
+  });
+
+  it("does nothing after Don't Allow on the prompt this tap raised", () => {
+    expect(askOutcome(undetermined, deniedNow)).toBe("nothing");
+    // Android after one no: the OS could still prompt, and did.
+    expect(askOutcome({ status: "denied", canAskAgain: true }, deniedNow)).toBe("nothing");
+    expect(askOutcome(undetermined, { granted: false, canAskAgain: true })).toBe("nothing");
+  });
+
+  it("opens Settings only when the OS could not prompt before the tap", () => {
+    expect(askOutcome(denied, deniedNow)).toBe("open-os-settings");
+    expect(askOutcome({ status: "undetermined", canAskAgain: false }, deniedNow)).toBe("open-os-settings");
+  });
+
+  it("does nothing when the OS says it could still ask (nothing to send them to)", () => {
+    expect(askOutcome(denied, { granted: false, canAskAgain: true })).toBe("nothing");
   });
 });
 

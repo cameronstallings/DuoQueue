@@ -37,6 +37,33 @@ export function permissionStateOf(raw: unknown): PushPermissionState {
   return { status, canAskAgain };
 }
 
+/** What `askForPush` does with the answer. The same three words as the empty deck's
+ * `PingOutcome` (emptyDeckDecisions.ts), so the two stay interchangeable. */
+export type AskOutcome = "register-token" | "open-os-settings" | "nothing";
+
+/**
+ * What a tap on Turn on (or Open Settings) leads to, from the permission BEFORE the tap and
+ * `ensurePushPermission()`'s answer after it.
+ *
+ * The answer alone cannot tell a fresh no from an old one. Expo on iOS reports `canAskAgain`
+ * as false the moment the status is denied (EXPermissionsService.m: `canAskAgain = status !=
+ * Denied`), so a player who taps Turn on and then Don't Allow comes back as
+ * `{ granted: false, canAskAgain: false }`, exactly like one who said no months ago. Reading
+ * that as "open Settings" marched them into the Settings app a second after they said no: asking
+ * again with extra steps, against the whole point of "Not now", and the kind of push into consent
+ * App Review cites under 5.1.1(iv).
+ *
+ * So: yes registers the token; a no to a prompt this tap could have raised (the OS was still able
+ * to ask before it) is "nothing"; Settings opens only when the OS could not prompt before the tap
+ * and still cannot, which is the one case where the Settings app is the only way left to say yes.
+ */
+export function askOutcome(before: PushPermissionState, after: { granted: boolean; canAskAgain: boolean }): AskOutcome {
+  if (after.granted) return "register-token";
+  const couldPrompt = before.status !== "granted" && before.canAskAgain;
+  if (couldPrompt) return "nothing";
+  return after.canAskAgain ? "nothing" : "open-os-settings";
+}
+
 export type PushAskKind = "none" | "ask" | "open-settings";
 
 /**
