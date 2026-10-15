@@ -46,6 +46,14 @@ interface ScreenContainerProps extends PropsWithChildren {
    * reason (the match screen's lock flash). Give it pointerEvents="none".
    */
   overlay?: ReactNode;
+  /**
+   * The screen's actions (the wizard's Continue, Skip and way out), drawn after the content but
+   * INSIDE the scroll view, pushed to the bottom on a short screen and following the content on a
+   * long one. Deliberately not pinned outside the scroll view: a pinned bar sits under the keyboard
+   * (no `behavior` above, on purpose), so the button you need after typing would be hidden, and
+   * it would move every time the keyboard did. Here it scrolls into reach like any field.
+   */
+  footer?: ReactNode;
 }
 
 export function ScreenContainer({
@@ -56,6 +64,7 @@ export function ScreenContainer({
   showBack,
   atmosphere = "default",
   overlay,
+  footer,
 }: ScreenContainerProps) {
   const { colors, spacing, type, radius } = useTheme();
   const insets = useSafeAreaInsets();
@@ -179,7 +188,10 @@ export function ScreenContainer({
         ]}
         refreshControl={refreshControl}
       >
-        <View style={{ gap: spacing.md }}>{children}</View>
+        {/* With a footer, the content grows to fill the screen (the scroll content already has
+            flexGrow), which is what puts the footer at the bottom on a short screen. */}
+        <View style={footer !== undefined ? { gap: spacing.md, flexGrow: 1 } : { gap: spacing.md }}>{children}</View>
+        {footer !== undefined && <View style={{ gap: spacing.sm, paddingTop: spacing.lg }}>{footer}</View>}
       </KeyboardAwareScrollView>
 
       {/* Fixed, non-scrolling backdrop so content never passes directly behind the status
