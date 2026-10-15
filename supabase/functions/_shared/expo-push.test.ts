@@ -4,6 +4,7 @@ import {
   buildPushBatches,
   buildPushLogRow,
   type ExpoPushMessage,
+  pushOptionFields,
   readTickets,
   safeErrorText,
   sendExpoPush,
@@ -43,6 +44,59 @@ describe("buildPushBatches", () => {
 
   it("sends nothing when no token is valid", () => {
     expect(buildPushBatches(["junk"], "t", "b")).toEqual([]);
+  });
+
+  it("passes a bundled sound's file name through, with its extension (the Duo Pop, 1.0.2)", () => {
+    const [batch] = buildPushBatches([TOKEN], "Duo Pop", "b", { category: "duo_pop", popId: "p" }, {
+      sound: "duo-pop.wav",
+      ttl: 600,
+      priority: "high",
+    });
+    expect(batch[0]).toEqual({
+      to: TOKEN,
+      title: "Duo Pop",
+      body: "b",
+      data: { category: "duo_pop", popId: "p" },
+      sound: "duo-pop.wav",
+      ttl: 600,
+      priority: "high",
+    });
+  });
+
+  it("leaves ttl and priority out unless they are given, so every other push is unchanged", () => {
+    const [batch] = buildPushBatches([TOKEN], "t", "b", undefined, { sound: true });
+    expect(Object.keys(batch[0]).sort()).toEqual(["body", "data", "sound", "title", "to"]);
+    expect("ttl" in batch[0]).toBe(false);
+    expect("priority" in batch[0]).toBe(false);
+  });
+});
+
+describe("pushOptionFields", () => {
+  it("sound: true is the system sound, exactly as before 1.0.2", () => {
+    expect(pushOptionFields({ sound: true })).toEqual({ sound: "default" });
+  });
+
+  it("no sound for false, absent, or an empty name", () => {
+    expect(pushOptionFields({ sound: false })).toEqual({});
+    expect(pushOptionFields({})).toEqual({});
+    expect(pushOptionFields()).toEqual({});
+    expect(pushOptionFields({ sound: "  " })).toEqual({});
+  });
+
+  it("a sound name passes through as given (trimmed)", () => {
+    expect(pushOptionFields({ sound: "duo-pop.wav" })).toEqual({ sound: "duo-pop.wav" });
+    expect(pushOptionFields({ sound: " duo-pop.wav " })).toEqual({ sound: "duo-pop.wav" });
+  });
+
+  it("ttl only as whole seconds of at least 1; priority only as one of Expo's three", () => {
+    expect(pushOptionFields({ ttl: 600 })).toEqual({ ttl: 600 });
+    expect(pushOptionFields({ ttl: 600.9 })).toEqual({ ttl: 600 });
+    expect(pushOptionFields({ ttl: 0 })).toEqual({});
+    expect(pushOptionFields({ ttl: Number.NaN })).toEqual({});
+    expect(pushOptionFields({ priority: "high" })).toEqual({ priority: "high" });
+    expect(pushOptionFields({ priority: "normal" })).toEqual({ priority: "normal" });
+    expect(pushOptionFields({ priority: "default" })).toEqual({ priority: "default" });
+    expect(pushOptionFields({ priority: "urgent" as never })).toEqual({});
   });
 });
 
