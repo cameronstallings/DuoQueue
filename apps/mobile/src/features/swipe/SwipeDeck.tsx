@@ -25,7 +25,8 @@ export interface RestoredCard {
 
 interface SwipeDeckProps {
   cards: DeckCard[];
-  /** The top card has left the screen. */
+  /** A card has left the screen: the card that left, which by then may no longer be the first in
+   * `cards` (a card put back after a failed swipe goes in front of it). */
   onSwiped: (card: DeckCard, direction: SwipeDirection) => void;
   /** "party" for the party deck, whose pair counts are not about you. Defaults to "deck". */
   context?: SwipeCardContext;
@@ -51,6 +52,8 @@ export const SwipeDeck = forwardRef<SwipeDeckHandle, SwipeDeckProps>(function Sw
   ref,
 ) {
   const [trigger, setTrigger] = useState<SwipeCardTrigger | null>(null);
+  // A counter, not Date.now(): two taps in the same millisecond are still two presses.
+  const triggerCountRef = useRef(0);
   const visibleCards = cards.slice(0, STACK_DEPTH);
   // False through the deck's first commit: the cards it mounts with are simply in place (the
   // whole deck fades in on the Deck screen). Any card that mounts after that joins a stack already
@@ -65,20 +68,26 @@ export const SwipeDeck = forwardRef<SwipeDeckHandle, SwipeDeckProps>(function Sw
     pass: () => press("pass"),
   }));
 
+  /** A Duo or Pass tap, for the card on top right now. The trigger names that card, and only that
+   * card is handed it (below), so it can never fire on a card that reaches the top later. */
   function press(direction: SwipeDirection) {
     const top = cards[0];
+    if (!top) return;
+    triggerCountRef.current += 1;
+    const nonce = triggerCountRef.current;
     if (!canCommit) {
-      setTrigger({ direction, nonce: Date.now(), kind: "nudge" });
-      if (top) onBlocked?.(top, direction);
+      setTrigger({ direction, nonce, kind: "nudge", profileId: top.profile_id });
+      onBlocked?.(top, direction);
       return;
     }
-    setTrigger({ direction, nonce: Date.now(), kind: "commit" });
+    setTrigger({ direction, nonce, kind: "commit", profileId: top.profile_id });
   }
 
-  function handleTopSwiped(direction: SwipeDirection) {
-    const top = cards[0];
+  /** A card's exit finished. Bound per card (like onDecided), so it reports the card that actually
+   * left, never whichever card is on top by the time the exit's callback runs. */
+  function handleSwiped(card: DeckCard, direction: SwipeDirection) {
     setTrigger(null);
-    if (top) onSwiped(top, direction);
+    onSwiped(card, direction);
   }
 
   return (
@@ -99,8 +108,8 @@ export const SwipeDeck = forwardRef<SwipeDeckHandle, SwipeDeckProps>(function Sw
             <SwipeCard
               card={card}
               isTop={indexFromTop === 0}
-              onSwiped={handleTopSwiped}
-              externalTrigger={indexFromTop === 0 ? trigger : null}
+              onSwiped={(direction) => handleSwiped(card, direction)}
+              externalTrigger={indexFromTop === 0 && trigger?.profileId === card.profile_id ? trigger : null}
               context={context}
               onDecided={onDecided ? (direction) => onDecided(card, direction) : undefined}
               onBlocked={onBlocked ? (direction) => onBlocked(card, direction) : undefined}

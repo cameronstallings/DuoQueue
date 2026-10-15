@@ -46,7 +46,7 @@ export default function DeckScreen() {
   const deckRef = useRef<SwipeDeckHandle>(null);
   // The swipe itself (decide early, the free limit, putting a failed card back, DUO LOCKED, the
   // limit paywall) lives in useDeckSwipeFlow.
-  const flow = useDeckSwipeFlow({ popTop, restoreTop, quota, openLimitPaywall: () => router.push(paywallHref("limit")) });
+  const flow = useDeckSwipeFlow({ cards, popTop, restoreTop, quota, openLimitPaywall: () => router.push(paywallHref("limit")) });
   useDeckPrefetch(cards, !isLoading && !error);
   // Asked here as well as in EmptyDeck (the same query keys), so when the deck drains the one
   // skeleton below stays up until the empty deck knows which screen it is, and EmptyDeck mounts
@@ -185,6 +185,7 @@ export default function DeckScreen() {
             onLike={() => deckRef.current?.like()}
             onSuperPing={quota?.is_premium === true ? () => void handleSuperPing() : undefined}
             disabled={superPing.isPending}
+            blocked={!flow.canCommit}
           />
         )}
       </View>

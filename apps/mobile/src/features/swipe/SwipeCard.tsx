@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Modal, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -32,11 +32,16 @@ import type { DeckCard, SwipeDirection } from "./types";
  * A button press reaching the top card. "commit" (the default) sends it off the way the button
  * says; "nudge" is the free limit: the card leans BLOCKED_NUDGE toward that side and springs back,
  * with one warning tap, and nothing is swiped.
+ *
+ * `profileId` is the card the button was pressed for. SwipeDeck hands a trigger only to that card,
+ * so a card that becomes top later (the next one, or one put back after a failed swipe) never
+ * inherits a press meant for another card.
  */
 export interface SwipeCardTrigger {
   direction: SwipeDirection;
   nonce: number;
   kind?: "commit" | "nudge";
+  profileId: string;
 }
 
 /** Which deck the card sits in. The party deck's shared_games_count is counted against every
@@ -112,8 +117,15 @@ export function SwipeCard({
   /** Set the moment a swipe is decided. From then on the card is leaving: the pan ignores a
    * second grab (which would cancel the exit and strand a card the server has already been told
    * about) and a second button tap is dropped. The card unmounts when it is popped, so it never
-   * needs resetting. */
+   * needs resetting, except in the one case the effect after `complete` below catches. */
   const leaving = useSharedValue(false);
+  /** Set when the exit finished and onSwiped went out (see `complete`). */
+  const completedRef = useRef(false);
+  /** The last trigger this card acted on. It starts as whatever trigger is already there when the
+   * card mounts, so a card that mounts on top (one put back after a failed swipe, or the next card
+   * after a refresh) never replays a press it did not get: the trigger effect below also runs on
+   * mount. A trigger that comes back after this card stopped being top is not replayed either. */
+  const handledNonceRef = useRef(externalTrigger?.nonce ?? null);
 
   useEffect(() => {
     if (enterFrom) translateX.value = withSpring(0, SPRINGS.release);
@@ -154,8 +166,22 @@ export function SwipeCard({
   }
 
   function complete(direction: SwipeDirection) {
+    completedRef.current = true;
     onSwiped(direction);
   }
+
+  // onSwiped pops this card in the same batch, so after `complete` it normally unmounts. If it is
+  // still here, on top, the deck popped some other card instead (a queue that changed under the
+  // exit), and this one would sit off screen with its input locked by `leaving`: no drag, and Duo
+  // and Pass dropped, so the whole deck stops. Bring it back instead. No deps: it checks after
+  // every render, and does nothing unless that has happened.
+  useEffect(() => {
+    if (!completedRef.current || !isTop) return;
+    completedRef.current = false;
+    leaving.value = false;
+    translateX.value = withSpring(0, SPRINGS.release);
+    translateY.value = withSpring(0, SPRINGS.release);
+  });
 
   function decided(direction: SwipeDirection) {
     onDecided?.(direction);
@@ -194,10 +220,12 @@ export function SwipeCard({
   }
 
   useEffect(() => {
-    if (externalTrigger && isTop) {
-      if (externalTrigger.kind === "nudge") nudge(externalTrigger.direction);
-      else animateOff(externalTrigger.direction);
-    }
+    if (!externalTrigger || !isTop) return;
+    // Pressed for another card, already handled, or already there when this card mounted.
+    if (externalTrigger.profileId !== card.profile_id || externalTrigger.nonce === handledNonceRef.current) return;
+    handledNonceRef.current = externalTrigger.nonce;
+    if (externalTrigger.kind === "nudge") nudge(externalTrigger.direction);
+    else animateOff(externalTrigger.direction);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [externalTrigger?.nonce]);
 
@@ -214,10 +242,13 @@ export function SwipeCard({
         if (crossed) runOnJS(hapticSelection)();
       }
     })
-    .onEnd((event) => {
+    .onEnd((event, success) => {
       if (leaving.value) return;
       hasCrossedThreshold.value = false;
-      const direction = releaseDecision(event.translationX, event.velocityX);
+      // A cancelled pan is not a release. RNGH also ends an ACTIVE pan this way when it is taken
+      // from the card, as when a card put back after a failed swipe lands on top mid-drag and
+      // this one stops being top: it springs home from where it is, and nothing is swiped.
+      const direction = success ? releaseDecision(event.translationX, event.velocityX) : null;
       if (direction && canCommit) {
         // Decided at the release, not when the card has gone: the like (medium) or pass (light)
         // lands under the finger, and the Deck starts perform_swipe now.

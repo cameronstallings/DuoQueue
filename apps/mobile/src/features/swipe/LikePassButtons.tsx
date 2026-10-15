@@ -27,6 +27,9 @@ interface LikePassButtonsProps {
   onPass: () => void;
   onSuperPing?: () => void;
   disabled?: boolean;
+  /** Duo and Pass will be refused (the free daily limit): a tap still presses and nudges the card,
+   * but skips its light tap, because the card's nudge gives the one warning tap for it. */
+  blocked?: boolean;
 }
 
 /** The Super Ping column's 48pt button. */
@@ -47,6 +50,7 @@ function AnimatedIconButton({
   size,
   ringColor,
   disabled,
+  quiet,
   accessibilityLabel,
   onPress,
   style,
@@ -55,6 +59,8 @@ function AnimatedIconButton({
   size: number;
   ringColor: string;
   disabled?: boolean;
+  /** No light tap on press: the press is about to be refused, and the refusal has its own tap. */
+  quiet?: boolean;
   accessibilityLabel: string;
   onPress: () => void;
   style?: StyleProp<ViewStyle>;
@@ -83,7 +89,7 @@ function AnimatedIconButton({
 
   function handlePress() {
     if (disabled) return;
-    hapticLight();
+    if (!quiet) hapticLight();
     pulse.value = 0;
     pulse.value = withTiming(1, { duration: 380, easing: Easing.out(Easing.quad) });
     onPress();
@@ -121,7 +127,7 @@ function AnimatedIconButton({
   );
 }
 
-export function LikePassButtons({ onLike, onPass, onSuperPing, disabled }: LikePassButtonsProps) {
+export function LikePassButtons({ onLike, onPass, onSuperPing, disabled, blocked }: LikePassButtonsProps) {
   const { colors, radius, type } = useTheme();
 
   // Glass: the shared surface+hairline pairing every non-primary circle uses now that
@@ -151,6 +157,7 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, disabled }: LikeP
           accessibilityLabel="Pass"
           onPress={onPass}
           disabled={disabled}
+          quiet={blocked}
           style={[{ borderRadius: radius.round }, glassStyle]}
         >
           <Ionicons name="close" size={30} color={colors.danger} />
@@ -180,6 +187,7 @@ export function LikePassButtons({ onLike, onPass, onSuperPing, disabled }: LikeP
           accessibilityLabel="Duo"
           onPress={onLike}
           disabled={disabled}
+          quiet={blocked}
           style={[{ borderRadius: radius.round, backgroundColor: colors.volt }]}
         >
           <Ionicons name="flash" size={28} color={colors.onVolt} />
