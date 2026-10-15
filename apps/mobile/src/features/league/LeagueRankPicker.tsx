@@ -1,4 +1,5 @@
 import { Pressable, Text, View } from "react-native";
+import Animated from "react-native-reanimated";
 import {
   isLolDivisionalTier,
   LOL_DIVISION_LABELS,
@@ -12,6 +13,7 @@ import {
 
 import { ChipSelect } from "@/components/ChipSelect";
 import { SectionLabel } from "@/components/SectionLabel";
+import { layoutTransition, quickExiting, revealEntering } from "@/theme/entering";
 import { useTheme } from "@/theme/useTheme";
 
 import {
@@ -52,8 +54,10 @@ export function LeagueRankPicker({
   const summary = tier === null ? null : lolDuoRuleSummary({ tier, division: value.lolDivision });
   const legacyText = legacyLolRankText(value);
 
+  // The division row comes and goes with the tier (Master and above have none), so it fades and
+  // the rows under it glide rather than jump (1.0.2).
   return (
-    <View style={{ gap: spacing.sm }}>
+    <Animated.View layout={layoutTransition()} style={{ gap: spacing.sm }}>
       <SectionLabel>Solo/Duo rank</SectionLabel>
 
       <ChipSelect<LolTierChoice>
@@ -63,14 +67,20 @@ export function LeagueRankPicker({
       />
 
       {isLolDivisionalTier(tier) && (
-        <ChipSelect<DivisionKey>
-          options={DIVISION_OPTIONS}
-          selected={value.lolDivision === null ? [] : [String(value.lolDivision) as DivisionKey]}
-          onToggle={(next) => onChange(selectLolDivision(value, Number(next) as LolDivision))}
-        />
+        <Animated.View entering={revealEntering()} exiting={quickExiting()}>
+          <ChipSelect<DivisionKey>
+            options={DIVISION_OPTIONS}
+            selected={value.lolDivision === null ? [] : [String(value.lolDivision) as DivisionKey]}
+            onToggle={(next) => onChange(selectLolDivision(value, Number(next) as LolDivision))}
+          />
+        </Animated.View>
       )}
 
-      {summary && <Text style={[type.caption, { color: colors.textMuted }]}>{summary}</Text>}
+      {summary && (
+        <Animated.Text layout={layoutTransition()} style={[type.caption, { color: colors.textMuted }]}>
+          {summary}
+        </Animated.Text>
+      )}
 
       {legacyText !== null && (
         <View style={{ gap: spacing.xs }}>
@@ -88,6 +98,6 @@ export function LeagueRankPicker({
           </Pressable>
         </View>
       )}
-    </View>
+    </Animated.View>
   );
 }

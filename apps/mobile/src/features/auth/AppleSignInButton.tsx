@@ -1,11 +1,35 @@
 import { useEffect, useState } from "react";
 import { Platform, Text, View } from "react-native";
+import Animated from "react-native-reanimated";
 import * as AppleAuthentication from "expo-apple-authentication";
 
 import { signInWithApple } from "@/features/auth/appleSignIn";
+import { quickEntering } from "@/theme/entering";
 import { useTheme } from "@/theme/useTheme";
 
 import { APPLE_SIGN_IN_ENABLED, appleButtonStyleFor, appleSignInMessage, isAppleCancellation } from "./socialSignIn";
+
+/** The button's height: the same as a full-size Button (18 + 21 + 18), so the two line up. */
+export const APPLE_BUTTON_HEIGHT = 57;
+
+const BUTTON_TYPES = {
+  "sign-in": AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN,
+  "sign-up": AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP,
+  continue: AppleAuthentication.AppleAuthenticationButtonType.CONTINUE,
+} as const;
+
+interface AppleSignInButtonProps {
+  /** "continue" is 1.0.2's: "Continue with Apple" on Save your card and "I already have an account". */
+  intent: "sign-in" | "sign-up" | "continue";
+  /**
+   * Called BEFORE the Apple sheet opens. Save passes `beginAccountEntry`, which marks the draft for
+   * commit: the session `signInWithIdToken` creates fires the auth listener inside the call, and
+   * the guards must already know this account is for the draft (sessionRouting.ts).
+   */
+  onStart?: () => void;
+  /** Called once it is over: true when signed in, false on a cancel or a failure (before its message). */
+  onSettled?: (signedIn: boolean) => void;
+}
 
 /**
  * Apple's own button, rendered only where it can actually work.
@@ -16,23 +40,26 @@ import { APPLE_SIGN_IN_ENABLED, appleButtonStyleFor, appleSignInMessage, isApple
  * is asked once here and the button simply does not render when the answer is no, which is what
  * Apple's own guidance asks for.
  *
- * There is no matching state to render while the answer is in flight. A button that appears a
- * frame late is better than one that appears and then vanishes under a thumb already moving
- * toward it.
+ * NO JUMP WHILE IT ASKS (1.0.2). The answer takes a frame or two, and the button used to appear
+ * late and push everything under it down. Now, where it can exist (iOS, Apple enabled), the slot
+ * is reserved at the button's height while the answer is unknown, and the button fades into it.
+ * A "no" collapses the slot, which only happens on a device that cannot use Apple at all.
  *
  * WHAT HAPPENS NEXT, since this component deliberately does not navigate: a successful
  * `signInWithApple` produces a session, the store's auth listener picks it up, and routing takes
- * over. A brand new Apple account has no profile row — Apple sends no birthdate and
- * `handle_new_user` cannot invent one — so `sessionRoute` sends it to the post-auth age gate,
- * which is the only thing that can create one.
+ * over. On Save your card that is the commit of the draft (the draft's DOB creates the profile).
+ * A brand new Apple account from the sign-in screen has no profile row and no draft to commit,
+ * so `sessionRoute` sends it to the post-auth age gate, which is the only thing that can make one.
  */
-export function AppleSignInButton({ intent }: { intent: "sign-in" | "sign-up" }) {
+export function AppleSignInButton({ intent, onStart, onSettled }: AppleSignInButtonProps) {
   const { colors, radius, scheme, spacing, type } = useTheme();
-  const [available, setAvailable] = useState(false);
+  const possible = APPLE_SIGN_IN_ENABLED && Platform.OS === "ios";
+  // null = still asking. Only ever null where the button could exist.
+  const [available, setAvailable] = useState<boolean | null>(possible ? null : false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!APPLE_SIGN_IN_ENABLED || Platform.OS !== "ios") return;
+    if (!possible) return;
     let cancelled = false;
     AppleAuthentication.isAvailableAsync()
       .then((value) => {
@@ -44,13 +71,16 @@ export function AppleSignInButton({ intent }: { intent: "sign-in" | "sign-up" })
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [possible]);
 
   async function handlePress() {
     setError(null);
+    onStart?.();
     try {
       await signInWithApple();
+      onSettled?.(true);
     } catch (err) {
+      onSettled?.(false);
       // Dismissing the sheet is a decision, not a failure. Saying anything about it makes a
       // working button look broken.
       if (isAppleCancellation(err)) return;
@@ -59,10 +89,11 @@ export function AppleSignInButton({ intent }: { intent: "sign-in" | "sign-up" })
     }
   }
 
-  if (!APPLE_SIGN_IN_ENABLED || Platform.OS !== "ios" || !available) return null;
+  if (available === false) return null;
+  if (available === null) return <View style={{ height: APPLE_BUTTON_HEIGHT }} />;
 
   return (
-    <View style={{ gap: spacing.sm }}>
+    <Animated.View entering={quickEntering()} style={{ gap: spacing.sm }}>
       {/* `key={scheme}` makes a theme switch a remount of the native button. The module
           version pinned today does rebuild its ASAuthorizationAppleIDButton when buttonStyle
           changes (updateChildIfNeeded in AppleAuthenticationButton.swift), so this is belt and
@@ -71,17 +102,13 @@ export function AppleSignInButton({ intent }: { intent: "sign-in" | "sign-up" })
           of one button is cheap insurance against that coming back with an upgrade. */}
       <AppleAuthentication.AppleAuthenticationButton
         key={scheme}
-        buttonType={
-          intent === "sign-up"
-            ? AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP
-            : AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN
-        }
+        buttonType={BUTTON_TYPES[intent]}
         buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle[appleButtonStyleFor(scheme)]}
         cornerRadius={radius.button}
-        style={{ height: 48 }}
+        style={{ height: APPLE_BUTTON_HEIGHT }}
         onPress={() => void handlePress()}
       />
       {error ? <Text style={[type.caption, { color: colors.danger }]}>{error}</Text> : null}
-    </View>
+    </Animated.View>
   );
 }

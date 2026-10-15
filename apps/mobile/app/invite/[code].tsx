@@ -54,7 +54,9 @@ export default function InviteDeepLink() {
 
   switch (action) {
     case "sign-in":
-      return <Redirect href="/(auth)/sign-in" />;
+      // "/" rather than a named screen: since 1.0.2 a signed-out visitor is either at the front
+      // door or in a card they are building, and only the one routing decision knows which.
+      return <Redirect href="/" />;
     case "onboarding":
       return <Redirect href="/(onboarding)/display-name" />;
     case "arrival":

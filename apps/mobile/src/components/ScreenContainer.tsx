@@ -2,7 +2,7 @@ import type { PropsWithChildren, ReactElement, ReactNode } from "react";
 import { KeyboardAvoidingView, Pressable, StyleSheet, Text, View } from "react-native";
 import type { RefreshControlProps } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { type Href, router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useTheme } from "@/theme/useTheme";
@@ -36,6 +36,13 @@ interface ScreenContainerProps extends PropsWithChildren {
    */
   showBack?: boolean;
   /**
+   * Where the back (or close) control goes when there is no history to pop. Defaults to the tabs
+   * (`goBack`). The signed-out age gate passes the front door: a resumed draft opens on the intro
+   * with nothing underneath, the intro's Back replaces to the age gate, and the tabs fallback sent
+   * the age gate's Back to "/", which resumed the intro again, a loop with no way to the front door.
+   */
+  backFallback?: Href;
+  /**
    * Which atmosphere wash sits behind the content: "match" draws the stronger graticule of the
    * moment screens, "none" opts out of it entirely. It is drawn here, edge to edge, because
    * anything absolutely positioned among the children fills only the padded scroll content.
@@ -46,6 +53,14 @@ interface ScreenContainerProps extends PropsWithChildren {
    * reason (the match screen's lock flash). Give it pointerEvents="none".
    */
   overlay?: ReactNode;
+  /**
+   * The screen's actions (the wizard's Continue, Skip and way out), drawn after the content but
+   * INSIDE the scroll view, pushed to the bottom on a short screen and following the content on a
+   * long one. Deliberately not pinned outside the scroll view: a pinned bar sits under the keyboard
+   * (no `behavior` above, on purpose), so the button you need after typing would be hidden, and
+   * it would move every time the keyboard did. Here it scrolls into reach like any field.
+   */
+  footer?: ReactNode;
 }
 
 export function ScreenContainer({
@@ -54,11 +69,20 @@ export function ScreenContainer({
   title,
   showClose,
   showBack,
+  backFallback,
   atmosphere = "default",
   overlay,
+  footer,
 }: ScreenContainerProps) {
   const { colors, spacing, type, radius } = useTheme();
   const insets = useSafeAreaInsets();
+  const onBack =
+    backFallback === undefined
+      ? goBack
+      : () => {
+          if (router.canGoBack()) router.back();
+          else router.replace(backFallback);
+        };
 
   /**
    * A modal sheet is already inset below the status bar by the presentation itself,
@@ -104,7 +128,7 @@ export function ScreenContainer({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Go back"
-              onPress={goBack}
+              onPress={onBack}
               hitSlop={8}
               style={{
                 width: 34,
@@ -152,7 +176,7 @@ export function ScreenContainer({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={showClose ? "Close" : "Go back"}
-            onPress={goBack}
+            onPress={onBack}
             hitSlop={8}
             style={{
               width: 34,
@@ -179,7 +203,10 @@ export function ScreenContainer({
         ]}
         refreshControl={refreshControl}
       >
-        <View style={{ gap: spacing.md }}>{children}</View>
+        {/* With a footer, the content grows to fill the screen (the scroll content already has
+            flexGrow), which is what puts the footer at the bottom on a short screen. */}
+        <View style={footer !== undefined ? { gap: spacing.md, flexGrow: 1 } : { gap: spacing.md }}>{children}</View>
+        {footer !== undefined && <View style={{ gap: spacing.sm, paddingTop: spacing.lg }}>{footer}</View>}
       </KeyboardAwareScrollView>
 
       {/* Fixed, non-scrolling backdrop so content never passes directly behind the status

@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { Card } from "@/components/Card";
 import { TextField } from "@/components/TextField";
+import { FRONT_DOOR_COPY } from "@/features/auth/frontDoorCopy";
 import { hapticSelection, hapticSuccess } from "@/lib/haptics";
 import {
   INVITE_CODE_LENGTH,
@@ -32,7 +33,18 @@ import { useResolveInviteCode } from "./useInvite";
  * row they can ignore, not a form field that looks required. Somebody who was sees the
  * inviter's name, resolved before they have an account at all.
  */
-export function InviteBanner({ allowEntry = true }: { allowEntry?: boolean }) {
+export function InviteBanner({
+  allowEntry = true,
+  revealInviter = true,
+}: {
+  allowEntry?: boolean;
+  /**
+   * False on the front door (1.0.2): the code is entered and kept there, but no real player is
+   * shown before the age gate, so the card only says it was saved. The inviter is named from the
+   * intro on.
+   */
+  revealInviter?: boolean;
+}) {
   const { colors, spacing, type } = useTheme();
   const pendingCode = useInviteStore((s) => s.pendingCode);
   const setPendingCode = useInviteStore((s) => s.setPendingCode);
@@ -69,6 +81,20 @@ export function InviteBanner({ allowEntry = true }: { allowEntry?: boolean }) {
       hapticSuccess();
       setPendingCode(normalized);
     }
+  }
+
+  if (inviter && !revealInviter) {
+    return (
+      <Card style={{ marginBottom: spacing.md }} luminous>
+        <View style={{ flexDirection: "row", alignItems: "flex-start", gap: spacing.sm }}>
+          <Ionicons name="checkmark-circle" size={18} color={colors.volt} />
+          <View style={{ flex: 1, gap: spacing.xs }}>
+            <Text style={[type.caption, { color: colors.text }]}>{FRONT_DOOR_COPY.inviteSaved}</Text>
+            <Text style={[type.caption, { color: colors.textMuted }]}>{FRONT_DOOR_COPY.inviteSavedCaption}</Text>
+          </View>
+        </View>
+      </Card>
+    );
   }
 
   if (inviter) {

@@ -49,7 +49,7 @@ export default function AccountSettings() {
     try {
       await deleteAccount.mutateAsync();
       await signOut();
-      router.replace("/(auth)/sign-in");
+      router.replace("/");
     } catch (err) {
       Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
     } finally {

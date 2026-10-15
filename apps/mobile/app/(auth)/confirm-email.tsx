@@ -6,9 +6,12 @@ import { Button } from "@/components/Button";
 import { Logo } from "@/components/Logo";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { TextField } from "@/components/TextField";
+import { AUTH_COPY, resetRequestOutcome, verifyRecoveryMessage } from "@/features/auth/authErrors";
+import { CONFIRM_EMAIL_COPY } from "@/features/auth/frontDoorCopy";
 import { clearPendingConfirmationEmail } from "@/features/auth/pendingConfirmation";
 import { isCaptchaConfigured, TurnstileCaptcha } from "@/features/auth/TurnstileCaptcha";
 import { supabase } from "@/lib/supabase";
+import { abortAccountEntry, beginAccountEntry } from "@/store/commit-store";
 import { useTheme } from "@/theme/useTheme";
 
 const CODE_LENGTH = 6;
@@ -26,16 +29,20 @@ const RESEND_COOLDOWN_SECONDS = 60;
  * bound to the device that called signUp(), so reading the mail on a laptop could never
  * produce a session on the phone. Six digits the user retypes sidesteps every one of
  * those failure modes, and verifyOtp() issues the session directly.
+ *
+ * DORMANT IN 1.0.2. Email confirmation is off (`mailer_autoconfirm`, Cameron's call), so sign-up
+ * returns a session and never comes here, and the sign-in screen's button for typing a code is
+ * gone. It stays reachable only from sign-up's no-session branch, so turning
+ * confirmation back on needs no client change. Its way out goes to the start ("/"), and a code
+ * that works commits the signup draft like any other account entry.
  */
 export default function ConfirmEmail() {
   const { colors, spacing, type } = useTheme();
   const { email: emailParam } = useLocalSearchParams<{ email?: string }>();
 
-  // Editable rather than read from the param alone. This screen is reachable from the
-  // sign-in screen's always-visible "confirmation code" button, which passes whatever is
-  // in its email field — usually nothing, since a user arriving to finish a signup has
-  // no reason to have typed it there first. Bouncing them back (the old behavior) just
-  // looked like the button was broken.
+  // Editable, and always shown, rather than read from the param alone: a cold start reopens
+  // this screen from the remembered address, and a typo in it should be fixable here instead
+  // of only by backing out and signing up again.
   const [email, setEmail] = useState(emailParam ?? "");
   const [code, setCode] = useState("");
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
@@ -66,18 +73,20 @@ export default function ConfirmEmail() {
     setNotice(null);
 
     if (!email.trim()) {
-      setError("Enter the email you signed up with.");
+      setError(AUTH_COPY.enterEmail);
       return;
     }
 
     if (code.length !== CODE_LENGTH) {
-      setError(`Enter the ${CODE_LENGTH}-digit code from your email.`);
+      setError(AUTH_COPY.enterCode);
       return;
     }
 
     setVerifying(true);
-    // On success this returns a session, which fires onAuthStateChange in the session
-    // store — that listener drives navigation, so there's nothing to route to here.
+    // Before the call: the session it creates fires onAuthStateChange inside it, and the guards
+    // must already know this account is for the draft (sessionRouting.ts). That listener drives
+    // navigation, so there's nothing to route to here.
+    beginAccountEntry();
     const { error: verifyError } = await supabase.auth.verifyOtp({
       email,
       token: code,
@@ -86,7 +95,8 @@ export default function ConfirmEmail() {
     setVerifying(false);
 
     if (verifyError) {
-      setError(verifyError.message);
+      abortAccountEntry();
+      setError(verifyRecoveryMessage(verifyError));
       setCode("");
       return;
     }
@@ -101,7 +111,7 @@ export default function ConfirmEmail() {
     setNotice(null);
 
     if (!email.trim()) {
-      setError("Enter the email you signed up with.");
+      setError(AUTH_COPY.enterEmail);
       return;
     }
 
@@ -122,7 +132,7 @@ export default function ConfirmEmail() {
     setCaptchaEpoch((n) => n + 1);
 
     if (resendError) {
-      setError(resendError.message);
+      setError(resetRequestOutcome(resendError) ?? AUTH_COPY.generic);
       return;
     }
     setNotice("We sent a new code.");
@@ -130,7 +140,7 @@ export default function ConfirmEmail() {
   }
 
   return (
-    <ScreenContainer>
+    <ScreenContainer showBack>
       <Logo width={56} />
       <Text style={[type.screenTitle, { color: colors.text }]}>Check your email</Text>
       <Text style={[type.body, { color: colors.textMuted, marginBottom: spacing.md }]}>
@@ -139,16 +149,14 @@ export default function ConfirmEmail() {
           : `Enter the email you signed up with and the ${CODE_LENGTH}-digit code we sent you.`}
       </Text>
 
-      {!emailParam && (
-        <TextField
-          label="Email"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          textContentType="emailAddress"
-        />
-      )}
+      <TextField
+        label="Email"
+        value={email}
+        onChangeText={setEmail}
+        autoCapitalize="none"
+        keyboardType="email-address"
+        textContentType="emailAddress"
+      />
 
       <TextField
         label="Confirmation code"
@@ -174,14 +182,15 @@ export default function ConfirmEmail() {
         disabled={cooldown > 0}
       />
       {/* The escape hatch. Clearing the pending email is what stops the cold-start
-          redirect from dragging them straight back here — without it, "back to sign in"
-          would be a door that reopens onto the same room. */}
+          redirect from dragging them straight back here; without it, "back to start"
+          would be a door that reopens onto the same room. "/" knows whether that is the front
+          door or a card in progress. */}
       <Button
-        label="Back to sign in"
+        label={CONFIRM_EMAIL_COPY.backToStart}
         variant="secondary"
         onPress={() => {
           void clearPendingConfirmationEmail();
-          router.replace("/(auth)/sign-in");
+          router.replace("/");
         }}
       />
     </ScreenContainer>
