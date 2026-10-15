@@ -3,10 +3,9 @@ import { Redirect, Tabs } from "expo-router";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { sessionRoute } from "@/features/auth/sessionRouting";
+import { useSessionRoute } from "@/features/auth/useSessionRoute";
 import { useHeartbeat } from "@/features/online-now/useHeartbeat";
 import { usePartyFreshness } from "@/features/party/usePartyFreshness";
-import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
 const TAB_CONFIG = {
@@ -70,9 +69,8 @@ function TabIcon({ config, focused, color }: { config: TabIconConfig; focused: b
 }
 
 export default function TabsLayout() {
-  const status = useSessionStore((s) => s.status);
-  const profile = useSessionStore((s) => s.profile);
-  const profileStatus = useSessionStore((s) => s.profileStatus);
+  // The session guard's question, asked unconditionally with the other hooks; answered below.
+  const route = useSessionRoute();
   const { colors, type } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -88,10 +86,8 @@ export default function TabsLayout() {
    * index at all, and an age-unverified session landing on the deck is the failure the whole
    * change exists to prevent.
    */
-  const route = sessionRoute({ status, profileStatus, onboardingCompleted: profile?.onboarding_completed });
-
-  if (route === "sign-in") return <Redirect href="/(auth)/sign-in" />;
-  if (route === "complete-signup") return <Redirect href="/" />;
+  if (route === "start" || route === "draft") return <Redirect href="/(auth)/sign-in" />;
+  if (route === "complete-signup" || route === "commit-draft") return <Redirect href="/" />;
   if (route === "onboarding") return <Redirect href="/(onboarding)/display-name" />;
   // A profile read that has not landed is not permission to render the app, and it is not
   // grounds to eject somebody into the signup wizard either, which is what the old

@@ -3,13 +3,12 @@ import { Redirect } from "expo-router";
 
 import { CompleteSignupScreen } from "@/features/auth/CompleteSignupScreen";
 import { getPendingConfirmationEmail } from "@/features/auth/pendingConfirmation";
-import { sessionRoute } from "@/features/auth/sessionRouting";
+import { useSessionRoute } from "@/features/auth/useSessionRoute";
 import { useSessionStore } from "@/store/session-store";
 
 export default function Index() {
   const status = useSessionStore((s) => s.status);
-  const profile = useSessionStore((s) => s.profile);
-  const profileStatus = useSessionStore((s) => s.profileStatus);
+  const route = useSessionRoute();
   // `undefined` = still reading storage; `null` = read, nothing pending.
   const [pendingEmail, setPendingEmail] = useState<string | null | undefined>(undefined);
 
@@ -27,9 +26,7 @@ export default function Index() {
     };
   }, [status]);
 
-  const route = sessionRoute({ status, profileStatus, onboardingCompleted: profile?.onboarding_completed });
-
-  if (route === "sign-in") {
+  if (route === "start" || route === "draft") {
     // Hold a frame rather than flashing sign-in before redirecting straight past it.
     if (pendingEmail === undefined) return null;
     // Someone who signed up, left to fetch the code, and came back belongs on the code
@@ -43,7 +40,7 @@ export default function Index() {
   // Same hold as the line above, for the same reason: a profile read that has not landed (or
   // that failed) is not an answer, and every guess is somebody's wrong screen. The store retries
   // a failed read on a timer, so this resolves itself rather than waiting on a relaunch.
-  if (route === "hold") return null;
+  if (route === "hold" || route === "commit-draft") return null;
 
   // RENDERED, not redirected. This is the one address every layout guard in the app agrees to
   // send a profile-less session to, so the screen has to live at the end of that arrow rather

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  type DraftRouteState,
   nextProfileState,
   profileLoad,
   sessionRoute,
@@ -11,31 +12,58 @@ import {
   type SessionStatus,
 } from "./sessionRouting";
 
+/** Hydrated, no draft, nothing pending: 1.0.1's world, where every old rule must still hold. */
+const NO_DRAFT: DraftRouteState = { hydrated: true, ageConfirmed: false, commitPending: false };
+
 const SIGNED_IN: SessionRouteInput = {
   status: "signed_in",
   profileStatus: "loaded",
   onboardingCompleted: true,
+  draft: NO_DRAFT,
 };
 
 const STATUSES: SessionStatus[] = ["loading", "signed_out", "signed_in"];
 const PROFILE_STATUSES: ProfileStatus[] = ["unknown", "loaded", "missing", "error"];
 const ONBOARDING: (boolean | undefined)[] = [true, false, undefined];
+const BOOLS = [true, false];
+
+const DRAFTS: DraftRouteState[] = BOOLS.flatMap((hydrated) =>
+  BOOLS.flatMap((ageConfirmed) => BOOLS.map((commitPending) => ({ hydrated, ageConfirmed, commitPending }))),
+);
+
+/** Every input the router can be handed: 3 x 4 x 3 x 8. */
+function everyInput(): SessionRouteInput[] {
+  return STATUSES.flatMap((status) =>
+    PROFILE_STATUSES.flatMap((profileStatus) =>
+      ONBOARDING.flatMap((onboardingCompleted) =>
+        DRAFTS.map((draft) => ({ status, profileStatus, onboardingCompleted, draft })),
+      ),
+    ),
+  );
+}
+
+/** The 1.0.1 inputs: draft hydrated, empty, nothing pending. */
+function plain(status: SessionStatus, profileStatus: ProfileStatus, onboardingCompleted: boolean | undefined) {
+  return sessionRoute({ status, profileStatus, onboardingCompleted, draft: NO_DRAFT });
+}
 
 describe("sessionRoute", () => {
   it("holds while the session is still being restored", () => {
-    expect(sessionRoute({ ...SIGNED_IN, status: "loading", profileStatus: "unknown", onboardingCompleted: undefined })).toBe(
-      "hold",
-    );
+    expect(plain("loading", "unknown", undefined)).toBe("hold");
   });
 
-  it("sends a signed-out visitor to the front door", () => {
-    expect(sessionRoute({ ...SIGNED_IN, status: "signed_out" })).toBe("sign-in");
+  it("sends a signed-out visitor with no draft to the front door", () => {
+    expect(sessionRoute({ ...SIGNED_IN, status: "signed_out" })).toBe("start");
+  });
+
+  it("sends a signed-out visitor whose age is confirmed back into their draft", () => {
+    expect(sessionRoute({ ...SIGNED_IN, status: "signed_out", draft: { ...NO_DRAFT, ageConfirmed: true } })).toBe(
+      "draft",
+    );
   });
 
   it("sends an authenticated session with no profile row to the age gate", () => {
-    expect(sessionRoute({ ...SIGNED_IN, profileStatus: "missing", onboardingCompleted: undefined })).toBe(
-      "complete-signup",
-    );
+    expect(plain("signed_in", "missing", undefined)).toBe("complete-signup");
   });
 
   it("routes a loaded profile on its own onboarding flag", () => {
@@ -47,78 +75,115 @@ describe("sessionRoute", () => {
   // for a missing profile too, so both went to the wizard, which then failed on a foreign key
   // ten screens later.
   it("does not confuse a missing profile with an unfinished one", () => {
-    const missing = sessionRoute({ ...SIGNED_IN, profileStatus: "missing", onboardingCompleted: undefined });
-    const unfinished = sessionRoute({ ...SIGNED_IN, profileStatus: "loaded", onboardingCompleted: false });
-    expect(missing).toBe("complete-signup");
-    expect(unfinished).toBe("onboarding");
+    expect(plain("signed_in", "missing", undefined)).toBe("complete-signup");
+    expect(plain("signed_in", "loaded", false)).toBe("onboarding");
   });
 
   // The failure this function exists to prevent: a user of six months, one dropped request,
   // and a screen asking them to prove they are 18 again.
   it("never routes a failed or unfinished read to the age gate", () => {
     for (const profileStatus of ["unknown", "error"] as ProfileStatus[]) {
-      expect(sessionRoute({ status: "signed_in", profileStatus, onboardingCompleted: undefined })).toBe("hold");
-      expect(sessionRoute({ status: "signed_in", profileStatus, onboardingCompleted: true })).toBe("app");
-      expect(sessionRoute({ status: "signed_in", profileStatus, onboardingCompleted: false })).toBe("onboarding");
+      expect(plain("signed_in", profileStatus, undefined)).toBe("hold");
+      expect(plain("signed_in", profileStatus, true)).toBe("app");
+      expect(plain("signed_in", profileStatus, false)).toBe("onboarding");
     }
   });
 
   it("keeps somebody on the screen they are already on when a refresh fails", () => {
-    // Held profile, failed refresh: they stay in the app rather than being ejected.
-    expect(sessionRoute({ status: "signed_in", profileStatus: "error", onboardingCompleted: true })).toBe("app");
+    expect(plain("signed_in", "error", true)).toBe("app");
   });
 
   it("holds rather than guessing when there is nothing to route on", () => {
-    expect(sessionRoute({ status: "signed_in", profileStatus: "unknown", onboardingCompleted: undefined })).toBe("hold");
+    expect(plain("signed_in", "unknown", undefined)).toBe("hold");
   });
 
   it("asks about the session before it asks about the profile", () => {
     // A sign-out clears the session before the store resets profileStatus in the same call, and
     // an auth-state change for a different account arrives with the last account's answers still
-    // in memory. Either way, "signed out" is the only true thing on screen at that moment, and
-    // routing a signed-out session to the age gate would show a birthdate wheel to nobody.
+    // in memory. Either way, "signed out" is the only true thing on screen at that moment.
     for (const profileStatus of PROFILE_STATUSES) {
       for (const onboardingCompleted of ONBOARDING) {
-        expect(sessionRoute({ status: "signed_out", profileStatus, onboardingCompleted })).toBe("sign-in");
-        expect(sessionRoute({ status: "loading", profileStatus, onboardingCompleted })).toBe("hold");
+        expect(plain("signed_out", profileStatus, onboardingCompleted)).toBe("start");
+        expect(plain("loading", profileStatus, onboardingCompleted)).toBe("hold");
       }
     }
   });
+});
 
-  it("reaches the age gate from exactly one state and no other", () => {
+describe("sessionRoute with the draft (1.0.2)", () => {
+  it("always holds until the draft has been read back from the phone", () => {
+    // A guard that answered before the draft hydrated would send a player with a half-built
+    // card to the front door, and its redirect would be the answer they see.
+    for (const input of everyInput()) {
+      if (!input.draft.hydrated) expect(sessionRoute(input)).toBe("hold");
+    }
+  });
+
+  it("gives a signed-out visitor the draft iff their age is confirmed, whatever is pending", () => {
+    for (const input of everyInput()) {
+      if (input.status !== "signed_out" || !input.draft.hydrated) continue;
+      expect(sessionRoute(input)).toBe(input.draft.ageConfirmed ? "draft" : "start");
+    }
+  });
+
+  it("reaches the post-auth age gate iff signed in, missing, and no draft is on its way in", () => {
     // Stated as a property rather than a list, because this is the one answer that is expensive
     // in both directions: withholding it lets an age-unverified session into the app, and
-    // volunteering it asks an existing user to prove their age again. Only an authenticated
-    // session whose profile read came back empty may have it.
-    for (const status of STATUSES) {
-      for (const profileStatus of PROFILE_STATUSES) {
-        for (const onboardingCompleted of ONBOARDING) {
-          const route = sessionRoute({ status, profileStatus, onboardingCompleted });
-          expect(route === "complete-signup").toBe(status === "signed_in" && profileStatus === "missing");
-        }
-      }
+    // volunteering it asks an existing user (or a draft that already holds a DOB) for it again.
+    for (const input of everyInput()) {
+      const expected =
+        input.draft.hydrated &&
+        input.status === "signed_in" &&
+        input.profileStatus === "missing" &&
+        !input.draft.commitPending;
+      expect(sessionRoute(input) === "complete-signup").toBe(expected);
     }
   });
 
   it("never lets a profile-less session reach the app or the wizard", () => {
-    // The two destinations that run queries against a profile that does not exist: the deck, and
-    // the ten-step wizard whose first insert would die on a foreign key after two photo uploads.
-    for (const onboardingCompleted of ONBOARDING) {
-      const route = sessionRoute({ status: "signed_in", profileStatus: "missing", onboardingCompleted });
-      expect(route).toBe("complete-signup");
+    for (const input of everyInput()) {
+      if (input.status !== "signed_in" || input.profileStatus !== "missing") continue;
+      // A missing row with a stale `onboardingCompleted: true` in memory and a pending commit is
+      // the one combination that answers "app": it cannot happen (missing clears the profile),
+      // and "app" is what lets the commit's cleanup discard the draft.
+      if (input.draft.commitPending && input.onboardingCompleted === true) continue;
+      expect(["app", "onboarding"]).not.toContain(sessionRoute(input));
     }
   });
 
+  it("sends a pending commit to the commit screen until the card is finished, then to the app", () => {
+    for (const input of everyInput()) {
+      if (input.status !== "signed_in" || !input.draft.hydrated || !input.draft.commitPending) continue;
+      expect(sessionRoute(input)).toBe(input.onboardingCompleted === true ? "app" : "commit-draft");
+    }
+  });
+
+  it("never sends a draft's DOB to a second age gate", () => {
+    // Save with a new Apple ID: signed in, no profile row yet, commit pending. The commit hands
+    // `complete_signup` the draft's DOB itself.
+    expect(
+      sessionRoute({
+        status: "signed_in",
+        profileStatus: "missing",
+        onboardingCompleted: undefined,
+        draft: { hydrated: true, ageConfirmed: true, commitPending: true },
+      }),
+    ).toBe("commit-draft");
+  });
+
   it("only ever answers with a destination the callers know", () => {
-    // app/index.tsx renders one screen per answer and falls through to the tabs. A fifth answer
-    // would arrive there as "go to the deck", which for an unknown state is the wrong default.
-    const known: SessionRoute[] = ["hold", "sign-in", "complete-signup", "onboarding", "app"];
-    for (const status of STATUSES) {
-      for (const profileStatus of PROFILE_STATUSES) {
-        for (const onboardingCompleted of ONBOARDING) {
-          expect(known).toContain(sessionRoute({ status, profileStatus, onboardingCompleted }));
-        }
-      }
+    // app/index.tsx renders or redirects once per answer. An eighth answer would fall through to
+    // the tabs, which for an unknown state is the wrong default.
+    const known: SessionRoute[] = ["hold", "start", "draft", "complete-signup", "commit-draft", "onboarding", "app"];
+    for (const input of everyInput()) {
+      expect(known).toContain(sessionRoute(input));
+    }
+  });
+
+  it("answers app only for a finished card", () => {
+    // Which is what makes discarding the draft there safe.
+    for (const input of everyInput()) {
+      if (sessionRoute(input) === "app") expect(input.onboardingCompleted).toBe(true);
     }
   });
 });
@@ -159,20 +224,12 @@ describe("profileLoad", () => {
     const load = profileLoad({ data: null, error: null }, false);
     const next = nextProfileState(load, row);
     expect(next.profile).toBe(row); // the held profile survives
-    expect(
-      sessionRoute({
-        status: "signed_in",
-        profileStatus: next.profileStatus,
-        onboardingCompleted: next.profile?.onboarding_completed,
-      }),
-    ).not.toBe("complete-signup");
+    expect(plain("signed_in", next.profileStatus, next.profile?.onboarding_completed)).not.toBe("complete-signup");
   });
 
   it("still finds a genuinely profile-less account, which is the state the age gate exists for", () => {
     const next = nextProfileState(profileLoad({ data: null, error: null }, true), null);
-    expect(
-      sessionRoute({ status: "signed_in", profileStatus: next.profileStatus, onboardingCompleted: undefined }),
-    ).toBe("complete-signup");
+    expect(plain("signed_in", next.profileStatus, undefined)).toBe("complete-signup");
   });
 });
 
@@ -229,13 +286,7 @@ describe("nextProfileState", () => {
     // sessionRoute must not turn it into a request for a date of birth.
     for (const held_ of [held, null]) {
       const next = nextProfileState({ kind: "error", message: "Network request failed" }, held_);
-      expect(
-        sessionRoute({
-          status: "signed_in",
-          profileStatus: next.profileStatus,
-          onboardingCompleted: next.profile?.onboarding_completed,
-        }),
-      ).not.toBe("complete-signup");
+      expect(plain("signed_in", next.profileStatus, next.profile?.onboarding_completed)).not.toBe("complete-signup");
     }
   });
 });

@@ -46,6 +46,10 @@ export interface SubmitResult {
 }
 
 interface OnboardingState {
+  /** Routing only (useSessionRoute). Task A3 turns these into the persisted draft. */
+  hydrated: boolean;
+  ageConfirmedDob: string | null;
+  commitPending: boolean;
   displayName: string;
   /** Whether `seedDisplayName` has already had its one chance this pass. See displayNameSeed.ts. */
   displayNameSeeded: boolean;
@@ -114,6 +118,9 @@ function initialState() {
 }
 
 export const useOnboardingStore = create<OnboardingState>((set, get) => ({
+  hydrated: true,
+  ageConfirmedDob: null,
+  commitPending: false,
   ...initialState(),
 
   setDisplayName: (value) => set({ displayName: value }),

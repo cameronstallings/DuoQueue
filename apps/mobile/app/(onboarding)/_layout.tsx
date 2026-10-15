@@ -1,16 +1,12 @@
 import { Redirect, Stack } from "expo-router";
 
-import { sessionRoute } from "@/features/auth/sessionRouting";
-import { useSessionStore } from "@/store/session-store";
+import { useSessionRoute } from "@/features/auth/useSessionRoute";
 
 export default function OnboardingLayout() {
-  const status = useSessionStore((s) => s.status);
-  const profile = useSessionStore((s) => s.profile);
-  const profileStatus = useSessionStore((s) => s.profileStatus);
+  const route = useSessionRoute();
 
-  const route = sessionRoute({ status, profileStatus, onboardingCompleted: profile?.onboarding_completed });
-
-  if (route === "sign-in") return <Redirect href="/(auth)/sign-in" />;
+  if (route === "start" || route === "draft") return <Redirect href="/(auth)/sign-in" />;
+  if (route === "commit-draft") return <Redirect href="/" />;
   // The wizard is the last place a profile-less session should end up, and until now it was the
   // first: `profile?.onboarding_completed` is falsy for a missing row too, so every route into
   // this group accepted one. It then walked all ten steps and died on a foreign key at the first

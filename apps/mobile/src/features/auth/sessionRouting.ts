@@ -3,7 +3,8 @@
  * profile read is allowed to change.
  *
  * Extracted from the layouts that ask it — app/index.tsx, (tabs)/_layout.tsx,
- * (onboarding)/_layout.tsx — for the same reason `deckQueue.ts` and `invite.ts` were pulled
+ * (onboarding)/_layout.tsx, and since 1.0.2 every guard through `useSessionRoute()`, which is the
+ * only caller outside tests — for the same reason `deckQueue.ts` and `invite.ts` were pulled
  * out of their hooks: this is a decision that can be WRONG in a way a user notices, and none
  * of it needs React, a session, or a Supabase project to be wrong.
  *
@@ -80,6 +81,19 @@ export function profileLoad<P>(read: ProfileRead<P>, sessionConfirmed: boolean):
   return { kind: "missing" };
 }
 
+/**
+ * The three facts about the signed-out draft that routing needs (onboarding-store.ts holds the
+ * draft; `useSessionRoute` reads these off it).
+ */
+export interface DraftRouteState {
+  /** The persisted draft has been read back from the phone (or the 2 s fallback fired). */
+  hydrated: boolean;
+  /** The age gate has been passed: the draft holds a DOB. */
+  ageConfirmed: boolean;
+  /** Save (or sign-in) has asked for an account; the draft is to be committed to it. */
+  commitPending: boolean;
+}
+
 export interface SessionRouteInput {
   status: SessionStatus;
   profileStatus: ProfileStatus;
@@ -88,15 +102,21 @@ export interface SessionRouteInput {
    * either none was ever read, or the last read said there is none.
    */
   onboardingCompleted: boolean | undefined;
+  /** Required, so no caller can route without asking about the draft. */
+  draft: DraftRouteState;
 }
 
 export type SessionRoute =
   /** Nothing is known yet. Hold the frame. Never a redirect: a redirect is an answer. */
   | "hold"
-  /** No session. The front door. */
-  | "sign-in"
+  /** No session and no draft. The front door, (auth)/start. */
+  | "start"
+  /** No session, age confirmed: the card being built, resumed at its last step. */
+  | "draft"
   /** Authenticated with no profile row: the age gate, which is the only thing that can make one. */
   | "complete-signup"
+  /** Authenticated after Save: the draft is being written onto the account. Rendered at "/". */
+  | "commit-draft"
   /** Profile exists, wizard unfinished. */
   | "onboarding"
   /** Onboarded. The app proper. */
@@ -105,14 +125,36 @@ export type SessionRoute =
 /**
  * The single branch every entry point shares.
  *
- * ORDER MATTERS. "missing" is checked before onboarding, because `profile?.onboarding_completed`
- * is falsy for a missing profile too, and the old shape sent both to the wizard — which is the
- * bug this function exists to end. And a held profile still routes on an "error" read: a blip
- * during a refresh must not eject somebody from the screen they are already on.
+ * 1.0.2: THE CARD IS BUILT SIGNED OUT. The age gate, the intro and all eight wizard steps run
+ * with no session, every answer persisted on the phone (onboarding-store.ts), and the account is
+ * created only at "Save your card" (D1). So a signed-out visitor is no longer one state: with no
+ * draft they get the front door ("start"), and once the age gate has put a DOB in the draft they
+ * belong in the draft ("draft"), wherever they left it.
+ *
+ * WHY commitPending EXISTS AND IS SET BEFORE THE AUTH CALL. `onAuthStateChange` fires INSIDE
+ * `signInWithIdToken`, `signUp` and `verifyOtp`, before any of them resolve, and every guard
+ * re-routes on that event. If the "this session is for the draft" flag were set after the call
+ * returned, the guards would already have routed a brand new Apple account (no profile row) to a
+ * second age gate, and an email account to the empty wizard. So Save sets it first, and it is
+ * checked BEFORE "missing": a draft that already holds a DOB never meets the age gate twice; the
+ * commit hands that DOB to `complete_signup` itself.
+ *
+ * "app" ALWAYS MEANS `onboarding_completed === true`, a pending commit included. That is what
+ * makes discarding a left-over draft there safe: the account's card is finished, so nothing the
+ * draft holds can still be needed.
+ *
+ * ORDER MATTERS. The draft must be hydrated before anything is answered, because a redirect made
+ * from an empty draft that is about to be read back is an answer the player sees. "missing" is
+ * checked before onboarding, because `profile?.onboarding_completed` is falsy for a missing
+ * profile too, and the old shape sent both to the wizard. And a held profile still routes on an
+ * "error" read: a blip during a refresh must not eject somebody from the screen they are on.
  */
 export function sessionRoute(input: SessionRouteInput): SessionRoute {
   if (input.status === "loading") return "hold";
-  if (input.status === "signed_out") return "sign-in";
+  if (!input.draft.hydrated) return "hold";
+  if (input.status === "signed_out") return input.draft.ageConfirmed ? "draft" : "start";
+
+  if (input.draft.commitPending) return input.onboardingCompleted === true ? "app" : "commit-draft";
 
   if (input.profileStatus === "missing") return "complete-signup";
 

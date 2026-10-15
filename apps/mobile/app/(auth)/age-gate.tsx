@@ -5,8 +5,7 @@ import { MIN_AGE } from "@duoqueue/shared-types";
 import { AgeGateForm } from "@/features/auth/AgeGateForm";
 import { AppleSignInButton } from "@/features/auth/AppleSignInButton";
 import { CompleteSignupScreen } from "@/features/auth/CompleteSignupScreen";
-import { sessionRoute } from "@/features/auth/sessionRouting";
-import { useSessionStore } from "@/store/session-store";
+import { useSessionRoute } from "@/features/auth/useSessionRoute";
 import { useTheme } from "@/theme/useTheme";
 
 /**
@@ -21,11 +20,7 @@ import { useTheme } from "@/theme/useTheme";
  */
 export default function AgeGate() {
   const { colors, spacing, type } = useTheme();
-  const status = useSessionStore((s) => s.status);
-  const profile = useSessionStore((s) => s.profile);
-  const profileStatus = useSessionStore((s) => s.profileStatus);
-
-  const route = sessionRoute({ status, profileStatus, onboardingCompleted: profile?.onboarding_completed });
+  const route = useSessionRoute();
 
   // Belt and braces. (auth)/_layout.tsx redirects a signed-in session to "/" before this
   // renders, so this branch is normally unreachable — but the mode is decided by the account's
