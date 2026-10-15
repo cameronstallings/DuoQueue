@@ -207,6 +207,9 @@ const BASE_PAIRS = [
   { fg: "text", bg: "cardPanel" },
   { fg: "textMuted", bg: "cardPanel" },
   { fg: "voltDim", bg: "cardPanel" },
+  // 1.0.2: voltDim text on surface, for the links and icons inside sheets and EdgeCards (the
+  // push pre-ask, the Duo Pops opt-in, the Queue up sheet). The only new pair in 1.0.2.
+  { fg: "voltDim", bg: "surface" },
   // Build 17, the paywall's plans page (PlanRow, PowerUpRow on surface): amber is text there
   // (the Save chip, the Power-Up's price) as well as the chosen row's edge and radio, so it is
   // held to the text minimum. The Power-Up's rocket is a graphic (WCAG 1.4.11).
