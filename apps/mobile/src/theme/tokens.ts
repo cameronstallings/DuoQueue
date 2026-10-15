@@ -166,7 +166,7 @@ export type ThemeColors = typeof darkColors | typeof lightColors;
 /** Photo scrim black — green-black, not #000. */
 export const SCRIM_RGB = "6,8,4";
 
-export const motion = { instant: 90, quick: 140, base: 200, deliberate: 260 } as const;
+export const motion = { instant: 90, quick: 140, base: 200, reveal: 220, deliberate: 260 } as const;
 
 /** Border width for the 1px glass hairlines (colors.border). */
 export const hairline = 1;
