@@ -1,10 +1,11 @@
 import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import Animated from "react-native-reanimated";
 
 import { SectionLabel } from "@/components/SectionLabel";
-import { Skeleton } from "@/components/Skeleton";
 import { useSessionStore } from "@/store/session-store";
+import { layoutTransition, revealEntering } from "@/theme/entering";
 import { useTheme } from "@/theme/useTheme";
 
 import { joinNames } from "./partyCopy";
@@ -69,19 +70,6 @@ function PartyRow({ partyId }: { partyId: string }) {
   );
 }
 
-function PartyRowSkeleton() {
-  const { spacing, radius } = useTheme();
-  return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.lg }}>
-      <Skeleton width={44} height={44} borderRadius={radius.round} />
-      <View style={{ flex: 1, gap: spacing.xs }}>
-        <Skeleton width="50%" height={14} />
-        <Skeleton width="30%" height={12} />
-      </View>
-    </View>
-  );
-}
-
 /** "Your parties" — the only entry point back into a party once you've navigated away
  * from it. `get_my_parties()` has existed in the DB since 0026_parties.sql but nothing
  * in the app called it, so a party you'd already created became unreachable the moment
@@ -93,27 +81,20 @@ export function PartyListSection() {
   const { spacing } = useTheme();
   const { data: parties, isLoading, isError } = useMyParties();
 
-  if (isLoading) {
-    return (
-      <View style={{ paddingTop: spacing.sm }}>
-        <View style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.xs }}>
-          <SectionLabel>Your parties</SectionLabel>
-        </View>
-        <PartyRowSkeleton />
-      </View>
-    );
-  }
-
-  if (isError || !parties || parties.length === 0) return null;
+  // Nothing while loading. Most players have no party, and a "Your parties" label with a skeleton
+  // row that then vanished was the jump at the top of every cold open of Matches: the list under
+  // it slid up a row a moment after it appeared. A party that does exist fades in instead, and
+  // the list below glides down to make room (the Matches list's layout transition).
+  if (isLoading || isError || !parties || parties.length === 0) return null;
 
   return (
-    <View style={{ paddingTop: spacing.sm }}>
+    <Animated.View entering={revealEntering()} layout={layoutTransition()} style={{ paddingTop: spacing.sm }}>
       <View style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.xs }}>
         <SectionLabel>{`Your parties (${parties.length})`}</SectionLabel>
       </View>
       {parties.map((party) => (
         <PartyRow key={party.party_id} partyId={party.party_id} />
       ))}
-    </View>
+    </Animated.View>
   );
 }

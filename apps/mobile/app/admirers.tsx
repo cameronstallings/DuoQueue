@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Alert, FlatList, RefreshControl, Text, View } from "react-native";
 import { router } from "expo-router";
-import Animated, { FadeIn } from "react-native-reanimated";
+import Animated, { FadeIn, useReducedMotion } from "react-native-reanimated";
 
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
@@ -14,6 +14,8 @@ import { usePremiumStatus } from "@/features/matching/usePremiumStatus";
 import { useAdmirers, useAdmirersCount, type AdmirerListItem } from "@/features/matching/useAdmirers";
 import { paywallHref } from "@/features/premium/paywall/paywallCopy";
 import { useSwipeAction } from "@/features/swipe/useSwipeAction";
+import { useFirstReveal } from "@/hooks/useFirstReveal";
+import { listItemEntering } from "@/theme/entering";
 import { useRequireSession } from "@/hooks/useRequireSession";
 import { useTheme } from "@/theme/useTheme";
 
@@ -78,6 +80,9 @@ export default function AdmirersScreen() {
   const { isPremium, isLoading: premiumLoading } = usePremiumStatus();
   const { data: count } = useAdmirersCount();
   const { data: admirers, isLoading, error, refetch } = useAdmirers(!premiumLoading);
+  // The rows cascade in once, when the list first appears; a refetch or a pull never replays it.
+  const reduced = useReducedMotion();
+  const firstReveal = useFirstReveal(!isLoading && !!admirers);
 
   // Spinner only for user-initiated pulls, not every background refetch.
   const [refreshing, setRefreshing] = useState(false);
@@ -142,7 +147,11 @@ export default function AdmirersScreen() {
           <FlatList
             data={admirers}
             keyExtractor={(item) => item.profile_id}
-            renderItem={({ item }) => <AdmirerRow item={item} />}
+            renderItem={({ item, index }) => (
+              <Animated.View entering={firstReveal ? listItemEntering(index, reduced) : undefined}>
+                <AdmirerRow item={item} />
+              </Animated.View>
+            )}
             scrollEnabled={false}
           />
         </Animated.View>
