@@ -14,8 +14,11 @@ import { describe, expect, it } from "vitest";
  * can only be wired in the merge that brings M in. If that step is missed, every gate stays green,
  * the app works, and push opt-in quietly collapses to the empty deck and Settings.
  *
- * So each check switches on when Group M's piece is in the file: until then it is SKIPPED (and
- * shows as skipped in the run), after it the wiring must be there or this fails.
+ * These checks used to switch on only once Group M's piece was in the file (skipped before it).
+ * M and G are merged, so they always run now: a skip would only hide the regression they exist
+ * to catch (rename the deck's swipe flow or move DUO LOCKED, and the wiring checks would quietly
+ * report "skipped" while the suite stayed green). The Duo Pop card, which also ends on DUO LOCKED,
+ * is pinned the same way.
  */
 function source(relative: string): string {
   return readFileSync(new URL(relative, import.meta.url), "utf8");
@@ -23,22 +26,30 @@ function source(relative: string): string {
 
 const deck = source("../../../app/(tabs)/index.tsx");
 const matchRoute = source("../../../app/match/[matchId].tsx");
+const popCard = source("../../../app/pop/[popId].tsx");
+
+const PRE_ASK_IMPORT = /import\s*\{\s*PushPreAskCard\s*\}\s*from\s*"@\/features\/push\/PushPreAskCard"/;
 
 describe("where the notification ask is raised", () => {
   it("draws the deck card over the deck while there are cards", () => {
     expect(deck).toContain('{cards.length > 0 && <PushPreAskCard surface="deck" />}');
   });
 
-  it.skipIf(!deck.includes("useDeckSwipeFlow("))(
-    "marks the deck moment after a like that did not match (onLiked on useDeckSwipeFlow)",
-    () => {
-      expect(deck).toMatch(/onLiked:\s*(?:\(\)\s*=>\s*offerPushAsk\(\)|offerPushAsk\b)/);
-      expect(deck).toMatch(/import\s*\{[^}]*\bofferPushAsk\b[^}]*\}\s*from\s*"@\/features\/push\/pushAskStore"/);
-    },
-  );
+  it("marks the deck moment after a like that did not match (onLiked on useDeckSwipeFlow)", () => {
+    expect(deck).toContain("useDeckSwipeFlow(");
+    expect(deck).toMatch(/onLiked:\s*(?:\(\)\s*=>\s*offerPushAsk\(\)|offerPushAsk\b)/);
+    expect(deck).toMatch(/import\s*\{[^}]*\bofferPushAsk\b[^}]*\}\s*from\s*"@\/features\/push\/pushAskStore"/);
+  });
 
-  it.skipIf(!matchRoute.includes("<DuoLockedScreen"))("puts the card under DUO LOCKED's buttons", () => {
+  it("puts the card under DUO LOCKED's buttons", () => {
+    expect(matchRoute).toContain("<DuoLockedScreen");
     expect(matchRoute).toMatch(/belowButtons=\{<PushPreAskCard surface="match"/);
-    expect(matchRoute).toMatch(/import\s*\{\s*PushPreAskCard\s*\}\s*from\s*"@\/features\/push\/PushPreAskCard"/);
+    expect(matchRoute).toMatch(PRE_ASK_IMPORT);
+  });
+
+  it("puts the card under the Duo Pop card's DUO LOCKED too", () => {
+    expect(popCard).toContain("<DuoLockedScreen");
+    expect(popCard).toMatch(/belowButtons=\{<PushPreAskCard surface="match"/);
+    expect(popCard).toMatch(PRE_ASK_IMPORT);
   });
 });
