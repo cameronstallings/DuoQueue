@@ -41,8 +41,9 @@ const SHEET_TICK_MS = 15_000;
 const QUEUED_SKELETON_H = 300;
 
 /** A time in the phone's own clock ("10:40 PM", or "10:40 PM CDT" for a post that leaves the
- * phone). Null when it cannot be formatted, and the line it belongs to is left out. */
-function formatTime(iso: string, withZone: boolean): string | null {
+ * phone). Null when it cannot be formatted, and the line it belongs to is left out. Exported for
+ * Online Now's status card, which says the same "On until" line. */
+export function formatTime(iso: string | number, withZone: boolean): string | null {
   try {
     const date = new Date(iso);
     if (!Number.isFinite(date.getTime())) return null;

@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Alert, Switch, Text, View } from "react-native";
+import { Alert, Text, View } from "react-native";
 import { router } from "expo-router";
+import Animated, { useReducedMotion } from "react-native-reanimated";
 
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
@@ -8,12 +9,19 @@ import { EmptyState } from "@/components/EmptyState";
 import { PresenceAvatar } from "@/components/PresenceAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { Skeleton } from "@/components/Skeleton";
-import { useLookingNow } from "@/features/online-now/useLookingNow";
 import { type OnlineNowCard, useOnlineNow } from "@/features/online-now/useOnlineNow";
 import { matchParams } from "@/features/match/matchMoment";
+import { ONLINE_NOW_COPY, untilLine } from "@/features/queue/queueCopy";
+import { formatTime, QueueUpSheet } from "@/features/queue/QueueUpSheet";
+import { useMyQueueUp, useStopQueueUp } from "@/features/queue/useQueueUp";
+import { useQueueState } from "@/features/queue/useQueueState";
 import { cardPicture } from "@/features/swipe/cardChips";
 import { useSwipeAction } from "@/features/swipe/useSwipeAction";
+import { useFirstReveal } from "@/hooks/useFirstReveal";
 import { useRequireSession } from "@/hooks/useRequireSession";
+import { hapticError } from "@/lib/haptics";
+import { toUserMessage } from "@/lib/userMessage";
+import { listItemEntering } from "@/theme/entering";
 import { useTheme } from "@/theme/useTheme";
 
 function timeAgo(iso: string | null): string {
@@ -46,7 +54,8 @@ function OnlineNowRow({ item }: { item: OnlineNowCard }) {
         });
       }
     } catch (err) {
-      Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
+      hapticError();
+      Alert.alert(ONLINE_NOW_COPY.duoFailedTitle, toUserMessage(err, ONLINE_NOW_COPY.duoFailedBody));
     }
   }
 
@@ -54,6 +63,7 @@ function OnlineNowRow({ item }: { item: OnlineNowCard }) {
     <Card style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md }}>
       <PresenceAvatar uri={cardPicture(item)} name={item.display_name} size={56} isActive />
       <View style={{ flex: 1 }}>
+        {/* AGES STAY (Cameron's decision 2). */}
         <Text style={[type.bodyStrong, { color: colors.text }]}>
           {item.display_name}, {item.age}
         </Text>
@@ -64,7 +74,12 @@ function OnlineNowRow({ item }: { item: OnlineNowCard }) {
           </Text>
         )}
       </View>
-      <Button label="Duo" onPress={() => void handleLike()} loading={swipeAction.isPending} />
+      <Button
+        label={ONLINE_NOW_COPY.duo}
+        haptic="light"
+        onPress={() => void handleLike()}
+        loading={swipeAction.isPending}
+      />
     </Card>
   );
 }
@@ -82,55 +97,58 @@ function OnlineNowRowSkeleton() {
   );
 }
 
+/**
+ * Where the player stands, at the top of the list: queued (for which game, until when, and
+ * Stop), or not (and Queue up, which opens the same sheet the deck's header does, here on this
+ * screen). This card replaced the "I'm free to duo right now" switch in 1.0.2: Queue up is the one
+ * idea (Cameron's decision 7), and it sets exactly what the switch set, for the same hour, plus
+ * the Duo Pops and the Duo Call. The switch's own fault went with it: it read only the flag, so a
+ * flag that outlived its expiry showed "on" for nobody (useQueueState reads the expiry).
+ */
+function QueueStatusCard({ onQueueUp }: { onQueueUp: () => void }) {
+  const { colors, spacing, type } = useTheme();
+  const queueState = useQueueState();
+  const queued = queueState.kind === "queued";
+  const status = useMyQueueUp({ enabled: queued });
+  const stop = useStopQueueUp();
+
+  const until = queueState.kind === "queued" ? formatTime(queueState.untilMs, false) : null;
+  const title = queued ? ONLINE_NOW_COPY.queuedTitle(status.data?.game_name ?? null) : ONLINE_NOW_COPY.idleTitle;
+  const line = queued ? (until ? untilLine(until) : null) : ONLINE_NOW_COPY.idleBody;
+
+  return (
+    <Card style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md }}>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={[type.bodyStrong, { color: colors.text }]}>{title}</Text>
+        {line ? <Text style={[type.caption, { color: colors.textMuted }]}>{line}</Text> : null}
+      </View>
+      {queued ? (
+        <Button
+          size="sm"
+          variant="ghost"
+          haptic="light"
+          label={ONLINE_NOW_COPY.stop}
+          loading={stop.isPending}
+          onPress={() => stop.mutate()}
+        />
+      ) : (
+        <Button size="sm" haptic="light" label={ONLINE_NOW_COPY.queueUp} onPress={onQueueUp} />
+      )}
+    </Card>
+  );
+}
+
 export default function OnlineNowScreen() {
   useRequireSession();
-  const { colors, radius, spacing, type } = useTheme();
-  const { isLookingNow, setLookingNow } = useLookingNow();
+  const { spacing, type, colors } = useTheme();
+  const reduced = useReducedMotion();
   const { data: people, isLoading, error, refetch } = useOnlineNow();
-
-  // Optimistic override so the switch flips the instant you tap it instead of waiting
-  // on the round trip — cleared once the mutation settles, at which point it either
-  // matches the resynced server state (success) or the switch snaps back (failure,
-  // now paired with an alert instead of just silently doing nothing).
-  const [optimisticLooking, setOptimisticLooking] = useState<boolean | null>(null);
-
-  function handleToggleLookingNow(value: boolean) {
-    setOptimisticLooking(value);
-    setLookingNow.mutate(value, {
-      onSettled: () => setOptimisticLooking(null),
-      onError: (err) => {
-        Alert.alert("Couldn't update Online Now", err instanceof Error ? err.message : "Please try again.");
-      },
-    });
-  }
-
-  const lookingNowSwitchValue = optimisticLooking ?? isLookingNow;
+  const firstReveal = useFirstReveal(!isLoading && !!people);
+  const [sheetVisible, setSheetVisible] = useState(false);
 
   return (
     <ScreenContainer title="Online Now" showClose>
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          backgroundColor: colors.voltSoft,
-          borderRadius: radius.lg,
-          padding: spacing.md,
-        }}
-      >
-        <View style={{ flex: 1, marginRight: spacing.sm }}>
-          <Text style={[type.bodyStrong, { color: colors.text }]}>I&apos;m free to duo right now</Text>
-          <Text style={[type.caption, { color: colors.textMuted }]}>
-            Shows you in other people&apos;s Online Now list for the next hour.
-          </Text>
-        </View>
-        <Switch
-          value={lookingNowSwitchValue}
-          onValueChange={handleToggleLookingNow}
-          disabled={setLookingNow.isPending}
-          trackColor={{ true: colors.volt }}
-        />
-      </View>
+      <QueueStatusCard onQueueUp={() => setSheetVisible(true)} />
 
       {isLoading ? (
         <View style={{ gap: spacing.sm }}>
@@ -140,23 +158,28 @@ export default function OnlineNowScreen() {
         </View>
       ) : error ? (
         <View style={{ gap: spacing.sm }}>
-          <Text style={[type.body, { color: colors.textMuted }]}>Couldn&apos;t load who&apos;s online.</Text>
-          <Button label="Try again" variant="ghost" onPress={() => void refetch()} />
+          <Text style={[type.body, { color: colors.textMuted }]}>{ONLINE_NOW_COPY.loadFailed}</Text>
+          <Button label={ONLINE_NOW_COPY.tryAgain} variant="ghost" onPress={() => void refetch()} />
         </View>
       ) : !people || people.length === 0 ? (
         <EmptyState
           icon="flash"
-          title="No one's online right now"
-          subtitle="Turn on the toggle above so others can find you when they are."
-          tick="NONE ONLINE"
+          title={ONLINE_NOW_COPY.emptyTitle}
+          subtitle={ONLINE_NOW_COPY.emptyBody}
+          tick={ONLINE_NOW_COPY.emptyTick}
         />
       ) : (
         <View style={{ gap: spacing.sm }}>
-          {people.map((item) => (
-            <OnlineNowRow key={item.profile_id} item={item} />
+          {people.map((item, index) => (
+            // The cascade plays once, on the first load; the 30-second refresh never replays it.
+            <Animated.View key={item.profile_id} entering={firstReveal ? listItemEntering(index, reduced) : undefined}>
+              <OnlineNowRow item={item} />
+            </Animated.View>
           ))}
         </View>
       )}
+
+      <QueueUpSheet visible={sheetVisible} onClose={() => setSheetVisible(false)} showOnlineLink={false} />
     </ScreenContainer>
   );
 }

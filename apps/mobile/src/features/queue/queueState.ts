@@ -32,9 +32,9 @@ function minutesLeftOf(untilMs: number, nowMs: number): number {
 }
 
 /**
- * Queued only while the flag is on AND its expiry is a real time still ahead. useLookingNow read
- * the flag alone, so a profile whose flag outlived its expiry (0074's sweep runs every 5 minutes)
- * showed a switch that was on for nobody; the expiry is the truth, the flag is only its shadow.
+ * Queued only while the flag is on AND its expiry is a real time still ahead. The old free-to-duo
+ * switch read the flag alone, so a profile whose flag outlived its expiry (0074's sweep runs every
+ * 5 minutes) showed a switch that was on for nobody; the expiry is the truth, the flag its shadow.
  * Minutes count up (41.5 left reads 42), clamped to 1..60.
  */
 export function queueStateOf(input: {

@@ -49,8 +49,8 @@ describe("queueStateOf", () => {
   });
 
   it("is idle for a missing, unparseable or past expiry, so a stale ON never shows", () => {
-    // useLookingNow.ts read only the flag, so a phone whose flag outlived its expiry (the 5-minute
-    // sweep had not run) showed a switch that was on for nobody.
+    // The old free-to-duo switch read only the flag, so a phone whose flag outlived its expiry
+    // (the 5-minute sweep had not run) showed a switch that was on for nobody.
     expect(queueStateOf({ isLookingNow: true, expiresAt: null, nowMs: NOW })).toEqual({ kind: "idle" });
     expect(queueStateOf({ isLookingNow: true, expiresAt: undefined, nowMs: NOW })).toEqual({ kind: "idle" });
     expect(queueStateOf({ isLookingNow: true, expiresAt: "not a date", nowMs: NOW })).toEqual({ kind: "idle" });

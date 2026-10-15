@@ -12,6 +12,10 @@ interface EmptyStateProps {
   subtitle: string;
   actionLabel?: string;
   onAction?: () => void;
+  /** How the first action is drawn. "ghost" (the default) everywhere it always was; "primary"
+   * (a filled volt button) only where the action is the one thing that changes the situation:
+   * the empty deck's Queue up, the only action that puts two people online at once. */
+  actionVariant?: "primary" | "ghost";
   /** A second, lower-commitment way out, rendered under the primary button.
    *
    * Optional on purpose: the eight existing call sites offer one action or none, and an
@@ -49,6 +53,7 @@ export function EmptyState({
   subtitle,
   actionLabel,
   onAction,
+  actionVariant = "ghost",
   secondaryActionLabel,
   onSecondaryAction,
   tertiaryActionLabel,
@@ -79,7 +84,7 @@ export function EmptyState({
       <Text style={[type.tick, { color: colors.voltDim }]}>{`[ ${tick} ]`}</Text>
       <Text style={[type.title, { color: colors.text, textAlign: "center" }]}>{title}</Text>
       <Text style={[type.body, { color: colors.textMuted, textAlign: "center" }]}>{subtitle}</Text>
-      {actionLabel && onAction && <Button label={actionLabel} onPress={onAction} variant="ghost" />}
+      {actionLabel && onAction && <Button label={actionLabel} onPress={onAction} variant={actionVariant} />}
       {/* `sm` rather than a second full-size button: both are ghosts, so padding is the only
        * thing left to say which one the screen is recommending. Two identically weighted
        * buttons would make the user choose before reading. */}
