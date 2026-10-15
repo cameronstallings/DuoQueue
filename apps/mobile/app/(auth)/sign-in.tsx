@@ -88,8 +88,10 @@ export default function SignIn() {
       <Text style={[type.body, { color: colors.textMuted, marginBottom: spacing.md }]}>{SIGN_IN_COPY.body}</Text>
 
       {/* Read-only here: a code can only be attached to a NEW account, and this screen's job is
-          the returning one. The entry field lives on the front door. */}
-      <InviteBanner allowEntry={false} />
+          the returning one. The entry field lives on the front door. The inviter is named only
+          once the age gate is behind the player (a draft holds its DOB): this screen is also
+          one tap from the front door, and no real player is shown before the age gate. */}
+      <InviteBanner allowEntry={false} revealInviter={hasDraft} />
 
       {/* SIGN IN WITH APPLE, FIRST. Apple's identity token carries no date of birth, so a brand new
           Apple ID that signs in here (no draft to commit) has no profile row and is routed to the

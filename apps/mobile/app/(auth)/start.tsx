@@ -22,7 +22,8 @@ import { useTheme } from "@/theme/useTheme";
  *
  * The invite code entry moved here from sign-up, because the card is now built before sign-up
  * exists. The inviter is NOT named here (`revealInviter={false}`): no real player is shown before
- * the age gate. The intro, Save and the arrival screen name them.
+ * the age gate. Once it is behind the player, Save, "I already have an account" (with a draft)
+ * and the arrival screen name them.
  *
  * A card in progress normally never sees this screen (the route is "draft" and "/" resumes it),
  * but Back from the age gate reaches it, so it offers "Continue my card" and "Start over" then.
