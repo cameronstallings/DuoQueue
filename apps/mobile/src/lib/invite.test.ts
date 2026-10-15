@@ -212,7 +212,8 @@ describe("INVITE_LINK_UNUSABLE", () => {
   });
 
   it("follows the copy rules", () => {
-    expect(INVITE_LINK_UNUSABLE).not.toMatch(/[–—]/);
+    const enOrEmDash = String.fromCharCode(0x2013) + "|" + String.fromCharCode(0x2014);
+    expect(INVITE_LINK_UNUSABLE).not.toMatch(new RegExp(enOrEmDash));
     expect(INVITE_LINK_UNUSABLE).not.toMatch(/beats/i);
     expect(INVITE_LINK_UNUSABLE).not.toMatch(/dating|singles|hookup|nearby|meet people|match with singles/i);
   });
