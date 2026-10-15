@@ -8,7 +8,7 @@ import { usePartyInvites } from "@/features/party/useParty";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
-import { badgeLabel, matchesBadgeCount, nextSeen, readSeen, writeSeen } from "./matchesBadge";
+import { badgeLabel, matchesBadgeCount, nextSeen, readSeen, withOpened, writeSeen } from "./matchesBadge";
 import { useMatchesTabFocus } from "./matchesTabFocus";
 import { MATCHES_QUERY_KEY, useMatches } from "./useMatches";
 
@@ -24,7 +24,8 @@ function sameIds(a: readonly string[], b: readonly string[]): boolean {
  *
  * "New" means not yet SEEN ON THIS TAB, not "has unread messages": unread messages wait on
  * players who swipe on without ever opening the chat, so a match nobody has messaged yet would
- * otherwise never show up anywhere. Opening the tab marks every match on it as seen; the seen set
+ * otherwise never show up anywhere. Opening the tab marks every match on it as seen, and opening a
+ * match's chat from anywhere marks that one (ChatScreen calls `markOpened`); the seen set
  * is per account, on this phone, and it seeds with the current matches the first time (an update
  * to 1.0.2 shows no stale "new" badge).
  *
@@ -50,10 +51,11 @@ export function useMatchesBadge(): { label: string | undefined; style: TextStyle
   const { data: matches } = useMatches({ enabled });
   const { data: invites } = usePartyInvites({ enabled });
   const focused = useMatchesTabFocus((s) => s.focused);
+  const opened = useMatchesTabFocus((s) => s.opened);
 
   // What the phone has stored for this account: undefined while it is being read, null when
   // nothing was (which seeds below).
-  const [stored, setStored] = useState<{ profileId: string; seen: string[] | null } | undefined>(undefined);
+  const [stored, setStored] = useState<{ profileId: string; seen: readonly string[] | null } | undefined>(undefined);
 
   useEffect(() => {
     if (!enabled || !profileId) return;
@@ -68,11 +70,14 @@ export function useMatchesBadge(): { label: string | undefined; style: TextStyle
 
   const seen = stored && stored.profileId === profileId ? stored.seen : undefined;
 
-  // Seed (nothing stored yet) or, while the tab is in front, mark everything on it as seen.
+  // Seed (nothing stored yet) or, while the tab is in front, mark everything on it as seen; and
+  // whatever the tab, mark every match whose chat has been opened once it is in the list.
   // Updated during render (React's "adjust state while rendering"), so the badge never shows a
-  // stale count for a frame; `nextSeen` is idempotent, so this settles in one pass.
-  if (profileId && matches && seen !== undefined && (seen === null || focused)) {
-    const next = nextSeen(seen, matches.map((m) => m.match_id));
+  // stale count for a frame; `nextSeen` and `withOpened` are idempotent, so this settles in one
+  // pass.
+  if (profileId && matches && seen !== undefined) {
+    const ids = matches.map((m) => m.match_id);
+    const next = withOpened(seen === null || focused ? nextSeen(seen, ids) : seen, opened, ids);
     if (seen === null || !sameIds(seen, next)) setStored({ profileId, seen: next });
   }
 

@@ -68,6 +68,23 @@ export function nextSeen(seen: readonly string[] | null, currentIds: readonly st
 }
 
 /**
+ * The seen set plus the matches whose chat has been opened (`opened`, kept in memory by
+ * `useMatchesTabFocus` from ChatScreen), but only those already in the match list: the usual
+ * first match goes DUO LOCKED, Send a message, the chat, before the list has refetched, so an id
+ * the list does not have yet waits in `opened` and joins the moment the list catches up. Without
+ * this, that conversation counted as "new" on the tab after you had already talked in it.
+ *
+ * Returns `seen` itself when there is nothing to add, so the hook's update-while-rendering settles.
+ */
+export function withOpened(seen: readonly string[], opened: readonly string[], currentIds: readonly string[]): readonly string[] {
+  if (opened.length === 0) return seen;
+  const current = new Set(currentIds);
+  const have = new Set(seen);
+  const add = opened.filter((id) => current.has(id) && !have.has(id));
+  return add.length === 0 ? seen : [...seen, ...Array.from(new Set(add))];
+}
+
+/**
  * Unread conversations, plus unseen unread-free matches while the seen set is known (`undefined`
  * while loading and `null` before it seeds add nothing), plus pending party invites.
  */

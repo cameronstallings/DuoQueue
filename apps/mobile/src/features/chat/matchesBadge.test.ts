@@ -2,7 +2,16 @@ import { describe, expect, it } from "vitest";
 
 import type { FlagStore } from "../tour/tourSeen";
 
-import { badgeLabel, matchesBadgeCount, matchesSeenKey, nextSeen, parseSeen, readSeen, writeSeen } from "./matchesBadge";
+import {
+  badgeLabel,
+  matchesBadgeCount,
+  matchesSeenKey,
+  nextSeen,
+  parseSeen,
+  readSeen,
+  withOpened,
+  writeSeen,
+} from "./matchesBadge";
 
 function match(id: string, unread: number, locked = false) {
   return { match_id: id, unread_count: unread, is_locked: locked };
@@ -89,6 +98,41 @@ describe("nextSeen", () => {
 
   it("never repeats an id", () => {
     expect(nextSeen(["a", "a"], ["a", "a"])).toEqual(["a"]);
+  });
+});
+
+describe("withOpened: a match whose chat was opened is seen, whichever way you got there", () => {
+  it("adds an opened match that is in the list", () => {
+    expect(withOpened(["a"], ["b"], ["a", "b"])).toEqual(["a", "b"]);
+  });
+
+  it("waits for a match the list does not have yet (DUO LOCKED, then Send a message, before the refetch)", () => {
+    expect(withOpened(["a"], ["new"], ["a"])).toEqual(["a"]);
+    expect(withOpened(["a"], ["new"], ["a", "new"])).toEqual(["a", "new"]);
+  });
+
+  it("returns the same array when nothing is added, so the hook settles", () => {
+    const seen = ["a", "b"];
+    expect(withOpened(seen, [], ["a", "b"])).toBe(seen);
+    expect(withOpened(seen, ["a"], ["a", "b"])).toBe(seen);
+    expect(withOpened(seen, ["gone"], ["a", "b"])).toBe(seen);
+  });
+
+  it("leaves seen ids alone (pruning is nextSeen's job while the tab is in front)", () => {
+    const seen = ["old", "a"];
+    expect(withOpened(seen, ["b"], ["a", "b"])).toEqual(["old", "a", "b"]);
+  });
+
+  it("takes the new part off the badge: chatted from DUO LOCKED, back on the deck, no badge", () => {
+    const matches = [match("a", 0), match("new", 0)];
+    expect(matchesBadgeCount({ matches, pendingPartyInvites: 0, seen: ["a"] })).toBe(1);
+    const seen = withOpened(["a"], ["new"], ["a", "new"]);
+    expect(matchesBadgeCount({ matches, pendingPartyInvites: 0, seen })).toBe(0);
+  });
+
+  it("still counts an opened chat that has an unread message from after you left", () => {
+    const seen = withOpened(["a"], ["new"], ["a", "new"]);
+    expect(matchesBadgeCount({ matches: [match("a", 0), match("new", 1)], pendingPartyInvites: 0, seen })).toBe(1);
   });
 });
 

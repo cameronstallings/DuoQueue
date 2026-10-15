@@ -33,6 +33,7 @@ import { useChatMessages } from "@/features/chat/useChatMessages";
 import { useDiscordShare, useSharedDiscordUsername } from "@/features/chat/useDiscordShare";
 import { useBlockUser, useReportUser, useUnmatch } from "@/features/chat/useMatchActions";
 import { useMatches } from "@/features/chat/useMatches";
+import { useMatchesTabFocus } from "@/features/chat/matchesTabFocus";
 import { useSendMessage, ConversationLockedError } from "@/features/chat/useSendMessage";
 import { useTypingIndicator } from "@/features/chat/useTypingIndicator";
 import type { ChatTimelineItem } from "@/features/chat/types";
@@ -459,6 +460,11 @@ export default function ChatScreen() {
   const [feedbackVisible, setFeedbackVisible] = useState(false);
   const [scheduleVisible, setScheduleVisible] = useState(false);
   const [discordEditorVisible, setDiscordEditorVisible] = useState(false);
+  // Opening a chat from anywhere (DUO LOCKED's Send a message, a push, the tab) means the match
+  // has been seen, so the Matches badge never counts it as "new" after the two of you have talked.
+  useEffect(() => {
+    if (matchId) useMatchesTabFocus.getState().markOpened(matchId);
+  }, [matchId]);
   // Schedule, Rate, Report and Add your Discord open another sheet, which iOS drops if it is
   // presented while this menu is still sliding out, so they open from the menu's onDismiss. Block
   // and Unmatch need no hand-off (an Alert has its own window), nor does Invite a third (a stack push).
