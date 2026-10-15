@@ -46,6 +46,12 @@ export type { SelectedGame, SelectedPrompt, SelectedShow };
  * from an empty draft about to be read back would send a half-built card to the front door. A
  * forever-false `hydrated` is a blank app, so a 2 s fallback sets it anyway; that launch's draft
  * is then simply not persisted (`persistReady` stays false).
+ *
+ * A READ-BACK THAT ANSWERS AFTER THE FALLBACK IS IGNORED (`hydrationFallbackFired`). By then the
+ * routes have answered from an empty draft and the player may have started a new card; merging
+ * the stored one over it would mix two cards (somebody else's DOB, on a shared phone) and switch
+ * persistence on for the mix. So this launch keeps what it has and saves nothing, and the stored
+ * draft stays on the phone, untouched, for the next launch to read in time.
  */
 
 const STORAGE_KEY = "duoqueue.onboarding-draft";
@@ -55,6 +61,8 @@ const HYDRATION_FALLBACK_MS = 2000;
 export const LAUNCH_STARTED_AT = Date.now();
 
 let persistReady = false;
+/** The 2 s fallback answered routing before the read-back did. See the header. */
+let hydrationFallbackFired = false;
 
 const draftStorage: StateStorage = {
   getItem: async (name) => {
@@ -422,11 +430,14 @@ export const useOnboardingStore = create<OnboardingState>()(
       version: 1,
       storage: createJSONStorage(() => draftStorage),
       partialize: partializeDraft,
-      merge: (persisted, current) => ({ ...current, ...sanitizeDraft(persisted, Date.now()) }),
+      // Too late to use once the fallback has answered routing (see the header): keep this launch.
+      merge: (persisted, current) =>
+        hydrationFallbackFired ? current : { ...current, ...sanitizeDraft(persisted, Date.now()) },
       // Runs on success AND on a failed read: either way the stored draft can no longer be
-      // overwritten by accident, and routing may answer.
+      // overwritten by accident, and routing may answer. After the fallback, persistence stays
+      // off for the rest of the launch, as the fallback promised.
       onRehydrateStorage: () => () => {
-        persistReady = true;
+        if (!hydrationFallbackFired) persistReady = true;
         useOnboardingStore.setState({ hydrated: true });
       },
     },
@@ -434,7 +445,10 @@ export const useOnboardingStore = create<OnboardingState>()(
 );
 
 // ROUTING ONLY. If the read-back never answers, the app must still render; `persistReady` stays
-// false, so this launch's answers are simply not saved rather than written over the stored ones.
+// false, so this launch's answers are simply not saved rather than written over the stored ones,
+// and a read-back that answers later is ignored (merge, above).
 setTimeout(() => {
-  if (!useOnboardingStore.getState().hydrated) useOnboardingStore.setState({ hydrated: true });
+  if (useOnboardingStore.getState().hydrated) return;
+  hydrationFallbackFired = true;
+  useOnboardingStore.setState({ hydrated: true });
 }, HYDRATION_FALLBACK_MS);

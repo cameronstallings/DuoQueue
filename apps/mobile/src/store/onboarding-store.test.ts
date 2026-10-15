@@ -270,6 +270,35 @@ describe("the persisted draft", () => {
     expect(store.getState().hydrated).toBe(true);
   });
 
+  it("after the 2 s fallback, a late read-back changes nothing and this launch is never saved", async () => {
+    seedStorage({ displayName: "Stored", ageConfirmedDob: "2000-01-01", lastStep: "games" });
+    state.holdReads = true;
+    // Only the module's own timer runs fake; the read-back below needs real ones.
+    vi.useFakeTimers({ toFake: ["setTimeout"] });
+    let store: Store;
+    try {
+      ({ useOnboardingStore: store } = await importStore());
+      expect(store.getState().hydrated).toBe(false);
+      vi.advanceTimersByTime(2000);
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(store.getState().hydrated).toBe(true);
+
+    // Routing has answered from an empty draft, and the player has started a new card.
+    store.getState().setAgeConfirmedDob("1999-03-03");
+    store.getState().setDisplayName("Now");
+
+    releaseReads();
+    await waitForHydration(store);
+
+    expect(store.getState()).toMatchObject({ ageConfirmedDob: "1999-03-03", displayName: "Now", lastStep: null });
+    store.getState().setDisplayName("Later");
+    await settle();
+    expect(state.storageWrites).toEqual([]);
+    expect(stored().displayName).toBe("Stored");
+  });
+
   it("holds routing until the read-back, then reports hydrated", async () => {
     state.holdReads = true;
     const { useOnboardingStore: store } = await importStore();
