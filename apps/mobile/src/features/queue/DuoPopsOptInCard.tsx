@@ -44,7 +44,8 @@ import { useDuoPopsSetting } from "./useDuoPopsSetting";
  *
  * Never outside NA (pops only go between NA players), never before the `queue_pop` column
  * exists (0085), never twice per account on a phone, never within a week of another ask, and
- * never over the open Queue Up sheet. Both buttons close it for good on this phone.
+ * never over the open Queue Up sheet. It counts as seen on this phone the moment it shows, so
+ * neither an answer nor a deck that took it away unanswered ever brings it back.
  */
 export function DuoPopsOptInCard({ surface, active = true }: { surface: "deck" | "empty"; active?: boolean }) {
   return surface === "deck" ? <DeckDuoPopsCard active={active} /> : <EmptyDuoPopsCard />;
@@ -183,10 +184,14 @@ function DeckDuoPopsCard({ active }: { active: boolean }) {
     });
     if (!offer || !store.claimDeck("duo-pops")) return false;
     store.markOffered(now);
+    // Seen the moment it shows, not when it is answered: a card the deck drained from under, or
+    // that a refill or a killed app took away, would otherwise come back after the weekly cap,
+    // and until then keep the push pre-ask yielding its like moments to a card that cannot show.
+    markSeen();
     latest.current = { ...latest.current, shown: true };
     setShown(true);
     return true;
-  }, []);
+  }, [markSeen]);
 
   // A like without a match (offerPushAsk, the deck flow's onLiked).
   useEffect(
@@ -279,13 +284,21 @@ function EmptyDuoPopsCard() {
   });
   const [shown, setShown] = useState(offer);
 
-  // Claimed before the first paint; if the slot is somehow taken, the card never appears.
+  // Claimed before the first paint; if the slot is somehow taken, the card never appears. Seen the
+  // moment it shows (as on the deck), so a refresh or a refill that unmounts it unanswered never
+  // brings it back on this phone.
+  const claimed = useRef(false);
   useLayoutEffect(() => {
-    if (!offer) return;
+    if (!offer || claimed.current) return;
+    claimed.current = true;
     const store = usePushAskStore.getState();
-    if (store.claimDeck("duo-pops")) store.markOffered(Date.now());
-    else setShown(false);
-  }, [offer]);
+    if (store.claimDeck("duo-pops")) {
+      store.markOffered(Date.now());
+      markSeen();
+    } else {
+      setShown(false);
+    }
+  }, [offer, markSeen]);
   useEffect(() => () => usePushAskStore.getState().releaseDeck("duo-pops"), []);
 
   const actions = useOptInActions({
