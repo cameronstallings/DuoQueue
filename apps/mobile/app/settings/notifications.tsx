@@ -26,6 +26,15 @@ import { useToastStore } from "@/store/toast-store";
 import { layoutTransition, quickExiting, revealEntering } from "@/theme/entering";
 import { useTheme } from "@/theme/useTheme";
 
+/**
+ * How many rows the skeleton draws: as many as this screen last showed in this run, and every
+ * category before that. A row shows only once its column exists (visibleCategories), so before a
+ * migration lands the real list is shorter than the full one, and a skeleton of the full length
+ * made the card's bottom edge snap up by a row when the switches arrived. The plan's rule is a
+ * skeleton the size of the content.
+ */
+let lastRowCount = NOTIFICATION_CATEGORIES.length;
+
 function RowSkeleton() {
   const { radius, spacing } = useTheme();
   return (
@@ -112,7 +121,8 @@ export default function NotificationSettings() {
   }
 
   const rows = visibleCategories(settings);
-  const divider = <View style={{ height: 1, backgroundColor: colors.border, marginLeft: spacing.md }} />;
+  if (settings && rows.length > 0) lastRowCount = rows.length;
+  const divider =<View style={{ height: 1, backgroundColor: colors.border, marginLeft: spacing.md }} />;
 
   return (
     <ScreenContainer title="Notifications" showBack>
@@ -134,14 +144,17 @@ export default function NotificationSettings() {
           )}
           <Animated.View layout={layoutTransition()}>
             <Card style={{ padding: 0, overflow: "hidden" }}>
-              {isLoading || !settings
-                ? NOTIFICATION_CATEGORIES.map((c, i) => (
-                    <View key={c.value}>
-                      {i > 0 && divider}
-                      <RowSkeleton />
-                    </View>
-                  ))
-                : rows.map((c, i) => (
+              {isLoading || !settings ? (
+                NOTIFICATION_CATEGORIES.slice(0, lastRowCount).map((c, i) => (
+                  <View key={c.value}>
+                    {i > 0 && divider}
+                    <RowSkeleton />
+                  </View>
+                ))
+              ) : (
+                // The switches fade in over the skeleton's place instead of cutting in.
+                <Animated.View entering={revealEntering()}>
+                  {rows.map((c, i) => (
                     <View key={c.value}>
                       {i > 0 && divider}
                       <ToggleRow
@@ -152,6 +165,8 @@ export default function NotificationSettings() {
                       />
                     </View>
                   ))}
+                </Animated.View>
+              )}
             </Card>
           </Animated.View>
         </>
