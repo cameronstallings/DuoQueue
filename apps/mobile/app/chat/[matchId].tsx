@@ -861,7 +861,9 @@ export default function ChatScreen() {
           <PlayTogetherChips
             discord={discordChip}
             ready={!isLoading && !error}
-            freeNowDisabled={sendMessage.isPending || freeNowCooling}
+            // The cooldown only: a send in flight is refused inside handlePlayNow, and dimming the
+            // chip for every ordinary message made it blink on each send.
+            freeNowDisabled={freeNowCooling}
             discordBusy={discordShare.isPending}
             onDiscord={handleDiscordChip}
             onFreeNow={() => void handlePlayNow(false)}

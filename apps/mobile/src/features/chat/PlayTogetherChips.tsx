@@ -1,6 +1,6 @@
 import { useEffect } from "react";
-import { Platform, ScrollView, View } from "react-native";
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { Platform, ScrollView, View, type ViewProps } from "react-native";
+import Animated, { ReduceMotion, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 import { Chip } from "@/components/Chip";
 import { hapticSelection } from "@/lib/haptics";
@@ -12,6 +12,25 @@ import { PLAY_TOGETHER_COPY, type DiscordChipState } from "./playTogether";
 /** TalkBack's double tap arrives as this action. Android only: on iOS an "activate" entry would
  * show up as an extra custom action in the VoiceOver rotor, and onAccessibilityTap covers it. */
 const ANDROID_ACTIVATE = [{ name: "activate" as const }];
+
+/** How far a disabled chip dims. */
+const DISABLED_OPACITY = 0.5;
+
+/**
+ * A chip's wrapper that FADES to half when it is disabled and back, as Button and the Like and
+ * Pass buttons do, instead of snapping. A static opacity flipped 1, 0.5, 1 in single frames, so a
+ * chip that is disabled for the length of a request (Share my Discord in flight) blinked.
+ * ReduceMotion.Never: it is a fade.
+ */
+function DimmedWhenDisabled({ disabled, ...rest }: ViewProps & { disabled: boolean }) {
+  const { motion } = useTheme();
+  const dim = useSharedValue(disabled ? DISABLED_OPACITY : 1);
+  useEffect(() => {
+    dim.value = withTiming(disabled ? DISABLED_OPACITY : 1, { duration: motion.quick, reduceMotion: ReduceMotion.Never });
+  }, [disabled, dim, motion.quick]);
+  const style = useAnimatedStyle(() => ({ opacity: dim.value }));
+  return <Animated.View {...rest} style={[rest.style, style]} />;
+}
 
 interface PlayTogetherChipsProps {
   /** "hidden" once shared (the chip fades out and the others slide left). */
@@ -36,7 +55,7 @@ interface PlayTogetherChipsProps {
  *
  * Plain Chips with no icons (an icon per chip overflows 343pt), in a horizontal ScrollView so a
  * large text size scrolls instead of wrapping. A chip that leaves fades out and the rest glide
- * into place; a disabled chip dims to half and ignores its tap. Every press is a selection tick
+ * into place; a disabled chip fades to half and ignores its tap. Every press is a selection tick
  * (the haptic map: chips); the screen's handler does the rest.
  */
 export function PlayTogetherChips({
@@ -94,7 +113,8 @@ export function PlayTogetherChips({
                   onAccessibilityTap, TalkBack's on the activate action; both run `press`, which
                   ignores a disabled chip like a finger does. The chip inside is hidden from the
                   reader so it is not announced twice. */}
-              <View
+              <DimmedWhenDisabled
+                disabled={chip.disabled}
                 accessible
                 accessibilityRole="button"
                 accessibilityLabel={chip.label}
@@ -104,12 +124,11 @@ export function PlayTogetherChips({
                 onAccessibilityAction={(event) => {
                   if (event.nativeEvent.actionName === "activate") press();
                 }}
-                style={{ opacity: chip.disabled ? 0.5 : 1 }}
               >
                 <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
                   <Chip label={chip.label} onPress={press} />
                 </View>
-              </View>
+              </DimmedWhenDisabled>
             </Animated.View>
           );
         })}
