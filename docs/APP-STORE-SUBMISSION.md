@@ -95,9 +95,14 @@ This account is pre-confirmed (no CAPTCHA, no email OTP) and fully onboarded. Si
 shows: a populated deck of 13 fresh demo profiles, one existing match (Priya) with an
 8-message conversation left unread (an indicator on that row in the Matches list — the app
 sets no tab-bar badge), and 3 inbound "who wants to duo" requests
-(Sana, Marcus, Kofi). The review account plays League of Legends at Gold II, so the first
-two cards (Dae, Platinum I, and Devon, Silver I) carry the lit "CAN DUO" cell from the
-rank picker; Ophelia (Emerald IV) is further down without it. Every demo row is flagged `is_demo = true` and gated server-side across
+(Sana, Marcus, Cameron). The review account plays League of Legends at Gold II, so the first
+three cards (Cameron, Platinum IV, Dae, Platinum I, and Devon, Silver I) carry the lit
+"CAN DUO" cell from the rank picker; Ophelia (Emerald IV) is further down without it.
+Cameron is the owner's own card (his name; under `--filming`, his own photograph), North
+American and League first; it replaced the Rocket League persona on the same seed slug on
+2026-10-15. The four pre-launch tester accounts (KittyKat, Stallings, the 15 Aug Cameron,
+John) are `is_demo` too since 15 Oct, so the seed records a pass on each from this account:
+none of them is in its deck, Highlights or Requests. Every demo row is flagged `is_demo = true` and gated server-side across
 9 RPCs and 14 views — real users (verified live, adversarially, across every discovery
 surface) see zero of it, and the reviewer's account is invisible to them too. Photos are
 abstract generated art (`scripts/generate-demo-avatars.mjs`), never a real or AI-generated
@@ -109,12 +114,12 @@ inferred from the seed file, and re-measured after a full `--filming` → plain 
 | claim | how it was measured | result |
 |---|---|---|
 | deck of 13 | `get_deck(50)` as this account, under `set local role authenticated` | 13 |
-| 3 requests, by name | `get_admirers()` as this account, newest first | Sana, Marcus, Kofi |
+| 3 requests, by name | `get_admirers()` as this account (a free account: all 3, in an order that changes by day, not newest first) | Sana, Marcus, Cameron (on 2026-10-15: Marcus, Cameron, Sana) |
 | 14 demo profiles | `count(*) from profiles where is_demo` minus the review row | 14 |
 | Priya, 8 messages, newest unread | `messages` joined to the one row in `matches` | 8, newest from Priya, `read_at is null` |
 | photos are abstract | md5 of every stored object vs. md5 of every file in `assets/demo` and `assets/demo-filming` | 30/30 in `assets/demo`, 0 in `assets/demo-filming`, 0 unmatched |
 | 9 RPCs / 14 views | functions and views whose definition references `is_demo_viewer` / `is_demo` | 9 and 14 |
-| League "Can duo" order (2026-09-23, after 0069 and a plain re-seed) | `get_deck(20)` as this account, read-only, rolled back | 13 cards, all demo: 1 Dae (true), 2 Devon (true), 3 Sana, 4 Kofi, 5 Chase, 6 Tobin, 7 Wren, 8 Ophelia (false), 9 Marcus, 10 Bea, 11 Remy, 12 Yuki, 13 Nadia (null = no League rank) |
+| League "CAN DUO" order (2026-10-15, after 0071 and a plain re-seed) | `get_deck(20)` as this account, read-only, rolled back | 13 cards, all seed personas, none of the four tester accounts: 1 Cameron (true), 2 Dae (true), 3 Devon (true), 4 Chase, 5 Wren, 6 Ophelia (false), 7 Sana, 8 Tobin, 9 Marcus, 10 Bea, 11 Remy, 12 Yuki, 13 Nadia (null = no League rank). North America comes first since 0071, and Cameron leads because he is the one North American request |
 
 The 14 abstract PNGs were also opened and looked at, not just hashed: circuit traces,
 isometric blocks, hex field, waveform, target rings, dot matrix, radar sweep, scanline
@@ -135,6 +140,11 @@ once, on an app that was rejected under a content guideline. A plain
 `node scripts/seed-review-demo.mjs` puts the approved abstract set back; run it, and confirm
 before submitting that no `profile_media` row for a demo profile resolves to a file in
 `assets/demo-filming/`.
+
+Since 2026-10-15 the filming set is two personas: Cameron (the owner, his own photograph,
+with his consent) and Priya (a cat). The photographs of other people that Sana and Marcus
+used were dropped; they stay abstract in both modes. **The seed was left in `--filming` on
+2026-10-15** for the 1.0.2 store screenshots: run the plain seed before submitting.
 
 **Once App Review is done and the app is live, remove it:**
 
@@ -428,6 +438,9 @@ Six shots, in this order (order matters — the first is what search results sho
 
 1. **Deck** (`app/(tabs)/index.tsx`) — Dae's card (build 12): the picture, the page track, the
    name row, and the three cells with the lit Solo/Duo "CAN DUO" cell. Capture dark and Paper.
+   For 1.0.2 (2026-10-15) the first card is Cameron's, in both seed modes. Under `--filming` it
+   shows his own photograph but no "CAN DUO" cell, because the review account has no League
+   row in that mode; plain mode lights it, on abstract art.
    *"Ranked by the games you both play. Swipe to duo up."*
 2. **Own profile** (`app/(tabs)/profile.tsx`) — your card under HOW OTHERS SEE YOU, then the
    HOW I PLAY tiles.

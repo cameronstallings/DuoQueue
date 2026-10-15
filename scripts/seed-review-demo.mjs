@@ -3,14 +3,22 @@
 // pre-built match with a conversation, and a few profiles who've already liked the review
 // account. Every row this script touches is flagged `is_demo = true`, which the visibility
 // gating added in supabase/migrations/0059_review_demo_visibility.sql hides from every real
-// user (KittyKat included) at the database level — see that migration's header for the full
-// argument. This script does not touch that gating; it only produces data for it to gate.
+// user at the database level (see that migration's header for the full argument). This script
+// does not touch that gating; it only produces data for it to gate.
+//
+// is_demo = true is not the same as "made by this script". Since 15 Oct 2026 the four
+// pre-launch tester accounts (KittyKat, Stallings, the 15 Aug "Cameron" and John) are is_demo
+// as well: they see the demo pool and real users no longer see them. This script never edits
+// or deletes them. It records a pass on each from the review account so they stay out of its
+// deck (excludeNonPersonaAccountsFromDemoPool), and its prune only removes accounts whose email
+// it created (pruneRemovedDemoAccounts).
 //
 // Photos are the abstract Volt-palette avatars from scripts/generate-demo-avatars.mjs
 // (assets/demo/*.png) — geometric generated art, never anything that could read as a real or
 // AI-generated face. Passing --filming swaps in real photographs from assets/demo-filming
-// for the handful of personas that have one (see `filmingPhotos` on each persona); the
-// abstract set stays the default because it is what App Review approved.
+// for the two personas that have one (see `filmingPhotos` on each persona: Cameron, the owner,
+// on his own photograph, and Priya, a cat); the abstract set stays the default because it is
+// what App Review approved.
 //
 // This script owns the review account's state completely, including the parts a person
 // creates by USING the app: its swipes, its matches and its cached Highlights row are all
@@ -141,61 +149,54 @@ const REVIEW_ID = demoId("review-account");
 //
 // The shared count also drives get_deck's score (shared_games * 10 + skill_match * 2 +
 // shared_shows * 5 + shared_languages * 2 + region_match * 3 + play_window_overlap capped
-// at 6), so this list plus the shows list is what orders the deck. Measured against the
-// live function on 2026-08-22, signed in as review@duoqueue.io, after the widening:
+// at 6). Since 0071 the score is only the LAST key that matters here. get_deck orders by live
+// Power-Up, then same server group as the viewer (na_east and na_west are one group), then
+// "liked you, same group, shares a game", then seen in the last 14 days, then "Riot's
+// Solo/Duo table lets this pair duo" (0069), then score. So for this na_east account the six
+// North American personas come before every other region whatever their score, and Sana,
+// with the highest score in the pool, is the seventh card.
 //
-//   1 Sana 48   2 Kofi 39   3 Chase 35   4 Dae 26   5 Tobin 26   6 Wren 26   7 Marcus 24
-//   8 Devon 24  9 Bea 17  10 Remy 16  11 Yuki 14  12 Ophelia 13  13 Nadia 12
+// Worth reading before trusting the shared count alone: under --filming Devon has ONE shared
+// game and ties Marcus, who has two. A shared show is worth 5 and a region match 3, so
+// 1 game + The Office + na_east draws level with 2 games and neither. Shared games dominate
+// the score; they do not decide it. (Predicting this by hand once got it wrong: Satisfactory
+// is ranked_grinder against the account's casual, so it scores no skill_match. Run the query,
+// don't reason.)
 //
-// Two things that table contradicts, and they are worth reading before trusting the shared
-// count alone:
+// LEAGUE OF LEGENDS AT INDEX 0 IS THE 0069 DEMO. The card shows the lit "CAN DUO" cell on
+// pairs that Riot's Solo/Duo table lets queue together. The reviewer lists League at Gold II:
+// Cameron (Platinum IV, na_east), Dae (Platinum I, na_west) and Devon (Silver I, na_east) are
+// eligible both ways with Gold II; Ophelia (Emerald IV, na_west) is not, and stays in the deck
+// further down, which is the other half of the demo (ineligible players are ordered later,
+// never filtered). The rank is plain text: the service role inserts rank_text and 0069's
+// trigger parses it. It sits first so the reviewer's own profile and Edit screen show the
+// League row and its rank picker first.
 //
-//   * Devon has ONE shared game and ties Marcus, who has two. A shared show is worth 5 and
-//     a region match 3, so 1 game + The Office + na_east draws level with 2 games and
-//     neither. Shared games dominate; they do not decide. (Predicting this order by hand
-//     got it wrong — Satisfactory is ranked_grinder against the account's casual, so it
-//     scores no skill_match. Run the query, don't reason.)
-//   * The photographed personas are NOT the first four cards. Priya is the pre-built match,
-//     so get_deck excludes her from the deck entirely and she is only ever seen in Matches;
-//     Marcus lands seventh. Under --filming the first two cards are photographs and the
-//     third is abstract. That is why FILMING_STANDOUT_SLUGS pins the Highlights row by hand
-//     instead of trusting this ordering.
+// Measured on 2026-10-15 after real runs of this script (plain, then --filming), as
+// review@duoqueue.io: get_deck(20), the call the app makes, under `set local role
+// authenticated` with the review account's id as request.jwt.claims.sub, in a rolled-back
+// transaction. Score after each name:
 //
-// Re-measure rather than reason if either list changes: the query is get_deck(50) run under
-// `set local role authenticated` with the review account's id as request.jwt.claims.sub.
+//   plain:     1 Cameron 50 (can duo)   2 Dae 36 (can duo)   3 Devon 34 (can duo)   4 Chase 35
+//              5 Wren 26   6 Ophelia 25 (cannot)   7 Sana 48   8 Tobin 26   9 Marcus 24
+//              10 Bea 17   11 Remy 16   12 Yuki 14   13 Nadia 12
+//   --filming: 1 Cameron 38   2 Chase 35   3 Dae 26   4 Wren 26   5 Devon 24   6 Ophelia 13
+//              7 Sana 48   8 Tobin 26   9 Marcus 24   10 Bea 17   11 Remy 16   12 Yuki 14
+//              13 Nadia 12
 //
-// LEAGUE OF LEGENDS AT INDEX 0 IS THE 0069 DEMO, and it changes the order above in plain mode.
-// supabase/migrations/0069_league_rank_duo.sql orders get_deck by live Power-Up, then by
-// "Riot's Solo/Duo table lets this pair duo", then by score, and the card shows "Can duo with
-// you" on those pairs. The reviewer lists League at Gold II so the feature is on the first two
-// cards: Dae (Platinum I, na_west) and Devon (Silver I, na_east) are eligible both ways with Gold
-// II; Ophelia (Emerald IV, na_west) is not, and stays in the deck further down, which is the
-// other half of the demo (ineligible players are ordered later, never filtered). The rank is
-// plain text: the service role inserts rank_text and 0069's trigger parses it. It sits first so
-// the reviewer's own profile and Edit screen show the League row and its rank picker first.
+// A deck of 13 in both modes (get_deck_pool_size agrees), every card a persona: none of the
+// four is_demo tester accounts and no real account. Cameron is first in both because he is
+// the one North American admirer (ADMIRER_SLUGS), and that key outranks the duo flag.
+// Re-measure rather than reason if any list here changes.
 //
-// Measured on 2026-09-23 in a ROLLED-BACK transaction on the hosted database (0067, 0068 and
-// 0069 applied inside it, this file's persona changes applied by hand, the reviewer's swipes
-// reset to what this script leaves), as review@duoqueue.io. The seed had NOT been re-run with
-// these changes when this was written, so re-measure after the real re-run:
-//
-//   plain:    1 Dae 36 (can duo)   2 Devon 34 (can duo)   3 Sana 48   4 Kofi 39   5 Chase 35
-//             6 Tobin 26   7 Wren 26   8 Ophelia 25 (cannot)   9 Marcus 24   10 Bea 17
-//             11 Remy 16   12 Yuki 14   13 Nadia 12
-//   --filming: 1 Sana 48   2 Kofi 39   3 Chase 35   4 Dae 26   5 Tobin 26   6 Wren 26
-//             7 Marcus 24   8 Devon 24   9 Bea 17   10 Remy 16   11 Yuki 14   12 Ophelia 13
-//             13 Nadia 12   (identical to the 2026-08-22 table above)
-//
-// Still a deck of 13 in both modes: only the order moved. The shared League title adds 10 to
-// Dae, Devon and Ophelia in plain mode, plus 2 for Ophelia's skill match (both competitive).
-//
-// THIS ACCOUNT IS ALSO THE FILMING ACCOUNT, and Dae and Devon are abstract-art personas, so
-// eligible-first would open every recording on two abstract cards. Under --filming the reviewer
-// therefore gets NO League row (reviewerFor below): no pair is eligible, the League rows on Dae,
-// Devon and Ophelia add nothing to their overlap with the reviewer, and the order is score-only
-// again. Dae's move from sea / Asia/Manila to na_west / America/Los_Angeles is the one change
-// left in filming mode, and it measured as no change to his score (26 before and after). Plain
-// mode, which is what App Review sees, keeps League. Never submit after a --filming run.
+// THIS ACCOUNT IS ALSO THE FILMING ACCOUNT. Under --filming the reviewer gets NO League row
+// (reviewerFor below), so no card shows "CAN DUO" and the League rows on Cameron, Dae, Devon
+// and Ophelia add nothing to their overlap with the reviewer. That was chosen when the duo
+// flag came straight after Power-Ups (0069), so eligible-first would have opened every
+// recording on Dae's and Devon's abstract cards. Since 0071 the liked-you key puts Cameron
+// first either way: the same rolled-back measurement with the League row kept under
+// --filming gave 1 Cameron (can duo) 2 Dae (can duo) 3 Devon (can duo), then the plain order.
+// Plain mode, which is what App Review sees, keeps League. Never submit after a --filming run.
 const REVIEWER_LEAGUE_GAME = "League of Legends";
 const REVIEWER = {
   displayName: "App Reviewer",
@@ -254,11 +255,12 @@ function reviewerFor(filming) {
 // TWO PROPERTIES THAT ARE MAINTAINED BY HAND AND MATTER ON CAMERA:
 //
 //   1. `games` intersects REVIEWER.games for ALL fourteen, and that floor is the point: no
-//      card in the deck may print ">> NO GAMES IN COMMON". Sana and Priya by 4, Kofi by 3,
-//      Dae/Marcus/Wren/Tobin/Chase by 2, and Nadia/Yuki/Bea/Remy/Ophelia/Devon by 1 — see
-//      the measured deck order in the note on REVIEWER.games above, which is the thing to
+//      card in the deck may print ">> NO GAMES IN COMMON". Sana and Priya by 4,
+//      Dae/Marcus/Wren/Tobin/Chase/Cameron by 2, and Nadia/Yuki/Bea/Remy/Ophelia/Devon by 1:
+//      see the measured deck order in the note on REVIEWER.games above, which is the thing to
 //      trust rather than this list of counts. Those are the --filming counts. In plain mode the
-//      reviewer also lists League of Legends (0069), so Dae has 3, and Devon and Ophelia have 2. The first three games in each list are also
+//      reviewer also lists League of Legends (0069), so Dae and Cameron have 3, and Devon and
+//      Ophelia have 2. The first three games in each list are also
 //      the three the card renders (enrichCandidates.ts slices to 3), so shared titles are
 //      ordered first where it does not break the persona — and every one of the fourteen
 //      has at least one shared title inside that window.
@@ -377,10 +379,8 @@ const PERSONAS = [
     vibe: { intensity: 55, commsStyle: 70, coachingPref: 40, tiltHandling: "stays_calm" },
     playWindow: [19, 23],
     avatar: "avatar-03-hex-field.png",
-    filmingPhotos: {
-      profile: "avatar-06-dot-matrix-profile.png",
-      header: "avatar-06-dot-matrix-header.png",
-    },
+    // No filmingPhotos: the photograph this persona used (avatar-06-dot-matrix-*) shows a real
+    // person who is not part of DuoQueue, so it was dropped on 15 Oct 2026. Abstract in both modes.
     lastActiveMinutesAgo: 30,
   },
   {
@@ -415,35 +415,44 @@ const PERSONAS = [
     lastActiveMinutesAgo: 1440,
   },
   {
+    // The slug predates this persona (a Rocket League player in Lagos until 15 Oct 2026) and
+    // stays because the account id is derived from it (demoId): a new slug would mean a new auth
+    // user, and the prune would delete this one. The persona is now Cameron, the owner, on his
+    // own photograph.
     slug: "kofi-mensah",
-    displayName: "Kofi",
+    displayName: "Cameron",
     age: 26,
     gender: "male",
-    region: "africa",
-    timezone: "Africa/Lagos",
-    bio: "Grand Champion in Rocket League, still humble about it (mostly). Also deep in the Apex ranked grind, and happy to coach rotations if you're newer to the game.",
-    discordUsername: "kofi.mensah",
-    // Shares Rocket League + Apex Legends + Valorant with the reviewer.
+    // NA and League first, so the card tells the store story (League, North America, Gold to
+    // Platinum): Platinum IV is eligible both ways with the reviewer's Gold II, so in plain mode
+    // he is a third "CAN DUO" card next to Dae and Devon.
+    region: "na_east",
+    timezone: "America/Chicago",
+    bio: "League player in NA, Platinum and climbing. Done with solo queue: looking for a steady duo who talks through the draft and stays calm after a loss. Valorant when I need a break.",
+    // Made up, and shaped so it cannot be mistaken for a real person's handle.
+    discordUsername: "cameron.dq.demo",
+    // Shares League of Legends (plain mode only) + Valorant + Rocket League with the reviewer,
+    // all three inside the card's three chips.
     games: [
-      { name: "Rocket League", skill: "ranked_grinder", rank: "Grand Champion" },
-      { name: "Apex Legends", skill: "competitive" },
+      { name: "League of Legends", skill: "competitive", rank: "Platinum IV" },
       { name: "Valorant", skill: "intermediate" },
-      { name: "Marvel Rivals", skill: "competitive" },
-      { name: "Fortnite", skill: "intermediate" },
+      { name: "Rocket League", skill: "casual" },
+      { name: "Teamfight Tactics", skill: "casual" },
     ],
-    shows: ["The Boys", "Attack on Titan"],
-    platforms: ["pc", "xbox"],
-    playstyles: ["competitive", "grinder", "mic_required"],
+    shows: ["Arcane", "The Boys"],
+    platforms: ["pc"],
+    playstyles: ["competitive", "team_player", "mic_required"],
     prompts: [
-      { q: "My proudest gaming achievement is", a: "Hit Grand Champion in Rocket League solo queue. Took two years. Worth it." },
-      { q: "I will absolutely carry you if", a: "You're new to Apex and just want reps in. I love teaching rotations." },
-      { q: "My win condition in life is", a: "A clean 50 burst and a teammate who calls out the third party." },
+      { q: "I'm looking for a duo who", a: "Queues at the same hours I do and wants to climb out of Plat together." },
+      { q: "My win condition in life is", a: "A duo who pings the enemy jungler before I have to ask." },
+      { q: "I'll never turn down a round of", a: "League ranked on a weeknight, then Valorant unrated to cool down." },
     ],
-    vibe: { intensity: 82, commsStyle: 75, coachingPref: 65, tiltHandling: "tilts_but_recovers_fast" },
-    playWindow: [17, 22],
+    vibe: { intensity: 72, commsStyle: 70, coachingPref: 55, tiltHandling: "tilts_but_recovers_fast" },
+    playWindow: [18, 23],
     avatar: "avatar-05-concentric-target.png",
-    // Two cats on a cat tree against a city window. No person in frame, so nothing about
-    // this photograph can contradict a name, an age or anything else on the card.
+    // Cameron himself, the owner of DuoQueue, standing next to a samurai armour stand and
+    // drawing a katana. He is the person in the photograph, consented, and asked for his own
+    // name on this card. The file names are the abstract slot they were generated alongside.
     filmingPhotos: {
       profile: "avatar-05-concentric-target-profile.png",
       header: "avatar-05-concentric-target-header.png",
@@ -460,7 +469,8 @@ const PERSONAS = [
     bio: "FFXIV raider who builds spreadsheets for fun. Currently pushing ultimate content, and my static unwinds afterwards with Helldivers and a very loud Overcooked night.",
     discordUsername: "sana.orimoto",
     // Shares Helldivers 2 + Baldur's Gate 3 + Stardew Valley + Overcooked! 2 with the
-    // reviewer: the deepest overlap in the pool, which is what puts her first in the deck.
+    // reviewer: the deepest overlap and the highest score in the pool, but since 0071 she is
+    // the seventh card, after the six North American personas (see the note on REVIEWER).
     games: [
       { name: "Final Fantasy XIV", skill: "ranked_grinder", rank: "Savage Cleared" },
       { name: "Helldivers 2", skill: "competitive" },
@@ -480,12 +490,8 @@ const PERSONAS = [
     vibe: { intensity: 60, commsStyle: 55, coachingPref: 70, tiltHandling: "stays_calm" },
     playWindow: [20, 1],
     avatar: "avatar-06-dot-matrix.png",
-    // Graduation photograph: a woman in her early twenties, which is what "Sana, 23" needs
-    // the picture to show.
-    filmingPhotos: {
-      profile: "avatar-07-radar-sweep-profile.png",
-      header: "avatar-07-radar-sweep-header.png",
-    },
+    // No filmingPhotos: the photograph this persona used (avatar-07-radar-sweep-*) shows a real
+    // person who is not part of DuoQueue, so it was dropped on 15 Oct 2026. Abstract in both modes.
     lastActiveMinutesAgo: 95,
   },
   {
@@ -724,19 +730,23 @@ const PERSONAS = [
 ];
 
 const MATCH_PARTNER_SLUG = "priya-ferra";
-// The three profiles in "Who wants to duo". All three hold real photographs under
-// --filming, because that row is a grid of faces at avatar size and one abstract tile in it
-// is as obvious as a whole deck of them.
+// The three profiles in "Who wants to duo": Sana, Marcus and Cameron (slug kofi-mensah).
 //
-// This list was Marcus/Kofi/Bea until 234f70c repointed it off Bea when she was deleted.
-// She is back in PERSONAS now, and it still does not go back to her: she has no
-// `filmingPhotos`, so restoring her would put one abstract tile in the middle of a row of
-// three faces every time Cameron records. The deletion was only half the reason for the
-// repoint; the photograph grid is the other half and it outlived her.
-// docs/APP-STORE-SUBMISSION.md was corrected to name Sana, Marcus, Kofi to match.
+// It was Marcus, this slug's earlier persona and Bea until 234f70c repointed it off Bea when
+// she was deleted, and it was chosen then because all three held photographs under
+// --filming. Since 15 Oct 2026 only Cameron does (Sana's and Marcus's photographs showed real
+// people outside DuoQueue and were dropped), so under --filming this row is one photograph
+// and two abstract tiles. It is kept as it is anyway: the App Review notes and
+// docs/APP-STORE-SUBMISSION.md name these three, and the review account must match what
+// Apple was told.
+//
+// A like from a North American persona also moves that persona up the review account's deck
+// (0071 orders "liked you, same server group, shares a game" above everything but Power-Ups
+// and the server group itself), which is why Cameron is the first card in both modes.
 const ADMIRER_SLUGS = ["sana-orimoto", "marcus-holt", "kofi-mensah"];
 
-// The Highlights row (StandoutsRow.tsx) is on screen behind the deck in essentially every
+// The Highlights row (once StandoutsRow.tsx, now the strip above the card in DeckStrip.tsx)
+// is on screen behind the deck in essentially every
 // frame of a recording. get_standouts picks its set ONCE per day and caches it in
 // daily_standouts, ordering by shared-game count and then `random()`, so left alone it will
 // happily fill that row with whichever personas it feels like — including the ones with no
@@ -744,11 +754,14 @@ const ADMIRER_SLUGS = ["sana-orimoto", "marcus-holt", "kofi-mensah"];
 // the next few days. Without --filming it only clears the cache and lets the function pick,
 // which is what App Review saw.
 //
-// Restoring the seven cut personas does not change this list. Unlike ADMIRER_SLUGS it never
-// pointed at any of them — it was introduced in 234f70c alongside the photograph set — and
-// its members are exactly the four personas that hold a `filmingPhotos` entry, which is the
-// only property that qualifies a persona for this row. Nothing came back that belongs here.
-const FILMING_STANDOUT_SLUGS = ["sana-orimoto", "marcus-holt", "kofi-mensah", "priya-ferra"];
+// Its members are exactly the personas that hold a `filmingPhotos` entry, which is the only
+// property that qualifies a persona for this row. That was four (Sana, Marcus, this slug's
+// earlier persona, Priya) until 15 Oct 2026, when Sana's and Marcus's photographs were
+// dropped because they showed real people outside DuoQueue. It is two now: Cameron (slug
+// kofi-mensah, his own photograph) first, then Priya (the cat). The Deck's strip
+// (DeckStrip.tsx) shows up to three faces, so it shows these two, and its count reads
+// "2 picked today" (highlightsCountLabel).
+const FILMING_STANDOUT_SLUGS = ["kofi-mensah", "priya-ferra"];
 const STANDOUT_DAYS_AHEAD = 3;
 
 // The pre-built conversation: two people arranging to play together, spread over ~4 days,
@@ -878,9 +891,10 @@ async function ensureVibe(id, vibe) {
  * 92px) and her card cover is the same cat in a wider shot.
  *
  * A persona with no `filmingPhotos` keeps its abstract avatar even under --filming. That is
- * the honest failure mode: there are five usable photographs and fourteen personas, so most
- * of the pool has no picture and the seeder says so out loud at the end of the run rather
- * than quietly papering over it. */
+ * the honest failure mode: only two personas have a photograph (Cameron, the owner, and
+ * Priya's cat; photographs of real people outside DuoQueue were dropped on 15 Oct 2026), so
+ * most of the pool has no picture and the seeder says so out loud at the end of the run
+ * rather than quietly papering over it. */
 function photoPathFor(p, role, filming) {
   const file = filming ? p.filmingPhotos?.[role] : null;
   if (!file) return path.join(AVATAR_DIR, p.avatar);
@@ -1019,30 +1033,65 @@ async function resetReviewAccountState(reviewId) {
   return { matchesCleared: matchIds.length };
 }
 
-/** Keeps real accounts out of the demo pool.
+/** Every profile, paged. PostgREST caps a single select (1000 rows by default), and a page that
+ * silently stopped short here would put the accounts past the cap straight into the review deck. */
+async function fetchAllProfiles(columns) {
+  const pageSize = 1000;
+  const rows = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await db
+      .from("profiles")
+      .select(columns)
+      .order("id")
+      .range(from, from + pageSize - 1);
+    if (error) throw new Error(`profile lookup failed: ${error.message}`);
+    rows.push(...(data ?? []));
+    if (!data || data.length < pageSize) return rows;
+  }
+}
+
+/** Keeps every account this script does not own out of the review account's pool.
  *
  * 0059 hides is_demo profiles from ordinary users. It does not do the reverse: get_deck's
  * predicate is `(p.is_demo = false or v_viewer_is_demo)`, which for a demo viewer is
- * trivially true, so the review account's deck also contains every real signed-up account
- * — Cameron's own two, an Apple sign-in test account, and a genuine third-party user with a
- * real name and a real photograph. That is wrong twice over: a stranger's profile has no
- * business appearing in marketing footage, and their half-finished test profiles look like
- * broken cards next to the demo pool.
+ * trivially true, so the review account's deck also contains every real signed-up account:
+ * an Apple sign-in test account and genuine third-party users with real names and real
+ * photographs. That is wrong twice over: a stranger's profile has no business
+ * appearing in marketing footage, and half-finished test profiles look like broken cards next
+ * to the demo pool.
+ *
+ * is_demo = false is not the whole of "not ours" any more. Since 15 Oct 2026 the four
+ * pre-launch tester accounts (KittyKat, Stallings, the 15 Aug "Cameron" and John) are
+ * is_demo = true, which hides them from real users but puts them, with their real photos,
+ * in every demo viewer's pool. So the review account passes every profile that is neither
+ * itself nor one of PERSONAS, whatever its is_demo says. The passes also carry the Duo Pop
+ * claims in the review notes: duo_pop_pair_ok (0085) refuses any pair with a pass between
+ * them, and those four are real people who can queue up and turn Duo Pops on.
  *
  * A recorded `pass` from the review account is the smallest possible fix. get_deck and
  * get_standouts both exclude anyone the viewer has already swiped, swipes are directional
  * so nothing about the other account changes, and `--remove` deletes these rows along with
  * the review account itself. It applies in both modes: a re-review should not be shown real
  * users either. */
-async function excludeRealAccountsFromDemoPool(reviewId) {
-  const { data, error } = await db.from("profiles").select("id, display_name").eq("is_demo", false);
-  if (error) throw new Error(`real-account lookup failed: ${error.message}`);
-  const rows = data ?? [];
-  for (const row of rows) {
-    if (row.id === reviewId) continue;
-    await ensureSwipe(reviewId, row.id, "pass", minutesAgoIso(10080)); // a week ago
+async function excludeNonPersonaAccountsFromDemoPool(reviewId, personaIdSet) {
+  const rows = (await fetchAllProfiles("id, display_name, is_demo")).filter(
+    (row) => row.id !== reviewId && !personaIdSet.has(row.id),
+  );
+  const at = minutesAgoIso(10080); // a week ago
+  for (let i = 0; i < rows.length; i += 500) {
+    const chunk = rows.slice(i, i + 500).map((row) => ({
+      swiper_id: reviewId,
+      target_id: row.id,
+      action: "pass",
+      created_at: at,
+    }));
+    const { error } = await db.from("swipes").upsert(chunk, { onConflict: "swiper_id,target_id" });
+    if (error) throw new Error(`pass upsert failed: ${error.message}`);
   }
-  return rows.map((r) => r.display_name);
+  return {
+    real: rows.filter((r) => !r.is_demo).map((r) => r.display_name),
+    demoNotOurs: rows.filter((r) => r.is_demo).map((r) => r.display_name),
+  };
 }
 
 /** Writes the Highlights row by hand for the next few days. See FILMING_STANDOUT_SLUGS. */
@@ -1124,14 +1173,29 @@ async function ensureMatchAndConversation(reviewId, partnerId) {
  * All seven of those personas have since been restored to PERSONAS, so on a normal run this
  * now finds nothing and prints nothing. That is the function working, not the function being
  * unnecessary: it is the only reason the count this script prints describes the database
- * rather than the file, and it is what will catch the next removal. */
+ * rather than the file, and it is what will catch the next removal.
+ *
+ * is_demo = true is NOT proof that this script made an account. Since 15 Oct 2026 four real
+ * pre-launch tester accounts (KittyKat, Stallings, the 15 Aug "Cameron", John) carry it too,
+ * and "is_demo and not in PERSONAS" alone would delete all four on the next run. So an
+ * account is pruned only when its auth email is one this script creates
+ * (`duoqueue.demo.<slug>@duoqueue.io`); every other is_demo account is left alone and named
+ * in the run output. */
+const PERSONA_EMAIL = /^duoqueue\.demo\.[a-z0-9-]+@duoqueue\.io$/i;
+
 async function pruneRemovedDemoAccounts() {
   const expected = new Set([REVIEW_ID, ...PERSONAS.map((p) => demoId(`profile:${p.slug}`))]);
-  const { data, error } = await db.from("profiles").select("id, display_name").eq("is_demo", true);
-  if (error) throw new Error(`demo-profile lookup failed: ${error.message}`);
+  const demoRows = (await fetchAllProfiles("id, display_name, is_demo")).filter((row) => row.is_demo);
+  const candidates = demoRows.filter((row) => !expected.has(row.id));
 
-  const stale = (data ?? []).filter((row) => !expected.has(row.id));
-  if (stale.length === 0) return [];
+  const stale = [];
+  const notOurs = [];
+  for (const row of candidates) {
+    const user = await getExistingUser(row.id);
+    if (user?.email && PERSONA_EMAIL.test(user.email)) stale.push(row);
+    else notOurs.push(row);
+  }
+  if (stale.length === 0) return { pruned: [], leftAlone: notOurs.map((row) => row.display_name) };
 
   const storagePaths = stale.flatMap((row) => [`${row.id}/profile.png`, `${row.id}/header.png`]);
   const { error: rmErr } = await db.storage.from("profile-photos").remove(storagePaths);
@@ -1143,7 +1207,7 @@ async function pruneRemovedDemoAccounts() {
       throw new Error(`deleteUser failed for ${row.display_name} (${row.id}): ${delErr.message}`);
     }
   }
-  return stale.map((row) => row.display_name);
+  return { pruned: stale.map((row) => row.display_name), leftAlone: notOurs.map((row) => row.display_name) };
 }
 
 async function removeAll() {
@@ -1173,17 +1237,19 @@ async function removeAll() {
   }
   console.log(`auth users: deleted ${deleted}, already absent ${missing} (profiles and everything referencing them cascade from each auth-user delete)`);
 
+  // Counted against this script's own ids, not `is_demo = true`: the four pre-launch tester
+  // accounts carry is_demo too (since 15 Oct 2026) and are not this script's to remove.
   const { count, error: countErr } = await db
     .from("profiles")
     .select("id", { count: "exact", head: true })
-    .eq("is_demo", true);
+    .in("id", allIds);
   if (countErr) throw new Error(`post-removal count failed: ${countErr.message}`);
-  console.log(`profiles remaining with is_demo = true: ${count}`);
+  console.log(`profiles remaining from this script: ${count}`);
   if (count && count > 0) {
     console.warn("WARNING: demo rows still present after removal — investigate before relying on this being clean.");
     process.exitCode = 1;
   } else {
-    console.log("Clean — no demo data remains.");
+    console.log("Clean: no demo data from this script remains.");
   }
 }
 
@@ -1226,8 +1292,8 @@ async function main() {
   await seedPersonaTree(REVIEW_ID, reviewer, { gameIdByName, showIdByName, promptIdByQuestion, filming });
   console.log(
     filming
-      ? "  League of Legends left off the review account (--filming): no \"Can duo with you\" cards, score order."
-      : "  League of Legends on the review account at Gold II: Dae and Devon should be the first two cards.",
+      ? "  League of Legends left off the review account (--filming): no \"CAN DUO\" cards. Cameron should be the first card."
+      : "  League of Legends on the review account at Gold II: Cameron, Dae and Devon should be the first three cards, all CAN DUO.",
   );
 
   const personaIds = new Map();
@@ -1239,17 +1305,23 @@ async function main() {
     await seedPersonaTree(id, p, { gameIdByName, showIdByName, promptIdByQuestion, filming });
   }
 
-  const pruned = await pruneRemovedDemoAccounts();
+  const { pruned, leftAlone } = await pruneRemovedDemoAccounts();
   if (pruned.length > 0) {
     console.log(`Pruned ${pruned.length} demo account(s) no longer in this file: ${pruned.join(", ")}`);
+  }
+  if (leftAlone.length > 0) {
+    console.log(`Left alone ${leftAlone.length} is_demo account(s) this script did not create: ${leftAlone.join(", ")}`);
   }
 
   console.log("Resetting the review account's own deck/match/standout state...");
   const { matchesCleared } = await resetReviewAccountState(REVIEW_ID);
   console.log(`  cleared ${matchesCleared} match(es), every swipe in both directions, and the standouts cache`);
 
-  const realNames = await excludeRealAccountsFromDemoPool(REVIEW_ID);
-  console.log(`  hid ${realNames.length} real account(s) from the demo deck: ${realNames.join(", ")}`);
+  const hidden = await excludeNonPersonaAccountsFromDemoPool(REVIEW_ID, new Set(personaIds.values()));
+  console.log(`  hid ${hidden.real.length} real account(s) from the demo deck`);
+  console.log(
+    `  hid ${hidden.demoNotOurs.length} is_demo account(s) this script does not own: ${hidden.demoNotOurs.join(", ")}`,
+  );
 
   console.log("Building the pre-seeded match + conversation...");
   const partnerId = personaIds.get(MATCH_PARTNER_SLUG);
@@ -1261,7 +1333,9 @@ async function main() {
   // a persona that is not an admirer (dead entry) and no key for Marcus, who therefore fell
   // through to the `?? 600` default. The three ages below are the original 180/360/1440
   // spacing, reassigned so the Requests list reads newest-first in the same order this file
-  // lists them: Sana 3h ago, Marcus 6h ago, Kofi a day ago.
+  // lists them: Sana 3h ago, Marcus 6h ago, Cameron (slug kofi-mensah) a day ago. Newest-first
+  // is get_admirers' order for DuoQueue+ only; for a free account (the review account is free)
+  // it shows at most 3 in md5(swiper id + local day) order, so the order changes by day.
   const admirerCreatedAtByMin = { "sana-orimoto": 180, "marcus-holt": 360, "kofi-mensah": 1440 };
   for (const slug of ADMIRER_SLUGS) {
     const id = personaIds.get(slug);
@@ -1299,8 +1373,8 @@ async function main() {
     console.log("");
     console.log(`NOTE: ${withoutPhoto.length} persona(s) still show abstract art because there is no`);
     console.log(`      photograph for them: ${withoutPhoto.join(", ")}.`);
-    console.log("      They sort below the photographed personas in the deck, but a long recording");
-    console.log("      will reach them. More source photos is the only fix.");
+    console.log("      Cameron, the one photographed deck card, sorts first, but a recording reaches");
+    console.log("      them from the second card on. More source photos is the only fix.");
   }
 
   console.log("");
