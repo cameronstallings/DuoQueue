@@ -3,17 +3,24 @@ import type { NotificationSettingsRow } from "@duoqueue/shared-types";
 
 import { supabase } from "@/lib/supabase";
 import { useSessionStore } from "@/store/session-store";
+import { useToastStore } from "@/store/toast-store";
 
-function queryKey(profileId: string | undefined) {
+import { NOTIFICATION_SAVE_FAILED } from "./notificationCategories";
+
+/** Exported so other readers (the Duo Pops card's setting) share the one cache entry. */
+export function notificationSettingsQueryKey(profileId: string | undefined) {
   return ["notification-settings", profileId] as const;
 }
+
+const UPDATE_MUTATION_KEY = ["notification-settings-update"] as const;
 
 export function useNotificationSettings() {
   const profileId = useSessionStore((s) => s.session?.user.id);
   const queryClient = useQueryClient();
+  const queryKey = notificationSettingsQueryKey(profileId);
 
   const query = useQuery({
-    queryKey: queryKey(profileId),
+    queryKey,
     queryFn: async (): Promise<NotificationSettingsRow> => {
       const { data, error } = await supabase
         .from("notification_settings")
@@ -26,7 +33,21 @@ export function useNotificationSettings() {
     enabled: !!profileId,
   });
 
+  /**
+   * Optimistic, so a switch stays where it was flipped while the save is in flight. Before 1.0.2
+   * the switch was bound to the server row, so it snapped back to its old position for the whole
+   * round trip and flicked over again when the refetch landed. Now the patch is written into the
+   * cache first; a failure puts the old row back and says so in an error toast (which buzzes by
+   * itself). The re-read waits until the last of several quick flips has settled, so an early
+   * refetch cannot flick a later switch back.
+   *
+   * The cache write alone still lands a frame or two after the flip (onMutate awaits
+   * cancelQueries, and react-query notifies on a setTimeout 0), which is long enough for React
+   * Native's Switch to put itself back once. The screen closes that gap with its own pending
+   * value, set in the same event as the flip (app/settings/notifications.tsx).
+   */
   const update = useMutation({
+    mutationKey: UPDATE_MUTATION_KEY,
     mutationFn: async (patch: Partial<NotificationSettingsRow>) => {
       const { error } = await supabase
         .from("notification_settings")
@@ -34,8 +55,20 @@ export function useNotificationSettings() {
         .eq("profile_id", profileId as string);
       if (error) throw error;
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKey(profileId) });
+    onMutate: async (patch) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<NotificationSettingsRow>(queryKey);
+      if (previous) queryClient.setQueryData<NotificationSettingsRow>(queryKey, { ...previous, ...patch });
+      return { previous };
+    },
+    onError: (_err, _patch, context) => {
+      if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
+      useToastStore.getState().showToast(NOTIFICATION_SAVE_FAILED, "error");
+    },
+    onSettled: () => {
+      if (queryClient.isMutating({ mutationKey: UPDATE_MUTATION_KEY }) === 1) {
+        void queryClient.invalidateQueries({ queryKey });
+      }
     },
   });
 

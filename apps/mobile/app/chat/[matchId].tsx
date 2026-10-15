@@ -14,7 +14,7 @@ import {
 import * as Clipboard from "expo-clipboard";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import Animated, { FadeInUp, ReduceMotion, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeInUp, ReduceMotion, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MATCH_FEEDBACK_TAGS, MESSAGE_MAX_LENGTH, type MatchFeedbackTag, type ReportReason } from "@duoqueue/shared-types";
 
@@ -34,10 +34,21 @@ import { useChatMessages } from "@/features/chat/useChatMessages";
 import { useDiscordShare, useSharedDiscordUsername } from "@/features/chat/useDiscordShare";
 import { useBlockUser, useReportUser, useUnmatch } from "@/features/chat/useMatchActions";
 import { useMatches } from "@/features/chat/useMatches";
+import { useMatchesTabFocus } from "@/features/chat/matchesTabFocus";
 import { useSendMessage, ConversationLockedError } from "@/features/chat/useSendMessage";
 import { useTypingIndicator } from "@/features/chat/useTypingIndicator";
 import type { ChatTimelineItem } from "@/features/chat/types";
 import { useActiveMatchSession, useCancelSession, useProposeSession, useRespondSession } from "@/features/chat/useMatchSessions";
+import { PlayTogetherChips } from "@/features/chat/PlayTogetherChips";
+import {
+  FREE_NOW_MESSAGE,
+  PLAY_TOGETHER_COPY,
+  chipsVisible,
+  discordChipState,
+  freeNowCooldownUntil,
+  liveSession,
+} from "@/features/chat/playTogether";
+import { DiscordEditorSheet } from "@/features/profile/DiscordEditorSheet";
 import { MATCH_FEEDBACK_LABELS } from "@/features/onboarding/profile-labels";
 import { useCreateParty } from "@/features/party/useParty";
 import { paywallHref } from "@/features/premium/paywall/paywallCopy";
@@ -46,9 +57,11 @@ import { containsHiddenWord, useHiddenWords } from "@/features/settings/useHidde
 import { usePressScale } from "@/hooks/usePressScale";
 import { useRequireSession } from "@/hooks/useRequireSession";
 import { useSheetHandoff } from "@/hooks/useSheetHandoff";
-import { hapticLight } from "@/lib/haptics";
+import { hapticError, hapticLight, hapticSuccess } from "@/lib/haptics";
+import { toUserMessage } from "@/lib/userMessage";
+import { useToastStore } from "@/store/toast-store";
 import { useSessionStore } from "@/store/session-store";
-import { quickEntering, quickExiting, stackSpringEntering } from "@/theme/entering";
+import { layoutTransition, quickEntering, quickExiting, revealEntering, stackSpringEntering } from "@/theme/entering";
 import { motion } from "@/theme/tokens";
 import { useTheme } from "@/theme/useTheme";
 
@@ -140,7 +153,8 @@ function ScheduleModal({
       await propose.mutateAsync(date);
       onClose();
     } catch (err) {
-      Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
+      hapticError();
+      Alert.alert(PLAY_TOGETHER_COPY.somethingWentWrong, toUserMessage(err, PLAY_TOGETHER_COPY.tryAgain));
     }
   }
 
@@ -161,33 +175,57 @@ function ScheduleModal({
   );
 }
 
+/**
+ * The proposed or confirmed time to play, above the chips. Only a session that can still happen
+ * shows (`liveSession`: a confirmed one until 2 hours after its time, a pending one until 30
+ * minutes after, when 0077 stops accepting answers), and it fades in and out instead of popping.
+ * Errors show the server's own sentence (0077's "That time has passed. Pick a new one.").
+ */
 function SessionBanner({ matchId, myId }: { matchId: string; myId: string | undefined }) {
-  const { colors, spacing, type } = useTheme();
-  const { data: session } = useActiveMatchSession(matchId);
+  const { colors, motion, spacing, type } = useTheme();
+  const { data } = useActiveMatchSession(matchId);
   const respond = useRespondSession(matchId);
   const cancel = useCancelSession(matchId);
+  // FadeInDown left at Reanimated's default skips the whole entrance under Reduce Motion, fade
+  // included, so the banner popped in; there it is a plain fade instead (revealEntering).
+  const reduced = useReducedMotion();
 
+  // Re-checked on every render; the chat re-renders on every poll and push.
+  const session = liveSession(data, Date.now());
   if (!session) return null;
 
   const isProposer = session.proposed_by === myId;
   const label = SESSION_TIME_FORMAT.format(new Date(session.scheduled_at));
   const isBusy = respond.isPending || cancel.isPending;
 
+  const failed = (err: unknown) => {
+    hapticError();
+    Alert.alert(PLAY_TOGETHER_COPY.somethingWentWrong, toUserMessage(err, PLAY_TOGETHER_COPY.tryAgain));
+  };
+
   const handleRespond = (accept: boolean) => {
     respond.mutate(
       { sessionId: session.id, accept },
-      { onError: (err) => Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.") },
+      {
+        onSuccess: () => {
+          if (accept) hapticSuccess();
+        },
+        onError: failed,
+      },
     );
   };
 
   const handleCancel = () => {
-    cancel.mutate(session.id, {
-      onError: (err) => Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again."),
-    });
+    cancel.mutate(session.id, { onError: failed });
   };
 
   return (
-    <View style={{ marginHorizontal: spacing.md, marginBottom: spacing.sm }}>
+    <Animated.View
+      entering={reduced ? revealEntering() : FadeInDown.duration(motion.base)}
+      exiting={quickExiting()}
+      layout={layoutTransition()}
+      style={{ marginHorizontal: spacing.md, marginBottom: spacing.sm }}
+    >
       <Card style={{ flexDirection: "row", padding: 0, overflow: "hidden" }}>
         {/* The volt left edge is its own inner view, not a border on the card —
             keeps the glow-free "colored stripe" look consistent with other rails. */}
@@ -208,7 +246,7 @@ function SessionBanner({ matchId, myId }: { matchId: string; myId: string | unde
           )}
         </View>
       </Card>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -237,7 +275,8 @@ function FeedbackModal({
       setSelected([]);
       onClose();
     } catch (err) {
-      Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
+      hapticError();
+      Alert.alert(PLAY_TOGETHER_COPY.somethingWentWrong, toUserMessage(err, PLAY_TOGETHER_COPY.tryAgain));
     }
   }
 
@@ -349,10 +388,17 @@ function DiscordShareBubble({
   const myDiscordUsername = useSessionStore((s) => s.profile?.discord_username ?? null);
   const { data: revealedUsername, isLoading } = useSharedDiscordUsername(matchId, sharedBy, !isMine);
   const username = isMine ? myDiscordUsername : revealedUsername;
+  const showToast = useToastStore((s) => s.showToast);
 
   async function handleCopy() {
     if (!username) return;
-    await Clipboard.setStringAsync(username);
+    try {
+      await Clipboard.setStringAsync(username);
+    } catch {
+      return;
+    }
+    hapticSuccess();
+    showToast(PLAY_TOGETHER_COPY.toastCopied);
   }
 
   return (
@@ -404,8 +450,11 @@ export default function ChatScreen() {
   const { data: hiddenWords } = useHiddenWords();
   const discordShare = useDiscordShare(matchId);
   // Without a Discord name there is nothing to share, and since 0073 the server refuses the
-  // share, so the item is hidden instead of doing nothing when tapped.
-  const hasDiscordName = useSessionStore((s) => !!s.profile?.discord_username?.trim());
+  // share, so the chip and the menu row say "Add your Discord" and open the editor first.
+  const myDiscord = useSessionStore((s) => s.profile?.discord_username?.trim() || null);
+  // The same query SessionBanner reads (one fetch): a live confirmed session hides the chips.
+  const { data: session } = useActiveMatchSession(matchId);
+  const showToast = useToastStore((s) => s.showToast);
   const unmatch = useUnmatch();
   const blockUser = useBlockUser();
   const reportUser = useReportUser();
@@ -416,9 +465,19 @@ export default function ChatScreen() {
   const [reportVisible, setReportVisible] = useState(false);
   const [feedbackVisible, setFeedbackVisible] = useState(false);
   const [scheduleVisible, setScheduleVisible] = useState(false);
-  // Schedule, Rate and Report open another sheet, which iOS drops if it is presented while
-  // this menu is still sliding out, so they open from the menu's onDismiss. Block and Unmatch
-  // need no hand-off (an Alert has its own window), nor does Invite a third (a stack push).
+  const [discordEditorVisible, setDiscordEditorVisible] = useState(false);
+  // This phone's clock reading when it last sent "I'm free now" in this chat, so the cooldown
+  // holds for 5 minutes even when the server's timestamp on the row disagrees with the phone's
+  // clock (freeNowCooldownUntil). Keyed by match in case the route is reused for another chat.
+  const [freeNowSent, setFreeNowSent] = useState<{ matchId: string; at: number } | null>(null);
+  // Opening a chat from anywhere (DUO LOCKED's Send a message, a push, the tab) means the match
+  // has been seen, so the Matches badge never counts it as "new" after the two of you have talked.
+  useEffect(() => {
+    if (matchId) useMatchesTabFocus.getState().markOpened(matchId);
+  }, [matchId]);
+  // Schedule, Rate, Report and Add your Discord open another sheet, which iOS drops if it is
+  // presented while this menu is still sliding out, so they open from the menu's onDismiss. Block
+  // and Unmatch need no hand-off (an Alert has its own window), nor does Invite a third (a stack push).
   const menuHandoff = useSheetHandoff();
   const openFromMenu = (open: () => void) => menuHandoff.handOff(() => setMenuVisible(false), open);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -468,6 +527,30 @@ export default function ChatScreen() {
     (item) => item.kind === "discord_share" && item.share.shared_by === myId && !item.share.revoked,
   );
 
+  // The play-together row (playTogether.ts holds every rule). It shows while the session is
+  // still loading: a confirmed session is rare, and a row that pops in late is worse.
+  const discordChip = discordChipState({ hasUsername: !!myDiscord, hasShared: hasSharedDiscord });
+  const showChips = chipsVisible({ session, isLocked: !!matchInfo?.is_locked, now: Date.now() });
+  const freeNowSentAt = freeNowSent?.matchId === matchId ? freeNowSent.at : null;
+  const freeNowUntil = useMemo(
+    () =>
+      freeNowCooldownUntil({
+        messages: timeline.flatMap((item) => (item.kind === "message" ? [item.message] : [])),
+        myId,
+        now: Date.now(),
+        sentAt: freeNowSentAt,
+      }),
+    [timeline, myId, freeNowSentAt],
+  );
+  // Re-render once when the cooldown runs out, so "I'm free now" comes back on its own.
+  const [, setCooldownTick] = useState(0);
+  useEffect(() => {
+    if (freeNowUntil === null) return;
+    const timer = setTimeout(() => setCooldownTick((n) => n + 1), Math.max(0, freeNowUntil - Date.now()) + 50);
+    return () => clearTimeout(timer);
+  }, [freeNowUntil]);
+  const freeNowCooling = freeNowUntil !== null && freeNowUntil > Date.now();
+
   async function handleSend() {
     const content = draft.trim();
     if (!content) return;
@@ -478,6 +561,7 @@ export default function ChatScreen() {
     try {
       await sendMessage.mutateAsync(content);
     } catch (err) {
+      hapticError();
       if (err instanceof ConversationLockedError) {
         setDraft(content);
         Alert.alert("Conversation locked", err.message, [
@@ -485,16 +569,47 @@ export default function ChatScreen() {
           { text: "Upgrade", onPress: () => router.push(paywallHref("chat")) },
         ]);
       } else {
-        Alert.alert("Message not sent", err instanceof Error ? err.message : "Please try again.");
+        Alert.alert(PLAY_TOGETHER_COPY.messageNotSentTitle, toUserMessage(err, PLAY_TOGETHER_COPY.tryAgain));
         setDraft(content);
       }
     }
   }
 
-  function handleShareDiscord() {
-    setMenuVisible(false);
+  /** Shares my saved Discord in this chat (0073 refuses without one, so callers check first). */
+  function shareDiscordNow() {
+    if (hasSharedDiscord || discordShare.isPending) return;
+    discordShare.mutate(undefined, {
+      onSuccess: () => {
+        hapticSuccess();
+        showToast(PLAY_TOGETHER_COPY.toastDiscordShared);
+      },
+      onError: (err) => {
+        hapticError();
+        // 0073's hint ("Add your Discord username first, then share it.") reaches the player.
+        Alert.alert(PLAY_TOGETHER_COPY.shareFailedTitle, toUserMessage(err, PLAY_TOGETHER_COPY.tryAgain));
+      },
+    });
+  }
+
+  /** The menu row. With no Discord saved, the editor opens once the menu has gone (a sheet
+   * presented while another is still leaving is dropped by iOS). */
+  function handleShareDiscordFromMenu() {
     if (hasSharedDiscord) return;
-    discordShare.mutate();
+    if (!myDiscord) {
+      openFromMenu(() => setDiscordEditorVisible(true));
+      return;
+    }
+    setMenuVisible(false);
+    shareDiscordNow();
+  }
+
+  /** The chip: share now, or add one first (the editor's Save and share finishes the job). */
+  function handleDiscordChip() {
+    if (!myDiscord) {
+      setDiscordEditorVisible(true);
+      return;
+    }
+    shareDiscordNow();
   }
 
   async function handleInviteThird() {
@@ -503,22 +618,37 @@ export default function ChatScreen() {
       const partyId = await createParty.mutateAsync(matchId);
       router.push({ pathname: "/party/[partyId]", params: { partyId } });
     } catch (err) {
-      Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
+      hapticError();
+      Alert.alert(PLAY_TOGETHER_COPY.somethingWentWrong, toUserMessage(err, PLAY_TOGETHER_COPY.tryAgain));
     }
   }
 
-  async function handlePlayNow() {
-    setMenuVisible(false);
+  /**
+   * "I'm free now", from the chip or the menu: one message, then 5 minutes of cooldown. The chip
+   * and the menu share this one function, and with it the one chat paywall entry for a locked
+   * chat (entryPoints.test.ts pins three in this file). The chip already ticked (selection) when
+   * it was pressed, so only the menu row adds the send tap here: one haptic per press.
+   */
+  async function handlePlayNow(fromMenu: boolean) {
+    if (fromMenu) setMenuVisible(false);
+    if (sendMessage.isPending || freeNowCooling) return;
+    if (fromMenu) hapticLight();
+    // Set with the send, not after it, so the cooldown never has a frame without a source when
+    // the server row replaces the temp one; put back if the message did not go.
+    const previousSent = freeNowSent;
+    setFreeNowSent({ matchId, at: Date.now() });
     try {
-      await sendMessage.mutateAsync("🎮 I'm free to play right now!");
+      await sendMessage.mutateAsync(FREE_NOW_MESSAGE);
     } catch (err) {
+      setFreeNowSent(previousSent);
+      hapticError();
       if (err instanceof ConversationLockedError) {
         Alert.alert("Conversation locked", err.message, [
           { text: "Not now" },
           { text: "Upgrade", onPress: () => router.push(paywallHref("chat")) },
         ]);
       } else {
-        Alert.alert("Couldn't send ping", err instanceof Error ? err.message : "Please try again.");
+        Alert.alert(PLAY_TOGETHER_COPY.messageNotSentTitle, toUserMessage(err, PLAY_TOGETHER_COPY.tryAgain));
       }
     }
   }
@@ -557,7 +687,10 @@ export default function ChatScreen() {
           setReportVisible(false);
           Alert.alert("Report submitted", "Thanks. Our team will review this.");
         },
-        onError: () => Alert.alert("Something went wrong", "Please try again."),
+        onError: () => {
+          hapticError();
+          Alert.alert(PLAY_TOGETHER_COPY.somethingWentWrong, PLAY_TOGETHER_COPY.tryAgain);
+        },
       },
     );
   }
@@ -632,7 +765,7 @@ export default function ChatScreen() {
             <EmptyState
               icon="chatbubbles"
               title={`Say hi to ${matchInfo?.other_display_name ?? "your match"}!`}
-              subtitle="You matched. Break the ice with a message about a game you both play."
+              subtitle={PLAY_TOGETHER_COPY.emptyChatSubtitle}
               tick="SAY HI"
             />
           }
@@ -713,6 +846,19 @@ export default function ChatScreen() {
       {/* No keyboardVerticalOffset: with no native header this screen starts at the top of
           the window, so there is nothing above it for the offset to account for. */}
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        {/* Discord, I'm free now and Pick a time, one tap above the composer (playTogether.ts).
+            It takes the composer's top seam, so the two read as one panel. */}
+        {showChips && (
+          <PlayTogetherChips
+            discord={discordChip}
+            ready={!isLoading && !error}
+            freeNowDisabled={sendMessage.isPending || freeNowCooling}
+            discordBusy={discordShare.isPending}
+            onDiscord={handleDiscordChip}
+            onFreeNow={() => void handlePlayNow(false)}
+            onPickTime={() => setScheduleVisible(true)}
+          />
+        )}
         {matchInfo?.is_locked ? (
           <View style={{ padding: spacing.md, borderTopWidth: 1, borderColor: colors.border }}>
             <View
@@ -740,12 +886,13 @@ export default function ChatScreen() {
               alignItems: "center",
               gap: spacing.sm,
               paddingHorizontal: spacing.lg,
-              paddingTop: spacing.md,
+              // Under the chips the seam is theirs, so the composer sits closer and draws none.
+              paddingTop: showChips ? spacing.sm : spacing.md,
               // Floated off the home-indicator edge when idle; collapses to just
               // breathing room once the keyboard is up and already owns that space
               // (see the keyboardVisible effect above for why).
               paddingBottom: keyboardVisible ? spacing.md : insets.bottom + spacing.md,
-              borderTopWidth: 1,
+              borderTopWidth: showChips ? 0 : 1,
               borderColor: colors.border,
             }}
           >
@@ -812,9 +959,9 @@ export default function ChatScreen() {
           <SectionLabel>Play together</SectionLabel>
           <ActionRow
             icon="flash"
-            label="Ping I'm free now"
-            onPress={() => void handlePlayNow()}
-            disabled={sendMessage.isPending}
+            label={PLAY_TOGETHER_COPY.freeNow}
+            onPress={() => void handlePlayNow(true)}
+            disabled={sendMessage.isPending || freeNowCooling}
           />
           <ActionRow
             icon="people"
@@ -827,14 +974,18 @@ export default function ChatScreen() {
             label="Schedule a session"
             onPress={() => openFromMenu(() => setScheduleVisible(true))}
           />
-          {hasDiscordName ? (
-            <ActionRow
-              icon="logo-discord"
-              label={hasSharedDiscord ? "Discord already shared" : "Share my Discord"}
-              onPress={handleShareDiscord}
-              disabled={hasSharedDiscord}
-            />
-          ) : null}
+          <ActionRow
+            icon="logo-discord"
+            label={
+              hasSharedDiscord
+                ? PLAY_TOGETHER_COPY.discordAlreadyShared
+                : myDiscord
+                  ? PLAY_TOGETHER_COPY.shareDiscord
+                  : PLAY_TOGETHER_COPY.addDiscord
+            }
+            onPress={handleShareDiscordFromMenu}
+            disabled={hasSharedDiscord || discordShare.isPending}
+          />
         </View>
 
         <View style={{ marginTop: spacing.md, gap: spacing.xs }}>
@@ -872,6 +1023,15 @@ export default function ChatScreen() {
         otherName={matchInfo?.other_display_name ?? "them"}
       />
       <ScheduleModal visible={scheduleVisible} onClose={() => setScheduleVisible(false)} matchId={matchId} />
+      {/* Add your Discord, from the chip or the menu: saving it shares it straight away. */}
+      <DiscordEditorSheet
+        mode="save-and-share"
+        visible={discordEditorVisible}
+        onClose={() => setDiscordEditorVisible(false)}
+        onSaved={(value) => {
+          if (value) shareDiscordNow();
+        }}
+      />
     </View>
   );
 }

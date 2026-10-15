@@ -8,6 +8,8 @@ import { supabase } from "@/lib/supabase";
 import { useSessionStore } from "@/store/session-store";
 
 import type { ChatTimelineItem } from "./types";
+import { MATCHES_QUERY_KEY } from "./useMatches";
+import { matchSessionsQueryKey } from "./useMatchSessions";
 
 export interface ChatData {
   messages: MessageRow[];
@@ -43,6 +45,14 @@ export function useChatMessages(matchId: string) {
     enabled: !!matchId,
   });
 
+  // The session card (a proposed time to play) is its own query, and match_sessions is not in the
+  // Realtime publication (checked 15 Oct). Since 0073 a proposal arrives as a "new_message" push
+  // for this match, so everything that re-reads the thread re-reads the card too (catchUp below);
+  // otherwise a proposal sent while the chat was open never showed its Confirm banner.
+  const refreshSession = useCallback(() => {
+    if (matchId) void queryClient.invalidateQueries({ queryKey: matchSessionsQueryKey(matchId) });
+  }, [matchId, queryClient]);
+
   /**
    * Realtime only delivers inserts that happen while its socket is up, and it never replays
    * the ones it missed. iOS cuts the socket whenever the app is backgrounded or the phone
@@ -51,9 +61,11 @@ export function useChatMessages(matchId: string) {
    * was. This re-reads the thread at the three moments such a gap can end: the app coming back
    * to the foreground, the channel re-joining, and a message push landing while the app is open.
    * Pending optimistic sends (temp- rows) are kept; useSendMessage's onSuccess still settles them.
+   * The session card is re-read at the same three moments.
    */
   const catchUp = useCallback(async () => {
     if (!matchId) return;
+    refreshSession();
     let fresh: ChatData;
     try {
       fresh = await fetchChatData(matchId);
@@ -65,20 +77,12 @@ export function useChatMessages(matchId: string) {
       const pending = old?.messages.filter((m) => m.id.startsWith("temp-")) ?? [];
       return { messages: [...fresh.messages, ...pending], shares: fresh.shares };
     });
-  }, [matchId, queryClient]);
-
-  // The session card (a proposed time to play) is its own query. Since 0073 a proposal arrives
-  // as a "new_message" push for this match, so everything that re-reads the thread re-reads the
-  // card too; otherwise a proposal sent while the chat was open never showed its Confirm banner.
-  const refreshSession = useCallback(() => {
-    if (matchId) void queryClient.invalidateQueries({ queryKey: ["match-sessions", matchId] });
-  }, [matchId, queryClient]);
+  }, [matchId, queryClient, refreshSession]);
 
   useOnAppResume(
     useCallback(() => {
       void catchUp();
-      refreshSession();
-    }, [catchUp, refreshSession]),
+    }, [catchUp]),
   );
 
   useEffect(() => {
@@ -88,11 +92,10 @@ export function useChatMessages(matchId: string) {
     const subscription = Notifications.addNotificationReceivedListener((notification) => {
       if (notification.request.content.data?.category === "new_message") {
         void catchUp();
-        refreshSession();
       }
     });
     return () => subscription.remove();
-  }, [catchUp, refreshSession]);
+  }, [catchUp]);
 
   useEffect(() => {
     if (!matchId) return;
@@ -127,8 +130,8 @@ export function useChatMessages(matchId: string) {
               // send-message can rewrite `content` before storing it (profanity
               // masking), so an exact match misses the optimistic row it belongs to.
               // Fall back to the pending temp- row instead — but only when there's
-              // exactly one candidate. The composer and the overflow menu's "Ping I'm
-              // free now" both send through this same mutation, and either one alone
+              // exactly one candidate. The composer and "I'm free now" (the chip above
+              // the composer and the menu row) both send through this same mutation, and either one alone
               // guarantees at most one in-flight temp row, but together they can leave
               // two — picking a temp row by position in that case risks dropping the
               // wrong message (and briefly showing its raw, unmasked content next to
@@ -212,11 +215,16 @@ export function useChatMessages(matchId: string) {
 
   const markAsRead = useCallback(async () => {
     if (!myId || !hasUnread) return;
-    await supabase.from("messages").update({ read_at: new Date().toISOString() }).eq("match_id", matchId).neq(
-      "sender_id",
-      myId,
-    ).is("read_at", null);
-  }, [matchId, myId, hasUnread]);
+    const { error } = await supabase
+      .from("messages")
+      .update({ read_at: new Date().toISOString() })
+      .eq("match_id", matchId)
+      .neq("sender_id", myId)
+      .is("read_at", null);
+    // The Matches list (and its tab badge) counts this chat's unread messages; re-read it now so
+    // the badge clears the moment the player leaves the chat, not on the next 15-second poll.
+    if (!error) void queryClient.invalidateQueries({ queryKey: MATCHES_QUERY_KEY });
+  }, [matchId, myId, hasUnread, queryClient]);
 
   return {
     timeline,

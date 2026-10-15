@@ -6,10 +6,12 @@ import { Ionicons } from "@expo/vector-icons";
 import Animated from "react-native-reanimated";
 
 import { GraticuleBackground } from "@/components/GraticuleBackground";
+import { CountBadge } from "@/components/CountBadge";
 import { EmptyState } from "@/components/EmptyState";
 import { GrainOverlay } from "@/components/GrainOverlay";
 import { Skeleton } from "@/components/Skeleton";
 import { useAdmirersCount } from "@/features/matching/useAdmirers";
+import { PushPreAskCard } from "@/features/push/PushPreAskCard";
 import {
   SuperPingLimitReachedError,
   SuperPingRequiresPremiumError,
@@ -31,7 +33,7 @@ import { useDeckSwipeFlow } from "@/features/swipe/useDeckSwipeFlow";
 import { useEmptyDeckReason } from "@/features/swipe/useEmptyDeckReason";
 import { useSwipeQuota } from "@/features/swipe/useSwipeQuota";
 import { hapticError, hapticLight } from "@/lib/haptics";
-import { revealEntering } from "@/theme/entering";
+import { quickExiting, revealEntering } from "@/theme/entering";
 import { useTheme } from "@/theme/useTheme";
 
 export default function DeckScreen() {
@@ -109,22 +111,27 @@ export default function DeckScreen() {
       >
         <Text style={{ ...type.screenTitle, color: colors.text }}>Deck</Text>
         <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.lg }}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Activate Power-Up"
-            onPress={() => void handleActivateBoost()}
-            disabled={activateBoost.isPending}
-            hitSlop={8}
-            style={({ pressed }) => ({
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 4,
-              opacity: activateBoost.isPending ? 0.5 : pressed ? 0.7 : 1,
-            })}
-          >
-            <Ionicons name="rocket" size={16} color={colors.volt} />
-            <Text style={[type.caption, { color: colors.voltDim }]}>{credits?.boosts ?? 0}</Text>
-          </Pressable>
+          {/* The Power-Up rocket shows only when there is a Power-Up to use: at 0 it was a
+              button that could only say "Out of Power-Ups", on every free player's deck. Its
+              count is a badge over the icon, so it takes 16pt of the header row (the measured
+              header fits a 375pt phone with it shown). */}
+          {(credits?.boosts ?? 0) > 0 && (
+            <Animated.View entering={revealEntering()} exiting={quickExiting()}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Activate Power-Up"
+                onPress={() => void handleActivateBoost()}
+                disabled={activateBoost.isPending}
+                hitSlop={8}
+                style={({ pressed }) => ({
+                  opacity: activateBoost.isPending ? 0.5 : pressed ? 0.7 : 1,
+                })}
+              >
+                <Ionicons name="rocket" size={16} color={colors.volt} />
+                <CountBadge count={credits?.boosts ?? 0} style={{ position: "absolute", top: -6, right: -10 }} />
+              </Pressable>
+            </Animated.View>
+          )}
           <Pressable onPress={() => router.push("/online-now")} hitSlop={8}>
             <Text style={[type.caption, { color: colors.voltDim }]}>Online</Text>
           </Pressable>
@@ -173,6 +180,10 @@ export default function DeckScreen() {
             />
           </Animated.View>
         )}
+        {/* The notification pre-ask, over the bottom of the deck after a Duo that did not match.
+            Only while there are cards: when the deck empties it fades out with them, so it never
+            covers the empty deck's buttons. */}
+        {cards.length > 0 && <PushPreAskCard surface="deck" />}
       </View>
 
       {/* The row's height is reserved while loading, swiping and empty, so the card area never

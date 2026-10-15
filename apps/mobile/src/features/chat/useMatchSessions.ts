@@ -3,16 +3,28 @@ import type { MatchSessionRow } from "@duoqueue/shared-types";
 
 import { supabase } from "@/lib/supabase";
 
-/** How long after its start time a session still counts as happening. */
-export const SESSION_STALE_AFTER_MS = 2 * 60 * 60 * 1000;
+import { SESSION_CONFIRMED_LIVE_MS } from "./playTogether";
+
+/** How long after its start time a session still counts as happening (the confirmed window in
+ * playTogether.ts; a pending one is narrowed further to 30 minutes by `liveSession`). */
+export const SESSION_STALE_AFTER_MS = SESSION_CONFIRMED_LIVE_MS;
+
+/** The one cache key for a match's session card. The chat re-reads it on a message push, on
+ * resume and when the thread catches up, because match_sessions is not in the Realtime
+ * publication (checked 15 Oct) and 0073 sends a proposal as a "new_message" push. */
+export function matchSessionsQueryKey(matchId: string | undefined) {
+  return ["match-sessions", matchId] as const;
+}
 
 /** The single active proposal for a match, if any — propose_session cancels prior
  * pending rows server-side, so "active" just means the newest non-terminal row whose time has
  * not long passed. Without the time filter a confirmed session stayed "Playing ..." in the chat
- * forever, because the server only ever expires PENDING rows (0077). */
+ * forever, because the server only ever expires PENDING rows (0077), and since 1.0.2 a live
+ * confirmed session also hides the chat's play-together chips, so it would have hidden them for
+ * good. */
 export function useActiveMatchSession(matchId: string | undefined) {
   return useQuery({
-    queryKey: ["match-sessions", matchId],
+    queryKey: matchSessionsQueryKey(matchId),
     queryFn: async () => {
       const { data, error } = await supabase
         .from("match_sessions")
@@ -42,7 +54,7 @@ export function useProposeSession(matchId: string | undefined) {
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["match-sessions", matchId] });
+      void queryClient.invalidateQueries({ queryKey: matchSessionsQueryKey(matchId) });
     },
   });
 }
@@ -55,7 +67,7 @@ export function useRespondSession(matchId: string | undefined) {
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["match-sessions", matchId] });
+      void queryClient.invalidateQueries({ queryKey: matchSessionsQueryKey(matchId) });
     },
   });
 }
@@ -68,7 +80,7 @@ export function useCancelSession(matchId: string | undefined) {
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["match-sessions", matchId] });
+      void queryClient.invalidateQueries({ queryKey: matchSessionsQueryKey(matchId) });
     },
   });
 }

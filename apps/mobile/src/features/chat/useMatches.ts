@@ -26,10 +26,13 @@ export async function fetchMatches(): Promise<MatchListItem[]> {
   }));
 }
 
-export function useMatches() {
+/** `enabled` (default true) lets the tab layout's badge keep the RPC off while signed out or
+ * mid-signup; every existing caller passes nothing and is unchanged. */
+export function useMatches(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: MATCHES_QUERY_KEY,
     queryFn: fetchMatches,
     refetchInterval: 15_000,
+    enabled: options?.enabled ?? true,
   });
 }

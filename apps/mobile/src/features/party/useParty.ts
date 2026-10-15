@@ -157,7 +157,9 @@ export function usePartyPendingInvites(partyId: string | undefined) {
   });
 }
 
-export function usePartyInvites() {
+/** `enabled` (default true) is for the Matches tab badge, mounted in the tab layout, which must
+ * not call the RPC while signed out or mid-signup. */
+export function usePartyInvites(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: PARTY_INVITES_QUERY_KEY,
     queryFn: async () => {
@@ -168,6 +170,7 @@ export function usePartyInvites() {
     // An invite is somebody waiting on this person, and it expires. Polled like the match list
     // while the banner is mounted; the other refresh moments are in `refreshParties`.
     refetchInterval: PARTY_POLL_MS,
+    enabled: options?.enabled ?? true,
   });
 }
 

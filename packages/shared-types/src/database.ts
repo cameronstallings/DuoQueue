@@ -345,4 +345,13 @@ export interface NotificationSettingsRow {
   /** "New players in your games" — the hourly new-player sweep
    *  (0063_new_player_alerts.sql). Defaults true like every other category. */
   new_player: boolean;
+  /** "Someone wants to duo with you": a like alert (0072, default true). Optional because the
+   *  client must also run against a database without the column; Settings shows the row only
+   *  when the fetched row has it. */
+  new_like?: boolean;
+  /** "Duo Pops" (S2's queue up migration, default FALSE: everyone starts opted out). Optional
+   *  until that migration is applied; the row hides until then. */
+  queue_pop?: boolean;
+  /** "News from DuoQueue" (0081, default false). Optional for the same reason. */
+  announcements?: boolean;
 }
