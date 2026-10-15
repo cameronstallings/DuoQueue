@@ -7,6 +7,7 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { COMMIT_COPY, commitWelcome } from "@/features/auth/frontDoorCopy";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { useCommitStore } from "@/store/commit-store";
+import { useOnboardingStore } from "@/store/onboarding-store";
 import { useSessionStore } from "@/store/session-store";
 import { revealEntering } from "@/theme/entering";
 import { useTheme } from "@/theme/useTheme";
@@ -43,10 +44,19 @@ export function CommitDraftScreen() {
     if (phase === "error") hapticError();
   }, [phase]);
 
+  // The draft goes FIRST, while the "error" phase still holds this screen up. Sign-out flips the
+  // route to signed-out before it resets the draft itself (after the purchases log-out), and in
+  // that gap a draft with a DOB answers "draft": "/" would send the player through Save on the
+  // way to the front door. The phase is dropped by the commit store once the session has gone.
+  function signOutAndClear() {
+    useOnboardingStore.getState().discardDraft();
+    void useSessionStore.getState().signOut();
+  }
+
   function confirmSignOut() {
     Alert.alert(COMMIT_COPY.signOutTitle, COMMIT_COPY.signOutMessage, [
       { text: COMMIT_COPY.cancel, style: "cancel" },
-      { text: COMMIT_COPY.signOut, style: "destructive", onPress: () => void useSessionStore.getState().signOut() },
+      { text: COMMIT_COPY.signOut, style: "destructive", onPress: signOutAndClear },
     ]);
   }
 
