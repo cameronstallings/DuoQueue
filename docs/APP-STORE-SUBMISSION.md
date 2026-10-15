@@ -328,7 +328,8 @@ Every line below matches real, shipping UI copy — checked against the actual s
 the feature brief. Where a draft offered several options, one is picked as the default;
 alternates are kept underneath, clearly marked, in case you'd rather use them.
 
-**1.0.2 (build 19), updated 15 Oct 2026.** Every field for this version, with its count, is in
+**1.0.2 (build 20, which carries build 19's work plus the party LFG post and one duo per Queue
+up), updated 15 Oct 2026.** Every field for this version, with its count, is in
 `C:\Users\stall\Documents\DuoQueue-listing-1.0.2.txt` (the review notes are in
 `DuoQueue-review-notes-1.0.2.txt`, Part 4). Name and subtitle stay as 1.0.1 shipped them; the
 keywords, description and What's New change. Counts were measured by script: characters as
@@ -391,18 +392,46 @@ Done with solo queue? Find a duo, not a date. League players in NA see Can duo o
 167/170 characters. Live since 1.0.1 and still true in 1.0.2, so the 1.0.2 paste file keeps it.
 This field is editable without a new build.
 
-**Optional, Cameron's call (not in the paste file):** a line that leads with Queue Up, 169/170:
-`Done with solo queue? Tap Queue up: in NA, up to 6 players in your game who turned on Duo Pops get pinged, and the first to tap I'm in is your duo. Teammates, not dates.`
-Use it only after 1.0.2 is live, since 1.0.1 has no Queue up.
+**Optional, Cameron's call (not in the paste file):** a line that leads with Queue Up, 162/170:
+`Done with solo queue? Tap Queue up: in NA, up to 6 players in your game who turned on Duo Pops get pinged, and the first one in is your duo. Teammates, not dates.`
+Use it only after 1.0.2 is live, since 1.0.1 has no Queue up. It said "the first to tap I'm in is
+your duo" (169) until the build 20 merge: since 0088 the first one in by a Duo Pop OR by the
+post's code takes the one duo, so a Pop's I'm in can lose to the code.
 
 The build 16 line, for the record (154/170): `DuoQueue finds you a duo, not a date. See who you can duo with in League of Legends Ranked Solo/Duo, match on games and playstyle, then chat and queue up.`
 
 ### 2.5 Description (4000 char max) — use this:
 
-**1.0.2 (build 19):** 3,939 characters, 3,965 counting CRLF line ends, measured 15 Oct 2026; the
-same text is in `C:\Users\stall\Documents\DuoQueue-listing-1.0.2.txt`. Built from the 1.0.1
-description (which went live from `DuoQueue-listing-1.0.1.txt`, not from the block that used to
-be here). What changed, and why each claim is true in build 19:
+**1.0.2 (build 20):** 3,962 characters, 3,988 counting CRLF line ends, measured by script on
+15 Oct 2026 after the build 20 merge (build 19's text was 3,939 and 3,965); the same text is in
+`C:\Users\stall\Documents\DuoQueue-listing-1.0.2.txt`. All ASCII, so bytes equal characters.
+
+**Build 20 changes** (the client merged from `b19-party`; 0088 and 0089 live since 15 Oct):
+- **QUEUE UP** says one duo per Queue up (0088): "the first to answer, by a Duo Pop or your code,
+  is your duo" (`answer_duo_pop` and the Duo Call branch of `accept_invite` both lock the
+  queue-up, `locked_via` 'pop' or 'call'); "For the next hour, or until you find a duo, you show
+  up in Online Now" (a lock turns the sender's `is_looking_now` off; the app's own
+  `QUEUE_COPY.matchesSeeYou` says the same); and "Your code stops working once you find a duo or
+  stop queueing, or 15 minutes after your hour ends" (a locked call code no longer resolves; the
+  app's `QUEUE_COPY.adultsOnly` lists the same three). The old "the first to tap I'm in is your
+  duo" is gone, because the post's code can get there first.
+- **PARTY MODE** adds the party LFG post (0089, `PartyLfgRow` on the party screen): "Or share an
+  LFG post whose code works for 2 hours: the first to join with it takes the last seat, and
+  either of you can stop it." Only a party of two posts (`partyLfgView`, `start_party_call`),
+  which in this paragraph is you and your match; `PARTY_CALL_TTL` is 2 hours (the extra 15
+  minutes is only for someone already signing up, which the in-app ask says);
+  `join_party_by_code` fills the seat once, under the party lock; Stop post is on both members'
+  screens (`end_party_call`). Players who already have an account join from Matches > "Have a
+  party code?", new ones at sign-up, so "join with it" covers both.
+- To fit: the picture's parenthetical in YOUR DECK, "Tap in for the full profile: games, shows,
+  and playstyle.", "which you can add right there or in Settings" after the Discord username,
+  "and complete" after "Blocking is immediate", "the" before "buttons above the message box",
+  "and" before "at the same skill level", and "If your game isn't in the list, add it." became
+  "Missing your game? Add it.".
+
+The build 19 text was built from the 1.0.1 description (which went live from
+`DuoQueue-listing-1.0.1.txt`, not from the block that used to be here). What changed then, and
+why each claim is true in build 19 (its QUEUE UP wording is quoted below; build 20's is above):
 - **QUEUE UP** is new: the header button and sheet (`src/features/queue/`), Online Now for the hour
   and the push to matches (`start_queue_up` writes what `set_looking_now(true)` writes, 0085),
   Duo Pops (up to 6, opted-in, NA, at most 3 a day, never 01:00 to 09:59 on the recipient's clock:
@@ -414,13 +443,13 @@ be here). What changed, and why each claim is true in build 19:
     the "{name} is free to duo right now" push (`notify_looking_now`, 0074), and only at most
     once per 6 hours per match, never 01:00 to 09:59 on their clock, never into a locked chat,
     and only with their "A match queues up" setting (`nudge_online`) and notifications on. The
-    app's own line `QUEUE_COPY.matchesSeeYou` ("Your matches see that you're free for the next hour.") and the
-    "Your matches can see you're free" endings in `outcomeLine` make the same overclaim; they are
-    app copy, outside this paperwork, so they are flagged for Cameron rather than changed here.
-  - "The code expires when you stop queueing, or 15 minutes after your hour is up": Stop ends
-    it at once (`ended_at`), and an hour that simply runs out leaves it working for 15 more
-    minutes (`looking_until + interval '15 minutes'` in `resolve_invite_code`). The app's
-    "Your code stops working when you stop queueing" covers only the first half.
+    app's own `QUEUE_COPY.matchesSeeYou` and `outcomeLine` used to make the same overclaim;
+    build 19's 8d6dbf4 fixed both (no "see you're free" is left in `apps/mobile`, checked again
+    after the build 20 merge).
+  - "The code expires when you stop queueing, or 15 minutes after your hour is up" (build 19):
+    Stop ends it at once (`ended_at`), and an hour that simply runs out leaves it working for 15
+    more minutes (`looking_until + interval '15 minutes'` in `resolve_invite_code`). Since 0088
+    the first duo also ends it, which build 20's text says.
   - "ready to share where you look for teammates", not "to share anywhere": the app's own 18+
     card says "Only share your post where adults look for teammates" (`QUEUE_COPY.adultsOnly`).
 - **YOUR DECK** now says the deck puts players in your region first and favors recent players
@@ -441,22 +470,22 @@ be here). What changed, and why each claim is true in build 19:
 DuoQueue is how you find people to duo queue with: a teammate for ranked, a third for your party, someone who plays the same games at the same hours. Teammates, not dates. One optional picture, no gender filters. Games come first.
 
 YOUR DECK
-Your deck puts players in your region first and favors people who have been on lately and what you have in common: games you both play (and at the same skill level), shows and anime you both watch, a language you share, and the hours you usually play. Every card shows one picture if they added one (them, their setup, their pet, the character they main), their League rank or main game, and how many games you share, then their prompts. Tap in for the full profile: games, shows, and playstyle. Swipe to say you'd duo. When you both swipe, you match and the chat opens. If your game isn't in the list, add it.
+Your deck puts players in your region first and favors people who have been on lately and what you have in common: games you both play (at the same skill level), shows and anime you both watch, a language you share, and the hours you usually play. Every card shows one picture if they added one, their League rank or main game, and how many games you share, then their prompts. Swipe to say you'd duo. When you both swipe, you match and the chat opens. Missing your game? Add it.
 
 QUEUE UP
-Ready to play? Tap Queue up and pick a game. For the next hour you show up in Online Now, and your matches may get a heads-up that you're free. In North America, up to 6 players in that game who turned on Duo Pops get one, and the first to tap I'm in is your duo. Duo Pops are off until you turn them on, come at most 3 a day, and never arrive between 1 am and 10 am. Each Queue up also gives you an LFG post with your own code, ready to share where you look for teammates. The code expires when you stop queueing, or 15 minutes after your hour is up.
+Ready to play? Tap Queue up and pick a game. For the next hour, or until you find a duo, you show up in Online Now, and your matches may get a heads-up that you're free. In North America, up to 6 players in that game who turned on Duo Pops get one. Duo Pops are off until you turn them on, come at most 3 a day, and never arrive between 1 am and 10 am. Each Queue up also gives you an LFG post with your own code, ready to share where you look for teammates. One duo per Queue up: the first to answer, by a Duo Pop or your code, is your duo. Your code stops working once you find a duo or stop queueing, or 15 minutes after your hour ends.
 
 LEAGUE OF LEGENDS: CAN DUO
 Play League of Legends in North America? Add your rank, and players whose rank can queue Ranked Solo/Duo with yours light up with Can duo and sit nearer the top of your deck. It's based on the ranks you both listed and League's published duo rules, and the League client has the final say.
 
 PARTY MODE
-Want a third? Tap Invite a third in a chat. You and your match swipe on the same players, and when you both say yes, that player gets an invite. Parties hold three, invites stay open for 7 days, and your party gets its own group chat.
+Want a third? Tap Invite a third in a chat. You and your match swipe on the same players, and when you both say yes, that player gets an invite. Or share an LFG post whose code works for 2 hours: the first to join with it takes the last seat, and either of you can stop it. Parties hold three, invites stay open for 7 days, and your party gets its own group chat.
 
 PLAY NOW OR PLAN IT
-In a chat, the buttons above the message box say you're free now, pick a time to play, or share your Discord username, which you can add right there or in Settings. Rate the session afterwards: good comms, chill after losses, and showed up on time appear on a player's profile once enough players say so. Link your Steam account in Settings and your profile shows Verified: Steam.
+In a chat, buttons above the message box say you're free now, pick a time to play, or share your Discord username. Rate the session afterwards: good comms, chill after losses, and showed up on time appear on a player's profile once enough players say so. Link your Steam account in Settings and your profile shows Verified: Steam.
 
 SAFETY, FOR REAL
-DuoQueue is 18+ only. Every account confirms a date of birth of 18 or older to sign up. Every profile photo is automatically screened before anyone else sees it. Report or block from a card in your deck, from a Duo Pop, or from a chat. Blocking is immediate and complete: a blocked user can't see your profile again. A hidden-word filter hides messages containing words you pick. A Safety Center covers meeting up safely, scams, and crisis support.
+DuoQueue is 18+ only. Every account confirms a date of birth of 18 or older to sign up. Every profile photo is automatically screened before anyone else sees it. Report or block from a card in your deck, from a Duo Pop, or from a chat. Blocking is immediate: a blocked user can't see your profile again. A hidden-word filter hides messages containing words you pick. A Safety Center covers meeting up safely, scams, and crisis support.
 
 DUOQUEUE+
 DuoQueue+ is optional. It lifts the 25-swipes-a-day cap, adds filters for a specific game or show, platform, skill level, playstyle, and recent activity, shows everyone who wants to duo with you at once instead of 3 a day, adds unlimited active conversations, and gives you a Super Ping a day that tells someone directly you want to duo. Weekly, monthly, 3-month, and 6-month plans, all auto-renewing until you cancel in your App Store account settings. Power-Ups are a separate one-time purchase that puts you near the top of other people's decks for 30 minutes. Everything else (matching, Queue up and Duo Pops, Online Now, Highlights, party mode, and chatting in your 10 most recently active matches) is free.
@@ -519,10 +548,16 @@ from Settings → Connections and confirm the badge appears.
 
 ### 2.6 What's New in This Version (4000 char max) — 1.0.2, use this:
 
-693 characters, one paragraph, measured 15 Oct 2026 (also in `DuoQueue-listing-1.0.2.txt`).
+861 characters, one paragraph, measured by script on 15 Oct 2026 after the build 20 merge (also
+in `DuoQueue-listing-1.0.2.txt`; build 19's was 693). Build 20 added two sentences, true in the
+merged client and live server: "One duo per Queue up: the first to answer, by a Duo Pop or your
+code, is your duo." (0088; it replaces build 19's "and the first to tap I'm in is your duo", which
+the post's code can now get to first) and "A party of two can share an LFG post too: the first to join
+with its code takes the last seat, and either of you can stop it." (0089, `PartyLfgRow`; see the
+PARTY MODE note in 2.5).
 
 ```
-Queue up when you're ready to play: you show up in Online Now, and your matches may get a heads-up that you're free. In North America, Queue up can also send a Duo Pop to up to 6 players in your game who turned them on, and the first to tap I'm in is your duo. Every Queue up comes with an LFG post and your own code, ready to share where you look for teammates. Build your card before you make an account. Share your Discord, say you're free now or pick a time right from a chat. A badge on the Matches tab shows what's new. Forgot your password? Reset it with a code from your email. 10 free active chats instead of 5. Smoother motion throughout, with haptics you can switch off in Settings.
+Queue up when you're ready to play: you show up in Online Now, and your matches may get a heads-up that you're free. In North America, Queue up can also send a Duo Pop to up to 6 players in your game who turned them on. Every Queue up comes with an LFG post and your own code, ready to share where you look for teammates. One duo per Queue up: the first to answer, by a Duo Pop or your code, is your duo. A party of two can share an LFG post too: the first to join with its code takes the last seat, and either of you can stop it. Build your card before you make an account. Share your Discord, say you're free now or pick a time right from a chat. A badge on the Matches tab shows what's new. Forgot your password? Reset it with a code from your email. 10 free active chats instead of 5. Smoother motion throughout, with haptics you can switch off in Settings.
 ```
 
 It is the plan's R2 draft with these honesty fixes:
