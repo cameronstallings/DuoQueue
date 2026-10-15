@@ -3,9 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   formatLolRank,
   isCanonicalLolRankLabel,
+  isLolDivisionalTier,
   LOL_DIVISIONAL_TIERS,
   LOL_TIER_CHOICES,
   LOL_TIERS,
+  lolDuoRangeLabel,
   lolDuoRuleSummary,
   lolSoloDuoEligible,
   parseLolRankText,
@@ -284,6 +286,52 @@ describe("lolDuoRuleSummary (the picker's helper copy, design section 6.3)", () 
   it("contains no em dash in any line", () => {
     for (const rank of ALL_CHOICES) {
       expect(lolDuoRuleSummary(rank) ?? "").not.toContain("\u2014");
+    }
+  });
+});
+
+describe("lolDuoRangeLabel (Duo Call post)", () => {
+  it("names Riot's row for every divisional rank", () => {
+    for (const d of [4, 3, 2, 1] as const) {
+      expect(lolDuoRangeLabel(r("iron", d))).toBe("Iron to Silver");
+      expect(lolDuoRangeLabel(r("bronze", d))).toBe("Iron to Silver");
+      expect(lolDuoRangeLabel(r("silver", d))).toBe("Iron to Gold");
+      expect(lolDuoRangeLabel(r("gold", d))).toBe("Silver to Platinum");
+      expect(lolDuoRangeLabel(r("platinum", d))).toBe("Gold to Emerald");
+      expect(lolDuoRangeLabel(r("emerald", d))).toBe("Platinum to Diamond III");
+    }
+    for (const d of [4, 3, 2] as const) {
+      expect(lolDuoRangeLabel(r("diamond", d))).toBe("Emerald II to Diamond II");
+    }
+  });
+
+  it("stops Diamond I at Diamond I, because the Master part depends on LP DuoQueue does not collect", () => {
+    expect(lolDuoRangeLabel(r("diamond", 1))).toBe("Diamond III to Diamond I");
+  });
+
+  it("claims nothing where there is no row to restate", () => {
+    expect(lolDuoRangeLabel(null)).toBeNull();
+    expect(lolDuoRangeLabel(r("unranked"))).toBeNull();
+    expect(lolDuoRangeLabel(r("gold"))).toBeNull();
+    expect(lolDuoRangeLabel(r("diamond"))).toBeNull();
+    expect(lolDuoRangeLabel(r("master"))).toBeNull();
+    expect(lolDuoRangeLabel(r("grandmaster"))).toBeNull();
+    expect(lolDuoRangeLabel(r("challenger"))).toBeNull();
+  });
+
+  it("never drifts from the picker's own line (every divisional rank but Diamond I)", () => {
+    for (const rank of ALL_CHOICES) {
+      if (!isLolDivisionalTier(rank.tier)) continue;
+      if (rank.tier === "diamond" && rank.division === 1) continue;
+      const range = lolDuoRangeLabel(rank);
+      expect(range, label(rank)).not.toBeNull();
+      expect(lolDuoRuleSummary(rank), label(rank)).toContain(range as string);
+    }
+  });
+
+  it("uses no dashes", () => {
+    for (const rank of ALL_CHOICES) {
+      expect(lolDuoRangeLabel(rank) ?? "").not.toMatch(/[\u2013\u2014]/);
     }
   });
 });
