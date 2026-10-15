@@ -1,5 +1,6 @@
 import { StyleSheet, View } from "react-native";
 
+import { hapticSelection } from "@/lib/haptics";
 import { useTheme } from "@/theme/useTheme";
 
 import { Chip } from "./Chip";
@@ -16,7 +17,9 @@ interface ChipSelectProps<T extends string> {
 }
 
 /** A wrapped row of selectable Chips — one selection state per option, toggled
- * independently. */
+ * independently. Every toggle is a selection haptic (the haptic map in lib/haptics.ts), here
+ * rather than in Chip, because Chip's onPress also REMOVES chips (edit-details.tsx), and that is
+ * not a selection. Every chip row in the app goes through here. */
 export function ChipSelect<T extends string>({ options, selected, onToggle }: ChipSelectProps<T>) {
   const { spacing } = useTheme();
 
@@ -27,7 +30,10 @@ export function ChipSelect<T extends string>({ options, selected, onToggle }: Ch
           key={option.value}
           label={option.label}
           selected={selected.includes(option.value)}
-          onPress={() => onToggle(option.value)}
+          onPress={() => {
+            hapticSelection();
+            onToggle(option.value);
+          }}
         />
       ))}
     </View>

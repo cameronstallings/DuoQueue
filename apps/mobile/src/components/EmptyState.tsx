@@ -1,7 +1,9 @@
 import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import Animated from "react-native-reanimated";
 
 import { Button } from "@/components/Button";
+import { revealEntering } from "@/theme/entering";
 import { useTheme } from "@/theme/useTheme";
 
 interface EmptyStateProps {
@@ -55,8 +57,13 @@ export function EmptyState({
 }: EmptyStateProps) {
   const { colors, spacing, radius, type } = useTheme();
 
+  // Fades in (revealEntering, 220ms, even under Reduce Motion): every empty and error state in the
+  // app arrives in place of a skeleton or a list, and a hard cut there read as a flicker.
   return (
-    <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.md, padding: spacing.lg }}>
+    <Animated.View
+      entering={revealEntering()}
+      style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.md, padding: spacing.lg }}
+    >
       <View
         style={{
           width: 64,
@@ -88,6 +95,6 @@ export function EmptyState({
           )}
         </Pressable>
       )}
-    </View>
+    </Animated.View>
   );
 }
