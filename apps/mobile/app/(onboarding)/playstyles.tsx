@@ -46,7 +46,9 @@ export default function PlaystylesStep() {
       subtitle={`Optional. Pick up to ${MAX_PLAYSTYLES}.`}
       onContinue={handleContinue}
       error={error}
-      continueLabel={playstyles.length === 0 ? "Skip" : "Continue"}
+      // Optional, so Skip sits UNDER Continue rather than replacing its label: the button that
+      // moves the player on reads the same on every step (WizardStep).
+      onSkip={handleContinue}
     >
       <ChipSelect
         options={PLAYSTYLE_TAGS.map((value) => ({ value, label: LABELS[value] }))}

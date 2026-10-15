@@ -1,5 +1,6 @@
-import { Image, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 
 import { ensurePhotoLibraryAccess } from "@/lib/photo-access";
@@ -11,17 +12,24 @@ interface PicturePickerProps {
   uri: string | null;
   onPick: (uri: string) => void;
   onRemove: () => void;
-  /** Continues without a picture. The name is still required. */
-  onSkip: () => void;
+  /**
+   * Continues without a picture, as a "Skip for now" link under the empty slot. Optional since
+   * 1.0.2: the name step no longer passes it, because its Continue already moves on without a
+   * picture and a second, differently worded way forward read as a different action.
+   */
+  onSkip?: () => void;
 }
 
 /**
  * The one optional picture: square, any image. It goes in the `profile` slot, which every card
  * and avatar reads. Library access goes through ensurePhotoLibraryAccess so a denied permission
  * explains itself and offers Settings instead of a button that does nothing.
+ *
+ * expo-image with a short transition (1.0.2), so a picked picture fades into the slot instead of
+ * popping in a frame after the tap.
  */
 export function PicturePicker({ uri, onPick, onRemove, onSkip }: PicturePickerProps) {
-  const { colors, radius, spacing, type } = useTheme();
+  const { colors, motion, radius, spacing, type } = useTheme();
 
   async function handlePick() {
     if (!(await ensurePhotoLibraryAccess())) return;
@@ -48,7 +56,7 @@ export function PicturePicker({ uri, onPick, onRemove, onSkip }: PicturePickerPr
         onPress={() => void handlePick()}
         accessibilityRole="button"
         accessibilityLabel={uri ? "Change your picture" : "Add a picture"}
-        style={{
+        style={({ pressed }) => ({
           width: SLOT_SIZE,
           height: SLOT_SIZE,
           marginTop: spacing.xs,
@@ -60,10 +68,17 @@ export function PicturePicker({ uri, onPick, onRemove, onSkip }: PicturePickerPr
           borderWidth: uri ? 0 : 1,
           borderStyle: "dashed",
           borderColor: colors.border,
-        }}
+          opacity: pressed ? 0.85 : 1,
+        })}
       >
         {uri ? (
-          <Image source={{ uri }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+          <Image
+            source={{ uri }}
+            style={{ width: "100%", height: "100%" }}
+            contentFit="cover"
+            transition={motion.base}
+            cachePolicy="memory-disk"
+          />
         ) : (
           <Ionicons name="add" size={28} color={colors.textMuted} />
         )}
@@ -72,11 +87,11 @@ export function PicturePicker({ uri, onPick, onRemove, onSkip }: PicturePickerPr
         <Pressable onPress={onRemove} hitSlop={8} accessibilityRole="button" style={{ alignSelf: "flex-start", marginTop: spacing.xs }}>
           <Text style={[type.caption, { color: colors.textMuted }]}>Remove picture</Text>
         </Pressable>
-      ) : (
+      ) : onSkip ? (
         <Pressable onPress={onSkip} hitSlop={8} accessibilityRole="button" style={{ alignSelf: "flex-start", marginTop: spacing.xs }}>
           <Text style={[type.caption, { color: colors.voltDim }]}>Skip for now</Text>
         </Pressable>
-      )}
+      ) : null}
     </View>
   );
 }
