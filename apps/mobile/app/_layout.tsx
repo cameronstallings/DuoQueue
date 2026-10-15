@@ -20,6 +20,8 @@ import { useInviteRedemption } from "@/features/invite/useInvite";
 import { LaunchIntro } from "@/features/launch/LaunchIntro";
 import { APP_MOUNT_AFTER_LOCK_MS, endColdStart, isColdStart } from "@/features/launch/launchTiming";
 import { useNotificationTapRouting } from "@/hooks/useNotificationTapRouting";
+import { UpdateRequiredOverlay } from "@/features/update/UpdateRequiredOverlay";
+import { useUpdateGate } from "@/features/update/useUpdateGate";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { Toast } from "@/components/Toast";
 import { configureNetworkAwareQueries } from "@/lib/network";
@@ -52,6 +54,7 @@ export default function RootLayout() {
   const status = useSessionStore((s) => s.status);
   const initialize = useSessionStore((s) => s.initialize);
   const { colors, scheme } = useTheme();
+  const gate = useUpdateGate();
   const [intro, setIntro] = useState(isColdStart);
   const endIntro = useCallback(() => {
     endColdStart();
@@ -167,6 +170,7 @@ export default function RootLayout() {
               </Stack>
             )}
             <Toast />
+            {gate.blocked && <UpdateRequiredOverlay reason={gate.reason} />}
           </SafeAreaProvider>
         </QueryClientProvider>
       )}

@@ -8,3 +8,10 @@ export const LEGAL_URLS = {
   termsOfService: "https://duoqueue.io/terms",
   supportEmail: "support@duoqueue.io",
 } as const;
+
+// DuoQueue's App Store listing. The https link is the same one the site uses
+// (APP_STORE_URL in scripts/build-site.mjs); the itms-apps link opens the App Store app directly,
+// with the https one as its fallback (the "Update DuoQueue" screen).
+export const APP_STORE_ID = "6798837181";
+export const APP_STORE_URL = `https://apps.apple.com/app/id${APP_STORE_ID}`;
+export const APP_STORE_DEEP_LINK = `itms-apps://apps.apple.com/app/id${APP_STORE_ID}`;

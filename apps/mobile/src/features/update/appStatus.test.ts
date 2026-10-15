@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   APP_STATUS_URL,
+  UPDATE_SCREEN_COPY,
   compareVersions,
   gateDecision,
   parseAppStatus,
@@ -92,5 +93,30 @@ describe("statusCheckUrl", () => {
 
   it("points at duoqueue.io, not Supabase", () => {
     expect(APP_STATUS_URL).toBe("https://duoqueue.io/app-status.json");
+  });
+});
+
+describe("UPDATE_SCREEN_COPY", () => {
+  const strings = Object.values(UPDATE_SCREEN_COPY);
+
+  it("is the agreed wording", () => {
+    expect(UPDATE_SCREEN_COPY.title).toBe("Update DuoQueue to keep playing");
+    expect(UPDATE_SCREEN_COPY.openStore).toBe("Open the App Store");
+    expect(UPDATE_SCREEN_COPY.tryAgain).toBe("Try again");
+  });
+
+  it("promises the player keeps everything", () => {
+    expect(UPDATE_SCREEN_COPY.body).toContain("free");
+    expect(UPDATE_SCREEN_COPY.body).toContain("profile, matches and chats");
+  });
+
+  it("uses no em or en dashes, never says beats, never reads as dating", () => {
+    for (const s of strings) {
+      // The two dashes by code point (U+2014, U+2013), so this file holds neither character itself.
+      expect(s).not.toContain(String.fromCharCode(0x2014));
+      expect(s).not.toContain(String.fromCharCode(0x2013));
+      expect(s).not.toMatch(/\bbeats?\b/i);
+      expect(s).not.toMatch(/dating|singles|hookup|nearby|meet people|match with singles/i);
+    }
   });
 });

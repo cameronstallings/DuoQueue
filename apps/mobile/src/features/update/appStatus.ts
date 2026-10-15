@@ -20,6 +20,14 @@
 
 export const APP_STATUS_URL = "https://duoqueue.io/app-status.json";
 
+/** The words on the "Update DuoQueue" screen (UpdateRequiredOverlay), swept by the copy test. */
+export const UPDATE_SCREEN_COPY = {
+  title: "Update DuoQueue to keep playing",
+  body: "This version of DuoQueue is too old to keep working. The update is free, and your profile, matches and chats will all still be here.",
+  openStore: "Open the App Store",
+  tryAgain: "Try again",
+} as const;
+
 export interface AppStatus {
   minVersion: string;
 }
