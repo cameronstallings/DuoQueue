@@ -97,7 +97,14 @@ export type PopOutcome = "popping" | "no_answer" | PopNote;
 export type SheetView =
   | { kind: "idle" }
   | { kind: "queued"; outcome: PopOutcome; notified: number; minutesLeft: number; canShare: boolean }
-  | { kind: "locked"; partnerName: string; matchId: string; poppedInSeconds: number | null };
+  | {
+      kind: "locked";
+      partnerName: string;
+      matchId: string;
+      poppedInSeconds: number | null;
+      /** The duo came from the LFG post's code, not a Duo Pop's I'm in (see sheetViewOf). */
+      viaPost: boolean;
+    };
 
 /**
  * The sheet's phase for the sender's newest queue-up (get_my_queue_up), or idle without one.
@@ -107,9 +114,17 @@ export type SheetView =
  * sheet on "Duo locked" for up to 70 minutes with no way to queue again. The duo itself is in
  * Matches either way.)
  *
- * Locked: someone tapped I'm in and the match exists. Otherwise queued, with the server's
- * pop_note when it sent no pops, else "popping" while the 10-minute window is open and
- * "no_answer" after it. The post can be shared only while the row still carries its code.
+ * Locked: someone tapped I'm in, or joined with the post's code, and the match exists. ONE DUO PER
+ * QUEUE UP (0088): either way the call is over, so the code stops resolving and the sheet says who
+ * it was. `viaPost` tells the two apart: 0088's queue_up_out leaves popped_in_seconds null only
+ * for a lock made through the code (locked_via 'call'), because "Popped in 10:00" (clamped) would
+ * be false about a post answered forty minutes in. Before 0088 every lock is a pop's, has its
+ * seconds, and reads exactly as in build 19. The order stays: ended or past its hour is idle
+ * first (build 19's contract, which is why 0088 never sets ended_at on a lock), then locked.
+ *
+ * Otherwise queued, with the server's pop_note when it sent no pops, else "popping" while the
+ * 10-minute window is open and "no_answer" after it. The post can be shared only while the row
+ * still carries its code.
  */
 export function sheetViewOf(row: QueueUpRow | null | undefined, nowMs: number): SheetView {
   if (!row) return { kind: "idle" };
@@ -123,6 +138,7 @@ export function sheetViewOf(row: QueueUpRow | null | undefined, nowMs: number): 
       partnerName: name ? name : "your duo",
       matchId: row.match_id,
       poppedInSeconds: row.popped_in_seconds ?? null,
+      viaPost: row.popped_in_seconds === null,
     };
   }
 

@@ -164,7 +164,24 @@ describe("sheetViewOf", () => {
         row({ locked_at: iso(NOW - MIN), match_id: matchId, partner_name: "Kai", popped_in_seconds: 41 }),
         NOW,
       ),
-    ).toEqual({ kind: "locked", partnerName: "Kai", matchId, poppedInSeconds: 41 });
+    ).toEqual({ kind: "locked", partnerName: "Kai", matchId, poppedInSeconds: 41, viaPost: false });
+  });
+
+  it("says the duo came from the LFG post when the lock has no popped-in time", () => {
+    // After 0088 only a lock made through the Duo Call code (locked_via 'call') comes back with
+    // popped_in_seconds null; a Duo Pop lock always has one (1..600).
+    const locked = { locked_at: iso(NOW - MIN), match_id: "m", partner_name: "Kai" };
+    expect(sheetViewOf(row({ ...locked, popped_in_seconds: null }), NOW)).toMatchObject({
+      kind: "locked",
+      viaPost: true,
+      poppedInSeconds: null,
+    });
+    expect(sheetViewOf(row({ ...locked, popped_in_seconds: 41 }), NOW)).toMatchObject({ kind: "locked", viaPost: false });
+  });
+
+  it("still goes idle for an ended post lock, as for a pop lock (ended beats locked)", () => {
+    const locked = { locked_at: iso(NOW - MIN), match_id: "m", partner_name: "Kai", popped_in_seconds: null };
+    expect(sheetViewOf(row({ ...locked, ended_at: iso(NOW) }), NOW)).toEqual({ kind: "idle" });
   });
 
   it("falls back to 'your duo' with no partner name", () => {

@@ -118,13 +118,18 @@ export function useStartQueueUp() {
   });
 }
 
-/** Stop queueing. Ends the queue-up (its open pops answer "ended", its code stops resolving 15
- * minutes later) and clears free to duo. */
+/** Stop queueing. Ends the queue-up (its open pops answer "ended", its code stops resolving) and
+ * clears free to duo.
+ *
+ * `{ quiet: true }` is the locked view's "Queue up again": the duo is found and the call is
+ * already over, so ending the locked row is housekeeping that brings the idle form back, and
+ * "You're not queued anymore." would answer a question nobody asked. Everything else is the same. */
 export function useStopQueueUp() {
   const queryClient = useQueryClient();
   const profileId = useSessionStore((s) => s.session?.user.id);
 
-  return useMutation({
+  // The variables only carry `quiet`, read in onSuccess.
+  return useMutation<void, unknown, { quiet?: boolean } | void>({
     mutationFn: async () => {
       const { error } = await supabase.rpc("stop_queue_up");
       if (!error) return;
@@ -133,7 +138,7 @@ export function useStopQueueUp() {
       const { error: fallbackError } = await supabase.rpc("set_looking_now", { p_looking: false });
       if (fallbackError) throw fallbackError;
     },
-    onSuccess: async () => {
+    onSuccess: async (_data, options) => {
       // The profile first, then the row. The sheet reads "queued" from the profile whenever no
       // live row is there (a player queued only by the flag), so clearing the row first would
       // swap in that body for a moment before the idle form. Awaited, so Stop keeps its busy label
@@ -145,7 +150,7 @@ export function useStopQueueUp() {
       }
       queryClient.setQueryData(queueUpQueryKey(profileId), null);
       void queryClient.invalidateQueries({ queryKey: ["online-now"] });
-      useToastStore.getState().showToast(QUEUE_COPY.stopped, "info");
+      if (!(options && options.quiet)) useToastStore.getState().showToast(QUEUE_COPY.stopped, "info");
     },
     // The caller says why, under Stop (the header): queueErrorMessage(err, stopFailed).
     onError: () => hapticError(),

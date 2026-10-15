@@ -3,10 +3,18 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { InviteAcceptance, InviteRedemption, ResolvedInviter } from "@duoqueue/shared-types";
 
 import { MATCHES_QUERY_KEY } from "@/features/chat/useMatches";
-import { inviteUrl, isInviteCodeShape, normalizeInviteCode, shouldRedeemInvite } from "@/lib/invite";
+import {
+  duoRedemptionOutcome,
+  inviteUrl,
+  isInviteCodeShape,
+  needsCallEndedCheck,
+  normalizeInviteCode,
+  shouldRedeemInvite,
+} from "@/lib/invite";
 import { supabase } from "@/lib/supabase";
 import { useInviteStore } from "@/store/invite-store";
 import { useSessionStore } from "@/store/session-store";
+import { useToastStore } from "@/store/toast-store";
 
 /**
  * The four server calls behind the invite flow, and the one effect that ties them to the
@@ -135,17 +143,24 @@ export function useInviteRedemption(): void {
       if (cancelled) return;
 
       const row = ((data ?? []) as InviteRedemption[])[0];
-      if (error || !row) {
-        settleRedemption(null);
-        return;
+      const onboarded = useSessionStore.getState().profile?.onboarding_completed === true;
+      const answer = { errored: !!error, row, onboarded };
+      // An empty answer can be a Duo Call that ended between the front door and now (one duo per
+      // Queue up closes a call at its first duo). One more read says whether that is what
+      // happened, so the player is told instead of left wondering where the invite went.
+      let callEnded = false;
+      if (needsCallEndedCheck(answer)) {
+        const ended = await supabase.rpc("call_code_ended", { p_code: pendingCode });
+        if (cancelled) return;
+        callEnded = !ended.error && ended.data === true;
       }
 
       // `connected` means this account has already been through the arrival screen, most
       // likely on a previous install. The attribution row stands; the celebration does not
-      // repeat, so this settles with no arrival.
-      settleRedemption(
-        row.connected ? null : { inviterId: row.inviter_id, inviterName: row.display_name },
-      );
+      // repeat, so that settles with no arrival (duoRedemptionOutcome).
+      const outcome = duoRedemptionOutcome({ ...answer, callEnded });
+      settleRedemption(outcome.arrival);
+      if (outcome.notice) useToastStore.getState().showToast(outcome.notice, "info");
     })();
 
     return () => {

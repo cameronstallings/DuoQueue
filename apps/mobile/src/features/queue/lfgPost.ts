@@ -89,6 +89,9 @@ export interface LfgPostInput {
   code: string;
 }
 
+/** The Duo Call post's promise about its code: the first player in takes it. */
+const FIRST_ONE_IN = "First one in is my duo.";
+
 export function lfgPost(input: LfgPostInput): string {
   const lines: string[] = [];
   lines.push(input.regionLabel ? `LF duo: ${input.gameName}, ${input.regionLabel}.` : `LF duo: ${input.gameName}.`);
@@ -98,7 +101,9 @@ export function lfgPost(input: LfgPostInput): string {
     );
   }
   if (input.tags) lines.push(input.tags);
-  if (input.untilLabel) lines.push(`On until ${input.untilLabel}.`);
+  // ONE DUO PER QUEUE UP (0088): the code dies at the first duo, by a Duo Pop or by this post, so
+  // the post says so. A stranger reading "On until 11:40" alone would expect it to work all hour.
+  lines.push(input.untilLabel ? `On until ${input.untilLabel}. ${FIRST_ONE_IN}` : FIRST_ONE_IN);
   lines.push("");
   lines.push(`Answer on DuoQueue (18+, for teammates, not dates): ${input.url}`);
   lines.push(`Code: ${input.code}`);

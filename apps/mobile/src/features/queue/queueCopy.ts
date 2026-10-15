@@ -31,7 +31,10 @@ export const QUEUE_COPY = {
   // and matches MAY get 0074's "free to duo" push, which has its own limits (once per 6 hours
   // per match, never 01:00 to 09:59, not for locked chats, only with that switch on). Nothing
   // in the app shows a match that you are free, so the copy never says matches "see" it.
-  matchesSeeYou: "For the next hour you show in Online Now, and your matches may get a heads-up that you're free.",
+  // ONE DUO PER QUEUE UP (0088): the first duo, by a Duo Pop or the post's code, ends the call and
+  // takes the sender out of Online Now, so the hour is "or until you find a duo".
+  matchesSeeYou:
+    "For the next hour, or until you find a duo, you show in Online Now, and your matches may get a heads-up that you're free.",
   queueUp: "Queue up",
   outsideNa: "Duo Pops reach players in North America for now. You can still share your LFG post.",
   noGames: "Add a game to your profile to queue up.",
@@ -41,12 +44,17 @@ export const QUEUE_COPY = {
   share: "Share my LFG post",
   copy: "Copy post",
   copied: "Post copied",
+  // "once you find a duo" covers both ways a duo forms (0088): an I'm in on a Duo Pop and a new
+  // player joining with the code. Either one ends the call.
   adultsOnly:
-    "DuoQueue is 18+ and it is for finding teammates, not dates. Only share your post where adults look for teammates. Your code stops working when you stop queueing, or 15 minutes after your hour ends.",
+    "DuoQueue is 18+ and it is for finding teammates, not dates. Only share your post where adults look for teammates. Your code stops working once you find a duo, when you stop queueing, or 15 minutes after your hour ends.",
   permissionPrompt: "Turn on notifications to hear the moment someone's in.",
   turnOn: "Turn on",
   seeWhosOn: "See who's on now",
   stop: "Stop queueing",
+  /** The locked view's footer: the duo is found and the call is over, so the way on is a new
+   * queue-up (it ends the locked row quietly and brings the form back), not "stop". */
+  queueAgain: "Queue up again",
   stopped: "You're not queued anymore.",
   /** Queued by the profile's flag with no live queue-up behind it (0085 not live yet, or a 1.0.1
    * phone's free-to-duo switch): what is true is Online Now and a possible heads-up to matches. */
@@ -98,9 +106,10 @@ export function untilLine(time: string): string {
   return `On until ${time}.`;
 }
 
-/** The sheet once someone grabbed the sender's pop. */
-export function lockedLine(name: string): string {
-  return `${name} grabbed your Duo Pop.`;
+/** The sheet once the call found its duo: by a Duo Pop's I'm in, or by someone joining with the
+ * LFG post's code (`viaPost`, queueState.sheetViewOf). */
+export function lockedLine(name: string, viaPost: boolean): string {
+  return viaPost ? `${name} answered your LFG post.` : `${name} grabbed your Duo Pop.`;
 }
 
 /** The Pop card's sentence under the player. */
@@ -112,6 +121,13 @@ export function popSentence(name: string, game: string | null): string {
 /** The Pop card when the sender stopped queueing before anyone was in. */
 export function popEndedTitle(name: string): string {
   return `${name} stopped queueing`;
+}
+
+/** The Pop card when the sender's call already has its duo. answer_duo_pop and get_duo_pop say
+ * "taken" for both ways a duo forms (another I'm in, or a player who joined with the LFG post's
+ * code), so the title names the sender and not who got there. */
+export function popTakenTitle(name: string): string {
+  return `${name} already found a duo`;
 }
 
 /** The Pop card reopened after this player already tapped I'm in. */
@@ -151,10 +167,10 @@ export const POP_COPY = {
 /** "Duo Pops go fast", for a Pop someone else got to first and one that ran out. */
 const GO_FAST = "Duo Pops go fast. Queue up and players in your game hear from you.";
 
-/** What the Pop card says when it is over: a title, maybe a line, and its buttons. "ended" is
- * titled by name (popEndedTitle). */
+/** What the Pop card says when it is over: a title, maybe a line, and its buttons. "ended" and
+ * "taken" are titled by name (popEndedTitle, popTakenTitle). */
 export const POP_RESULT_COPY = {
-  taken: { title: "Someone grabbed this one", body: GO_FAST },
+  taken: { body: GO_FAST },
   expired: { title: "This Duo Pop ended", body: GO_FAST },
   already_matched: { title: "You two are already matched" },
   unavailable: { title: "This Duo Pop isn't available anymore" },

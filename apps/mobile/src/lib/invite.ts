@@ -1,3 +1,5 @@
+import type { InviteRedemption } from "@duoqueue/shared-types";
+
 import type { ProfileStatus } from "@/features/auth/sessionRouting";
 
 /**
@@ -259,6 +261,60 @@ export function shouldRedeemInvite(input: InviteRedemptionGateInput): boolean {
   if (input.profileStatus !== "loaded") return false;
   if (!input.pendingCode) return false;
   return input.redemption === "idle";
+}
+
+/** Somebody's own invite, or a Duo Call code: the arrival screen shows the inviter's card. */
+export interface DuoInviteArrival {
+  inviterId: string;
+  inviterName: string;
+}
+
+/**
+ * Said once (an info toast) when the Duo Call code a new player typed at the front door had
+ * ended by the time their profile existed. ONE DUO PER QUEUE UP (0088) closes a call at its first
+ * duo, which can be minutes after the code was typed and resolved, so this is a normal path now,
+ * and settling with nothing said dropped them in the app wondering where their invite went.
+ *
+ * "ended", not "found its duo": call_code_ended is also true when the sender stopped queueing or
+ * the hour ran out, and this sentence has to be true of all three.
+ */
+export const CALL_ENDED_BEFORE_SIGNUP = "That Duo Call ended before you finished. You can still find players here.";
+
+/** Whether redemption's answer leaves the question "was that a Duo Call that ended?" worth one
+ * more read (`call_code_ended`): only an empty answer, never a failed call (offline says nothing). */
+export function needsCallEndedCheck(input: {
+  errored: boolean;
+  row: InviteRedemption | null | undefined;
+  onboarded?: boolean;
+}): boolean {
+  return !input.errored && !input.row && input.onboarded !== true;
+}
+
+/**
+ * What `redeem_invite_code`'s answer means for the arrival screen, and what to say when there is
+ * none to show:
+ *  - a row: arrive at the inviter, unless that redemption was already connected (most likely on a
+ *    previous install), which keeps its attribution and does not celebrate twice;
+ *  - no row: no arrival, and CALL_ENDED_BEFORE_SIGNUP only when `call_code_ended` said yes and the
+ *    player is still signing up (an onboarded player got here by a deep link, and the link screen
+ *    already says INVITE_LINK_UNUSABLE; "before you finished" would not be true of them);
+ *  - an error: no arrival and nothing said (the window closed, a block, offline).
+ */
+export function duoRedemptionOutcome(input: {
+  errored: boolean;
+  row: InviteRedemption | null | undefined;
+  callEnded?: boolean;
+  onboarded?: boolean;
+}): { arrival: DuoInviteArrival | null; notice: string | null } {
+  if (input.errored) return { arrival: null, notice: null };
+  if (input.row) {
+    return {
+      arrival: input.row.connected ? null : { inviterId: input.row.inviter_id, inviterName: input.row.display_name },
+      notice: null,
+    };
+  }
+  const say = input.callEnded === true && input.onboarded !== true;
+  return { arrival: null, notice: say ? CALL_ENDED_BEFORE_SIGNUP : null };
 }
 
 /**

@@ -5,7 +5,7 @@ import * as Notifications from "expo-notifications";
 import { MATCHES_QUERY_KEY } from "@/features/chat/useMatches";
 import { useOnAppResume } from "@/hooks/useOnAppResume";
 import { hapticHeavy } from "@/lib/haptics";
-import { duoLockedNotificationOf, duoPopNotificationOf } from "@/lib/notificationRouting";
+import { duoCallLockedNotificationOf, duoLockedNotificationOf, duoPopNotificationOf } from "@/lib/notificationRouting";
 import { useSessionStore } from "@/store/session-store";
 
 import { celebrateOnResume } from "./duoLockedOnce";
@@ -32,9 +32,11 @@ const RESUME_READ_WINDOW_MS = 70 * 60_000;
  *  - "Duo locked" lands for the sender: the queue status and Matches refresh, and, unless this
  *    phone already played that lock, the deck's Queue Up sheet closes and DUO LOCKED opens with
  *    "Popped in 0:41".
+ *  - "Duo locked" lands for a post the sender shared (0088, `via: "post"`, no popped-in time):
+ *    the queue status, Matches and the profile refresh, and nothing opens.
  *  - The app comes back to the front: if the sender has a queue-up from the last 70 minutes in
- *    memory, one read of it, and a lock from the last 15 minutes not yet played opens DUO LOCKED
- *    (Q11). This is for a sender without notification permission, who would otherwise find out
+ *    memory, one read of it (and of the profile when it is locked), and a Duo Pop lock from the
+ *    last 15 minutes not yet played opens DUO LOCKED (Q11). This is for a sender without notification permission, who would otherwise find out
  *    only by opening Matches. One read per resume, never a poll.
  */
 export function usePopPushes(): void {
@@ -57,9 +59,22 @@ export function usePopPushes(): void {
         return;
       }
       const lock = duoLockedNotificationOf(data?.category, data?.matchId, data?.popId, data?.poppedIn, data?.duo);
-      if (!lock) return;
+      if (!lock) {
+        // The LFG post was answered (0088's call lock). Nothing opens: the banner already named
+        // the player, a tap opens the chat, and the sheet says "{name} answered your LFG post."
+        // The call is over and the server took the sender out of Online Now, so the queue
+        // status, Matches and the profile (the header pill) are re-read.
+        if (duoCallLockedNotificationOf(data?.category, data?.matchId, data?.popId, data?.via)) {
+          void queryClient.invalidateQueries({ queryKey: QUEUE_UP_QUERY_KEY });
+          void queryClient.invalidateQueries({ queryKey: MATCHES_QUERY_KEY });
+          void useSessionStore.getState().refreshProfile();
+        }
+        return;
+      }
       void queryClient.invalidateQueries({ queryKey: QUEUE_UP_QUERY_KEY });
       void queryClient.invalidateQueries({ queryKey: MATCHES_QUERY_KEY });
+      // 0088 also ends free to duo at a Duo Pop lock, so the pill re-reads the profile.
+      void useSessionStore.getState().refreshProfile();
       void loadCelebrated().then(() => {
         if (isDuoLockedCelebrated(lock.popId)) return;
         useQueueUpSheetStore.getState().close();
@@ -80,7 +95,12 @@ export function usePopPushes(): void {
       void (async () => {
         try {
           const row = await queryClient.fetchQuery({ queryKey: key, queryFn: fetchMyQueueUp, staleTime: 0 });
+          // A locked call is over (0088 also clears free to duo), so the pill re-reads the profile
+          // whichever way the duo formed.
+          if (row?.locked_at) void useSessionStore.getState().refreshProfile();
           await loadCelebrated();
+          // celebrateOnResume skips a lock from the LFG post (no popped-in time): DUO LOCKED
+          // would say "You and {name} both queued up" about it.
           if (!row || !row.match_id || !celebrateOnResume(row, Date.now(), celebratedPops())) return;
           useQueueUpSheetStore.getState().close();
           await openDuoLocked({

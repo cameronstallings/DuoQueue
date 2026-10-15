@@ -12,7 +12,7 @@ const LEAGUE_POST = [
   "LF duo: League of Legends, NA East.",
   "Gold II. Can duo Silver to Platinum (by rank).",
   "Chill, mic required.",
-  "On until 10:40 PM CDT.",
+  "On until 10:40 PM CDT. First one in is my duo.",
   "",
   "Answer on DuoQueue (18+, for teammates, not dates): https://<project>.supabase.co/functions/v1/invite/K7Q2M9XA4P",
   "Code: K7Q2M9XA4P",
@@ -53,7 +53,7 @@ describe("lfgPost", () => {
 
   it("leaves the tags line out when there are no tags", () => {
     const post = lfgPost({ ...league(), tags: null });
-    expect(post.split("\n")[2]).toBe("On until 10:40 PM CDT.");
+    expect(post.split("\n")[2]).toBe("On until 10:40 PM CDT. First one in is my duo.");
   });
 
   it("names a region outside NA as it is", () => {
@@ -61,8 +61,14 @@ describe("lfgPost", () => {
     expect(lfgPost({ ...league(), regionLabel: null }).split("\n")[0]).toBe("LF duo: League of Legends.");
   });
 
-  it("leaves the time out when it could not be formatted", () => {
-    expect(lfgPost({ ...league(), untilLabel: null })).not.toContain("On until");
+  it("leaves the time out when it could not be formatted, and still says the first one in is the duo", () => {
+    const post = lfgPost({ ...league(), untilLabel: null });
+    expect(post).not.toContain("On until");
+    expect(post.split("\n")[3]).toBe("First one in is my duo.");
+  });
+
+  it("tells a stranger the code ends at the first duo (one duo per Queue up, 0088)", () => {
+    expect(lfgPost(league())).toContain("First one in is my duo.");
   });
 
   it("puts the code last, where a reader and the app's code reader both find it", () => {

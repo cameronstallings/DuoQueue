@@ -6,7 +6,7 @@ import { Name } from "@/components/Name";
 import { useTheme } from "@/theme/useTheme";
 
 import { InlineError } from "./InlineError";
-import { POP_COPY, POP_RESULT_COPY, popEndedTitle, popSentence } from "./queueCopy";
+import { POP_COPY, POP_RESULT_COPY, popEndedTitle, popSentence, popTakenTitle } from "./queueCopy";
 
 /** A quiet text action under the buttons (Report, Block): caption, textMuted. */
 function QuietLink({ label, onPress }: { label: string; onPress: () => void }) {
@@ -106,7 +106,7 @@ export function PopOverContent({ result, name, onQueueUp, onClose, onOpenChat }:
     result === "ended"
       ? popEndedTitle(name)
       : result === "taken"
-        ? POP_RESULT_COPY.taken.title
+        ? popTakenTitle(name)
         : result === "expired"
           ? POP_RESULT_COPY.expired.title
           : result === "already_matched"

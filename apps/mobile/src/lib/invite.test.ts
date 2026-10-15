@@ -9,8 +9,11 @@ import {
 } from "../../../../supabase/functions/_shared/invite-link";
 
 import {
+  CALL_ENDED_BEFORE_SIGNUP,
+  duoRedemptionOutcome,
   INVITE_CODE_LENGTH,
   INVITE_LINK_UNUSABLE,
+  needsCallEndedCheck,
   inviteErrorMessage,
   inviteRouteAction,
   inviteShareMessage,
@@ -422,5 +425,62 @@ describe("inviteErrorMessage", () => {
       expect(shown).not.toMatch(/date|dating|singles|hookup|match with|meet people/i);
       expect(shown).not.toContain("—");
     }
+  });
+});
+
+describe("duoRedemptionOutcome (redeem_invite_code's answer, and why an invite vanished)", () => {
+  const row = { inviter_id: "inviter-1", display_name: "Kai", connected: false };
+
+  it("arrives at the inviter for a fresh redemption", () => {
+    expect(duoRedemptionOutcome({ errored: false, row })).toEqual({
+      arrival: { inviterId: "inviter-1", inviterName: "Kai" },
+      notice: null,
+    });
+  });
+
+  it("does not celebrate twice: a redemption already connected settles with no arrival", () => {
+    expect(duoRedemptionOutcome({ errored: false, row: { ...row, connected: true } })).toEqual({
+      arrival: null,
+      notice: null,
+    });
+  });
+
+  it("asks whether the Duo Call ended only for an empty answer, never after an error", () => {
+    expect(needsCallEndedCheck({ errored: false, row: null })).toBe(true);
+    expect(needsCallEndedCheck({ errored: false, row: undefined })).toBe(true);
+    expect(needsCallEndedCheck({ errored: false, row })).toBe(false);
+    expect(needsCallEndedCheck({ errored: true, row: null })).toBe(false);
+  });
+
+  it("says the Duo Call ended before sign-up finished, when the code was one that ended", () => {
+    // One duo per Queue up (0088): a call closes at its first duo, so the code someone typed at
+    // the front door can be gone by the time their profile exists. Said, not swallowed.
+    expect(duoRedemptionOutcome({ errored: false, row: null, callEnded: true })).toEqual({
+      arrival: null,
+      notice: CALL_ENDED_BEFORE_SIGNUP,
+    });
+    expect(CALL_ENDED_BEFORE_SIGNUP).toBe("That Duo Call ended before you finished. You can still find players here.");
+  });
+
+  it("leaves an onboarded player (a deep link) to the link screen's own line", () => {
+    expect(needsCallEndedCheck({ errored: false, row: null, onboarded: true })).toBe(false);
+    expect(duoRedemptionOutcome({ errored: false, row: null, callEnded: true, onboarded: true })).toEqual({
+      arrival: null,
+      notice: null,
+    });
+    expect(duoRedemptionOutcome({ errored: false, row: null, callEnded: true, onboarded: false }).notice).toBe(
+      CALL_ENDED_BEFORE_SIGNUP,
+    );
+  });
+
+  it("says nothing for an unknown code, an error, or a code whose call did not end", () => {
+    expect(duoRedemptionOutcome({ errored: false, row: null, callEnded: false })).toEqual({ arrival: null, notice: null });
+    expect(duoRedemptionOutcome({ errored: false, row: null })).toEqual({ arrival: null, notice: null });
+    expect(duoRedemptionOutcome({ errored: true, row: null, callEnded: true })).toEqual({ arrival: null, notice: null });
+  });
+
+  it("writes the notice without dashes and without dating words", () => {
+    expect(CALL_ENDED_BEFORE_SIGNUP).not.toMatch(new RegExp(`[${String.fromCharCode(0x2013, 0x2014)}]`));
+    expect(CALL_ENDED_BEFORE_SIGNUP).not.toMatch(/\bdates?\b|dating|singles|hookup|nearby|meet people|match with singles/i);
   });
 });
