@@ -175,6 +175,27 @@ describe("checkAppStatus throttling", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 
+  it("a failed re-check that lifts a block does not stop the next resume from checking", async () => {
+    // Blocked, then "Try again" in airplane mode fails open. The phone is free for now, but the
+    // check that blocked it must not count as "checked within the hour", or the next resumes skip
+    // and a single failed check frees a blocked phone for up to an hour.
+    await checkAppStatus({ nowMs: T0, fetchImpl: fetchReturning(() => jsonResponse({ minVersion: "1.0.3" })) });
+    expect(gate().blocked).toBe(true);
+    await checkAppStatus({ force: true, nowMs: T0 + 1000, fetchImpl: fetchReturning(() => Promise.reject(new Error("offline"))) });
+    expect(gate()).toMatchObject({ blocked: false, reason: null, lastCheckedAtMs: null });
+    const resume = fetchReturning(() => jsonResponse({ minVersion: "1.0.3" }));
+    await checkAppStatus({ nowMs: T0 + 10 * 60_000, fetchImpl: resume });
+    expect(resume).toHaveBeenCalledTimes(1);
+    expect(gate()).toMatchObject({ blocked: true, reason: "min-version", lastCheckedAtMs: T0 + 10 * 60_000 });
+  });
+
+  it("a failed check while open keeps the last good check time", async () => {
+    const fetchImpl = fetchReturning(() => jsonResponse({ minVersion: "1.0.1" }));
+    await checkAppStatus({ nowMs: T0, fetchImpl });
+    await checkAppStatus({ force: true, nowMs: T0 + 1000, fetchImpl: fetchReturning(() => Promise.reject(new Error("offline"))) });
+    expect(gate()).toMatchObject({ blocked: false, lastCheckedAtMs: T0 });
+  });
+
   it("fetches on every call while blocked", async () => {
     const fetchImpl = fetchReturning(() => jsonResponse({ minVersion: "1.0.3" }));
     await checkAppStatus({ nowMs: T0, fetchImpl });

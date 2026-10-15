@@ -55,6 +55,15 @@ function keyBlocked(): boolean {
 function failOpen(): void {
   // A dead key outranks anything the status file says; never clear it from here.
   if (keyBlocked()) return;
+  // Lifting a min-version block also forgets when that block was checked. Otherwise the check
+  // that BLOCKED counts as "open and checked within the hour", the next resumes skip, and one
+  // failed check (airplane mode and "Try again", or a flaky resume) frees a blocked phone for up
+  // to an hour. Failing open while already open keeps the last good check time, so a dropped
+  // request never turns the hourly check into a check on every resume.
+  if (useUpdateGateStore.getState().blocked) {
+    useUpdateGateStore.setState({ blocked: false, reason: null, lastCheckedAtMs: null });
+    return;
+  }
   useUpdateGateStore.setState({ blocked: false, reason: null });
 }
 
