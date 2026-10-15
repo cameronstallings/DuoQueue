@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Alert, Text, View } from "react-native";
 import { router } from "expo-router";
 import Animated, { useReducedMotion } from "react-native-reanimated";
@@ -22,7 +22,8 @@ import { useFirstReveal } from "@/hooks/useFirstReveal";
 import { useRequireSession } from "@/hooks/useRequireSession";
 import { hapticError } from "@/lib/haptics";
 import { toUserMessage } from "@/lib/userMessage";
-import { listItemEntering } from "@/theme/entering";
+import { entranceFor, layoutTransition, quickExiting } from "@/theme/entering";
+import { entranceKind } from "@/theme/motion";
 import { useTheme } from "@/theme/useTheme";
 
 function timeAgo(iso: string | null): string {
@@ -156,6 +157,14 @@ export default function OnlineNowScreen() {
   const { data: people, isLoading, error, refetch } = useOnlineNow();
   const firstReveal = useFirstReveal(!isLoading && !!people);
   const [sheetVisible, setSheetVisible] = useState(false);
+  // Row entrances, as Matches does them (theme/motion.ts entranceKind): the cascade on the first
+  // load; after that, the 30-second refresh fades in a player who came online, a player who left
+  // fades out, and the rows around them glide, rather than popping and jumping. "Seen" is recorded
+  // after the commit, so a row already on screen never replays its entrance.
+  const seenRef = useRef(new Set<string>());
+  useEffect(() => {
+    for (const person of people ?? []) seenRef.current.add(person.profile_id);
+  }, [people]);
 
   return (
     <ScreenContainer title="Online Now" showClose>
@@ -182,8 +191,16 @@ export default function OnlineNowScreen() {
       ) : (
         <View style={{ gap: spacing.sm }}>
           {people.map((item, index) => (
-            // The cascade plays once, on the first load; the 30-second refresh never replays it.
-            <Animated.View key={item.profile_id} entering={firstReveal ? listItemEntering(index, reduced) : undefined}>
+            <Animated.View
+              key={item.profile_id}
+              entering={entranceFor(
+                entranceKind({ seen: seenRef.current.has(item.profile_id), firstReveal }),
+                index,
+                reduced,
+              )}
+              exiting={quickExiting()}
+              layout={layoutTransition()}
+            >
               <OnlineNowRow item={item} />
             </Animated.View>
           ))}
