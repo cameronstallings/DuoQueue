@@ -29,6 +29,7 @@
 // Usage (from repo root, requires SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY in .env):
 //   node scripts/seed-review-demo.mjs                  create/update everything
 //   node scripts/seed-review-demo.mjs --reset-password  also rotate the review account's password
+//   node scripts/seed-review-demo.mjs --screenshots     filming photos + League kept: store screenshots
 //   node scripts/seed-review-demo.mjs --remove          delete every trace (auth users, DB rows via
 //                                                        cascade, and the uploaded storage objects)
 //
@@ -1267,8 +1268,15 @@ async function main() {
   // Swaps the demo photos for real ones so marketing footage does not film placeholder art.
   // Re-seeding without it restores the approved abstract set, which is what a re-review
   // must see. Never the default, for exactly that reason.
-  const filming = args.includes("--filming");
+  //
+  // --screenshots (15 Oct 2026, the 1.0.2 store screenshots): the filming photos AND the review
+  // account's League game, so Cameron's card is first, wears his own photo and shows CAN DUO, as
+  // store slide 01 ("See who can duo with you") needs. Measured in a rolled-back run: Cameron,
+  // Dae, Devon all CAN DUO, Cameron first. Like --filming, never submit after it: re-run plain.
+  const screenshots = args.includes("--screenshots");
+  const filming = args.includes("--filming") || screenshots;
   if (filming) console.log("FILMING MODE: using assets/demo-filming photos. Re-run without --filming to restore the approved set.");
+  if (screenshots) console.log("SCREENSHOTS MODE: filming photos, and League kept on the review account (CAN DUO cards).");
 
   console.log("Loading games/shows/prompts catalog...");
   const allGameNames = [...REVIEWER.games, ...PERSONAS.flatMap((p) => p.games)].map((g) => g.name);
@@ -1287,11 +1295,11 @@ async function main() {
   }
 
   console.log(`Ensuring review account (${REVIEW_EMAIL})...`);
-  const reviewer = reviewerFor(filming);
+  const reviewer = screenshots ? REVIEWER : reviewerFor(filming);
   const reviewResult = await ensureAuthUser(REVIEW_ID, REVIEW_EMAIL, reviewer, { resetPassword });
   await seedPersonaTree(REVIEW_ID, reviewer, { gameIdByName, showIdByName, promptIdByQuestion, filming });
   console.log(
-    filming
+    filming && !screenshots
       ? "  League of Legends left off the review account (--filming): no \"CAN DUO\" cards. Cameron should be the first card."
       : "  League of Legends on the review account at Gold II: Cameron, Dae and Devon should be the first three cards, all CAN DUO.",
   );
