@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { ScrollView, View } from "react-native";
+import { Platform, ScrollView, View } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 import { Chip } from "@/components/Chip";
@@ -8,6 +8,10 @@ import { layoutTransition, quickExiting } from "@/theme/entering";
 import { useTheme } from "@/theme/useTheme";
 
 import { PLAY_TOGETHER_COPY, type DiscordChipState } from "./playTogether";
+
+/** TalkBack's double tap arrives as this action. Android only: on iOS an "activate" entry would
+ * show up as an extra custom action in the VoiceOver rotor, and onAccessibilityTap covers it. */
+const ANDROID_ACTIVATE = [{ name: "activate" as const }];
 
 interface PlayTogetherChipsProps {
   /** "hidden" once shared (the chip fades out and the others slide left). */
@@ -75,21 +79,40 @@ export function PlayTogetherChips({
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingHorizontal: spacing.md, gap: spacing.sm }}
       >
-        {chips.map((chip) => (
-          <Animated.View key={chip.key} layout={layoutTransition()} exiting={quickExiting()}>
-            <View style={{ opacity: chip.disabled ? 0.5 : 1 }}>
-              <Chip
-                label={chip.label}
-                onPress={() => {
-                  if (chip.disabled) return;
-                  hapticSelection();
-                  chip.onPress();
-                }}
+        {chips.map((chip) => {
+          const press = () => {
+            if (chip.disabled) return;
+            hapticSelection();
+            chip.onPress();
+          };
+          return (
+            <Animated.View key={chip.key} layout={layoutTransition()} exiting={quickExiting()}>
+              {/* The screen-reader element is this wrapper, not the chip: Chip's Pressable has no
+                  disabled state to announce, so during the 5-minute cooldown or a Discord share in
+                  flight VoiceOver read an active button that did nothing. Here it is a button with
+                  the chip's words that says "dimmed" when disabled. VoiceOver's double tap lands on
+                  onAccessibilityTap, TalkBack's on the activate action; both run `press`, which
+                  ignores a disabled chip like a finger does. The chip inside is hidden from the
+                  reader so it is not announced twice. */}
+              <View
+                accessible
+                accessibilityRole="button"
                 accessibilityLabel={chip.label}
-              />
-            </View>
-          </Animated.View>
-        ))}
+                accessibilityState={{ disabled: chip.disabled }}
+                onAccessibilityTap={press}
+                accessibilityActions={Platform.OS === "android" ? ANDROID_ACTIVATE : undefined}
+                onAccessibilityAction={(event) => {
+                  if (event.nativeEvent.actionName === "activate") press();
+                }}
+                style={{ opacity: chip.disabled ? 0.5 : 1 }}
+              >
+                <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                  <Chip label={chip.label} onPress={press} />
+                </View>
+              </View>
+            </Animated.View>
+          );
+        })}
       </ScrollView>
     </Animated.View>
   );
