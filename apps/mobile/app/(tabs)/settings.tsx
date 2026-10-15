@@ -10,6 +10,7 @@ import { usePremiumStatus } from "@/features/matching/usePremiumStatus";
 import { paywallHref } from "@/features/premium/paywall/paywallCopy";
 import { appearanceSummary } from "@/lib/appearance";
 import { LEGAL_URLS } from "@/lib/legal";
+import { AboutFooter } from "@/features/settings/AboutFooter";
 import { useTheme } from "@/theme/useTheme";
 
 // A subscription bought through Apple can only be changed or cancelled through Apple —
@@ -160,6 +161,7 @@ export default function SettingsScreen() {
             onPress={() => void Linking.openURL(`mailto:${LEGAL_URLS.supportEmail}`)}
           />
         </Card>
+        <AboutFooter />
       </View>
     </ScreenContainer>
   );

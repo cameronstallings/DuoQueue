@@ -15,3 +15,13 @@ export const LEGAL_URLS = {
 export const APP_STORE_ID = "6798837181";
 export const APP_STORE_URL = `https://apps.apple.com/app/id${APP_STORE_ID}`;
 export const APP_STORE_DEEP_LINK = `itms-apps://apps.apple.com/app/id${APP_STORE_ID}`;
+
+// Riot Games' Developer Policies boilerplate, WORD FOR WORD: the comma after the second "Riot
+// Games" is part of Riot's text, not a typo, so do not "fix" it. Shown in Settings > Legal
+// (AboutFooter). The site footer (RIOT_NOTICE in scripts/build-site.mjs) and the App Store
+// description carry the same line and must change together with this one; legal.test.ts checks
+// the site's copy.
+export const RIOT_NOTICE =
+  "DuoQueue isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games " +
+  "or anyone officially involved in producing or managing Riot Games properties. Riot Games, and " +
+  "all associated properties are trademarks or registered trademarks of Riot Games, Inc.";
