@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ReportReason } from "@duoqueue/shared-types";
 
+import { noteSafetyAction } from "@/features/rating/reviewSession";
 import { supabase } from "@/lib/supabase";
 import { useSessionStore } from "@/store/session-store";
 
@@ -13,6 +14,9 @@ export function useUnmatch() {
     mutationFn: async (matchId: string) => {
       const { error } = await supabase.rpc("unmatch", { p_match_id: matchId });
       if (error) throw error;
+    },
+    onMutate: () => {
+      noteSafetyAction();
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: MATCHES_QUERY_KEY });
@@ -29,6 +33,9 @@ export function useBlockUser() {
       if (!myId) throw new Error("Not authenticated");
       const { error } = await supabase.from("blocks").insert({ blocker_id: myId, blocked_id: blockedId });
       if (error) throw error;
+    },
+    onMutate: () => {
+      noteSafetyAction();
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: MATCHES_QUERY_KEY });
@@ -63,6 +70,11 @@ export function useReportUser() {
         details: trimmedDetails ? trimmedDetails : null,
       });
       if (error) throw error;
+    },
+    // onMutate on purpose (here and above): a report that then fails still means a bad moment,
+    // and the rating prompt must not ask for stars in this session.
+    onMutate: () => {
+      noteSafetyAction();
     },
   });
 }
