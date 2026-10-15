@@ -4,6 +4,8 @@ import * as Localization from "expo-localization";
 import { MIN_AGE } from "@duoqueue/shared-types";
 
 import { Button } from "@/components/Button";
+import { canShowDraftDob } from "@/features/onboarding/commitDraft";
+import { LAUNCH_STARTED_AT, useOnboardingStore } from "@/store/onboarding-store";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
@@ -35,6 +37,14 @@ export function CompleteSignupScreen() {
   const signOut = useSessionStore((s) => s.signOut);
   const { colors, type } = useTheme();
   const { confirmDeleteThisSignIn, deleting } = useDeleteThisSignIn();
+  const draftDob = useOnboardingStore((s) => s.ageConfirmedDob);
+  const draftStartedAt = useOnboardingStore((s) => s.draftStartedAt);
+
+  // 1.0.2: somebody who passed the pre-auth age gate and then tapped Continue with Apple on "I
+  // already have an account" with a NEW Apple ID lands here minutes later. Their date is put back
+  // on the wheel rather than asked from scratch, but only for a draft started in this launch: a
+  // draft from an earlier launch (a lent phone) never shows its date of birth back.
+  const initialDob = canShowDraftDob({ draftStartedAt, launchStartedAt: LAUNCH_STARTED_AT }) ? draftDob : null;
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -130,6 +140,7 @@ export function CompleteSignupScreen() {
       loading={loading || deleting}
       error={error}
       onSubmit={(dobIso) => void handleSubmit(dobIso)}
+      initialDob={initialDob}
       // Above Continue, because Continue is the tap that creates the account. This is the ONLY
       // place an Apple signup is ever shown the terms: it never passes through sign-up.tsx,
       // where the same sentence, from the same component, has always lived.
