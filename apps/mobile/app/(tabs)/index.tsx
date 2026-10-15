@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { Alert, Pressable, Text, View } from "react-native";
+import { Alert, Pressable, Text, useWindowDimensions, View } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -24,6 +24,11 @@ import {
   useConsumableCredits,
 } from "@/features/premium/useConsumables";
 import { paywallHref } from "@/features/premium/paywall/paywallCopy";
+import {
+  DECK_TITLE_MAX_FONT_SCALE,
+  deckHeaderCompact,
+  HEADER_LINK_MAX_FONT_SCALE,
+} from "@/features/queue/deckHeaderFit";
 import { DuoPopsOptInCard } from "@/features/queue/DuoPopsOptInCard";
 import { QueueUpButton } from "@/features/queue/QueueUpButton";
 import { DeckQueueUpSheet } from "@/features/queue/QueueUpSheet";
@@ -107,6 +112,12 @@ export default function DeckScreen() {
     }
   }
 
+  // The header's text links fit every phone from 375pt up at the default text size; a 320pt phone
+  // (1.0.2 installs on iOS 15) and a 375pt one with the rocket at large text get Requests and
+  // Filters as icons instead (deckHeaderFit.ts measures both).
+  const { width: windowWidth, fontScale } = useWindowDimensions();
+  const compactHeader = deckHeaderCompact(windowWidth, { rocket: (credits?.boosts ?? 0) > 0, fontScale });
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <GraticuleBackground />
@@ -121,11 +132,15 @@ export default function DeckScreen() {
           paddingTop: insets.top + spacing.lg,
         }}
       >
-        <Text style={{ ...type.screenTitle, color: colors.text }}>Deck</Text>
+        <Text style={{ ...type.screenTitle, color: colors.text }} maxFontSizeMultiplier={DECK_TITLE_MAX_FONT_SCALE}>
+          Deck
+        </Text>
         {/* Measured, not guessed (deckHeaderFit.ts): the rocket, the 84pt Queue up control,
             Requests and Filters, 12pt apart, fit a 375pt phone. Both counts are badges that take
             no width, so nothing here moves when a count or the Queue up label changes; when the
-            rocket comes or goes, the cluster glides instead of jumping. */}
+            rocket comes or goes, the cluster glides instead of jumping. Where the words do not
+            fit (compactHeader), Requests and Filters are icons and their spoken labels keep the
+            words; the words never grow with Dynamic Type, as the pill's do not. */}
         <Animated.View
           layout={layoutTransition()}
           style={{ flexDirection: "row", alignItems: "center", gap: spacing.tight }}
@@ -160,16 +175,29 @@ export default function DeckScreen() {
             hitSlop={8}
             style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
           >
-            <Text style={[type.caption, { color: colors.voltDim }]}>Requests</Text>
+            {compactHeader ? (
+              <Ionicons name="person-add-outline" size={16} color={colors.voltDim} />
+            ) : (
+              <Text style={[type.caption, { color: colors.voltDim }]} maxFontSizeMultiplier={HEADER_LINK_MAX_FONT_SCALE}>
+                Requests
+              </Text>
+            )}
             <CountBadge count={admirersCount ?? 0} style={{ position: "absolute", top: -6, right: -10 }} />
           </Pressable>
           <Pressable
             accessibilityRole="button"
+            accessibilityLabel="Filters"
             onPress={() => router.push("/filters")}
             hitSlop={8}
             style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
           >
-            <Text style={[type.caption, { color: colors.voltDim }]}>Filters</Text>
+            {compactHeader ? (
+              <Ionicons name="options-outline" size={16} color={colors.voltDim} />
+            ) : (
+              <Text style={[type.caption, { color: colors.voltDim }]} maxFontSizeMultiplier={HEADER_LINK_MAX_FONT_SCALE}>
+                Filters
+              </Text>
+            )}
           </Pressable>
         </Animated.View>
       </View>
