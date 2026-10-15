@@ -133,10 +133,26 @@ export function useDeckSwipeFlow({ cards, popTop, restoreTop, quota, openLimitPa
   // The leaving card is gone from the queue without its exit finishing: a refresh replaced the
   // deck under it, and the unmount cancelled the exit, so its onSwiped will never come. Nothing is
   // leaving any more, so whatever was waiting goes back now.
+  //
+  // Its swipe is let go of too. Only onSwiped's `finally` ever removed a pending swipe, so this one
+  // stayed in the map for good: the Deck tab never unmounts, and a non-empty map makes refreshQuota
+  // and the blocked-swipe check trust the cached quota for the rest of the run (a free player back
+  // after the daily reset would get yesterday's paywall), and the same profile swiped again after a
+  // refresh would reuse a promise that failed long ago instead of calling perform_swipe. It cannot
+  // simply be deleted now: the request may still be in flight, and the map is what keeps the quota
+  // refetch from landing before the server has counted it. So it leaves the map when it settles,
+  // unless a newer swipe of the same profile has taken its place.
   useEffect(() => {
     const leavingId = leavingRef.current;
     if (leavingId === null || cards.some((card) => card.profile_id === leavingId)) return;
     leavingRef.current = null;
+    const orphan = pendingRef.current.get(leavingId);
+    if (orphan) {
+      const forget = () => {
+        if (pendingRef.current.get(leavingId) === orphan) pendingRef.current.delete(leavingId);
+      };
+      orphan.then(forget, forget);
+    }
     putBackWaiting();
     // putBackWaiting reads only refs and stable setters.
     // eslint-disable-next-line react-hooks/exhaustive-deps
