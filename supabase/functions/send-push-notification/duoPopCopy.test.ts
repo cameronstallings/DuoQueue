@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   DUO_LOCKED_TITLE,
   DUO_POP_TITLE,
+  duoCallLockedPush,
   duoLockedPush,
   duoPopPush,
   duoPopVariant,
@@ -181,6 +182,32 @@ describe("duoLockedPush", () => {
 
   it("no dashes, no beats, no dating, never Accept or Lock In", () => {
     const copy = duoLockedPush("Sam", 120);
+    const text = `${copy.title} ${copy.body}`;
+    expect(copy.title).toBe(DUO_LOCKED_TITLE);
+    expect(text).not.toMatch(/accept|lock in|beats/i);
+    expect(text).not.toMatch(DATING);
+    expect(text).not.toContain(EN_DASH);
+    expect(text).not.toContain(EM_DASH);
+  });
+});
+
+describe("duoCallLockedPush (0088: one duo per Queue up)", () => {
+  it("to the sender when a new player joins with the post's code: Duo locked, no Popped in", () => {
+    expect(duoCallLockedPush("Sam")).toEqual({ title: "Duo locked", body: "Sam answered your LFG post." });
+  });
+
+  it("a missing or blank name still reads as a sentence", () => {
+    expect(duoCallLockedPush(null).body).toBe("Someone answered your LFG post.");
+    expect(duoCallLockedPush(undefined).body).toBe("Someone answered your LFG post.");
+    expect(duoCallLockedPush("   ").body).toBe("Someone answered your LFG post.");
+  });
+
+  it("a typed name is made one line, and its dashes become hyphens", () => {
+    expect(duoCallLockedPush(`Kai\n${EM_DASH}Main`).body).toBe("Kai -Main answered your LFG post.");
+  });
+
+  it("no dashes, no beats, no dating, never Accept or Lock In", () => {
+    const copy = duoCallLockedPush("Sam");
     const text = `${copy.title} ${copy.body}`;
     expect(copy.title).toBe(DUO_LOCKED_TITLE);
     expect(text).not.toMatch(/accept|lock in|beats/i);
