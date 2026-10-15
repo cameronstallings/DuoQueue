@@ -9,9 +9,11 @@ import {
   DRAG_SIDEWAYS_FAIL,
   RUBBER_LIMIT,
   closeDuration,
+  exitFraction,
   scrimOpacity,
   sheetDragOffset,
   shouldDismiss,
+  springBackVelocity,
 } from "./sheetDrag";
 
 describe("the drag constants", () => {
@@ -145,6 +147,53 @@ describe("closeDuration", () => {
   it("takes the quickest close when there is nowhere left to go", () => {
     expect(closeDuration(0, 1200)).toBe(CLOSE_MIN_MS);
     expect(closeDuration(-20, 1200)).toBe(CLOSE_MIN_MS);
+  });
+});
+
+describe("springBackVelocity", () => {
+  // The spring back runs with overshootClamping, and Reanimated 4.1.7 ends a clamped spring at
+  // its target the first frame it leaves the band between where it started and rest, in EITHER
+  // direction (springUtils.ts, isAnimationTerminatingCalculation). A speed pointing away from
+  // rest leaves that band on frame one, so the panel would jump home in a single frame.
+
+  it("keeps the release speed when it already points home", () => {
+    expect(springBackVelocity(80, -500)).toBe(-500);
+    expect(springBackVelocity(80, -3000)).toBe(-3000);
+    expect(springBackVelocity(-40, 900)).toBe(900);
+  });
+
+  it("drops a speed that points away from rest, so the panel springs back instead of jumping", () => {
+    // Pulled down less than a quarter and let go still moving down (the common change of mind).
+    expect(springBackVelocity(80, 200)).toBe(0);
+    expect(springBackVelocity(100, 780)).toBe(0);
+    // Rubber-banded up and flicked further up.
+    expect(springBackVelocity(-40, -900)).toBe(0);
+  });
+
+  it("starts from still at rest or when the gesture reports garbage", () => {
+    expect(springBackVelocity(0, 500)).toBe(0);
+    expect(springBackVelocity(0, -500)).toBe(0);
+    expect(springBackVelocity(Number.NaN, -500)).toBe(0);
+    expect(springBackVelocity(80, Number.NaN)).toBe(0);
+    expect(springBackVelocity(80, Number.NEGATIVE_INFINITY)).toBe(0);
+  });
+});
+
+describe("exitFraction", () => {
+  it("is how far down the panel already is, as a share of its height", () => {
+    expect(exitFraction(100, 400)).toBe(0.25);
+    expect(exitFraction(300, 400)).toBe(0.75);
+  });
+
+  it("is never past fully out or above rest", () => {
+    expect(exitFraction(500, 400)).toBe(1);
+    expect(exitFraction(-20, 400)).toBe(0);
+  });
+
+  it("is fully out when there is no height to measure against (the panel is not drawn yet)", () => {
+    expect(exitFraction(100, 0)).toBe(1);
+    expect(exitFraction(100, Number.NaN)).toBe(1);
+    expect(exitFraction(Number.NaN, 400)).toBe(1);
   });
 });
 

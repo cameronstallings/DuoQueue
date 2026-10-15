@@ -1,4 +1,4 @@
-import { useEffect, useRef, type PropsWithChildren } from "react";
+import { useEffect, useRef, type PropsWithChildren, type ReactNode } from "react";
 import { Modal, Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type ViewStyle } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, {
@@ -22,9 +22,11 @@ import {
   DRAG_SIDEWAYS_FAIL,
   RUBBER_LIMIT,
   closeDuration,
+  exitFraction,
   scrimOpacity,
   sheetDragOffset,
   shouldDismiss,
+  springBackVelocity,
 } from "./sheetDrag";
 
 interface SheetProps extends PropsWithChildren {
@@ -39,12 +41,19 @@ interface SheetProps extends PropsWithChildren {
    *  finished. iOS drops a second modal presented while this one is still dismissing, so a
    *  sheet that hands off to another modal opens it from here. */
   onDismiss?: () => void;
+  /** Where a drag down to close can start. "panel" (the default): anywhere on it. "header": the
+   *  grab handle and the title only, for a sheet whose body is a vertical list (the prompt
+   *  picker), so a downward scroll inside the list is always the list's and never closes the
+   *  sheet. Give such a sheet a title, which makes the header a full-width band to grab. */
+  dragArea?: "panel" | "header";
 }
 
 /** The overshoot is clamped so the panel never lifts off the bottom edge: at the sheet spring's
  *  damping ratio (0.904) the bounce past rest is about a tenth of a percent of the panel's height,
- *  under a point, but it would show as a sliver of scrim below the panel. The same holds for the
- *  spring back after a drag, which starts at the release speed. */
+ *  under a point, but it would show as a sliver of scrim below the panel. The same spring brings
+ *  the panel back after a drag, starting at the release speed only when that speed points home
+ *  (springBackVelocity in sheetDrag.ts says why: a clamped spring started moving away from rest
+ *  cuts straight to rest in one frame). */
 const PANEL_SPRING = { ...SPRINGS.sheet, overshootClamping: true };
 
 /** How long a drag close waits for the caller to hide the sheet before deciding it never will (an
@@ -58,6 +67,9 @@ interface SheetSurfaceProps extends PropsWithChildren {
   onScrimPress: (() => void) | undefined;
   scrimColor: string;
   panelStyle: ViewStyle;
+  /** The grab handle and the title, drawn above the children. */
+  header: ReactNode;
+  dragArea: "panel" | "header";
 }
 
 /**
@@ -76,24 +88,37 @@ interface SheetSurfaceProps extends PropsWithChildren {
  * THE DRAG (build 21). The whole panel is the handle: a pan that starts once the finger has gone
  * 10pt down moves it with the finger on the UI thread, rubber-banding upward (sheetDrag.ts), and
  * the scrim lightens as it goes. Letting go past a quarter of its height, or on a downward flick,
- * slides it the rest of the way out at the speed it was let go at, then calls `onClose`: the same
- * close a scrim tap makes, so the Modal fades the (by then empty) scrim, iOS reports the dismissal
- * through onDismiss exactly as before, and every useSheetHandoff hand-off keeps opening its second
- * modal from there. Anything else springs back on the sheet spring. Under Reduce Motion the panel
- * still follows the finger (the user's own gesture always works), the close is a quick fade
- * instead of a slide, and the spring back cuts.
+ * slides it the rest of the way out (leaving at the release speed, within 140 to 280ms), then
+ * calls `onClose`: the same close a scrim tap makes, so the Modal fades the (by then empty) scrim,
+ * iOS reports the dismissal through onDismiss exactly as before, and every useSheetHandoff
+ * hand-off keeps opening its second modal from there. The slide is kept as a share of the panel's
+ * live height (`out`), so a panel that grows on the way out (Queue Up's gliding box) still ends
+ * fully off screen. Anything else springs back on the sheet spring, starting at the release speed
+ * only when that points home (springBackVelocity). Under Reduce Motion the panel still follows the
+ * finger (the user's own gesture always works), the close is a quick fade instead of a slide, and
+ * the spring back cuts.
  *
- * SCROLLING INSIDE A SHEET. The drag never fights content that scrolls, because the first gesture
- * to claim a touch keeps it: iOS fails the pan when a scroll view's own pan begins first, Android
- * cancels it when a scroll view takes the touch. So a sideways row (the Highlights faces) scrolls
- * sideways and the pan gives up after 20pt sideways anyway; a vertical list (the prompt picker)
- * scrolls and bounces as before, and that sheet drags from its grab handle and title, which no
- * list ever covers. Everything else in a panel (rows, chips, buttons, fields) drags it from
- * anywhere, and a drag that starts on a row never presses it: Gesture Handler cancels the row's
- * touch the moment the pan takes over.
+ * SCROLLING INSIDE A SHEET. A sideways row (the Highlights faces) scrolls sideways: a horizontal
+ * scroll view does not take a downward move, and the pan gives up after 20pt sideways. A vertical
+ * list is different. On iOS the pan and the list's own scroll gesture both wait for about 10pt of
+ * travel and nothing orders them (Gesture Handler never makes its pan wait for a native scroll
+ * view), so a downward scroll inside a list could move the sheet instead. A sheet whose body is a
+ * vertical list (the prompt picker) therefore passes dragArea="header" and drags from its grab
+ * handle and title only, which no list ever covers. Everything else in a panel (rows, chips,
+ * buttons, fields) drags it from anywhere, and a drag that starts on a row never presses it:
+ * Gesture Handler cancels the row's touch the moment the pan takes over.
  */
-function SheetSurface({ visible, onClose, onScrimPress, scrimColor, panelStyle, children }: SheetSurfaceProps) {
-  const { colors } = useTheme();
+function SheetSurface({
+  visible,
+  onClose,
+  onScrimPress,
+  scrimColor,
+  panelStyle,
+  header,
+  dragArea,
+  children,
+}: SheetSurfaceProps) {
+  const { colors, spacing } = useTheme();
   const reduced = useReducedMotion();
   const height = useSharedValue(0);
   const progress = useSharedValue(0);
@@ -101,8 +126,11 @@ function SheetSurface({ visible, onClose, onScrimPress, scrimColor, panelStyle, 
   const drag = useSharedValue(0);
   /** The Reduce Motion close: a fade of the panel and scrim together. */
   const fade = useSharedValue(1);
-  /** A drag close is under way: the finger can no longer move the panel. */
+  /** A drag close is under way: the finger can no longer move the panel, and the panel sits `out`
+   *  of its live height below rest instead of at `drag`. */
   const closing = useSharedValue(false);
+  /** How far out a closing panel is, as a share of its height (0 at rest, 1 fully off screen). */
+  const out = useSharedValue(0);
   const risen = useRef(false);
   const visibleRef = useRef(visible);
   const refusedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -114,9 +142,10 @@ function SheetSurface({ visible, onClose, onScrimPress, scrimColor, panelStyle, 
     progress.value = withSpring(1, PANEL_SPRING);
   }
 
-  /** Brings a drag-closed panel back to rest. */
+  /** Brings a drag-closed panel back to rest, from wherever the slide had taken it. */
   function restore() {
     if (!closing.value) return;
+    drag.value = out.value * height.value;
     closing.value = false;
     fade.value = withTiming(1, { duration: motion.quick, reduceMotion: ReduceMotion.Never });
     drag.value = withSpring(0, PANEL_SPRING);
@@ -159,6 +188,9 @@ function SheetSurface({ visible, onClose, onScrimPress, scrimColor, panelStyle, 
       // A cancelled pan (a scroll view took the touch, the system interrupted it) is not a
       // release: the panel springs home from wherever it is.
       if (success && shouldDismiss(event.translationY, event.velocityY, height.value)) {
+        // From here the panel is placed by `out` against its live height; it starts exactly where
+        // the finger left it, so this frame does not move it.
+        out.value = exitFraction(drag.value, height.value);
         closing.value = true;
         if (reduced) {
           fade.value = withTiming(0, { duration: motion.quick, reduceMotion: ReduceMotion.Never }, (finished) => {
@@ -167,46 +199,98 @@ function SheetSurface({ visible, onClose, onScrimPress, scrimColor, panelStyle, 
           return;
         }
         const ms = closeDuration(height.value - drag.value, event.velocityY);
-        drag.value = withTiming(height.value, { duration: ms, easing: Easing.out(Easing.quad) }, (finished) => {
+        out.value = withTiming(1, { duration: ms, easing: Easing.out(Easing.quad) }, (finished) => {
           if (finished) runOnJS(closeFromDrag)();
         });
         return;
       }
-      drag.value = withSpring(0, { ...PANEL_SPRING, velocity: event.velocityY });
+      drag.value = withSpring(0, { ...PANEL_SPRING, velocity: springBackVelocity(drag.value, event.velocityY) });
     });
 
-  const panelMotion = useAnimatedStyle(() => ({
-    opacity: height.value > 0 ? fade.value : 0,
-    transform: [{ translateY: (1 - progress.value) * height.value + drag.value }],
-  }));
+  const panelMotion = useAnimatedStyle(() => {
+    const offset = closing.value ? out.value * height.value : drag.value;
+    return {
+      opacity: height.value > 0 ? fade.value : 0,
+      transform: [{ translateY: (1 - progress.value) * height.value + offset }],
+    };
+  });
 
-  const scrimMotion = useAnimatedStyle(() => ({
-    opacity: fade.value * scrimOpacity(drag.value, height.value),
-  }));
+  const scrimMotion = useAnimatedStyle(() => {
+    const offset = closing.value ? out.value * height.value : drag.value;
+    return { opacity: fade.value * scrimOpacity(offset, height.value) };
+  });
+
+  const panel = (
+    <Animated.View onStartShouldSetResponder={() => true} onLayout={onLayout} style={[panelStyle, panelMotion]}>
+      {/* The skirt: the panel's own surface below its bottom edge, so pulling it up (at most
+          RUBBER_LIMIT) shows more panel, never a strip of scrim. Off screen at rest. */}
+      <View
+        pointerEvents="none"
+        style={[styles.skirt, { height: RUBBER_LIMIT * 2, backgroundColor: colors.surfaceSolid }]}
+      />
+      {/* With dragArea="header" the grab band reaches out over the panel's top and side padding
+          (Sheet's panelStyle: spacing.sm on top, spacing.lg at the sides), so the whole strip
+          above the list takes the drag, not just the handle and the title's text. */}
+      {dragArea === "header" ? (
+        <GestureDetector gesture={pan}>
+          <View
+            style={{
+              marginTop: -spacing.sm,
+              paddingTop: spacing.sm,
+              marginHorizontal: -spacing.lg,
+              paddingHorizontal: spacing.lg,
+            }}
+          >
+            {header}
+          </View>
+        </GestureDetector>
+      ) : (
+        header
+      )}
+      {children}
+    </Animated.View>
+  );
 
   return (
     <Pressable style={styles.scrim} onPress={onScrimPress}>
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: scrimColor }, scrimMotion]} />
-      <GestureDetector gesture={pan}>
-        <Animated.View onStartShouldSetResponder={() => true} onLayout={onLayout} style={[panelStyle, panelMotion]}>
-          {/* The skirt: the panel's own surface below its bottom edge, so pulling it up (at most
-              RUBBER_LIMIT) shows more panel, never a strip of scrim. Off screen at rest. */}
-          <View
-            pointerEvents="none"
-            style={[styles.skirt, { height: RUBBER_LIMIT * 2, backgroundColor: colors.surfaceSolid }]}
-          />
-          {children}
-        </Animated.View>
-      </GestureDetector>
+      {dragArea === "header" ? panel : <GestureDetector gesture={pan}>{panel}</GestureDetector>}
     </Pressable>
   );
 }
 
 /** The one shared bottom-sheet chrome: a scrim that fades, a panel that springs up and drags
  *  down to close, a grab handle and an optional title. */
-export function Sheet({ visible, onClose, title, children, dismissable = true, onDismiss }: SheetProps) {
+export function Sheet({
+  visible,
+  onClose,
+  title,
+  children,
+  dismissable = true,
+  onDismiss,
+  dragArea = "panel",
+}: SheetProps) {
   const { colors, radius, spacing, type, scrimRgb } = useTheme();
   const insets = useSafeAreaInsets();
+
+  const header = (
+    <>
+      {/* The grab handle: the drag's affordance. */}
+      <View
+        style={{
+          alignSelf: "center",
+          width: 36,
+          height: 4,
+          borderRadius: radius.round,
+          backgroundColor: colors.border,
+          marginBottom: spacing.md,
+        }}
+      />
+      {title !== undefined && (
+        <Text style={{ ...type.title, color: colors.text, marginBottom: spacing.md }}>{title}</Text>
+      )}
+    </>
+  );
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} onDismiss={onDismiss}>
@@ -228,21 +312,9 @@ export function Sheet({ visible, onClose, title, children, dismissable = true, o
             paddingHorizontal: spacing.lg,
             paddingBottom: insets.bottom + spacing.lg,
           }}
+          header={header}
+          dragArea={dragArea}
         >
-          {/* The grab handle: the drag's affordance. */}
-          <View
-            style={{
-              alignSelf: "center",
-              width: 36,
-              height: 4,
-              borderRadius: radius.round,
-              backgroundColor: colors.border,
-              marginBottom: spacing.md,
-            }}
-          />
-          {title !== undefined && (
-            <Text style={{ ...type.title, color: colors.text, marginBottom: spacing.md }}>{title}</Text>
-          )}
           {children}
         </SheetSurface>
       </GestureHandlerRootView>

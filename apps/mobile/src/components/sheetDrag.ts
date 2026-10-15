@@ -79,6 +79,42 @@ export function closeDuration(remaining: number, velocityY: number): number {
   return Math.round(Math.min(CLOSE_MAX_MS, Math.max(CLOSE_MIN_MS, ms)));
 }
 
+/**
+ * The speed the spring back starts at, for a panel let go `offset` points below its resting place
+ * (negative: lifted) with the finger moving at `velocityY` pt/s (positive down): the release speed
+ * when it points home, otherwise none.
+ *
+ * WHY. The sheet's spring is overshoot-clamped (so the panel never lifts off the bottom edge), and
+ * Reanimated 4.1.7 ends a clamped spring AT ITS TARGET the first frame the value leaves the band
+ * between where it started and rest, in either direction (springUtils.ts,
+ * isAnimationTerminatingCalculation). A speed pointing away from rest (a short pull let go while
+ * the finger is still going down, the commonest change of mind) leaves that band on frame one, and
+ * the panel would cut home in a single frame instead of springing. Found in review of the first
+ * drag commit (89217d2) by replaying Reanimated's spring at 60fps: from 80pt down, 200pt/s down
+ * already did it. A speed toward rest stays inside the band until rest itself, where the clamp
+ * stops the panel exactly as it should.
+ */
+export function springBackVelocity(offset: number, velocityY: number): number {
+  "worklet";
+  if (!Number.isFinite(offset) || !Number.isFinite(velocityY)) return 0;
+  if (offset > 0) return Math.min(velocityY, 0);
+  if (offset < 0) return Math.max(velocityY, 0);
+  return 0;
+}
+
+/**
+ * How far out a closing panel already is, as a share of its height: where the slide out starts.
+ * The slide then runs to 1, and the sheet multiplies by the panel's LIVE height every frame, so a
+ * panel that grows while it leaves (Queue Up's box gliding from its 300pt skeleton to the real
+ * body) still ends fully off screen, where a slide to the height read at release would leave its
+ * top edge showing. Fully out (1) when there is nothing to measure.
+ */
+export function exitFraction(offset: number, panelHeight: number): number {
+  "worklet";
+  if (!(panelHeight > 0) || !Number.isFinite(offset)) return 1;
+  return Math.min(Math.max(offset / panelHeight, 0), 1);
+}
+
 /** The scrim's opacity (times its usual dim) with the panel `offset` points below its resting
  * place: full at rest and while lifted, clear once the panel is all the way down, so the screen
  * behind lightens as the sheet goes, as an iOS sheet's does. Full until the panel is measured. */

@@ -145,7 +145,14 @@ export default function EditPromptsScreen() {
         style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top, backgroundColor: colors.background }}
       />
 
-      <Sheet visible={pickerIndex !== null} onClose={() => setPickerIndex(null)} title="Select a prompt">
+      {/* The list scrolls vertically, so the sheet drags from its handle and title only and a
+          downward scroll in the list never closes it (Sheet.tsx, SCROLLING INSIDE A SHEET). */}
+      <Sheet
+        visible={pickerIndex !== null}
+        onClose={() => setPickerIndex(null)}
+        title="Select a prompt"
+        dragArea="header"
+      >
         {loadingCatalog ? (
           <View>
             {[0, 1, 2, 3, 4].map((i) => (
