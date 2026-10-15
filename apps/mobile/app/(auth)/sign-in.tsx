@@ -10,6 +10,7 @@ import { TextField } from "@/components/TextField";
 import { AppleSignInButton } from "@/features/auth/AppleSignInButton";
 import { signInMessage } from "@/features/auth/authErrors";
 import { SIGN_IN_COPY } from "@/features/auth/frontDoorCopy";
+import { LegalConsentNotice } from "@/features/auth/LegalConsentNotice";
 import { GOOGLE_SIGN_IN_ENABLED } from "@/features/auth/socialSignIn";
 import { isCaptchaConfigured, TurnstileCaptcha } from "@/features/auth/TurnstileCaptcha";
 import { useGoogleSignIn } from "@/features/auth/useGoogleSignIn";
@@ -38,6 +39,8 @@ export default function SignIn() {
   const { colors, spacing, type } = useTheme();
   const { email: emailParam } = useLocalSearchParams<{ email?: string }>();
   const hasDraft = useOnboardingStore((s) => s.ageConfirmedDob !== null);
+  // The same test as beginAccountEntry: a sign-in now would commit the card.
+  const readyToCommit = useOnboardingStore((s) => s.readyToSave && s.ageConfirmedDob !== null);
   const [email, setEmail] = useState(emailParam ?? "");
   const [password, setPassword] = useState("");
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
@@ -102,7 +105,14 @@ export default function SignIn() {
           triggered by a third-party login service, and Google Sign-In is one of the ones Apple
           names: offering it obliges an equivalent option, and a first-party email and password
           form is not one. Apple alone is compliant; Google without Apple is a rejection. Both
-          flags, and the full argument, live in features/auth/socialSignIn.ts. */}
+          flags, and the full argument, live in features/auth/socialSignIn.ts.
+
+          THE TERMS LINE, with a card ready to save. Then this button can CREATE an account (a
+          new Apple ID) and the commit makes its profile from the draft's DOB, skipping
+          CompleteSignupScreen, the other place an Apple signup is shown the Terms. So the line
+          sits above the tap that creates the account, as on Save. Without a ready card a new
+          Apple ID goes through CompleteSignupScreen, which shows it above its own Continue. */}
+      {readyToCommit && <LegalConsentNotice />}
       <AppleSignInButton
         intent="continue"
         onStart={beginAccountEntry}
