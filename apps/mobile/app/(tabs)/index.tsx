@@ -12,6 +12,7 @@ import { GrainOverlay } from "@/components/GrainOverlay";
 import { Skeleton } from "@/components/Skeleton";
 import { useAdmirersCount } from "@/features/matching/useAdmirers";
 import { PushPreAskCard } from "@/features/push/PushPreAskCard";
+import { offerPushAsk } from "@/features/push/pushAskStore";
 import {
   SuperPingLimitReachedError,
   SuperPingRequiresPremiumError,
@@ -47,8 +48,16 @@ export default function DeckScreen() {
   const { data: credits } = useConsumableCredits();
   const deckRef = useRef<SwipeDeckHandle>(null);
   // The swipe itself (decide early, the free limit, putting a failed card back, DUO LOCKED, the
-  // limit paywall) lives in useDeckSwipeFlow.
-  const flow = useDeckSwipeFlow({ cards, popTop, restoreTop, quota, openLimitPaywall: () => router.push(paywallHref("limit")) });
+  // limit paywall) lives in useDeckSwipeFlow. A like that did not match marks the moment the deck's
+  // notification pre-ask (PushPreAskCard below) may show.
+  const flow = useDeckSwipeFlow({
+    cards,
+    popTop,
+    restoreTop,
+    quota,
+    openLimitPaywall: () => router.push(paywallHref("limit")),
+    onLiked: () => offerPushAsk(),
+  });
   useDeckPrefetch(cards, !isLoading && !error);
   // Asked here as well as in EmptyDeck (the same query keys), so when the deck drains the one
   // skeleton below stays up until the empty deck knows which screen it is, and EmptyDeck mounts

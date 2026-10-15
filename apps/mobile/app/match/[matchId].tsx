@@ -3,6 +3,7 @@ import { useLocalSearchParams } from "expo-router";
 import { DuoLockedScreen } from "@/features/match/DuoLockedScreen";
 import { exitMatchMoment } from "@/features/match/exitMatchMoment";
 import { type MatchRouteParams, matchReason, parsePoppedSeconds } from "@/features/match/matchMoment";
+import { PushPreAskCard } from "@/features/push/PushPreAskCard";
 import { useRequireSession } from "@/hooks/useRequireSession";
 
 /**
@@ -22,6 +23,7 @@ export default function MatchCelebrationScreen() {
       reason={matchReason(params)}
       poppedInSeconds={parsePoppedSeconds(params.popped)}
       onExit={(exit) => exitMatchMoment(exit, params.matchId)}
+      belowButtons={<PushPreAskCard surface="match" otherName={params.name || undefined} />}
     />
   );
 }
