@@ -58,7 +58,16 @@ const mocks = vi.hoisted(() => {
     rpcError: null as { message: string } | null,
     signOutThrow: null as Error | null,
     signOutCalls: 0,
+    /** Profile ids `refreshPushTokenIfGranted` was called with (1.0.2: the profile-ready path). */
     pushRegistrations: [] as string[],
+    /** Calls to `registerForPushNotifications`, the one entry point that may show the iOS prompt.
+     * Nothing in the session store may make one (1.0.2: no cold permission prompt). */
+    permissionPrompts: 0,
+    /** Calls to `forgetThisDevicePushToken`, and whether the next one rejects. */
+    tokenForgets: 0,
+    forgetThrow: false,
+    /** Order of the sign-out steps that matter ("forget-push-token" must come before "auth.signOut"). */
+    events: [] as string[],
     purchasesConfigured: [] as string[],
     purchasesLoggedOut: 0,
     queryCacheClears: 0,
@@ -83,6 +92,10 @@ const mocks = vi.hoisted(() => {
     state.signOutThrow = null;
     state.signOutCalls = 0;
     state.pushRegistrations = [];
+    state.permissionPrompts = 0;
+    state.tokenForgets = 0;
+    state.forgetThrow = false;
+    state.events = [];
     state.purchasesConfigured = [];
     state.purchasesLoggedOut = 0;
     state.queryCacheClears = 0;
@@ -139,6 +152,7 @@ const mocks = vi.hoisted(() => {
       },
       signOut: () => {
         state.signOutCalls += 1;
+        state.events.push("auth.signOut");
         if (state.signOutThrow) return Promise.reject(state.signOutThrow);
         return Promise.resolve({ error: null });
       },
@@ -160,8 +174,21 @@ vi.mock("@/lib/supabase", () => ({ supabase: mocks.supabase }));
 vi.mock("@/features/auth/sessionRouting", async () => await import("../features/auth/sessionRouting"));
 
 vi.mock("@/lib/notifications", () => ({
-  registerForPushNotifications: (profileId: string) => {
+  // The profile-ready path: refreshes a token the OS already allows, never asks. Recorded in
+  // pushRegistrations, so every assertion written when that path still called
+  // registerForPushNotifications keeps its meaning ("the token was saved for this profile").
+  refreshPushTokenIfGranted: (profileId: string) => {
     mocks.state.pushRegistrations.push(profileId);
+    return Promise.resolve();
+  },
+  forgetThisDevicePushToken: () => {
+    mocks.state.events.push("forget-push-token");
+    mocks.state.tokenForgets += 1;
+    if (mocks.state.forgetThrow) return Promise.reject(new Error("network gone"));
+    return Promise.resolve();
+  },
+  registerForPushNotifications: () => {
+    mocks.state.permissionPrompts += 1;
     return Promise.resolve();
   },
   ensurePushPermission: () => Promise.resolve({ granted: true, canAskAgain: true }),
@@ -670,6 +697,17 @@ describe("the once-per-user onProfileReady latch", () => {
     expect(state.updates).toEqual([]);
   });
 
+  it("only refreshes a token the OS already allows, and never asks for permission (1.0.2)", async () => {
+    state.deviceSession = sessionFor("u1");
+    state.defaultRead = { data: profileRow("u1"), error: null };
+    const store = await loadStore();
+    await store.getState().initialize();
+    await flush();
+
+    expect(state.pushRegistrations).toEqual(["u1"]);
+    expect(state.permissionPrompts).toBe(0);
+  });
+
   it("does not spend the one-shot iOS permission prompt before there is a profile", async () => {
     // `push_tokens.profile_id` references `profiles(id)`, so on an Apple session this used to be
     // a foreign-key violation swallowed as a warning, and the user finished signup with no push
@@ -837,6 +875,33 @@ describe("signOut", () => {
     await flush();
 
     expect(state.pushRegistrations).toEqual(["u1", "u1"]);
+  });
+
+  it("removes this phone's push token before the auth sign-out, while RLS still has the session", async () => {
+    state.deviceSession = sessionFor("u1");
+    state.reads = [{ data: profileRow("u1"), error: null }];
+    const store = await loadStore();
+    await store.getState().initialize();
+
+    await store.getState().signOut();
+
+    expect(state.events).toEqual(["forget-push-token", "auth.signOut"]);
+    expect(state.tokenForgets).toBe(1);
+  });
+
+  it("still signs out, with the cache cleared, when removing the token fails", async () => {
+    state.deviceSession = sessionFor("u1");
+    state.reads = [{ data: profileRow("u1"), error: null }];
+    state.forgetThrow = true;
+    const store = await loadStore();
+    await store.getState().initialize();
+
+    await store.getState().signOut();
+
+    expect(state.events).toEqual(["forget-push-token", "auth.signOut"]);
+    expect(store.getState().status).toBe("signed_out");
+    expect(store.getState().session).toBeNull();
+    expect(state.queryCacheClears).toBe(1);
   });
 });
 

@@ -12,7 +12,7 @@ import {
   type SessionStatus,
 } from "@/features/auth/sessionRouting";
 import { supabase } from "@/lib/supabase";
-import { registerForPushNotifications } from "@/lib/notifications";
+import { forgetThisDevicePushToken, refreshPushTokenIfGranted } from "@/lib/notifications";
 import { queryClient } from "@/lib/query-client";
 import { configurePurchases, logOutPurchases } from "@/lib/revenuecat";
 import { useOnboardingStore } from "@/store/onboarding-store";
@@ -151,9 +151,11 @@ function onAuthenticated(userId: string): void {
  * for an Apple session the upsert failed with a foreign-key violation that `notifications.ts`
  * swallows as a console.warn — the user finished signup with no push token, and
  * `get_new_player_alert_batch` requires one before a recipient is eligible at all, so they were
- * silently excluded from every new-player sweep until the next cold start. Registering here
- * instead also stops the iOS permission prompt (which the OS shows exactly once per install)
- * from being spent before the user has even confirmed their age.
+ * silently excluded from every new-player sweep until the next cold start. So the token still
+ * waits for a profile row. Since 1.0.2 this only refreshes a token the OS ALREADY allows, claims it
+ * for this account and stamps the build on it (`refreshPushTokenIfGranted`); it never asks. The
+ * one iOS prompt (shown exactly once per install) is asked at the moments that pay off, a like,
+ * DUO LOCKED, Queue up, through `registerForPushNotifications`, never cold at signup.
  *
  * It is also where the name Apple shared at sign-in is dropped from the phone. That value is
  * written on EVERY Apple sign-in, before the token exchange, because a brand-new account needs
@@ -169,7 +171,7 @@ function onProfileReady(userId: string): void {
   if (profileReadyFor === userId) return;
   profileReadyFor = userId;
   void clearPendingDisplayName();
-  void registerForPushNotifications(userId);
+  void refreshPushTokenIfGranted(userId);
   // Through heartbeat(), which stamps the server's now(): migration 0055 took last_active_at out
   // of the client's UPDATE grant, so the direct .update() this used to be had failed on every
   // sign-in since. The userId argument is implied: heartbeat() writes auth.uid()'s own row.
@@ -286,6 +288,15 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   },
 
   signOut: async () => {
+    // This phone's push-token row goes first, while the session still exists: RLS
+    // (push_tokens_delete_own) needs it. Without this the signed-out phone keeps getting the old
+    // account's matches and messages. It is bounded inside (about 3 s) and never throws, so a
+    // dead network never holds a sign-out; the catch is belt and braces.
+    try {
+      await forgetThisDevicePushToken();
+    } catch (err) {
+      console.warn("forgetThisDevicePushToken failed:", err);
+    }
     // Reset local state even if the server-side calls fail (e.g. after account
     // deletion, the user no longer exists server-side to sign out).
     try {
