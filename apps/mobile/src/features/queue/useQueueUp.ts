@@ -17,7 +17,8 @@ import type { QueueUpRow } from "./types";
  *    1.0.1's "I'm free to duo right now" switch did, the switch this button replaced. Without it,
  *    a 1.0.2 phone on a server without 0085 could not go online at all, and every Queue up (App
  *    Review's included) would end in "Queue Up isn't ready yet". The sheet then shows the
- *    "profile" phase: queued by the flag, "Your matches can see you're free.", and Stop. No Duo
+ *    "profile" phase: queued by the flag, QUEUE_COPY.queuedFree (Online Now, and a possible
+ *    heads-up to matches), and Stop. No Duo
  *    Pops and no code are claimed, because none were sent;
  *  - stop_queue_up's PGRST202 falls back to set_looking_now(false), which is live, so a player
  *    who is free to duo can always stop being;

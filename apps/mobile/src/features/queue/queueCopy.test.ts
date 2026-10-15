@@ -37,22 +37,31 @@ describe("outcomeLine", () => {
   });
 
   it("gives every server reason its own honest line", () => {
-    expect(outcomeLine("ping_off", facts)).toBe("You're queued quietly. Your matches can see you're free.");
+    expect(outcomeLine("ping_off", facts)).toBe("You're queued quietly. You're in Online Now for the hour.");
     expect(outcomeLine("outside_na", facts)).toBe(
-      "Duo Pops reach players in North America for now. Your matches can see you're free.",
+      "Duo Pops reach players in North America for now. You're in Online Now for the hour.",
     );
     expect(outcomeLine("daily_limit", facts)).toBe(
-      "You've sent 3 Duo Pops today. Your matches can still see you're free.",
+      "You've sent 3 Duo Pops today. You're still in Online Now for the hour.",
     );
     expect(outcomeLine("no_players", facts)).toBe(
       "No one in League of Legends could get a Duo Pop right now. Share your post so someone can find you.",
     );
     expect(outcomeLine("too_new", facts)).toBe(
-      "Duo Pops start working a day after you join. Your matches can see you're free.",
+      "Duo Pops start working a day after you join. You're in Online Now for the hour.",
     );
     expect(outcomeLine("unavailable", facts)).toBe(
-      "Duo Pops aren't available on this account right now. Your matches can see you're free.",
+      "Duo Pops aren't available on this account right now. You're in Online Now for the hour.",
     );
+  });
+
+  it("never claims matches can see that a player is free (nothing in the app shows them)", () => {
+    const lines = [
+      ...Object.values(QUEUE_COPY),
+      ...(["ping_off", "outside_na", "daily_limit", "too_new", "unavailable"] as const).map((o) => outcomeLine(o, facts)),
+    ];
+    for (const line of lines) expect(line).not.toMatch(/matches (can )?(still )?see/i);
+    expect(QUEUE_COPY.adultsOnly).toContain("15 minutes after your hour ends");
   });
 
   it("never claims players were told when none were", () => {
@@ -80,8 +89,8 @@ describe("the small lines", () => {
     expect(ringClock(-3)).toBe("0:00");
   });
 
-  it("says only that matches can see a player queued by the profile with no live queue-up", () => {
-    expect(QUEUE_COPY.queuedFree).toBe("Your matches can see you're free.");
+  it("says what is true for a player queued by the profile with no live queue-up", () => {
+    expect(QUEUE_COPY.queuedFree).toBe("You're in Online Now, and your matches may get a heads-up.");
   });
 
   it("says the games could not be loaded, never 'Add a game', when the read fails", () => {

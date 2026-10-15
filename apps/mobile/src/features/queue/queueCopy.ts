@@ -27,7 +27,11 @@ export const QUEUE_COPY = {
   gameSection: "Game",
   pingLabel: "Ping players",
   pingHint: "Send a Duo Pop to up to 6 players in this game. The first to tap I'm in is your duo.",
-  matchesSeeYou: "Your matches see that you're free for the next hour.",
+  // Honest about reach: queued players show in Online Now (for people they have not swiped on),
+  // and matches MAY get 0074's "free to duo" push, which has its own limits (once per 6 hours
+  // per match, never 01:00 to 09:59, not for locked chats, only with that switch on). Nothing
+  // in the app shows a match that you are free, so the copy never says matches "see" it.
+  matchesSeeYou: "For the next hour you show in Online Now, and your matches may get a heads-up that you're free.",
   queueUp: "Queue up",
   outsideNa: "Duo Pops reach players in North America for now. You can still share your LFG post.",
   noGames: "Add a game to your profile to queue up.",
@@ -38,15 +42,15 @@ export const QUEUE_COPY = {
   copy: "Copy post",
   copied: "Post copied",
   adultsOnly:
-    "DuoQueue is 18+ and it is for finding teammates, not dates. Only share your post where adults look for teammates. Your code stops working when you stop queueing.",
+    "DuoQueue is 18+ and it is for finding teammates, not dates. Only share your post where adults look for teammates. Your code stops working when you stop queueing, or 15 minutes after your hour ends.",
   permissionPrompt: "Turn on notifications to hear the moment someone's in.",
   turnOn: "Turn on",
   seeWhosOn: "See who's on now",
   stop: "Stop queueing",
   stopped: "You're not queued anymore.",
   /** Queued by the profile's flag with no live queue-up behind it (0085 not live yet, or a 1.0.1
-   * phone's free-to-duo switch): the one thing that is true is that matches can see it. */
-  queuedFree: "Your matches can see you're free.",
+   * phone's free-to-duo switch): what is true is Online Now and a possible heads-up to matches. */
+  queuedFree: "You're in Online Now, and your matches may get a heads-up.",
   sendMessage: "Send a message",
   startFailed: "Couldn't queue you up. Please try again.",
   rateLimited: "You've queued up a lot in the last hour. Try again a little later.",
@@ -75,17 +79,17 @@ export function outcomeLine(
     case "no_answer":
       return `Nobody grabbed it this time. You're still queued for ${minutes(facts.minutesLeft)}.`;
     case "ping_off":
-      return "You're queued quietly. Your matches can see you're free.";
+      return "You're queued quietly. You're in Online Now for the hour.";
     case "outside_na":
-      return "Duo Pops reach players in North America for now. Your matches can see you're free.";
+      return "Duo Pops reach players in North America for now. You're in Online Now for the hour.";
     case "daily_limit":
-      return "You've sent 3 Duo Pops today. Your matches can still see you're free.";
+      return "You've sent 3 Duo Pops today. You're still in Online Now for the hour.";
     case "no_players":
       return `No one in ${facts.gameName ?? "your game"} could get a Duo Pop right now. Share your post so someone can find you.`;
     case "too_new":
-      return "Duo Pops start working a day after you join. Your matches can see you're free.";
+      return "Duo Pops start working a day after you join. You're in Online Now for the hour.";
     case "unavailable":
-      return "Duo Pops aren't available on this account right now. Your matches can see you're free.";
+      return "Duo Pops aren't available on this account right now. You're in Online Now for the hour.";
   }
 }
 
