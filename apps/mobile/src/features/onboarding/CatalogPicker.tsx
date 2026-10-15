@@ -9,7 +9,7 @@ import { hapticSelection } from "@/lib/haptics";
 import { layoutTransition, quickEntering, quickExiting } from "@/theme/entering";
 import { useTheme } from "@/theme/useTheme";
 
-import { normalizeCustomName, pendingCustomGameId, showAddCustom } from "./catalogSearch";
+import { normalizeCustomName, pendingCustomGameId, showAddCustom, showNoMatches } from "./catalogSearch";
 import { type CatalogItem, createCustomCatalogEntry } from "./customGames";
 import { CATALOG_MIN_QUERY, useCatalogSearch } from "./useCatalogSearch";
 
@@ -30,9 +30,10 @@ interface CatalogPickerProps {
  * Search the games or shows catalog and pick from it, or add a missing entry.
  *
  * Calm while typing (1.0.2): the last results stay up while the next search runs (the hook keeps
- * them), the skeleton shows only before there is anything at all, and "No matches yet." with the
- * add button appears only once a search has SETTLED on nothing (`showAddCustom`), so neither
- * flashes on every keystroke nor invites a duplicate of a game the catalog already has.
+ * them), the skeleton shows only before there is anything at all, "No matches yet." appears only
+ * once a search has SETTLED on nothing (`showNoMatches`), and the add button only once it has
+ * settled with no row that IS the name typed (`showAddCustom`, 1.0.1's exact-name rule), so
+ * neither flashes on every keystroke nor invites a duplicate of a game the catalog already has.
  */
 export function CatalogPicker({ table, placeholder, profileId, selectedIds, onSelect }: CatalogPickerProps) {
   const { colors, radius, spacing, type } = useTheme();
@@ -45,14 +46,10 @@ export function CatalogPicker({ table, placeholder, profileId, selectedIds, onSe
   // unprompted A-to-Z list under a "type to search" caption reads as the whole set.
   const searching = trimmed.length >= CATALOG_MIN_QUERY;
   const rows = results ?? [];
-  const settledEmpty = showAddCustom({
-    trimmed,
-    debounced,
-    isFetching,
-    resultCount: rows.length,
-    minQuery: CATALOG_MIN_QUERY,
-  });
-  const canAdd = settledEmpty && (profileId !== undefined || table === "games");
+  const search = { trimmed, debounced, isFetching, minQuery: CATALOG_MIN_QUERY };
+  const settledEmpty = showNoMatches({ ...search, resultCount: rows.length });
+  const canAdd =
+    showAddCustom({ ...search, resultNames: rows.map((r) => r.name) }) && (profileId !== undefined || table === "games");
   const showSkeleton = searching && results === undefined && !isError;
 
   function pick(item: CatalogItem) {

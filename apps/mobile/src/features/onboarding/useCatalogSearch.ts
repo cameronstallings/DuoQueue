@@ -64,7 +64,7 @@ async function searchGames(text: string): Promise<CatalogItem[]> {
 /**
  * The catalog search behind CatalogPicker. Returns the query plus `debounced`, the text the
  * results are for, so the picker can tell a SETTLED empty search from one still catching up with
- * the keyboard (catalogSearch.ts, `showAddCustom`).
+ * the keyboard (catalogSearch.ts, `showNoMatches` and `showAddCustom`).
  *
  * `keepPreviousData`: while a new query runs, the last results stay on screen instead of the list
  * collapsing to a skeleton on every keystroke and growing back a moment later.

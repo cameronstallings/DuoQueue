@@ -8,6 +8,7 @@ import {
   pendingCustomGameId,
   QUICK_PICK_GAMES,
   showAddCustom,
+  showNoMatches,
 } from "./catalogSearch";
 
 describe("QUICK_PICK_GAMES", () => {
@@ -52,9 +53,9 @@ describe("orderQuickPicks", () => {
 });
 
 describe("showAddCustom", () => {
-  const settledEmpty = { trimmed: "zelda", debounced: "zelda", isFetching: false, resultCount: 0, minQuery: 2 };
+  const settledEmpty = { trimmed: "zelda", debounced: "zelda", isFetching: false, resultNames: [], minQuery: 2 };
 
-  it("is true only for a settled search with no rows", () => {
+  it("is true for a settled search with no rows", () => {
     expect(showAddCustom(settledEmpty)).toBe(true);
   });
 
@@ -70,8 +71,28 @@ describe("showAddCustom", () => {
     expect(showAddCustom({ ...settledEmpty, trimmed: "z", debounced: "z" })).toBe(false);
   });
 
-  it("is false with any result", () => {
-    expect(showAddCustom({ ...settledEmpty, resultCount: 1 })).toBe(false);
+  it("is false when a result IS the name typed, whatever its case or spacing", () => {
+    expect(showAddCustom({ ...settledEmpty, resultNames: ["Zelda"] })).toBe(false);
+    const spaced = { ...settledEmpty, trimmed: "apex  legends", debounced: "apex  legends" };
+    expect(showAddCustom({ ...spaced, resultNames: ["Apex Legends"] })).toBe(false);
+  });
+
+  it("stays when the results only contain the name (1.0.1's rule: a substring or alias match is not the game)", () => {
+    const typed = { ...settledEmpty, trimmed: "Apex Legends", debounced: "Apex Legends" };
+    expect(showAddCustom({ ...typed, resultNames: ["Apex Legends Mobile"] })).toBe(true);
+    expect(showAddCustom({ ...typed, resultNames: ["Apex Legends Mobile", "Apex Legends"] })).toBe(false);
+  });
+});
+
+describe("showNoMatches", () => {
+  const settled = { trimmed: "zelda", debounced: "zelda", isFetching: false, minQuery: 2 };
+
+  it("is true only for a settled search with no rows", () => {
+    expect(showNoMatches({ ...settled, resultCount: 0 })).toBe(true);
+    expect(showNoMatches({ ...settled, resultCount: 1 })).toBe(false);
+    expect(showNoMatches({ ...settled, resultCount: 0, isFetching: true })).toBe(false);
+    expect(showNoMatches({ ...settled, resultCount: 0, debounced: "zeld" })).toBe(false);
+    expect(showNoMatches({ ...settled, resultCount: 0, trimmed: "z", debounced: "z" })).toBe(false);
   });
 });
 

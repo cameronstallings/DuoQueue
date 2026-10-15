@@ -24,25 +24,42 @@ export function orderQuickPicks<T extends { name: string }>(rows: readonly T[]):
   return out;
 }
 
-/**
- * "No matches yet." and the add button only for a search that has SETTLED on zero rows. Shown
- * while the query is still debouncing or fetching, it flashes on every keystroke and invites a
- * duplicate of a game the catalog already has.
- */
-export function showAddCustom({
-  trimmed,
-  debounced,
-  isFetching,
-  resultCount,
-  minQuery,
-}: {
+interface SearchFacts {
   trimmed: string;
   debounced: string;
   isFetching: boolean;
-  resultCount: number;
   minQuery: number;
-}): boolean {
-  return trimmed.length >= minQuery && debounced === trimmed && !isFetching && resultCount === 0;
+}
+
+/** The search has SETTLED on what is typed: long enough, debounced to it, nothing in flight. Before
+ * that, the rows on screen may be the previous query's (the hook keeps them while it fetches). */
+function searchSettled({ trimmed, debounced, isFetching, minQuery }: SearchFacts): boolean {
+  return trimmed.length >= minQuery && debounced === trimmed && !isFetching;
+}
+
+/** Case and runs of spaces aside, as normalizeCustomName stores a custom name. */
+function sameName(a: string, b: string): boolean {
+  return a.trim().replace(/\s+/g, " ").toLowerCase() === b.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+/**
+ * "No matches yet." only for a search that has SETTLED on zero rows. Shown while the query is still
+ * debouncing or fetching, it flashed on every keystroke.
+ */
+export function showNoMatches(facts: SearchFacts & { resultCount: number }): boolean {
+  return searchSettled(facts) && facts.resultCount === 0;
+}
+
+/**
+ * "Not listed? Add" once the search has SETTLED and no result IS the name typed: 1.0.1's rule,
+ * with the settling added. Settled, so it never flashes per keystroke or offers a duplicate of a
+ * game whose row is still on its way. Not "zero rows": search_games matches substrings and alias
+ * prefixes, so typing "Apex Legends" when only "Apex Legends Mobile" exists returns one row, and
+ * the player could never add the game they actually play (Edit details and Filters use this
+ * picker too, and could in 1.0.1).
+ */
+export function showAddCustom(facts: SearchFacts & { resultNames: readonly string[] }): boolean {
+  return searchSettled(facts) && !facts.resultNames.some((name) => sameName(name, facts.trimmed));
 }
 
 /**
