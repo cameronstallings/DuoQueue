@@ -28,10 +28,16 @@ function sameIds(a: readonly string[], b: readonly string[]): boolean {
  * is per account, on this phone, and it seeds with the current matches the first time (an update
  * to 1.0.2 shows no stale "new" badge).
  *
- * It is on only while signed in with a loaded, onboarded profile: the two RPCs never run signed
- * out or mid-signup. (Decided here rather than passed in by the tab layout, whose own session
- * reads moved into `useSessionRoute` in 1.0.2.) While on, a match or message push re-reads the
- * list at once, so the badge moves when the push lands rather than on the next 15-second poll.
+ * It is on exactly when the tabs are on screen, i.e. when `sessionRoute` answers "app": signed in
+ * with an onboarded profile held. So the two RPCs never run signed out or mid-signup, and a
+ * failed profile re-read (profileStatus "error", which keeps the held profile and keeps routing
+ * to the app; refreshProfile runs on every resume, Discord save and looking-now toggle) does not
+ * blank the badge under tabs that are still showing. An authoritative "missing" clears the held
+ * profile, which turns this off too. (Decided here rather than passed in by the tab layout,
+ * whose own session reads move into `useSessionRoute` with Group A; once that hook is on this
+ * branch, `useSessionRoute() === "app"` is the one-line replacement for the selector below.)
+ * While on, a match or message push re-reads the list at once, so the badge moves when the push
+ * lands rather than on the next 15-second poll.
  *
  * Returns the tab's `tabBarBadge` label and its `tabBarBadgeStyle`: volt with onVolt mono digits
  * (an audited pair), not iOS red, because the badge is good news.
@@ -39,9 +45,7 @@ function sameIds(a: readonly string[], b: readonly string[]): boolean {
 export function useMatchesBadge(): { label: string | undefined; style: TextStyle } {
   const queryClient = useQueryClient();
   const { colors, fonts } = useTheme();
-  const enabled = useSessionStore(
-    (s) => s.status === "signed_in" && s.profileStatus === "loaded" && s.profile?.onboarding_completed === true,
-  );
+  const enabled = useSessionStore((s) => s.status === "signed_in" && s.profile?.onboarding_completed === true);
   const profileId = useSessionStore((s) => s.session?.user.id);
   const { data: matches } = useMatches({ enabled });
   const { data: invites } = usePartyInvites({ enabled });
