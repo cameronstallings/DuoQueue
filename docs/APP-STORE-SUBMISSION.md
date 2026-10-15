@@ -565,6 +565,21 @@ carried over from an earlier draft.
 | Purchase History | Yes | No | App Functionality (subscription/consumable entitlement) |
 | Reports & Blocks (who reported/blocked whom, and why) | Yes | No | App Functionality (Trust & Safety, abuse prevention) |
 
+**1.0.2: NOT DECIDED YET, Cameron's call before submitting build 19 (plan Q23 and R2).** The
+table above is the 1.0.1 label and does not cover three things 1.0.2 and the 15 Oct server
+changes collect. Decide each, update the table and the "Not collected" line below, and do it in
+the same commit that publishes privacy policy 1.6 (which already describes all three):
+- `push_tokens.device_info` (from 1.0.2, `src/lib/appStamp.ts`): app version, build, OTA update
+  id, channel, runtime, OS and OS version, linked to the account. Most likely "Other Diagnostic
+  Data, linked to the user, App Functionality". Not crash or performance data, so the "Not
+  collected" line can keep Crash Data and Performance Data.
+- Duo Pop records (`queue_ups`, migration 0085): who was sent a pop, who opened or declined it,
+  who answered. Per-user interaction records; most likely "Product Interaction, linked, App
+  Functionality", unless you decide an existing row covers them.
+- The notification delivery log (`push_log`, migration 0080, live for every build since 15 Oct):
+  per recipient, the kind of push, when, and whether Expo accepted it. Most likely "Other
+  Diagnostic Data" as well.
+
 **Sign in with Apple adds no new row.** What Apple shares maps onto rows already in the table:
 the email address (or its private relay address, if the user picks Hide My Email) is Email
 Address, the name the user chooses to share is used only to prefill Display Name, and Apple's
