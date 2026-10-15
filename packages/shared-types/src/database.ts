@@ -307,11 +307,30 @@ export interface SuperPingRow {
   created_at: string;
 }
 
+/**
+ * What the app writes next to its push token, from 1.0.2 (`apps/mobile/src/lib/appStamp.ts`).
+ * Technical facts only: which build and OTA update the phone runs, the OS and its version, and
+ * which kind of Supabase key the build carries. No device name, no device identifier, no
+ * location. Rows saved by 1.0.0 and 1.0.1 have `device_info` null.
+ */
+export interface PushTokenDeviceInfo {
+  app_version: string | null;
+  build: string | null;
+  runtime_version: string | null;
+  update_id: string | null;
+  channel: string | null;
+  embedded: boolean | null;
+  os: string;
+  os_version: string | null;
+  key_kind: "publishable" | "legacy" | "unknown";
+  stamped_at: string;
+}
+
 export interface PushTokenRow {
   id: string;
   profile_id: string;
   expo_push_token: string;
-  device_info: unknown;
+  device_info: PushTokenDeviceInfo | null;
   created_at: string;
 }
 
