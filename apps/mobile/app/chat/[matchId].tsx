@@ -486,7 +486,14 @@ export default function ChatScreen() {
   // Gates the entrance animation below: only rows that showed up after the screen
   // mounted spring in. History loaded on open (or refetched later) must never replay it.
   const mountedAt = useRef(Date.now()).current;
-  useFirstReplyReviewPrompt(timeline, myId, mountedAt);
+  // Never over one of this screen's sheets (Report above all); the hook adds the focus check for
+  // screens pushed over the chat.
+  useFirstReplyReviewPrompt(
+    timeline,
+    myId,
+    mountedAt,
+    !menuVisible && !reportVisible && !feedbackVisible && !scheduleVisible && !discordEditorVisible,
+  );
 
   useEffect(() => {
     void markAsRead();
