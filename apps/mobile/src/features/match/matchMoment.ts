@@ -1,4 +1,4 @@
-import { VB_W } from "../../theme/logo-geometry";
+import { CXA, CY, R, VB_W, VB_X, VB_Y, W } from "../../theme/logo-geometry";
 
 /**
  * The match moment's rules. Pure, relative imports only (matchMoment.test.ts).
@@ -53,8 +53,16 @@ export const BRACKET_SPRING = { mass: 1, stiffness: 420, damping: 24 } as const;
 export const BRACKET_FADE_MS = 140;
 
 // Type aliases, not interfaces: expo-router's params want index-signature-compatible objects.
-export type MatchRouteParams = { matchId: string; name?: string; photo?: string; duo?: string; common?: string };
-export type MatchPushParams = { matchId: string; name: string; photo: string; duo?: "1"; common?: string };
+// `popped` is a Duo Pop's popped-in time in whole seconds, as a string (parsePoppedSeconds).
+export type MatchRouteParams = {
+  matchId: string;
+  name?: string;
+  photo?: string;
+  duo?: string;
+  common?: string;
+  popped?: string;
+};
+export type MatchPushParams = { matchId: string; name: string; photo: string; duo?: "1"; common?: string; popped?: string };
 
 export interface MatchFacts {
   matchId: string;
@@ -65,6 +73,16 @@ export interface MatchFacts {
   canDuo: boolean;
   /** Games you both play where the screen knows it; null where it does not. */
   sharedGames: number | null;
+  /** How long a Duo Pop took to be answered, in whole seconds (1 to 600), when this match came
+   * from one (the sender's DUO LOCKED). Optional, so every other caller is unchanged. */
+  poppedInSeconds?: number | null;
+}
+
+/** A Duo Pop lasts ten minutes, so it can never have popped in longer than this. */
+export const POPPED_IN_MAX_SECONDS = 600;
+
+function isPoppedSeconds(n: unknown): n is number {
+  return typeof n === "number" && Number.isInteger(n) && n >= 1 && n <= POPPED_IN_MAX_SECONDS;
 }
 
 export function matchParams(f: MatchFacts): MatchPushParams {
@@ -74,7 +92,115 @@ export function matchParams(f: MatchFacts): MatchPushParams {
     photo: f.photo ?? "",
     ...(f.canDuo ? { duo: "1" as const } : {}),
     ...(f.sharedGames !== null && f.sharedGames > 0 ? { common: String(Math.trunc(f.sharedGames)) } : {}),
+    // The server sends whole seconds clamped to 1..600; anything else is dropped rather than
+    // stamped on the screen.
+    ...(isPoppedSeconds(f.poppedInSeconds) ? { popped: String(f.poppedInSeconds) } : {}),
   };
+}
+
+/**
+ * A popped-in time from a route param or a push's data, or null. Takes `unknown` because the
+ * push routing (notificationRouting.ts) hands it raw notification data. Accepts only a string of
+ * digits or a whole number, from 1 to 600: "41" and 41, never "4.1", " 41", "1e2" or 0.
+ */
+export function parsePoppedSeconds(raw: unknown): number | null {
+  if (typeof raw === "number") return isPoppedSeconds(raw) ? raw : null;
+  if (typeof raw !== "string" || !/^\d{1,3}$/.test(raw)) return null;
+  const n = Number(raw);
+  return isPoppedSeconds(n) ? n : null;
+}
+
+/** m:ss, for the ring's time left and the Popped-in stamp. Floors, and never goes below 0:00. */
+export function formatClock(seconds: number): string {
+  const s = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
+  const m = Math.floor(s / 60);
+  const rest = s % 60;
+  return `${m}:${rest < 10 ? "0" : ""}${rest}`;
+}
+
+/** The stamp under DUO LOCKED after a Duo Pop ("Popped in 0:41"; type.label uppercases it). */
+export function poppedInLabel(seconds: number): string {
+  return `Popped in ${formatClock(seconds)}`;
+}
+
+/** "1 minute 15 seconds", "41 seconds", "10 minutes", "0 seconds". */
+function spokenDuration(seconds: number): string {
+  const s = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
+  const m = Math.floor(s / 60);
+  const rest = s % 60;
+  const minutes = m === 1 ? "1 minute" : `${m} minutes`;
+  const secs = rest === 1 ? "1 second" : `${rest} seconds`;
+  if (m === 0) return secs;
+  if (rest === 0) return minutes;
+  return `${minutes} ${secs}`;
+}
+
+/** What VoiceOver reads for the Popped-in stamp ("Popped in 1 minute 15 seconds"). */
+export function poppedInSpoken(seconds: number): string {
+  return `Popped in ${spokenDuration(seconds)}`;
+}
+
+/** What VoiceOver reads for the Duo Pop ring ("9 minutes 41 seconds left"). */
+export function timeLeftSpoken(seconds: number): string {
+  return `${spokenDuration(seconds)} left`;
+}
+
+/** One place in the rolling Popped-in digits: a digit column that rolls `cells` steps down a
+ * strip of 0 to 9 twice (so it lands on `digit`), or a character that stands still. */
+export type RollColumn = { kind: "digit"; digit: number; cells: number } | { kind: "static"; text: string };
+
+/**
+ * The Popped-in time as rolling columns. Every digit column starts on 0 and rolls to its digit;
+ * the last one rolls a whole extra turn (10 more cells), so even "0:40" visibly spins before it
+ * settles, the way a counter clicks into place.
+ */
+export function rollColumns(seconds: number): RollColumn[] {
+  const chars = formatClock(seconds).split("");
+  const lastDigit = chars.length - 1;
+  return chars.map((char, i) => {
+    if (char < "0" || char > "9") return { kind: "static", text: char };
+    const digit = Number(char);
+    return { kind: "digit", digit, cells: i === lastDigit ? digit + 10 : digit };
+  });
+}
+
+/** How much of the Duo Pop ring is left: secondsLeft over totalSeconds, clamped to 0..1. */
+export function countdownFraction(secondsLeft: number, totalSeconds: number): number {
+  if (!(totalSeconds > 0)) return 0;
+  return Math.min(1, Math.max(0, secondsLeft / totalSeconds));
+}
+
+// THE DUO POP RING. On the Pop card the countdown is drawn as the mark's own O ring: it sits in
+// the middle of the mark while it drains, and when someone taps I'm in it closes and slides 31.5pt
+// left into its place in the logo as the Q flies in from the right. These are the distances, at
+// any mark width, from the mark's geometry (logo-geometry.ts).
+
+/** The O ring's centre inside the mark's box, in points. */
+export function oRingCentre(markWidth: number): { x: number; y: number } {
+  const scale = markWidth / VB_W;
+  return { x: (CXA - VB_X) * scale, y: (CY - VB_Y) * scale };
+}
+
+/** The O ring's hole, in points: where the ring's m:ss has to fit (64.7pt at 168). */
+export function oRingInnerDiameter(markWidth: number): number {
+  return (2 * R - W) * (markWidth / VB_W);
+}
+
+/** How far right of its locked place the O starts on the Pop card: the middle of the mark. */
+export function popOFrom(markWidth: number): number {
+  return markWidth / 2 - oRingCentre(markWidth).x;
+}
+
+/** How far right of its place the Q starts when the ring closes, in viewBox units. */
+export const POP_Q_FROM_UNITS = 600;
+
+export function popQFrom(markWidth: number): number {
+  return POP_Q_FROM_UNITS * (markWidth / VB_W);
+}
+
+/** The sentence under the players: how the duo happened. */
+export function lockSentence(name: string, popped: boolean): string {
+  return popped ? `You and ${name} teamed up from a Duo Pop.` : `You and ${name} both queued up.`;
 }
 
 export const MATCH_REASON_COPY = { duo: "You can queue Ranked Solo/Duo" } as const;
