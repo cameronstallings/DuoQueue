@@ -1,14 +1,17 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Platform, Text } from "react-native";
+import Animated from "react-native-reanimated";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { MIN_AGE } from "@duoqueue/shared-types";
 
 import { Button } from "@/components/Button";
 import { Logo } from "@/components/Logo";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { hapticError } from "@/lib/haptics";
+import { layoutTransition, quickEntering, quickExiting } from "@/theme/entering";
 import { useTheme } from "@/theme/useTheme";
 
-import { checkDob, dobProblemMessage, toIsoDate } from "./completeSignup";
+import { checkDob, dobProblemMessage, fromIsoDate, toIsoDate } from "./completeSignup";
 
 /**
  * How far `latestAllowedDob` may walk. Three steps is the true maximum, and the third is only
@@ -72,6 +75,14 @@ interface AgeGateFormProps {
   consent?: ReactNode;
   /** Anything the screen wants under the button: another way in, or a way out. */
   children?: ReactNode;
+  /** A back chevron (the pre-auth gate, pushed from the front door). */
+  showBack?: boolean;
+  /**
+   * A date the player already confirmed (YYYY-MM-DD), put back on the wheel. Only ever passed for
+   * a draft started in THIS launch (`canShowDraftDob`); never shown back from an earlier one.
+   * Clamped to the latest allowed date.
+   */
+  initialDob?: string | null;
 }
 
 /**
@@ -86,20 +97,41 @@ interface AgeGateFormProps {
  * It is shared rather than duplicated because of the picker configuration below, which was
  * arrived at the hard way and should not be re-derived by whoever writes the second screen.
  */
-export function AgeGateForm({ title, blurb, submitLabel, loading, error, onSubmit, consent, children }: AgeGateFormProps) {
+export function AgeGateForm({
+  title,
+  blurb,
+  submitLabel,
+  loading,
+  error,
+  onSubmit,
+  consent,
+  children,
+  showBack,
+  initialDob,
+}: AgeGateFormProps) {
   const { colors, scheme, spacing, type } = useTheme();
   // Recomputed on render, not once at import. An app left open past midnight kept yesterday's
   // cutoff, which refuses somebody who turned 18 overnight the moment they reach for the wheel.
   // The cost is a handful of date comparisons on a screen that re-renders only when the wheel
   // moves. The default the wheel opens on is a copy, so the picker owns its own Date from here.
   const maxDob = latestAllowedDob(MIN_AGE, new Date());
-  const [dob, setDob] = useState<Date>(() => new Date(maxDob.getTime()));
+  const [dob, setDob] = useState<Date>(() => {
+    const confirmed = fromIsoDate(initialDob);
+    return confirmed && confirmed.getTime() <= maxDob.getTime() ? confirmed : new Date(maxDob.getTime());
+  });
   const [localError, setLocalError] = useState<string | null>(null);
+
+  // The caller's own failure (the RPC, mostly) buzzes when it arrives. A local problem buzzes in
+  // handleContinue instead, so the same refusal twice is felt twice.
+  useEffect(() => {
+    if (error) hapticError();
+  }, [error]);
 
   function handleContinue() {
     const iso = toIsoDate(dob);
     const problem = checkDob(iso, MIN_AGE);
     if (problem) {
+      hapticError();
       setLocalError(dobProblemMessage(problem, MIN_AGE));
       return;
     }
@@ -112,7 +144,7 @@ export function AgeGateForm({ title, blurb, submitLabel, loading, error, onSubmi
   const shownError = localError ?? error ?? null;
 
   return (
-    <ScreenContainer>
+    <ScreenContainer showBack={showBack}>
       <Logo width={56} />
       <Text style={[type.screenTitle, { color: colors.text }]}>{title}</Text>
       <Text style={[type.body, { color: colors.textMuted, marginBottom: spacing.md }]}>{blurb}</Text>
@@ -133,13 +165,27 @@ export function AgeGateForm({ title, blurb, submitLabel, loading, error, onSubmi
         onChange={(_event, selected) => selected && setDob(selected)}
       />
 
-      {shownError ? <Text style={[type.caption, { color: colors.danger }]}>{shownError}</Text> : null}
+      {shownError ? (
+        <Animated.Text
+          key={shownError}
+          entering={quickEntering()}
+          exiting={quickExiting()}
+          layout={layoutTransition()}
+          style={[type.caption, { color: colors.danger }]}
+        >
+          {shownError}
+        </Animated.Text>
+      ) : null}
 
-      {consent}
+      {/* On a layout transition, so the line above arriving or leaving moves the button instead
+          of making it jump. */}
+      <Animated.View layout={layoutTransition()} style={{ gap: spacing.md }}>
+        {consent}
 
-      <Button label={submitLabel} onPress={handleContinue} loading={loading} />
+        <Button label={submitLabel} onPress={handleContinue} loading={loading} />
 
-      {children}
+        {children}
+      </Animated.View>
     </ScreenContainer>
   );
 }

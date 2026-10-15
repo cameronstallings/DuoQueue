@@ -6,6 +6,7 @@ import {
   COMPLETE_SIGNUP_RAISES,
   completeSignupOutcome,
   dobProblemMessage,
+  fromIsoDate,
   toIsoDate,
 } from "./completeSignup";
 
@@ -53,6 +54,33 @@ describe("toIsoDate", () => {
     // The two are always used together: the picker's Date goes through toIsoDate and straight
     // into checkDob, so a shape disagreement between them would refuse every real birthdate.
     expect(checkDob(toIsoDate(new Date(1994, 2, 3)), MIN_AGE)).toBeNull();
+  });
+});
+
+describe("fromIsoDate", () => {
+  it("gives a Date at LOCAL midnight with the same year, month and day", () => {
+    const date = fromIsoDate("1994-03-03");
+    expect(date).not.toBeNull();
+    expect(date?.getFullYear()).toBe(1994);
+    expect(date?.getMonth()).toBe(2);
+    expect(date?.getDate()).toBe(3);
+    expect(date?.getHours()).toBe(0);
+    expect(date?.getMinutes()).toBe(0);
+  });
+
+  it("round-trips with toIsoDate, across year ends and Feb 29", () => {
+    for (const iso of ["1994-03-03", "2000-12-31", "2001-01-01", "2004-02-29", "1970-01-01"]) {
+      const date = fromIsoDate(iso);
+      expect(date && toIsoDate(date)).toBe(iso);
+    }
+  });
+
+  it("gives null for anything that is not a real calendar date", () => {
+    for (const garbage of ["", "1994-3-3", "1994-02-30", "2001-02-29", "yesterday", "1994-13-01", "1994-03-03T00:00"]) {
+      expect(fromIsoDate(garbage)).toBeNull();
+    }
+    expect(fromIsoDate(null)).toBeNull();
+    expect(fromIsoDate(undefined)).toBeNull();
   });
 });
 

@@ -38,6 +38,20 @@ export function toIsoDate(date: Date): string {
 
 const ISO_DATE_SHAPE = /^\d{4}-\d{2}-\d{2}$/;
 
+/**
+ * The other direction, for putting a date the player already confirmed back on the wheel (a draft
+ * resumed in the same launch, 1.0.2). The same convention as `toIsoDate`: the calendar date in the
+ * player's LOCAL time, at local midnight, which is what the picker hands back itself. Null for
+ * anything that is not a real calendar date (2001-02-29 included), so a bad value is never shown.
+ */
+export function fromIsoDate(iso: string | null | undefined): Date | null {
+  if (!iso || !ISO_DATE_SHAPE.test(iso)) return null;
+  const [year, month, day] = iso.split("-").map(Number) as [number, number, number];
+  const date = new Date(year, month - 1, day);
+  // JS rolls 2001-02-29 forward to March 1; a date that does not come back unchanged was never real.
+  return toIsoDate(date) === iso ? date : null;
+}
+
 export type DobProblem =
   /** Not a date at all, or not a real one (2025-02-31). */
   | "invalid"
