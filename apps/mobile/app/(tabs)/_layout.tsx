@@ -85,9 +85,13 @@ export default function TabsLayout() {
    * notification tap's `router.navigate("/(tabs)")` both arrive here without passing through
    * index at all, and an age-unverified session landing on the deck is the failure the whole
    * change exists to prevent.
+   *
+   * Everything that is not the app or the wizard goes to "/", which knows which of the front
+   * door, the signup draft, the post-auth age gate or the commit it is (sessionRouting.ts).
    */
-  if (route === "start" || route === "draft") return <Redirect href="/(auth)/sign-in" />;
-  if (route === "complete-signup" || route === "commit-draft") return <Redirect href="/" />;
+  if (route === "start" || route === "draft" || route === "complete-signup" || route === "commit-draft") {
+    return <Redirect href="/" />;
+  }
   if (route === "onboarding") return <Redirect href="/(onboarding)/display-name" />;
   // A profile read that has not landed is not permission to render the app, and it is not
   // grounds to eject somebody into the signup wizard either, which is what the old
