@@ -1,7 +1,7 @@
 import { Alert, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { Redirect, router } from "expo-router";
-import Animated, { FadeIn, FadeInUp, ZoomIn } from "react-native-reanimated";
+import Animated, { FadeIn, FadeInUp, ReduceMotion, useReducedMotion, ZoomIn } from "react-native-reanimated";
 
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
@@ -15,11 +15,12 @@ import { matchParams } from "@/features/match/matchMoment";
 import { useProfileCard } from "@/features/profile/useProfileCard";
 import { cardPicture } from "@/features/swipe/cardChips";
 import { useRequireSession } from "@/hooks/useRequireSession";
+import { hapticError } from "@/lib/haptics";
 import { inviteErrorMessage } from "@/lib/invite";
 import { useInviteStore } from "@/store/invite-store";
 import { useSessionStore } from "@/store/session-store";
 import { useToastStore } from "@/store/toast-store";
-import { SPRINGS } from "@/theme/motion";
+import { revealEntering, stackSpringEntering } from "@/theme/entering";
 import { useTheme } from "@/theme/useTheme";
 
 const AVATAR_SIZE = 96;
@@ -43,6 +44,7 @@ const AVATAR_SIZE = 96;
 export default function InvitedScreen() {
   useRequireSession();
   const { colors, radius, spacing, type } = useTheme();
+  const reduced = useReducedMotion();
   const arrival = useInviteStore((s) => s.arrival);
   const clearArrival = useInviteStore((s) => s.clearArrival);
   const accept = useAcceptInvite();
@@ -97,6 +99,7 @@ export default function InvitedScreen() {
       // Not `err.message`: `accept_invite` raises bare tokens like `inviter_unavailable`,
       // and the house `Alert.alert("Something went wrong", err.message)` would print one.
       // See `inviteErrorMessage`.
+      hapticError();
       Alert.alert("Something went wrong", inviteErrorMessage(err));
     }
   }
@@ -107,24 +110,24 @@ export default function InvitedScreen() {
     <ScreenContainer>
       <View style={{ flex: 1, justifyContent: "center", gap: spacing.lg }}>
         <View style={{ alignItems: "center", gap: spacing.sm }}>
-          <Animated.Text entering={FadeIn.duration(400)} style={[type.tick, { color: colors.voltDim }]}>
+          <Animated.Text entering={FadeIn.duration(400).reduceMotion(ReduceMotion.Never)} style={[type.tick, { color: colors.voltDim }]}>
             [ INVITED ]
           </Animated.Text>
-          <Animated.View entering={FadeIn.duration(400).delay(120)}>
+          <Animated.View entering={FadeIn.duration(400).delay(120).reduceMotion(ReduceMotion.Never)}>
             <Text style={[type.screenTitle, { color: colors.text, textAlign: "center" }]}>
               {name} invited you
             </Text>
           </Animated.View>
-          <Animated.View entering={FadeIn.duration(400).delay(240)}>
+          <Animated.View entering={FadeIn.duration(400).delay(240).reduceMotion(ReduceMotion.Never)}>
             <Text style={[type.body, { color: colors.textMuted, textAlign: "center" }]}>
               They asked you to come find duos here. Duo up and you already have one.
             </Text>
           </Animated.View>
         </View>
 
-        <Animated.View
-          entering={ZoomIn.springify().mass(1).stiffness(SPRINGS.stack.stiffness).damping(SPRINGS.stack.damping).delay(200)}
-        >
+        {/* Under Reduce Motion a springified builder cuts its fade too and pops in, so it is a plain
+            fade there (stackSpringEntering, theme/entering.ts). */}
+        <Animated.View entering={stackSpringEntering(ZoomIn.delay(200), reduced)}>
           <Card luminous style={{ alignItems: "center", gap: spacing.sm }}>
             {isPending ? (
               <Skeleton width={AVATAR_SIZE} height={AVATAR_SIZE} borderRadius={radius.round} />
@@ -173,7 +176,7 @@ export default function InvitedScreen() {
           </Card>
         </Animated.View>
 
-        <Animated.View entering={FadeInUp.duration(400).delay(320)} style={{ gap: spacing.sm }}>
+        <Animated.View entering={reduced ? revealEntering() : FadeInUp.duration(400).delay(320)} style={{ gap: spacing.sm }}>
           <Button
             label={`Duo with ${name}`}
             onPress={() => void handleDuoUp()}

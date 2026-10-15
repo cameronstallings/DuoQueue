@@ -8,6 +8,7 @@ import Animated, {
   interpolate,
   useAnimatedRef,
   useAnimatedStyle,
+  useReducedMotion,
   useScrollViewOffset,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -30,7 +31,7 @@ import { usePublicLinkedAccounts } from "@/features/profile/useLinkedAccounts";
 import { GamesSection, HowIPlaySection, MetaLine, PromptsSection, ShowsSection, VibeSection } from "@/features/profile/sections";
 import { useVerifiedStats } from "@/features/profile/useVerifiedStats";
 import { usePublicReputation } from "@/features/reputation/useReputation";
-import { SPRINGS } from "@/theme/motion";
+import { stackSpringEntering } from "@/theme/entering";
 import { useTheme } from "@/theme/useTheme";
 
 import { DUO_DETAIL_CAPTION, cardPicture, detailGames, showsDuoLabel } from "./cardChips";
@@ -58,6 +59,7 @@ interface ProfileDetailContentProps {
  * sites) so every caller gets the same atmosphere and the same scroll-linked motion. */
 export function ProfileDetailContent({ card, onClose, readOnly = false }: ProfileDetailContentProps) {
   const { colors, spacing, radius, type } = useTheme();
+  const reduced = useReducedMotion();
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
   const { data: reputation, isLoading: reputationLoading } = usePublicReputation(card.profile_id);
@@ -88,12 +90,13 @@ export function ProfileDetailContent({ card, onClose, readOnly = false }: Profil
     return { transform: [{ translateY: parallax }, { scale: stretch }] };
   });
 
-  // Cascade-on-open: each labeled section steps in 35ms after the last, once.
+  // Cascade-on-open: each labeled section steps in 35ms after the last, once, on the stack spring.
+  // Under Reduce Motion a springified fade builder cuts its opacity too, and every section popped
+  // in; there they are a plain fade, all at once (stackSpringEntering, theme/entering.ts).
   let staggerSlot = 0;
   function sectionEntering() {
-    // One line, so the release grep for springify sees the mass(1) beside it.
     const delay = Math.min(staggerSlot++ * 35, 350);
-    return FadeInDown.springify().mass(1).stiffness(SPRINGS.stack.stiffness).damping(SPRINGS.stack.damping).delay(delay);
+    return stackSpringEntering(FadeInDown.delay(delay), reduced);
   }
 
   const closeButton = (
