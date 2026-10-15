@@ -233,4 +233,30 @@ describe("source scans", () => {
       expect(f.text, f.rel).not.toMatch(/onPress=\{\s*\(\)\s*=>\s*(void\s+)?maybeAskForReview/);
     }
   });
+
+  // The chat stays mounted under its own sheets (menu, Report, Rate, Schedule, Discord), so a
+  // reply landing while one is open would put Apple's sheet over it, the worst case being over
+  // "Report this user". Every sheet the chat screen owns must close the gate, including any a
+  // later change adds. (Screens pushed over the chat are covered by the hook's own focus check.)
+  it("gates the chat's first-reply ask on every sheet the chat screen opens", () => {
+    const chat = FILES.find((f) => f.rel === "app/chat/[matchId].tsx");
+    expect(chat).toBeDefined();
+    const text = chat!.text;
+    const sheets = [...text.matchAll(/const \[(\w+Visible), set\w+\] = useState\(/g)]
+      .map((m) => m[1])
+      .filter((name) => name !== "keyboardVisible");
+    expect(sheets).toEqual(
+      expect.arrayContaining(["menuVisible", "reportVisible", "feedbackVisible", "scheduleVisible", "discordEditorVisible"]),
+    );
+    const call = /useFirstReplyReviewPrompt\(([^;]*)\);/.exec(text);
+    expect(call, "the chat calls useFirstReplyReviewPrompt").not.toBeNull();
+    for (const name of sheets) expect(call![1], name).toMatch(new RegExp(`!${name}\\b`));
+  });
+
+  it("asks after a reply only while the chat is the focused screen", () => {
+    const hook = FILES.find((f) => f.rel === "src/features/rating/useReviewTriggers.ts");
+    expect(hook).toBeDefined();
+    expect(hook!.text).toMatch(/useFocusEffect\(/);
+    expect(hook!.text).toMatch(/enabled: boolean/);
+  });
 });

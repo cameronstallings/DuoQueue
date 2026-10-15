@@ -4,6 +4,7 @@ import { DuoLockedScreen } from "@/features/match/DuoLockedScreen";
 import { exitMatchMoment } from "@/features/match/exitMatchMoment";
 import { type MatchRouteParams, matchReason, parsePoppedSeconds } from "@/features/match/matchMoment";
 import { PushPreAskCard } from "@/features/push/PushPreAskCard";
+import { useDuoLockedReviewPrompt } from "@/features/rating/useReviewTriggers";
 import { useRequireSession } from "@/hooks/useRequireSession";
 
 /**
@@ -15,6 +16,8 @@ import { useRequireSession } from "@/hooks/useRequireSession";
 export default function MatchCelebrationScreen() {
   useRequireSession();
   const params = useLocalSearchParams<MatchRouteParams>();
+  // Counts this DUO LOCKED for the rating prompt; DuoLockedScreen calls it once, at the lock.
+  const onLocked = useDuoLockedReviewPrompt(params.matchId);
   return (
     <DuoLockedScreen
       variant="match"
@@ -23,6 +26,7 @@ export default function MatchCelebrationScreen() {
       reason={matchReason(params)}
       poppedInSeconds={parsePoppedSeconds(params.popped)}
       onExit={(exit) => exitMatchMoment(exit, params.matchId)}
+      onLocked={onLocked}
       belowButtons={<PushPreAskCard surface="match" otherName={params.name || undefined} />}
     />
   );
