@@ -70,7 +70,6 @@ function ButtonLabel({ label, color, loading }: { label: string; color: string; 
 export function Button({ label, onPress, loading, disabled, variant = "primary", size = "md", haptic }: ButtonProps) {
   const { colors, motion, radius, spacing } = useTheme();
   const isDisabled = !!(disabled || loading);
-  const press = usePressScale(0.97);
 
   // Starts at the right value on the first frame (a button mounted disabled never fades down),
   // and only animates when the state actually changes.
@@ -81,7 +80,10 @@ export function Button({ label, onPress, loading, disabled, variant = "primary",
       reduceMotion: ReduceMotion.Never,
     });
   }, [isDisabled, dim, motion.quick]);
-  const dimStyle = useAnimatedStyle(() => ({ opacity: dim.value }));
+  // The dim goes INTO the press style, so one animated style owns opacity. As a second style on
+  // the same view, a late press-out under Reduce Motion could write opacity 1 over a button that
+  // had already faded to disabled (usePressScale's header has the race).
+  const press = usePressScale(0.97, dim);
 
   const textColor =
     variant === "primary" ? colors.onVolt : variant === "premium" ? colors.onAmber : colors.text;
@@ -117,7 +119,6 @@ export function Button({ label, onPress, loading, disabled, variant = "primary",
           fill ? { backgroundColor: fill } : null,
           variant === "secondary" ? { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border } : null,
           press.style,
-          dimStyle,
         ]}
       >
         <ButtonLabel label={label} color={textColor} loading={loading} />

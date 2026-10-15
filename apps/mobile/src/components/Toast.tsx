@@ -1,9 +1,10 @@
 import { Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Animated, { FadeInDown, FadeOutDown, ReduceMotion } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeOutDown, useReducedMotion } from "react-native-reanimated";
 
 import { useToastStore } from "@/store/toast-store";
+import { quickExiting, revealEntering } from "@/theme/entering";
 import { useTheme } from "@/theme/useTheme";
 
 /** A brief bottom-anchored confirmation, e.g. "Saved" after an edit. Mounted once at
@@ -16,13 +17,22 @@ import { useTheme } from "@/theme/useTheme";
  * positioned, touch-transparent container stays, only the toast itself comes and goes, and the
  * toast fades out instead of vanishing. `key={message}` makes a new toast that replaces an old one
  * a new view: the old one fades out as the new one fades in, rather than its text swapping in
- * place. Both animations pass ReduceMotion.Never, so under Reduce Motion the toast still arrives
- * and leaves gently instead of popping.
+ * place.
+ *
+ * REDUCE MOTION. Normally the toast rises 25pt as it fades in and sinks as it fades out
+ * (FadeInDown / FadeOutDown). Those builders carry the slide and the fade together, and a
+ * builder's reduceMotion setting covers every property it animates: passing ReduceMotion.Never
+ * would keep the slide, and leaving the default would cut the fade too, so the toast would pop.
+ * So under Reduce Motion it swaps to the plain fades from theme/entering.ts (revealEntering in,
+ * quickExiting out), which pass Never: the toast still arrives and leaves gently, it just does
+ * not move. `reduced` is Reanimated's launch-time reading, the same one its default
+ * ReduceMotion.System resolves against, so the two paths always agree.
  *
  * Error toasts buzz (hapticError) from the store, not from here. */
 export function Toast() {
   const { colors, motion, radius, spacing, type } = useTheme();
   const insets = useSafeAreaInsets();
+  const reduced = useReducedMotion();
   const message = useToastStore((s) => s.message);
   const status = useToastStore((s) => s.status);
 
@@ -43,8 +53,8 @@ export function Toast() {
       {message ? (
         <Animated.View
           key={message}
-          entering={FadeInDown.duration(motion.base).reduceMotion(ReduceMotion.Never)}
-          exiting={FadeOutDown.duration(motion.base).reduceMotion(ReduceMotion.Never)}
+          entering={reduced ? revealEntering() : FadeInDown.duration(motion.base)}
+          exiting={reduced ? quickExiting() : FadeOutDown.duration(motion.base)}
           style={{
             flexDirection: "row",
             alignItems: "center",

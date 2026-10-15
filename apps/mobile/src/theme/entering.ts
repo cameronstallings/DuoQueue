@@ -77,12 +77,23 @@ export function layoutTransition() {
 
 /**
  * A spring arrival on SPRINGS.stack with all three numbers set, e.g.
- * `stackSpringEntering(FadeInUp)` for a new chat row. `.springify()` alone, or with only damping
- * and stiffness, runs at Reanimated's default mass of 4 and wobbles for seconds (motion.ts
+ * `stackSpringEntering(FadeInUp, reduced)` for a new chat row. `.springify()` alone, or with only
+ * damping and stiffness, runs at Reanimated's default mass of 4 and wobbles for seconds (motion.ts
  * header), so this is the only way the app springifies a builder.
  *
  * Takes the builder class (`FadeInUp`) or an instance (`FadeInUp.delay(80)`).
+ *
+ * `reduced` (from `useReducedMotion()`) is REQUIRED, unlike the fades above. A springified
+ * FadeInUp carries the slide and the fade in one builder, and the builder's reduceMotion setting
+ * covers both: left at the default, Reduce Motion cuts the whole entrance, opacity included, and
+ * the view pops in; set to Never, the slide and the spring play anyway. Neither is right, so under
+ * Reduce Motion this returns `revealEntering()` instead: a plain fade with no slide, no spring and
+ * no delay (as `listItemEntering` drops its stagger). Required, so no caller can forget it.
  */
-export function stackSpringEntering(builder: { springify(duration?: number): ComplexAnimationBuilder }) {
+export function stackSpringEntering(
+  builder: { springify(duration?: number): ComplexAnimationBuilder },
+  reduced: boolean,
+) {
+  if (reduced) return revealEntering();
   return builder.springify().mass(1).stiffness(SPRINGS.stack.stiffness).damping(SPRINGS.stack.damping);
 }
