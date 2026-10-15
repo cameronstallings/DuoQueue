@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { sessionRoute } from "@/features/auth/sessionRouting";
 import { useHeartbeat } from "@/features/online-now/useHeartbeat";
 import { useMatchesBadge } from "@/features/chat/useMatchesBadge";
+import { usePushAskWarmup } from "@/features/push/usePushAskWarmup";
 import { usePartyFreshness } from "@/features/party/usePartyFreshness";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
@@ -84,6 +85,8 @@ export default function TabsLayout() {
   // Above the redirects (rules of hooks). Unread chats, party invites and unseen matches; it
   // keeps its RPCs off by itself while signed out or mid-signup.
   const matchesBadge = useMatchesBadge();
+  // Keeps the notification ask's two inputs warm, so DUO LOCKED can decide in its first render.
+  usePushAskWarmup();
 
   /**
    * The chokepoint for every tab route, which is why the age-gate branch has to be here and

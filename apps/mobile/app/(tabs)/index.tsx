@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { GrainOverlay } from "@/components/GrainOverlay";
 import { Skeleton } from "@/components/Skeleton";
 import { useAdmirersCount } from "@/features/matching/useAdmirers";
+import { PushPreAskCard } from "@/features/push/PushPreAskCard";
 import {
   SuperPingLimitReachedError,
   SuperPingRequiresPremiumError,
@@ -194,6 +195,10 @@ export default function DeckScreen() {
             <SwipeDeck ref={deckRef} cards={cards} onSwiped={(card, direction) => void handleSwiped(card, direction)} />
           </Animated.View>
         )}
+        {/* The notification pre-ask, over the bottom of the deck after a Duo that did not match.
+            Only while there are cards: when the deck empties it fades out with them, so it never
+            covers the empty deck's buttons. */}
+        {cards.length > 0 && <PushPreAskCard surface="deck" />}
       </View>
 
       {cards.length > 0 && (

@@ -8,6 +8,7 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { SectionLabel } from "@/components/SectionLabel";
 import { usePremiumStatus } from "@/features/matching/usePremiumStatus";
 import { DISCORD_COPY } from "@/features/profile/discordUsername";
+import { usePushPermission } from "@/features/push/usePushPermission";
 import { paywallHref } from "@/features/premium/paywall/paywallCopy";
 import { appearanceSummary } from "@/lib/appearance";
 import { LEGAL_URLS } from "@/lib/legal";
@@ -39,6 +40,9 @@ export default function SettingsScreen() {
   // that reads "Dark", which is true, and it is the same word the Appearance screen ticks.
   const { spacing, scheme } = useTheme();
   const { isPremium } = usePremiumStatus();
+  // "Off" beside Notifications when iOS has them off: the switches inside cannot work until
+  // the player turns them on in Settings, and the screen they open says how.
+  const { data: pushPermission } = usePushPermission();
 
   return (
     <ScreenContainer title="Settings">
@@ -84,6 +88,7 @@ export default function SettingsScreen() {
             icon="notifications-outline"
             label="Notifications"
             hint="Choose what you get pinged about"
+            value={pushPermission?.status === "denied" ? "Off" : undefined}
             onPress={() => router.push("/settings/notifications")}
           />
           <RowDivider />
