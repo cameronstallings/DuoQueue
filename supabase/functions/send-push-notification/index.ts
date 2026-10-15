@@ -23,6 +23,7 @@ import {
   type AnnouncementEvent,
   canDuoWith,
   type DiscordSharedEvent,
+  DUO_CALL_LOCKED_LOG_EVENT,
   DUO_LOCKED_LOG_EVENT,
   DUO_POP_CATEGORY,
   DUO_POP_SOUND,
@@ -30,6 +31,7 @@ import {
   type DuoPopRow,
   duoPopTtlSeconds,
   type FirstMessageNudgeEvent,
+  isCallLock,
   isDuoPopOpenFor,
   isLiveMatchBetween,
   isOptedInToDuoPops,
@@ -53,7 +55,7 @@ import {
   type SessionRow,
   type ShareRow,
 } from "./events.ts";
-import { duoLockedPush, duoPopPush, duoPopVariant, poppedInSeconds } from "./duoPopCopy.ts";
+import { duoCallLockedPush, duoLockedPush, duoPopPush, duoPopVariant, poppedInSeconds } from "./duoPopCopy.ts";
 import { likeAlertPush } from "./likeAlertCopy.ts";
 import {
   discordSharedPush,
@@ -323,6 +325,15 @@ async function sendAnnouncement(event: AnnouncementEvent): Promise<Response> {
 // from these; 1.0.1 reads category + matchId and opens the chat). The player who tapped I'm in
 // gets nothing: their Pop card is already playing the moment. Any lookup error, including the
 // table not existing yet, means "not a pop", so every other match is exactly as before.
+//
+// ONE DUO PER QUEUE UP (0088). accept_invite now also locks the queue-up when a new player
+// joins with its Duo Call code and matches (queue_ups.locked_via = "call"). For that lock ONLY
+// the sender is pushed: "Duo locked", "{name} answered your LFG post.", with matchId, popId and
+// via "post" and NO poppedIn, so 1.0.1 and build 19 open the chat on a tap (no poppedIn means an
+// ordinary match to them) and build 19 ignores it in the foreground. The player who joined gets
+// nothing: /invited already plays DUO LOCKED for them. findLockedPop selects *, so before 0088
+// locked_via is simply absent (a pop); naming the column would be a PostgREST error, which reads
+// as "not a pop" and would turn every Duo Pop back into "New match!". Deploy this BEFORE 0088.
 // ---------------------------------------------------------------------------------------------
 
 async function notifyDuoPop(event: DuoPopEvent): Promise<string> {
@@ -388,7 +399,9 @@ async function findLockedPop(matchId: string): Promise<LockedPopRow | null> {
   try {
     const { data, error } = await supabase
       .from("queue_ups")
-      .select("id, sender_id, locked_by, locked_at, created_at, can_duo")
+      // * on purpose: a column a migration has not added yet is absent, not an error (0088's
+      // locked_via).
+      .select("*")
       .eq("match_id", matchId)
       .not("locked_at", "is", null)
       .order("locked_at", { ascending: false })
@@ -403,6 +416,18 @@ async function findLockedPop(matchId: string): Promise<LockedPopRow | null> {
     console.error("duo pop match lookup failed:", err);
     return null;
   }
+}
+
+/** 0088: a new player joined with the sender's Duo Call code and that match locked the call. */
+async function notifyDuoCallLocked(event: NewMatchEvent, lock: PopLock): Promise<string> {
+  const joinerName = await getDisplayName(lock.lockerId);
+  return await notifyProfile(
+    lock.senderId,
+    "new_match",
+    duoCallLockedPush(joinerName),
+    { matchId: event.matchId, popId: lock.popId, via: "post" },
+    DUO_CALL_LOCKED_LOG_EVENT,
+  );
 }
 
 async function notifyDuoLocked(event: NewMatchEvent, pop: LockedPopRow, lock: PopLock): Promise<string> {
@@ -543,6 +568,11 @@ Deno.serve(async (req) => {
       // A match that came out of a Duo Pop: "Duo locked" to the sender only (Queue Up, above).
       const pop = await findLockedPop(event.matchId);
       const lock = popLockFor(pop, event);
+      // A match that locked a Duo Call (0088): "Duo locked" to the sender only, no Popped in.
+      if (lock && isCallLock(pop)) {
+        result = await notifyDuoCallLocked(event, lock);
+        break;
+      }
       if (pop && lock && poppedInSeconds(pop.created_at, pop.locked_at) !== null) {
         result = await notifyDuoLocked(event, pop, lock);
         break;

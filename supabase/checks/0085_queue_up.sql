@@ -888,7 +888,15 @@ begin
   exception when raise_exception then
     if sqlerrm <> 'rollback_probe' then raise; end if;
   end;
-  assert v_capped = false and not v_capped_like, 'H: a fourth answer to one call still got the standing like';
+  -- 0088 replaced "at most 3 auto-matches per call" with "until the first duo" (a call is
+  -- locked by its first match, and connections no longer count), so once queue_ups.locked_via
+  -- exists this probe expects the standing like; 0088's own check covers the new rule.
+  if exists (select 1 from information_schema.columns
+             where table_schema = 'public' and table_name = 'queue_ups' and column_name = 'locked_via') then
+    assert v_capped and v_capped_like, 'H: with 0088, three connected answers to an unlocked call kept the standing like from a fourth';
+  else
+    assert v_capped = false and not v_capped_like, 'H: a fourth answer to one call still got the standing like';
+  end if;
 
   -- After Stop the code stops resolving at once, reads as ended, and gives no standing like.
   begin

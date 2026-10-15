@@ -9,12 +9,15 @@ import {
   ANNOUNCEMENT_BODY_MAX,
   ANNOUNCEMENT_TITLE_MAX,
   canDuoWith,
+  DUO_CALL_LOCKED_LOG_EVENT,
+  DUO_LOCKED_LOG_EVENT,
   DUO_POP_CATEGORY,
   DUO_POP_MIN_SECONDS_LEFT,
   DUO_POP_SOUND,
   DUO_POP_TTL_SECONDS,
   duoPopTtlSeconds,
   isAnnouncementText,
+  isCallLock,
   isDuoPopOpenFor,
   isLiveMatchBetween,
   isOptedInToDuoPops,
@@ -149,6 +152,12 @@ describe("PUSH_ROUTES: the contract with the SQL and with the shipped app", () =
     expect(tap(PUSH_ROUTES.new_match.category, MATCH)).toEqual({ kind: "open-chat", matchId: MATCH });
   });
 
+  it("the post's Duo locked push (0088) is new_match + matchId too, so a tap opens the chat", () => {
+    // Its extra popId and via "post" ride beside matchId; the shipped app routes on category and
+    // matchId only.
+    expect(tap(PUSH_ROUTES.new_match.category, MATCH)).toEqual({ kind: "open-chat", matchId: MATCH });
+  });
+
   it("the Duo Pop is not a notifyProfile route: it never takes the missing-row-means-notify default", () => {
     expect("duo_pop" in PUSH_ROUTES).toBe(false);
     expect(DUO_POP_CATEGORY).toBe("duo_pop");
@@ -264,6 +273,34 @@ describe("Duo Pop re-checks (0085)", () => {
     expect(popLockFor({ ...lockedRow, locked_by: null }, { userAId: A, userBId: B })).toBeNull();
     expect(popLockFor(lockedRow, { userAId: A, userBId: C })).toBeNull();
     expect(popLockFor({ ...lockedRow, locked_by: A }, { userAId: A, userBId: B })).toBeNull();
+  });
+
+  // 0088: one duo per Queue up. A Duo Call lock is the same row shape plus locked_via "call".
+  it("isCallLock: only locked_via exactly call (absent before 0088, null, pop or anything else is a pop)", () => {
+    expect(isCallLock({ ...lockedRow, locked_via: "call" })).toBe(true);
+    expect(isCallLock({ ...lockedRow, locked_via: "pop" })).toBe(false);
+    expect(isCallLock({ ...lockedRow, locked_via: null })).toBe(false);
+    expect(isCallLock({ ...lockedRow, locked_via: undefined })).toBe(false);
+    expect(isCallLock(lockedRow)).toBe(false);
+    expect(isCallLock({ ...lockedRow, locked_via: "CALL" })).toBe(false);
+    expect(isCallLock(null)).toBe(false);
+    expect(isCallLock(undefined)).toBe(false);
+  });
+
+  it("popLockFor still returns the lock for a call row (the sender gets the call push, the joiner nothing)", () => {
+    expect(popLockFor({ ...lockedRow, locked_via: "call" }, { userAId: A, userBId: B })).toEqual({
+      popId: ROW,
+      senderId: A,
+      lockerId: B,
+      canDuo: true,
+    });
+  });
+
+  it("the call lock's log event is its own, not duo_locked", () => {
+    expect(DUO_CALL_LOCKED_LOG_EVENT).toBe("duo_call_locked");
+    expect(DUO_CALL_LOCKED_LOG_EVENT).not.toBe(DUO_LOCKED_LOG_EVENT);
+    // push_log_event_length (0080): 1..40 characters.
+    expect(DUO_CALL_LOCKED_LOG_EVENT.length).toBeLessThanOrEqual(40);
   });
 });
 

@@ -96,9 +96,14 @@ shows: a populated deck of 13 fresh demo profiles, one existing match (Priya) wi
 8-message conversation left unread (an indicator on that row in the Matches list; from 1.0.2
 the Matches tab also shows a badge, `useMatchesBadge`, which Priya's unread chat lights), and 3
 inbound "who wants to duo" requests
-(Sana, Marcus, Kofi). The review account plays League of Legends at Gold II, so the first
-two cards (Dae, Platinum I, and Devon, Silver I) carry the lit "CAN DUO" cell from the
-rank picker; Ophelia (Emerald IV) is further down without it. Every demo row is flagged `is_demo = true` and gated server-side across
+(Sana, Marcus, Cameron). The review account plays League of Legends at Gold II, so the first
+three cards (Cameron, Platinum IV, Dae, Platinum I, and Devon, Silver I) carry the lit
+"CAN DUO" cell from the rank picker; Ophelia (Emerald IV) is further down without it.
+Cameron is the owner's own card (his name; under `--filming`, his own photograph), North
+American and League first; it replaced the Rocket League persona on the same seed slug on
+2026-10-15. The four pre-launch tester accounts (KittyKat, Stallings, the 15 Aug Cameron,
+John) are `is_demo` too since 15 Oct, so the seed records a pass on each from this account:
+none of them is in its deck, Highlights or Requests. Every demo row is flagged `is_demo = true` and gated server-side across
 9 RPCs and 14 views — real users (verified live, adversarially, across every discovery
 surface) see zero of it, and the reviewer's account is invisible to them too. That holds for
 `is_demo = false` accounts only: `is_demo_viewer()` (0059) is true for every `is_demo` caller,
@@ -112,12 +117,12 @@ inferred from the seed file, and re-measured after a full `--filming` → plain 
 | claim | how it was measured | result |
 |---|---|---|
 | deck of 13 | `get_deck(50)` as this account, under `set local role authenticated` | 13 |
-| 3 requests, by name | `get_admirers()` as this account, newest first | Sana, Marcus, Kofi |
+| 3 requests, by name | `get_admirers()` as this account (a free account: all 3, in an order that changes by day, not newest first) | Sana, Marcus, Cameron (on 2026-10-15: Marcus, Cameron, Sana) |
 | 14 demo profiles | `count(*) from profiles where is_demo` minus the review row | 14 |
 | Priya, 8 messages, newest unread | `messages` joined to the one row in `matches` | 8, newest from Priya, `read_at is null` |
 | photos are abstract | md5 of every stored object vs. md5 of every file in `assets/demo` and `assets/demo-filming` | 30/30 in `assets/demo`, 0 in `assets/demo-filming`, 0 unmatched |
 | 9 RPCs / 14 views | functions and views whose definition references `is_demo_viewer` / `is_demo` | 9 and 14 |
-| League "Can duo" order (2026-09-23, after 0069 and a plain re-seed) | `get_deck(20)` as this account, read-only, rolled back | 13 cards, all demo: 1 Dae (true), 2 Devon (true), 3 Sana, 4 Kofi, 5 Chase, 6 Tobin, 7 Wren, 8 Ophelia (false), 9 Marcus, 10 Bea, 11 Remy, 12 Yuki, 13 Nadia (null = no League rank) |
+| League "CAN DUO" order (2026-10-15, after 0071 and a plain re-seed) | `get_deck(20)` as this account, read-only, rolled back | 13 cards, all seed personas, none of the four tester accounts: 1 Cameron (true), 2 Dae (true), 3 Devon (true), 4 Chase, 5 Wren, 6 Ophelia (false), 7 Sana, 8 Tobin, 9 Marcus, 10 Bea, 11 Remy, 12 Yuki, 13 Nadia (null = no League rank). North America comes first since 0071, and Cameron leads because he is the one North American request |
 
 The 14 abstract PNGs were also opened and looked at, not just hashed: circuit traces,
 isometric blocks, hex field, waveform, target rings, dot matrix, radar sweep, scanline
@@ -131,21 +136,27 @@ Re-running the seed script is safe any time — it's idempotent and won't duplic
 node scripts/seed-review-demo.mjs
 ```
 
-**1.0.2 WARNING, read 15 Oct 2026 (read-only SQL): the numbers above are not today's, and the
-plain seed is NOT safe to run as it is.**
-- The review account passed Dae and liked Devon on 10 Oct 2026, so only 11 personas pass
-  `deck_gate_hard` and `deck_gate_preferences` for it today (Bea, Chase, Kofi, Marcus, Nadia,
-  Ophelia, Remy, Sana, Tobin, Wren, Yuki), and neither CAN DUO card is among them. Priya (8
-  messages) and the three requests (Sana, Marcus, Kofi) are intact.
+**1.0.2 WARNING, read 15 Oct 2026 (read-only SQL), and what the reseed (697657c, the same day)
+changed.** The first three bullets are why the old plain seed was NOT safe to run; the seed now
+handles all three, and the table above is its re-measure after a plain run. What is still left
+before submitting is the last bullet.
+- Before the reseed, the review account had passed Dae and liked Devon on 10 Oct 2026, so only
+  11 personas passed `deck_gate_hard` and `deck_gate_preferences` for it (Bea, Chase, Kofi,
+  whose slug is Cameron's card since the reseed, Marcus, Nadia, Ophelia, Remy, Sana, Tobin, Wren,
+  Yuki), and neither CAN DUO card was among them. Every seed run deletes every swipe the review account made
+  (`resetReviewAccountState`), so a plain run clears that; Priya (8 messages) and the three
+  requests (now Sana, Marcus, Cameron) are rebuilt by it.
 - On 15 Oct the four pre-launch accounts KittyKat, Stallings, Cameron (the 15 Aug email one)
   and John were flagged `is_demo = true`, so there are now 19 demo profiles, not 15. All four
   have user-uploaded photos (JPGs in their own storage folders, not the generated PNGs; Cameron's
-  and John's are approved). Today they stay out of the review deck only because the review
-  account passed them on 17 Sept.
-- `resetReviewAccountState` deletes every swipe the review account made, and
-  `excludeRealAccountsFromDemoPool` re-passes only `is_demo = false` profiles. A plain re-seed
-  now would therefore put those four into the review deck with their own photos, which breaks
-  the "never a real or AI-generated face" sentence above.
+  and John's are approved). Before the reseed they stayed out of the review deck only because
+  the review account had passed them on 17 Sept.
+- The old `excludeRealAccountsFromDemoPool` re-passed only `is_demo = false` profiles, so a plain
+  re-seed would have put those four into the review deck with their own photos, breaking the
+  "never a real or AI-generated face" sentence above, and its prune ("is_demo and not a
+  persona") would have deleted all four accounts. Since 697657c,
+  `excludeNonPersonaAccountsFromDemoPool` passes every profile that is not one of the seed's
+  personas, and `pruneRemovedDemoAccounts` deletes only accounts whose email the seed created.
 - The same passes carry the 1.0.2 Duo Pop lines. A pop goes only between two accounts with the
   same `is_demo` and no pass in either direction (`duo_pop_pair_ok`, 0085), and those four
   accounts belong to real people who can queue up and turn Duo Pops on (read 15 Oct: the review
@@ -159,20 +170,28 @@ plain seed is NOT safe to run as it is.**
 - Those four are also why the 1.0.2 notes say the demo profiles are seen by "this account and four
   pre-launch tester accounts" (any `is_demo` account sees them). Unflag or delete the four and
   that sentence changes.
-- Before submitting 1.0.2 (a script edit and a database write, both Cameron's OK): make the
-  seed also pass every `is_demo` profile that is not one of its own personas, run the plain seed,
+- Before submitting 1.0.2 (a database write, Cameron's OK): the script edit is done (697657c),
+  but the seed was left in `--screenshots` on 15 Oct (342d409, below), so run the plain seed and
   then re-measure the table above. The 1.0.2 review notes (Part 4) say "a Deck of 13 profiles"
-  with Dae and Devon lit and that the account cannot receive a Duo Pop, which are true only after
-  that (re-measure: 13 cards, Dae and Devon lit, a pass from the review account on each of the
-  four).
+  with Cameron, Dae and Devon lit and that the account cannot receive a Duo Pop, which are true
+  only after that (re-measure: 13 cards, Cameron, Dae and Devon lit, no `profile_media` outside
+  `assets/demo`, a pass from the review account on each of the four).
 
-**Never submit after a `--filming` run.** That flag swaps the abstract art for real
+**Never submit after a `--filming` or `--screenshots` run.** That flag swaps the abstract art for real
 photographs so Cameron can record marketing footage, and it leaves them in the live
 database. It has already made the "never a real or AI-generated face" sentence above false
 once, on an app that was rejected under a content guideline. A plain
 `node scripts/seed-review-demo.mjs` puts the approved abstract set back; run it, and confirm
 before submitting that no `profile_media` row for a demo profile resolves to a file in
 `assets/demo-filming/`.
+
+Since 2026-10-15 the filming set is two personas: Cameron (the owner, his own photograph,
+with his consent) and Priya (a cat). The photographs of other people that Sana and Marcus
+used were dropped; they stay abstract in both modes. **The seed was left in `--screenshots` on
+2026-10-15** (342d409) for the 1.0.2 store screenshots: `--screenshots` is `--filming`'s photos
+plus the review account's League row, which `--filming` alone leaves off, so Cameron's card leads
+with his own photograph and Cameron, Dae and Devon all show CAN DUO (measured in a rolled-back
+run). Run the plain seed before submitting.
 
 **Once App Review is done and the app is live, remove it:**
 
@@ -559,6 +578,10 @@ Six shots, in this order (order matters — the first is what search results sho
 
 1. **Deck** (`app/(tabs)/index.tsx`) — Dae's card (build 12): the picture, the page track, the
    name row, and the three cells with the lit Solo/Duo "CAN DUO" cell. Capture dark and Paper.
+   For 1.0.2 (2026-10-15) the first card is Cameron's, in both seed modes. Under `--filming` it
+   shows his own photograph but no "CAN DUO" cell, because the review account has no League
+   row in that mode; plain mode lights it, on abstract art; `--screenshots` (342d409) gives both,
+   his photograph with the lit cell, and is the mode for this shot.
    *"Ranked by the games you both play. Swipe to duo up."*
 2. **Own profile** (`app/(tabs)/profile.tsx`) — your card under HOW OTHERS SEE YOU, then the
    HOW I PLAY tiles.
@@ -865,15 +888,17 @@ each dot of "•••" is 3 bytes); the limit is 4,000, so count again after an
 - SIGN IN WITH APPLE rewritten for 1.0.2 (Apple is on "Save your card" and "I already have an
   account", not the front door);
 - the deck line no longer claims Dae and Devon are the first two cards (0071 changed the order;
-  they still carry the lit cell), and the paywall item and IN-APP PURCHASES are folded into one
+  they still carry the lit cell, and since the reseed, 697657c, so does Cameron's card, first in
+  the deck), and the paywall item and IN-APP PURCHASES are folded into one
   HOW TO EXERCISE line to stay under 4,000. To fit the additions above, the vocabulary list, the
   separate League rank line (folded into the deck line), the plan names, "(was 5)" and two
   repeated "no email code" mentions were cut.
 
 **Before pasting, two things must be true**, or the notes describe something the reviewer
-will not see: the demo account is repaired as the 1.0.2 WARNING in Part 1.5 says (today only 11
-personas pass the gates and neither CAN DUO card is among them, and the Duo Pop lines rest on the
-review account's passes on the four pre-launch accounts); and Queue Up's server pieces are live
+will not see: the plain seed is re-run and re-measured as the 1.0.2 WARNING in Part 1.5 says
+(the seed fix is in, 697657c, but the seed was left in `--screenshots`, with Cameron's own
+photograph, and the Duo Pop lines rest on the review account's passes on the four pre-launch
+accounts, which every run of the fixed seed records); and Queue Up's server pieces are live
 (0085 and the new `send-push-notification`, plan S2 and S3), or the sheet falls back to the
 queued-by-profile phase and shows no Duo Pop line. The recovery template (plan S4) is already
 live: read 15 Oct 2026, subject "Your DuoQueue password reset code", a `{{ .Token }}` code, no
@@ -915,7 +940,7 @@ DEMO ACCOUNT
 The demo account signs in from the first screen: tap "I already have an account", then enter the email and password below.
   Email:    review@duoqueue.io
   Password: ipTH0uV9uRfA9O2xsg7eb6WH
-Pre-confirmed and onboarded. You will see a Deck of 13 profiles (League Gold II, so Dae and Devon show the lit "CAN DUO" cell, ranks that can queue Ranked Solo/Duo together by Riot's rules; Ophelia does not), a match with "Priya" (8 messages, newest unread), and three profiles under "Requests". Real users never see these synthetic profiles or this account (server-side row-level security); only this account and four pre-launch tester accounts can see them. Their pictures are abstract artwork. Store screenshots show real people, with consent.
+Pre-confirmed and onboarded. You will see a Deck of 13 profiles (League Gold II, so Cameron, Dae and Devon show the lit "CAN DUO" cell, ranks that can queue Ranked Solo/Duo together by Riot's rules; Ophelia does not), a match with "Priya" (8 messages, newest unread), and three profiles under "Requests". Real users never see these synthetic profiles or this account (server-side row-level security); only this account and four pre-launch tester accounts can see them. Their pictures are abstract artwork. Store screenshots show real people, with consent.
 
 NEW IN 1.0.2
 1. Queue up (top right of the Deck): pick a game and tap Queue up. For an hour the player is in Online Now and matches may get a "free to duo" push. It also makes a plain-text LFG post with a code: "Share my LFG post" opens the iOS share sheet, "Copy post" copies it; the app never posts by itself. Until "Stop queueing" (or 15 minutes after the hour), a new player who enters the code at sign-up lands on the sender's card. A demo account's code never works, so this one's shows "That code did not work."
@@ -1012,9 +1037,10 @@ Submit, not before.
 **1.0.2 (build 19) additions** (the order of the work itself is plan R4 in
 `docs/superpowers/plans/2026-10-15-build-19.md`):
 - [ ] The demo account is repaired: the seed passes every `is_demo` profile that is not one of
-      its own personas, the plain seed was re-run with Cameron's OK, and a re-measure shows 13
-      cards with Dae and Devon lit, no `profile_media` outside `assets/demo`, and a pass from the
-      review account on each of KittyKat, Stallings, Cameron and John (those passes are what make
+      its own personas (done, 697657c), the plain seed was re-run with Cameron's OK after the
+      15 Oct `--screenshots` run, and a re-measure shows 13 cards with Cameron, Dae and Devon
+      lit, no `profile_media` outside `assets/demo`, and a pass from the review account on each
+      of KittyKat, Stallings, Cameron and John (those passes are what make
       the notes' "this account cannot receive one" and its "No one in League of Legends could get
       a Duo Pop right now" true; Part 1.5 WARNING).
 - [ ] The four pre-launch accounts are still the only `is_demo` accounts outside the seed's

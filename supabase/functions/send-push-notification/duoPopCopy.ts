@@ -112,3 +112,11 @@ export function duoLockedPush(lockerName: string | null | undefined, seconds: nu
   const name = oneLine(String(lockerName ?? "")) || "Someone";
   return { title: DUO_LOCKED_TITLE, body: `${name} grabbed your Duo Pop. Popped in ${formatPoppedIn(seconds)}.` };
 }
+
+/** 0088: to the SENDER when a new player joins with their Duo Call code and that match is the
+ * call's one duo. No "Popped in" (the post can be answered at minute 40). Nothing goes to the
+ * player who joined: /invited already plays DUO LOCKED for them. */
+export function duoCallLockedPush(joinerName: string | null | undefined): PushCopy {
+  const name = oneLine(String(joinerName ?? "")) || "Someone";
+  return { title: DUO_LOCKED_TITLE, body: `${name} answered your LFG post.` };
+}

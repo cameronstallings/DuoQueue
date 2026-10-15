@@ -211,6 +211,9 @@ export const DUO_POP_TTL_SECONDS = 600;
 export const DUO_POP_MIN_SECONDS_LEFT = 30;
 /** push_log.event for the sender's push when a pop locks (category new_match). */
 export const DUO_LOCKED_LOG_EVENT = "duo_locked";
+/** push_log.event for the sender's push when someone joins with the Duo Call code and that
+ * match locks the call (0088, category new_match). */
+export const DUO_CALL_LOCKED_LOG_EVENT = "duo_call_locked";
 export const ANNOUNCEMENT_TITLE_MAX = 60;
 export const ANNOUNCEMENT_BODY_MAX = 180;
 
@@ -403,7 +406,8 @@ export function isOptedInToDuoPops(settings: unknown): boolean {
   return !!settings && typeof settings === "object" && (settings as Record<string, unknown>).queue_pop === true;
 }
 
-/** The queue_ups columns the new_match enrichment reads, for a row whose match_id is the match. */
+/** The queue_ups columns the new_match enrichment reads, for a row whose match_id is the match.
+ * findLockedPop selects *, so a column a migration has not added yet is simply absent. */
 export interface LockedPopRow {
   id: string;
   sender_id: string;
@@ -411,6 +415,15 @@ export interface LockedPopRow {
   locked_at: string | null;
   created_at: string;
   can_duo: string[] | null;
+  /** 0088: how the one duo formed, "pop" or "call". Absent before 0088; null reads as a pop. */
+  locked_via?: string | null;
+}
+
+/** 0088: the lock came from the Duo Call LFG post (someone joined with the code and matched),
+ * not from an I'm in on a Duo Pop. Only exactly "call": null, absent, "pop" or anything else is
+ * a pop, as before 0088. */
+export function isCallLock(pop: Pick<LockedPopRow, "locked_via"> | null | undefined): boolean {
+  return pop?.locked_via === "call";
 }
 
 export interface PopLock {
