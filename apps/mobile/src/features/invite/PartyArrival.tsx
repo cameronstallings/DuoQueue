@@ -110,6 +110,18 @@ export function PartyArrival({ arrival, onLeave }: { arrival: PartyInviteArrival
     body = PARTY_JOIN_RESULT_COPY[state.status];
     card = null;
     buttons = <Button label={PARTY_ARRIVAL_COPY.findPlayers} onPress={() => void onLeave()} />;
+  } else if (state.kind === "member") {
+    // Their own party's code. join_party_by_code answers "member" with the party's id, which is
+    // how this opens the chat (nothing is written).
+    title = null;
+    body = PARTY_ARRIVAL_COPY.alreadyIn;
+    card = null;
+    buttons = (
+      <>
+        <Button label={PARTY_ARRIVAL_COPY.openChat} loading={join.isPending} onPress={() => void handleJoin()} />
+        <Button label={PARTY_ARRIVAL_COPY.notNow} variant="ghost" haptic="light" onPress={() => void onLeave()} />
+      </>
+    );
   } else {
     card = (
       <View style={{ gap: spacing.sm, alignSelf: "stretch" }}>

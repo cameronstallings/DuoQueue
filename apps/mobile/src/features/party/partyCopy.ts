@@ -157,6 +157,9 @@ export const PARTY_ARRIVAL_COPY = {
   join: "Join the party",
   notNow: "Not right now",
   joinFailedTitle: "Couldn't join the party",
+  /** A member who entered their own party's code. */
+  alreadyIn: "You're already in this party.",
+  openChat: "Open party chat",
   loadFailed: "Couldn't load the party.",
   tryAgain: "Try again",
   findPlayers: "Find players",

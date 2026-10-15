@@ -67,9 +67,10 @@ export interface ResolvedPartyCode {
 }
 
 /** One row of preview_party_code: one per member while live and the caller may join, otherwise a
- * single row with only the status. AGES STAY: member_age is shown. */
+ * single row with only the status ("member" when the caller is already in the party). AGES STAY:
+ * member_age is shown. */
 export interface PartyCodePreviewRow {
-  status: PartyCodeStatus | "unavailable";
+  status: PartyCodeStatus | "unavailable" | "member";
   sharer_name: string | null;
   game_name: string | null;
   member_name: string | null;
@@ -156,6 +157,8 @@ export type PartyPreview =
       gameName: string | null;
       members: { name: string; age: number | null }[];
     }
+  /** Already in it (a member typed their own party's code): the arrival opens the chat. */
+  | { kind: "member" }
   | { kind: "closed"; status: PartyClosedStatus };
 
 /**
@@ -167,6 +170,7 @@ export type PartyPreview =
 export function partyPreviewOf(rows: readonly PartyCodePreviewRow[] | null | undefined): PartyPreview {
   const first = rows?.[0];
   if (!first) return { kind: "closed", status: "unavailable" };
+  if (first.status === "member") return { kind: "member" };
   if (first.status === "full" || first.status === "ended" || first.status === "unavailable") {
     return { kind: "closed", status: first.status };
   }

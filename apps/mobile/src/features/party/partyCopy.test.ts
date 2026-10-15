@@ -207,6 +207,8 @@ describe("joining with a code", () => {
     expect(PARTY_ARRIVAL_COPY.join).toBe("Join the party");
     expect(PARTY_ARRIVAL_COPY.notNow).toBe("Not right now");
     expect(PARTY_ARRIVAL_COPY.joinFailedTitle).toBe("Couldn't join the party");
+    expect(PARTY_ARRIVAL_COPY.alreadyIn).toBe("You're already in this party.");
+    expect(PARTY_ARRIVAL_COPY.openChat).toBe("Open party chat");
     expect(partyMemberLine("Sam", 24)).toBe("Sam, 24");
     expect(partyMemberLine("Sam", null)).toBe("Sam");
   });

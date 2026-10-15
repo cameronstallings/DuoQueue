@@ -125,6 +125,12 @@ describe("partyPreviewOf (preview_party_code)", () => {
     expect(partyPreviewOf(only("unavailable"))).toEqual({ kind: "closed", status: "unavailable" });
   });
 
+  it("knows a player who is already in the party (0089 answers one row, status member)", () => {
+    expect(
+      partyPreviewOf([{ status: "member", sharer_name: null, game_name: null, member_name: null, member_age: null }]),
+    ).toEqual({ kind: "member" });
+  });
+
   it("reads nothing at all, or an unknown status, as unavailable", () => {
     expect(partyPreviewOf([])).toEqual({ kind: "closed", status: "unavailable" });
     expect(partyPreviewOf(null)).toEqual({ kind: "closed", status: "unavailable" });
