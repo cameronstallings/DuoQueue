@@ -202,7 +202,8 @@ export function useInviteRedemption(): void {
         // `connected` means this account has already been through the arrival screen, most
         // likely on a previous install. The attribution row stands; the celebration does not
         // repeat, so that settles with no arrival (duoRedemptionOutcome).
-        const outcome = duoRedemptionOutcome({ ...answer, callEnded });
+        // The code rides on the arrival, so /invited can tell a Duo Call that ended since.
+        const outcome = duoRedemptionOutcome({ ...answer, callEnded, code });
         settleRedemption(outcome.arrival, outcome.notice);
         say(outcome.notice);
       } catch {

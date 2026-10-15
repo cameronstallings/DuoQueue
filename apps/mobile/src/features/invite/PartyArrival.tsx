@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { Alert, Text, View } from "react-native";
-import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, { FadeIn, FadeInUp, ReduceMotion, useReducedMotion, ZoomIn } from "react-native-reanimated";
 
@@ -11,17 +10,14 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { Skeleton } from "@/components/Skeleton";
 import { partyJoinOutcome, partyPreviewOf } from "@/features/party/partyCall";
 import {
-  INVITE_FALLBACK_MESSAGE,
   PARTY_ARRIVAL_COPY,
   PARTY_JOIN_RESULT_COPY,
-  partyInviteErrorMessage,
+  partyJoinErrorOutcome,
   partyMemberLine,
 } from "@/features/party/partyCopy";
 import { useJoinPartyByCode, usePreviewPartyCode } from "@/features/party/usePartyCall";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import type { PartyInviteArrival } from "@/lib/invite";
-import { useInviteStore } from "@/store/invite-store";
-import { useSessionStore } from "@/store/session-store";
 import { revealEntering, stackSpringEntering } from "@/theme/entering";
 import { useTheme } from "@/theme/useTheme";
 
@@ -40,12 +36,23 @@ const MEMBER_ROW_H = 21;
  *
  * Same layout and motion as the duo arrival, so both read as one screen: the tick, the title and
  * the line fade in, the card springs in, the buttons rise.
+ *
+ * WHERE IT GOES is the parent's (InvitedScreen): `onJoined` opens the party chat and `onLeave` is
+ * "Not right now". Arrived from sign-up or a link, both replace /invited and clear the stored
+ * arrival only after navigating; arrived from Matches, the arrival was never stored and "Not right
+ * now" goes back to Matches.
  */
-export function PartyArrival({ arrival, onLeave }: { arrival: PartyInviteArrival; onLeave: () => Promise<void> }) {
+export function PartyArrival({
+  arrival,
+  onLeave,
+  onJoined,
+}: {
+  arrival: PartyInviteArrival;
+  onLeave: () => void | Promise<void>;
+  onJoined: (partyId: string) => void | Promise<void>;
+}) {
   const { colors, spacing, type } = useTheme();
   const reduced = useReducedMotion();
-  const clearArrival = useInviteStore((s) => s.clearArrival);
-  const refreshProfile = useSessionStore((s) => s.refreshProfile);
   const preview = usePreviewPartyCode(arrival.code);
   const join = useJoinPartyByCode();
 
@@ -56,10 +63,8 @@ export function PartyArrival({ arrival, onLeave }: { arrival: PartyInviteArrival
     try {
       const outcome = partyJoinOutcome(await join.mutateAsync(arrival.code));
       if (outcome.kind === "open-chat") {
-        clearArrival();
-        await refreshProfile();
         hapticSuccess();
-        router.replace({ pathname: "/party/[partyId]/chat", params: { partyId: outcome.partyId } });
+        await onJoined(outcome.partyId);
         return;
       }
       // Somebody else got there first, a member stopped the post, or this player may not join
@@ -69,11 +74,11 @@ export function PartyArrival({ arrival, onLeave }: { arrival: PartyInviteArrival
       void onLeave();
     } catch (err) {
       hapticError();
-      const message = partyInviteErrorMessage(err);
-      Alert.alert(PARTY_ARRIVAL_COPY.joinFailedTitle, message);
-      // A refusal the server put words to is final. A dropped connection is not: stay, so Join
-      // can be tapped again.
-      if (message !== INVITE_FALLBACK_MESSAGE) void onLeave();
+      // A refusal that will not change (the kill switch, a ban, a profile not set up) leaves. A
+      // dropped connection or the rate limit stays, so Join can be tapped again.
+      const failure = partyJoinErrorOutcome(err);
+      Alert.alert(PARTY_ARRIVAL_COPY.joinFailedTitle, failure.message);
+      if (failure.leave) void onLeave();
     }
   }
 

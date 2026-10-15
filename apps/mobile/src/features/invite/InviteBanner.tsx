@@ -41,8 +41,8 @@ import { useResolveInviteCode, useResolvePartyCode } from "./useInvite";
  *
  * A PARTY POST'S CODE (build 20, 0089) goes in the same field: the post's link line pastes in
  * the same way. resolve_invite_code knows nothing of it, so it is asked of resolve_party_code
- * too. Live, it reads "Invite code saved." at the front door and "{name}'s party has a seat for
- * you" from Save on; full or ended, the field says so. 1.0.1 and build 19 say "did not work".
+ * too. Live, it reads "Invite code saved." at the front door and "{name}'s party has an open
+ * seat" from Save on; full or ended, the field says so. 1.0.1 and build 19 say "did not work".
  */
 export function InviteBanner({
   allowEntry = true,

@@ -6,26 +6,30 @@ import { Ionicons } from "@expo/vector-icons";
 import Animated from "react-native-reanimated";
 
 import { TextField } from "@/components/TextField";
-import { useResolvePartyCode } from "@/features/invite/useInvite";
 import { hapticError, hapticSelection, hapticSuccess } from "@/lib/haptics";
-import { INVITE_CODE_LENGTH, isInviteCodeShape, normalizeInviteCode, parseInviteCode } from "@/lib/invite";
-import { useInviteStore } from "@/store/invite-store";
+import {
+  INVITE_CODE_LENGTH,
+  invitedPartyParams,
+  isInviteCodeShape,
+  normalizeInviteCode,
+  parseInviteCode,
+} from "@/lib/invite";
 import { quickEntering, quickExiting, revealEntering } from "@/theme/entering";
 import { useTheme } from "@/theme/useTheme";
 
 import { PARTY_CODE_FIELD_COPY } from "./partyCopy";
-import { usePartyLfgAvailable } from "./usePartyCall";
+import { usePartyCodeLookup, usePartyLfgAvailable } from "./usePartyCall";
 
 /**
  * Matches > "Have a party code?": how a player who already has an account answers a party LFG
  * post. The post's link opens the App Store, not the app, and DuoQueue's own players are the most
  * likely to answer a DuoQueue post, so without this they could not use one at all.
  *
- * The code is only READ here (resolve_party_code). A live one becomes the party arrival and opens
- * /invited, the same screen a new player lands on, where the party and its members are shown and
- * the seat is taken only on Join. Full, ended or unknown codes say so under the field. The row
- * is there only once the server has 0089 (usePartyLfgAvailable), so before that Matches is build
- * 19's.
+ * The code is only READ here (resolve_party_code). A live one opens /invited with the arrival in
+ * its route params (invitedPartyParams), the same screen a new player lands on, where the party
+ * and its members are shown and the seat is taken only on Join. Full, ended or unknown codes say
+ * so under the field; a code that could not be checked (offline) says only that. The row is there
+ * only once the server has 0089 (usePartyLfgAvailable), so before that Matches is build 19's.
  */
 export function PartyCodeField() {
   const available = usePartyLfgAvailable();
@@ -35,26 +39,31 @@ export function PartyCodeField() {
 
 function PartyCodeFieldBody() {
   const { colors, spacing, type } = useTheme();
-  const settleRedemption = useInviteStore((s) => s.settleRedemption);
   const [expanded, setExpanded] = useState(false);
   const [typed, setTyped] = useState("");
 
   const code = isInviteCodeShape(typed) ? typed : null;
-  const resolved = useResolvePartyCode(code, code !== null);
-  const checking = code !== null && resolved === undefined;
-  const status = code !== null && resolved ? resolved.status : null;
-  const notFound = code !== null && resolved === null;
+  // An error is its own state (partyCodeLookupState): offline says nothing about the code, so it
+  // never reads "did not work" and never buzzes.
+  const lookup = usePartyCodeLookup(code);
+  const { state } = lookup;
+  const checking = state.kind === "checking";
+  const status = state.kind === "found" ? state.row.status : null;
+  const notFound = state.kind === "not-found";
+  const failed = state.kind === "error";
+  const sharerName = state.kind === "found" ? state.row.sharer_name?.trim() || "Someone" : "Someone";
 
   // A live code opens the party once per code (the field keeps it, so coming back from the
-  // arrival screen does not open it again).
+  // arrival screen does not open it again). The arrival goes in the route, NOT the invite store:
+  // nothing is persisted, so leaving /invited by the back swipe leaves nothing behind for a later
+  // invite link to land on, and "Not right now" goes back here (PartyArrival via InvitedScreen).
   const openedFor = useRef<string | null>(null);
   useEffect(() => {
     if (!code || status !== "live" || openedFor.current === code) return;
     openedFor.current = code;
     hapticSuccess();
-    settleRedemption({ kind: "party", code, inviterName: resolved?.sharer_name?.trim() || "Someone" });
-    router.push("/invited");
-  }, [code, status, resolved, settleRedemption]);
+    router.push({ pathname: "/invited", params: invitedPartyParams({ code, inviterName: sharerName }) });
+  }, [code, status, sharerName]);
 
   // The haptic map's inline form error, once, as the "did not work" or no-seat line appears.
   const refused = notFound || status === "full" || status === "ended";
@@ -100,13 +109,15 @@ function PartyCodeFieldBody() {
 
   const caption = checking
     ? { key: "checking", color: colors.textMuted, text: PARTY_CODE_FIELD_COPY.checking }
-    : status === "full"
-      ? { key: "full", color: colors.textMuted, text: PARTY_CODE_FIELD_COPY.full }
-      : status === "ended"
-        ? { key: "ended", color: colors.textMuted, text: PARTY_CODE_FIELD_COPY.ended }
-        : notFound
-          ? { key: "not-found", color: colors.danger, text: PARTY_CODE_FIELD_COPY.notFound }
-          : { key: "hint", color: colors.textMuted, text: PARTY_CODE_FIELD_COPY.hint };
+    : failed
+      ? { key: "failed", color: colors.textMuted, text: PARTY_CODE_FIELD_COPY.checkFailed }
+      : status === "full"
+        ? { key: "full", color: colors.textMuted, text: PARTY_CODE_FIELD_COPY.full }
+        : status === "ended"
+          ? { key: "ended", color: colors.textMuted, text: PARTY_CODE_FIELD_COPY.ended }
+          : notFound
+            ? { key: "not-found", color: colors.danger, text: PARTY_CODE_FIELD_COPY.notFound }
+            : { key: "hint", color: colors.textMuted, text: PARTY_CODE_FIELD_COPY.hint };
 
   return (
     <Animated.View
@@ -129,6 +140,9 @@ function PartyCodeFieldBody() {
         entering={quickEntering()}
         exiting={quickExiting()}
         accessibilityLiveRegion="polite"
+        // "Couldn't check that code. Tap to try again." asks the same code again.
+        accessibilityRole={failed ? "button" : undefined}
+        onPress={failed ? lookup.retry : undefined}
         style={[type.caption, { color: caption.color }]}
       >
         {caption.text}

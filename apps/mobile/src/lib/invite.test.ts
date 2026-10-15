@@ -10,7 +10,11 @@ import {
 
 import {
   CALL_ENDED_BEFORE_SIGNUP,
+  DUO_ARRIVAL_BODY,
+  duoArrivalBody,
   duoRedemptionOutcome,
+  invitedPartyParams,
+  pushedPartyArrival,
   INVITE_CODE_LENGTH,
   INVITE_LINK_UNUSABLE,
   needsCallEndedCheck,
@@ -554,8 +558,62 @@ describe("partyRedemptionOutcome (resolve_party_code, asked before redeem_invite
 });
 
 describe("partyConfirmation", () => {
-  it("promises a seat, and only what the arrival screen delivers", () => {
-    expect(partyConfirmation("Sam")).toBe("Sam's party has a seat for you. Finish signing up to join them.");
+  it("names an open seat and never promises it (nothing holds it; first one in gets the spot)", () => {
+    expect(partyConfirmation("Sam")).toBe(
+      "Sam's party has an open seat. Finish signing up to join them if it's still open.",
+    );
+    expect(partyConfirmation("Sam")).not.toMatch(/for you/);
+  });
+});
+
+describe("the Matches party code, carried in /invited's route params", () => {
+  it("goes there and back as a party arrival", () => {
+    const params = invitedPartyParams({ code: CODE, inviterName: "Sam" });
+    expect(params).toEqual({ partyCode: CODE, partyName: "Sam" });
+    expect(pushedPartyArrival(params)).toEqual({ kind: "party", code: CODE, inviterName: "Sam" });
+  });
+
+  it("normalises the code and names nobody it was not told about", () => {
+    expect(pushedPartyArrival({ partyCode: CODE.toLowerCase(), partyName: "  " })).toEqual({
+      kind: "party",
+      code: CODE,
+      inviterName: "Someone",
+    });
+    expect(pushedPartyArrival({ partyCode: CODE })).toMatchObject({ inviterName: "Someone" });
+  });
+
+  it("holds no arrival for any other way in, or for a code that is not a code", () => {
+    expect(pushedPartyArrival({})).toBeNull();
+    expect(pushedPartyArrival({ partyCode: "nope", partyName: "Sam" })).toBeNull();
+    expect(pushedPartyArrival({ partyCode: ["a"], partyName: "Sam" })).toBeNull();
+  });
+});
+
+describe("the duo arrival's line (one duo per Queue up)", () => {
+  it("keeps the redeemed code on the arrival, so /invited can ask whether a Duo Call ended", () => {
+    const row = { inviter_id: "inviter-1", display_name: "Kai", connected: false };
+    expect(duoRedemptionOutcome({ errored: false, row, code: CODE.toLowerCase() })).toEqual({
+      arrival: { inviterId: "inviter-1", inviterName: "Kai", code: CODE },
+      notice: null,
+    });
+    expect(duoRedemptionOutcome({ errored: false, row, code: "nope" }).arrival).toEqual({
+      inviterId: "inviter-1",
+      inviterName: "Kai",
+    });
+  });
+
+  it("says Duo up only sends a request once the call has ended, and waits rather than swapping", () => {
+    expect(duoArrivalBody(true)).toBe("Their Duo Call has ended. You can still send them a duo request.");
+    expect(duoArrivalBody(false)).toBe("They asked you to come find duos here. Duo up and you already have one.");
+    expect(duoArrivalBody(undefined)).toBeNull();
+  });
+
+  it("writes both lines without dashes, beats or dating words", () => {
+    for (const s of Object.values(DUO_ARRIVAL_BODY)) {
+      expect(s).not.toMatch(new RegExp(`[${String.fromCharCode(0x2013, 0x2014)}]`));
+      expect(s).not.toMatch(/\bbeats?\b/i);
+      expect(s).not.toMatch(/\bdates?\b|dating|singles|hookup|nearby|meet people|match with singles/i);
+    }
   });
 });
 
@@ -566,6 +624,18 @@ describe("parseArrival (the stored arrival, across a restart)", () => {
       inviterName: "Kai",
     });
     expect(parseArrival(JSON.stringify({ kind: "duo", inviterId: "i", inviterName: "Kai" }))).toEqual({
+      inviterId: "i",
+      inviterName: "Kai",
+    });
+  });
+
+  it("keeps a duo arrival's code when it has a code's shape, and drops a bad one alone", () => {
+    expect(parseArrival(JSON.stringify({ inviterId: "i", inviterName: "Kai", code: CODE }))).toEqual({
+      inviterId: "i",
+      inviterName: "Kai",
+      code: CODE,
+    });
+    expect(parseArrival(JSON.stringify({ inviterId: "i", inviterName: "Kai", code: "nope" }))).toEqual({
       inviterId: "i",
       inviterName: "Kai",
     });

@@ -296,6 +296,12 @@ export interface DuoInviteArrival {
   kind?: "duo";
   inviterId: string;
   inviterName: string;
+  /**
+   * The code it came from (since build 20), so /invited can ask call_code_ended whether a Duo
+   * Call already ended (one duo per Queue up, 0088): then Duo up only sends a duo request, and
+   * the screen says so (duoArrivalBody). Missing on arrivals stored by older builds.
+   */
+  code?: string;
 }
 
 /**
@@ -333,7 +339,33 @@ export function parseArrival(raw: string | null | undefined): InviteArrival | nu
   }
   if (blob.kind !== undefined && blob.kind !== "duo") return null;
   if (typeof blob.inviterId !== "string") return null;
-  return { inviterId: blob.inviterId, inviterName: blob.inviterName };
+  // The code is optional: a missing or malformed one only costs the Duo Call check.
+  return typeof blob.code === "string" && isInviteCodeShape(blob.code)
+    ? { inviterId: blob.inviterId, inviterName: blob.inviterName, code: blob.code }
+    : { inviterId: blob.inviterId, inviterName: blob.inviterName };
+}
+
+/**
+ * Matches > "Have a party code?" opens /invited with the arrival in its route params, never the
+ * invite store: that store is persisted, so an arrival left by a back swipe would outlive the
+ * screen, and a later invite link would land on it (inviteRouteAction reads any stored arrival as
+ * redeemed). Params die with the screen.
+ */
+export function invitedPartyParams(arrival: { code: string; inviterName: string }): {
+  partyCode: string;
+  partyName: string;
+} {
+  return { partyCode: arrival.code, partyName: arrival.inviterName };
+}
+
+/** The other half: /invited's params back to a party arrival, or null when they hold none (any
+ * other way in) or a code that is not a code's shape. */
+export function pushedPartyArrival(params: { partyCode?: unknown; partyName?: unknown }): PartyInviteArrival | null {
+  if (typeof params.partyCode !== "string") return null;
+  const code = normalizeInviteCode(params.partyCode);
+  if (!isInviteCodeShape(code)) return null;
+  const name = typeof params.partyName === "string" ? params.partyName.trim() : "";
+  return { kind: "party", code, inviterName: name || "Someone" };
 }
 
 /** A pending party code that was full or ended by the time the player's profile existed, said
@@ -392,9 +424,14 @@ export function partyRedemptionOutcome(input: {
   }
 }
 
-/** The sign-up screen's line once a party code resolved: a seat, and who it is with. */
+/**
+ * The sign-up screen's line once a party code resolved: an open seat, and whose party. Nothing
+ * holds it ("First one in gets the spot", the post says; the seat is only taken on Join), so the
+ * line never promises it: "has a seat for you" was false whenever the arrival later said "That
+ * party's last seat was taken before you got there."
+ */
 export function partyConfirmation(sharerName: string): string {
-  return `${sharerName}'s party has a seat for you. Finish signing up to join them.`;
+  return `${sharerName}'s party has an open seat. Finish signing up to join them if it's still open.`;
 }
 
 /**
@@ -433,16 +470,36 @@ export function duoRedemptionOutcome(input: {
   row: InviteRedemption | null | undefined;
   callEnded?: boolean;
   onboarded?: boolean;
+  /** The redeemed code, kept on the arrival (DuoInviteArrival.code) when it has a code's shape. */
+  code?: string;
 }): { arrival: DuoInviteArrival | null; notice: string | null } {
   if (input.errored) return { arrival: null, notice: null };
   if (input.row) {
-    return {
-      arrival: input.row.connected ? null : { inviterId: input.row.inviter_id, inviterName: input.row.display_name },
-      notice: null,
-    };
+    if (input.row.connected) return { arrival: null, notice: null };
+    const code = input.code !== undefined ? normalizeInviteCode(input.code) : "";
+    const arrival: DuoInviteArrival = { inviterId: input.row.inviter_id, inviterName: input.row.display_name };
+    return { arrival: isInviteCodeShape(code) ? { ...arrival, code } : arrival, notice: null };
   }
   const say = input.callEnded === true && input.onboarded !== true;
   return { arrival: null, notice: say ? CALL_ENDED_BEFORE_SIGNUP : null };
+}
+
+/**
+ * The duo arrival's line under "{name} invited you". ONE DUO PER QUEUE UP (0088): once a Duo
+ * Call has ended (its first duo, Stop, or its hour and grace), accept_invite writes only this
+ * player's like, so Duo up sends a duo request and does not make a duo. `callEnded` is
+ * call_code_ended for the arrival's code: true says so, anything else (a permanent invite, a live
+ * call, no code to ask about, or a failed read) keeps the original line. Null while it is being
+ * asked, so the line never swaps after it has appeared.
+ */
+export const DUO_ARRIVAL_BODY = {
+  open: "They asked you to come find duos here. Duo up and you already have one.",
+  callEnded: "Their Duo Call has ended. You can still send them a duo request.",
+} as const;
+
+export function duoArrivalBody(callEnded: boolean | undefined): string | null {
+  if (callEnded === undefined) return null;
+  return callEnded ? DUO_ARRIVAL_BODY.callEnded : DUO_ARRIVAL_BODY.open;
 }
 
 /**
