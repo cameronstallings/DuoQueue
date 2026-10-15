@@ -93,15 +93,18 @@ Password: ipTH0uV9uRfA9O2xsg7eb6WH
 
 This account is pre-confirmed (no CAPTCHA, no email OTP) and fully onboarded. Signing in
 shows: a populated deck of 13 fresh demo profiles, one existing match (Priya) with an
-8-message conversation left unread (an indicator on that row in the Matches list — the app
-sets no tab-bar badge), and 3 inbound "who wants to duo" requests
+8-message conversation left unread (an indicator on that row in the Matches list; from 1.0.2
+the Matches tab also shows a badge, `useMatchesBadge`, which Priya's unread chat lights), and 3
+inbound "who wants to duo" requests
 (Sana, Marcus, Kofi). The review account plays League of Legends at Gold II, so the first
 two cards (Dae, Platinum I, and Devon, Silver I) carry the lit "CAN DUO" cell from the
 rank picker; Ophelia (Emerald IV) is further down without it. Every demo row is flagged `is_demo = true` and gated server-side across
 9 RPCs and 14 views — real users (verified live, adversarially, across every discovery
-surface) see zero of it, and the reviewer's account is invisible to them too. Photos are
-abstract generated art (`scripts/generate-demo-avatars.mjs`), never a real or AI-generated
-face.
+surface) see zero of it, and the reviewer's account is invisible to them too. That holds for
+`is_demo = false` accounts only: `is_demo_viewer()` (0059) is true for every `is_demo` caller,
+so since 15 Oct the four pre-launch accounts in the WARNING below see every persona and the
+review account. Photos are abstract generated art (`scripts/generate-demo-avatars.mjs`), never
+a real or AI-generated face.
 
 Every number in that paragraph was measured against the hosted database on 2026-08-22, not
 inferred from the seed file, and re-measured after a full `--filming` → plain round trip:
@@ -143,10 +146,25 @@ plain seed is NOT safe to run as it is.**
   `excludeRealAccountsFromDemoPool` re-passes only `is_demo = false` profiles. A plain re-seed
   now would therefore put those four into the review deck with their own photos, which breaks
   the "never a real or AI-generated face" sentence above.
+- The same passes carry the 1.0.2 Duo Pop lines. A pop goes only between two accounts with the
+  same `is_demo` and no pass in either direction (`duo_pop_pair_ok`, 0085), and those four
+  accounts belong to real people who can queue up and turn Duo Pops on (read 15 Oct: the review
+  account has 2 push tokens; the four and every persona have 0, but any of the four gets one the
+  first time it allows notifications on a phone). Without the passes, the notes' "this account
+  cannot receive one" and its Queue up's "No one in League of Legends could get a Duo Pop right
+  now" can both be false. What holds
+  without them, read 15 Oct: the review account is NA East, League is its priority-0 game, its
+  null `onboarding_completed_at` makes the one-day check use `created_at` (6 Aug), and it has 0
+  reports, so `start_queue_up` does not stop it as too new or reported.
+- Those four are also why the 1.0.2 notes say the demo profiles are seen by "this account and four
+  pre-launch tester accounts" (any `is_demo` account sees them). Unflag or delete the four and
+  that sentence changes.
 - Before submitting 1.0.2 (a script edit and a database write, both Cameron's OK): make the
   seed also pass every `is_demo` profile that is not one of its own personas, run the plain seed,
   then re-measure the table above. The 1.0.2 review notes (Part 4) say "a Deck of 13 profiles"
-  with Dae and Devon lit, which is true only after that.
+  with Dae and Devon lit and that the account cannot receive a Duo Pop, which are true only after
+  that (re-measure: 13 cards, Dae and Devon lit, a pass from the review account on each of the
+  four).
 
 **Never submit after a `--filming` run.** That flag swaps the abstract art for real
 photographs so Cameron can record marketing footage, and it leaves them in the live
@@ -354,15 +372,15 @@ Done with solo queue? Find a duo, not a date. League players in NA see Can duo o
 167/170 characters. Live since 1.0.1 and still true in 1.0.2, so the 1.0.2 paste file keeps it.
 This field is editable without a new build.
 
-**Optional, Cameron's call (not in the paste file):** a line that leads with Queue Up, 161/170:
-`Done with solo queue? Tap Queue up: in NA, players in your game who turned on Duo Pops get pinged, and the first to tap I'm in is your duo. Teammates, not dates.`
+**Optional, Cameron's call (not in the paste file):** a line that leads with Queue Up, 169/170:
+`Done with solo queue? Tap Queue up: in NA, up to 6 players in your game who turned on Duo Pops get pinged, and the first to tap I'm in is your duo. Teammates, not dates.`
 Use it only after 1.0.2 is live, since 1.0.1 has no Queue up.
 
 The build 16 line, for the record (154/170): `DuoQueue finds you a duo, not a date. See who you can duo with in League of Legends Ranked Solo/Duo, match on games and playstyle, then chat and queue up.`
 
 ### 2.5 Description (4000 char max) — use this:
 
-**1.0.2 (build 19):** 3,865 characters, 3,891 counting CRLF line ends, measured 15 Oct 2026; the
+**1.0.2 (build 19):** 3,939 characters, 3,965 counting CRLF line ends, measured 15 Oct 2026; the
 same text is in `C:\Users\stall\Documents\DuoQueue-listing-1.0.2.txt`. Built from the 1.0.1
 description (which went live from `DuoQueue-listing-1.0.1.txt`, not from the block that used to
 be here). What changed, and why each claim is true in build 19:
@@ -370,11 +388,27 @@ be here). What changed, and why each claim is true in build 19:
   and the push to matches (`start_queue_up` writes what `set_looking_now(true)` writes, 0085),
   Duo Pops (up to 6, opted-in, NA, at most 3 a day, never 01:00 to 09:59 on the recipient's clock:
   `duo_pop_recipients` and `duo_pop_clock_ok` in 0085; off by default: `queue_pop` defaults
-  false), and the LFG post with a call code (minted for every queue-up, 0085; "stops working
-  when you stop queueing" is the app's own line in `queueCopy.ts`).
-- **YOUR DECK** now says the deck puts your server first and favors recent players (0071's order:
-  same server group, then likers who share a game, then seen in 14 days, then Can duo, then the
-  score), instead of "puts the players you have the most in common with near the top".
+  false), and the LFG post with a call code (minted for every queue-up, 0085).
+  - "Your matches may get a heads-up that you're free", not "your matches can see you're free":
+    nothing in the app shows a match that you are free. `get_online_now` leaves out anyone the
+    viewer has swiped on (0060), so a match never finds you in Online Now. What a match gets is
+    the "{name} is free to duo right now" push (`notify_looking_now`, 0074), and only at most
+    once per 6 hours per match, never 01:00 to 09:59 on their clock, never into a locked chat,
+    and only with their "A match queues up" setting (`nudge_online`) and notifications on. The
+    app's own line `QUEUE_COPY.matchesSeeYou` ("Your matches see that you're free for the next hour.") and the
+    "Your matches can see you're free" endings in `outcomeLine` make the same overclaim; they are
+    app copy, outside this paperwork, so they are flagged for Cameron rather than changed here.
+  - "The code expires when you stop queueing, or 15 minutes after your hour is up": Stop ends
+    it at once (`ended_at`), and an hour that simply runs out leaves it working for 15 more
+    minutes (`looking_until + interval '15 minutes'` in `resolve_invite_code`). The app's
+    "Your code stops working when you stop queueing" covers only the first half.
+  - "ready to share where you look for teammates", not "to share anywhere": the app's own 18+
+    card says "Only share your post where adults look for teammates" (`QUEUE_COPY.adultsOnly`).
+- **YOUR DECK** now says the deck puts players in your region first and favors recent players
+  (0071's order: a live Power-Up, then same server group, then likers who share a game and your
+  group, then seen in 14 days, then Can duo, then the score, then last seen), instead of "puts
+  the players you have the most in common with near the top". "Region", not "server": 0071 says
+  region "is self-reported location, not a Riot server" (NA East and NA West are one group).
 - **PLAY NOW OR PLAN IT** describes the chat buttons (`PlayTogetherChips`) and the Discord editor
   in Settings > Connections; the "I'm free to duo right now" switch it used to name is gone.
 - The cap line says **10** most recently active matches (0084, applied 15 Oct).
@@ -388,10 +422,10 @@ be here). What changed, and why each claim is true in build 19:
 DuoQueue is how you find people to duo queue with: a teammate for ranked, a third for your party, someone who plays the same games at the same hours. Teammates, not dates. One optional picture, no gender filters. Games come first.
 
 YOUR DECK
-Your deck puts players on your server first and favors people who have been on lately and what you have in common: games you both play (and at the same skill level), shows and anime you both watch, a language you share, and the hours you usually play. Every card shows one picture if they added one (them, their setup, their pet, the character they main), their League rank or main game, and how many games you share, then their prompts. Tap in for the full profile: games, shows, and playstyle. Swipe to say you'd duo. When you both swipe, you match and the chat opens. If your game isn't in the list, add it.
+Your deck puts players in your region first and favors people who have been on lately and what you have in common: games you both play (and at the same skill level), shows and anime you both watch, a language you share, and the hours you usually play. Every card shows one picture if they added one (them, their setup, their pet, the character they main), their League rank or main game, and how many games you share, then their prompts. Tap in for the full profile: games, shows, and playstyle. Swipe to say you'd duo. When you both swipe, you match and the chat opens. If your game isn't in the list, add it.
 
 QUEUE UP
-Ready to play? Tap Queue up and pick a game. For the next hour your matches can see you're free, and you show up in Online Now. In North America, up to 6 players in that game who turned on Duo Pops get one, and the first to tap I'm in is your duo. Duo Pops are off until you turn them on, come at most 3 a day, and never arrive between 1 am and 10 am. Each Queue up also gives you an LFG post with your own code to share anywhere. The code stops working when you stop queueing.
+Ready to play? Tap Queue up and pick a game. For the next hour you show up in Online Now, and your matches may get a heads-up that you're free. In North America, up to 6 players in that game who turned on Duo Pops get one, and the first to tap I'm in is your duo. Duo Pops are off until you turn them on, come at most 3 a day, and never arrive between 1 am and 10 am. Each Queue up also gives you an LFG post with your own code, ready to share where you look for teammates. The code expires when you stop queueing, or 15 minutes after your hour is up.
 
 LEAGUE OF LEGENDS: CAN DUO
 Play League of Legends in North America? Add your rank, and players whose rank can queue Ranked Solo/Duo with yours light up with Can duo and sit nearer the top of your deck. It's based on the ranks you both listed and League's published duo rules, and the League client has the final say.
@@ -466,18 +500,29 @@ from Settings → Connections and confirm the badge appears.
 
 ### 2.6 What's New in This Version (4000 char max) — 1.0.2, use this:
 
-588 characters, one paragraph, measured 15 Oct 2026 (also in `DuoQueue-listing-1.0.2.txt`).
+693 characters, one paragraph, measured 15 Oct 2026 (also in `DuoQueue-listing-1.0.2.txt`).
 
 ```
-Queue up when you're ready to play. Your matches see you're free, and in North America, players in your game who turned on Duo Pops get one: the first to tap I'm in is your duo. Every Queue up comes with an LFG post and your own code to share anywhere. Build your card before you make an account. Share your Discord, say you're free now or pick a time with one tap in a chat. A badge on the Matches tab shows what's new. Forgot your password? Reset it with a code from your email. 10 free active chats instead of 5. Smoother motion throughout, with haptics you can switch off in Settings.
+Queue up when you're ready to play: you show up in Online Now, and your matches may get a heads-up that you're free. In North America, Queue up can also send a Duo Pop to up to 6 players in your game who turned them on, and the first to tap I'm in is your duo. Every Queue up comes with an LFG post and your own code, ready to share where you look for teammates. Build your card before you make an account. Share your Discord, say you're free now or pick a time right from a chat. A badge on the Matches tab shows what's new. Forgot your password? Reset it with a code from your email. 10 free active chats instead of 5. Smoother motion throughout, with haptics you can switch off in Settings.
 ```
 
-It is the plan's R2 draft with three honesty fixes: Duo Pops reach only players who turned them on,
-and only in North America (the draft said "players in your game get a Duo Pop"); the LFG post
-claim is "to share anywhere", not that anything posts for you; and the Settings path for haptics
-(Settings > Appearance > Haptics, `HAPTICS_COPY`). Added: the Matches badge (`useMatchesBadge`)
-and password reset by code (live once the recovery template is, plan S4). "10 free active chats"
-is true since 0084 was applied on 15 Oct.
+It is the plan's R2 draft with these honesty fixes:
+- Duo Pops go to up to 6 players (`duo_pop_recipients`' `limit 6`), only ones who turned them
+  on, and only in North America, and "can" leaves room for the per-player caps (the draft said
+  "players in your game get a Duo Pop").
+- Online Now and "your matches may get a heads-up that you're free", not "your matches see
+  you're free" (see the QUEUE UP note in 2.5: matches only ever get a capped push).
+- "ready to share where you look for teammates", matching the app's 18+ card ("Only share your
+  post where adults look for teammates"), where the draft said "to share anywhere".
+- "right from a chat" (the draft's words), not "with one tap": Pick a time opens a scheduling
+  sheet, and Add your Discord opens an editor when no username is saved.
+- The Settings path for haptics (Settings > Appearance > Haptics, `HAPTICS_COPY`).
+
+Added: the Matches badge (`useMatchesBadge`) and password reset by code (the recovery template
+is live: read 15 Oct 2026, subject "Your DuoQueue password reset code", a `{{ .Token }}` code,
+no link, 6 digits). "10 free active chats instead of 5" is the plan's own draft wording and true
+since 0084 was applied on 15 Oct; the 5 stays because it is what 1.0.1 players were told, and the
+line tells them it went up.
 
 The 1.0.1 What's New (parties of three, notification taps open the chat) is in
 `DuoQueue-listing-1.0.1.txt`. The 1.0 "First release" text that used to be here is in git history.
@@ -784,34 +829,55 @@ Revisit this answer if a future release adds any cryptography beyond HTTPS + thi
 ## Part 4 — Draft App Review notes (paste into App Review Information → Notes)
 
 **1.0.2 (build 19) paste, written 15 Oct 2026: the block at the end of this Part.** The same text,
-with three checks to do before pasting, is in
-`C:\Users\stall\Documents\DuoQueue-review-notes-1.0.2.txt`. Measured 3,968 characters counting
-CRLF line ends (3,935 counting a line break as 1); the limit is 4,000, so count again after any
-edit. Built from the 1.0.1 paste (in `DuoQueue-listing-1.0.1.txt`), with:
+with the checks to do before pasting, is in
+`C:\Users\stall\Documents\DuoQueue-review-notes-1.0.2.txt`. Measured 3,976 characters counting
+CRLF line ends (3,943 counting a line break as 1, 3,982 counting UTF-8 bytes with CRLF, since
+each dot of "•••" is 3 bytes); the limit is 4,000, so count again after any edit. Built from the
+1.0.1 paste (in `DuoQueue-listing-1.0.1.txt`), with:
 - the sign-in path first, in Group A's words: "The demo account signs in from the first screen:
   tap "I already have an account", then enter the email and password below." (1.0.2's front door
   has no email fields; `FRONT_DOOR_COPY.haveAccount` in `frontDoorCopy.ts`);
 - NEW IN 1.0.2: Queue up and the LFG post (shared only through the iOS share sheet or Copy post;
-  the app never posts by itself); Duo Pops opt-in, North America only, at most 3 a day, never
-  between 1 am and 10 am local, and the review account cannot receive one (0085's recipients
-  must share the sender's `is_demo`, and no synthetic profile ever queues up), so its Queue up
-  shows the honest "No one in League of Legends could get a Duo Pop right now" line (`no_players`
-  in `outcomeLine`; the review account is NA East with League first, onboarded long ago, and has
-  no reports against it, read 15 Oct); sign-up with the date of birth first and the account
-  created at "Save your card"; "Forgot password?" sends a 6-digit code; the chat buttons; no
-  notification prompt at sign-up; the free chat cap of 10;
+  the app never posts by itself). For the hour the player is in Online Now and matches MAY get
+  the capped "free to duo right now" push (0074); nothing shows a match that someone is free, so
+  the notes no longer say "shows as free to matches" (see the QUEUE UP note in 2.5). The call
+  code works until Stop, or for 15 minutes after an hour that runs out. The demo account's own
+  code never works: both branches of `resolve_invite_code` (0085) require the sender's
+  `is_demo = false`, so a reviewer redeeming it sees "That code did not work. Check it against the
+  message you were sent." (`InviteBanner.tsx`), and the notes now say so instead of implying it
+  works until the queue ends;
+- Duo Pops: opt-in, North America only, at most 3 a day, never between 1 am and 10 am local, and
+  the review account cannot receive one, so its Queue up shows the honest "No one in League of
+  Legends could get a Duo Pop right now" line (`no_players` in `outcomeLine`). Why that holds:
+  0085 pops only between accounts with the same `is_demo`; no synthetic persona ever queues up or
+  has a push token; and the four pre-launch `is_demo` accounts (real people who could) are kept
+  out only by the review account's passes on them, which `duo_pop_pair_ok` checks. So it holds
+  only while those passes exist, which the Part 1.5 seed fix must keep. Also read 15 Oct: the
+  review account is NA East with League first, its one-day check uses `created_at` (6 Aug), and it
+  has no reports against it, so `start_queue_up` reaches the recipient search;
+- the visibility sentence: the demo profiles are seen by "this account and four pre-launch tester
+  accounts", not "ONLY this account" (`is_demo_viewer()` is true for every `is_demo` caller, and
+  the four pre-launch accounts have been `is_demo` since 15 Oct);
+- sign-up with the date of birth first and the account created at "Save your card"; "Forgot
+  password?" sends a 6-digit code, and the reviewer is told to try it with their own email (the
+  demo account's code goes to review@duoqueue.io); the chat buttons; no notification prompt at
+  sign-up; the free chat cap of 10;
 - SIGN IN WITH APPLE rewritten for 1.0.2 (Apple is on "Save your card" and "I already have an
   account", not the front door);
 - the deck line no longer claims Dae and Devon are the first two cards (0071 changed the order;
   they still carry the lit cell), and the paywall item and IN-APP PURCHASES are folded into one
-  HOW TO EXERCISE line to stay under 4,000.
+  HOW TO EXERCISE line to stay under 4,000. To fit the additions above, the vocabulary list, the
+  separate League rank line (folded into the deck line), the plan names, "(was 5)" and two
+  repeated "no email code" mentions were cut.
 
-**Before pasting, three things must be true**, or the notes describe something the reviewer
-will not see: the demo deck is repaired as the 1.0.2 WARNING in Part 1.5 says (today only 11
-personas pass the gates and neither CAN DUO card is among them); Queue Up's server pieces are
-live (0085 and the new `send-push-notification`, plan S2 and S3), or the sheet falls back to the
-queued-by-profile phase and shows no Duo Pop line; and the recovery template is live (plan S4),
-or "Forgot password?" emails a link.
+**Before pasting, two things must be true**, or the notes describe something the reviewer
+will not see: the demo account is repaired as the 1.0.2 WARNING in Part 1.5 says (today only 11
+personas pass the gates and neither CAN DUO card is among them, and the Duo Pop lines rest on the
+review account's passes on the four pre-launch accounts); and Queue Up's server pieces are live
+(0085 and the new `send-push-notification`, plan S2 and S3), or the sheet falls back to the
+queued-by-profile phase and shows no Duo Pop line. The recovery template (plan S4) is already
+live: read 15 Oct 2026, subject "Your DuoQueue password reset code", a `{{ .Token }}` code, no
+link, 6 digits.
 
 **Length.** App Store Connect caps Notes at 4,000 characters, counting CRLF line ends.
 
@@ -842,29 +908,29 @@ message in their 5 most recently active matches") is in git history before this 
 
 ```
 WHAT THIS APP IS
-DuoQueue helps adults find platonic gaming partners ("duos"), matched on shared games, playstyle and schedule, not romantic interest. No gender filtering, no romantic language; the vocabulary describes teammates ("duo," "Queue up," "Duo Pop," "Requests").
-League rank: players whose ranks can queue Ranked Solo/Duo together (Riot's published rules) both show a lit "CAN DUO" cell. "League of Legends" is plain text only: no Riot art, logos, sounds or footage in the app or its store media. Riot's legal notice is at the bottom of Settings.
+DuoQueue helps adults find platonic gaming partners ("duos"), matched on shared games, playstyle and schedule, not romantic interest. No gender filtering, no romantic language.
+"League of Legends" is plain text only: no Riot art, logos, sounds or footage in the app or its store media. Riot's legal notice is at the bottom of Settings.
 
 DEMO ACCOUNT
 The demo account signs in from the first screen: tap "I already have an account", then enter the email and password below.
   Email:    review@duoqueue.io
   Password: ipTH0uV9uRfA9O2xsg7eb6WH
-Pre-confirmed and onboarded, no email code. You will see a Deck of 13 profiles (the account is League Gold II, so Dae and Devon show the lit "CAN DUO" cell and Ophelia does not), a match with "Priya" (8 messages, newest unread), and three profiles under "Requests". These synthetic profiles are visible ONLY to this account, enforced server-side by row-level security, and their pictures are abstract artwork. Store screenshots show real people, with consent.
+Pre-confirmed and onboarded. You will see a Deck of 13 profiles (League Gold II, so Dae and Devon show the lit "CAN DUO" cell, ranks that can queue Ranked Solo/Duo together by Riot's rules; Ophelia does not), a match with "Priya" (8 messages, newest unread), and three profiles under "Requests". Real users never see these synthetic profiles or this account (server-side row-level security); only this account and four pre-launch tester accounts can see them. Their pictures are abstract artwork. Store screenshots show real people, with consent.
 
 NEW IN 1.0.2
-1. Queue up (top right of the Deck): pick a game and tap Queue up. For an hour the player shows as free to matches and in Online Now, and gets a plain-text LFG post with a code: "Share my LFG post" opens the iOS share sheet, "Copy post" copies it, and the app never posts by itself. The code stops working after the queue ends.
-2. Duo Pops: with "Ping players" on, Queue up pings up to 6 players in the same game, and the first to tap "I'm in" is matched with the sender. Opt-in (off by default; on from a card with "Not now" or in Settings > Notifications), North America only, at most 3 a day, never between 1 am and 10 am local time. Demo and real accounts never pop each other, so the review account cannot receive one, and its Queue up says "No one in League of Legends could get a Duo Pop right now."
-3. Sign-up: "Get started" asks for a date of birth first (under 18 refused), then builds the card; the account is created at "Save your card" (Apple or email, Terms line above the buttons). No email code.
-4. "Forgot password?" emails a 6-digit code.
+1. Queue up (top right of the Deck): pick a game and tap Queue up. For an hour the player is in Online Now and matches may get a "free to duo" push. It also makes a plain-text LFG post with a code: "Share my LFG post" opens the iOS share sheet, "Copy post" copies it; the app never posts by itself. Until "Stop queueing" (or 15 minutes after the hour), a new player who enters the code at sign-up lands on the sender's card. A demo account's code never works, so this one's shows "That code did not work."
+2. Duo Pops: with "Ping players" on, Queue up pings up to 6 players in the same game, and the first to tap "I'm in" is matched with the sender. Opt-in (off by default; Settings > Notifications), North America only, at most 3 a day, never between 1 am and 10 am local time. Pops never cross between demo and real accounts, and this account cannot receive one; its Queue up says "No one in League of Legends could get a Duo Pop right now."
+3. Sign-up: "Get started" asks for a date of birth first (under 18 refused), then builds the card; the account is created at "Save your card" (Apple or email, Terms line above the buttons).
+4. "Forgot password?" emails a 6-digit code. Try it with your own email: this account's goes to review@duoqueue.io.
 5. Chat: Discord, I'm free now and Pick a time buttons above the message box (Discord also in Settings > Connections).
-6. Notifications are never asked at sign-up: an in-app card with "Not now" comes first, after a Duo or a match.
-7. Free accounts can message in their 10 most recently active matches (was 5).
+6. No notification prompt at sign-up: an in-app card with "Not now" asks first, after a Duo or a match.
+7. Free accounts can message in their 10 most recently active matches.
 
 SIGN IN WITH APPLE
-On "Save your card" and "I already have an account". A new Apple ID takes the date of birth from the age screen or, with no card, asks for it on "Confirm your age" before any profile exists (under 18 refused). Apple-created accounts do not see the demo profiles. Deleting an Apple account revokes Sign in with Apple through Apple's REST API; an unfinished one can be deleted from the age screen or any setup step.
+On "Save your card" and "I already have an account". A new Apple ID takes the date of birth from the age screen or, with no card, asks for it on "Confirm your age" before any profile exists (under 18 refused). Apple-created accounts do not see the demo profiles. Deleting an Apple account revokes Sign in with Apple through Apple's REST API; an unfinished one can be deleted from any setup screen.
 
 HOW TO EXERCISE
-1. Paywall: Settings > DuoQueue+ (or Deck > Filters), swipe left twice to page 3: four auto-renewing plans (Weekly, Monthly, 3-Month, 6-Month) and a one-time Power-Up, renewal terms under the purchase button, Restore purchases, Terms, Privacy Policy and "Continue with Free".
+1. Paywall: Settings > DuoQueue+ (or Deck > Filters), swipe left twice to page 3: four auto-renewing plans and a one-time Power-Up, renewal terms under the purchase button, Restore purchases, Terms, Privacy Policy and "Continue with Free".
 2. Block and report: Priya chat, ••• menu > Report or Block.
 3. Account deletion (5.1.1(v)): Settings > "Sign out or delete account" > "Delete account", two confirmations. Please use a fresh account.
 
@@ -945,17 +1011,25 @@ Submit, not before.
 
 **1.0.2 (build 19) additions** (the order of the work itself is plan R4 in
 `docs/superpowers/plans/2026-10-15-build-19.md`):
-- [ ] The demo deck is repaired: the seed passes every `is_demo` profile that is not one of its
-      own personas, the plain seed was re-run with Cameron's OK, and a re-measure shows 13 cards
-      with Dae and Devon lit and no `profile_media` outside `assets/demo` (Part 1.5 WARNING).
+- [ ] The demo account is repaired: the seed passes every `is_demo` profile that is not one of
+      its own personas, the plain seed was re-run with Cameron's OK, and a re-measure shows 13
+      cards with Dae and Devon lit, no `profile_media` outside `assets/demo`, and a pass from the
+      review account on each of KittyKat, Stallings, Cameron and John (those passes are what make
+      the notes' "this account cannot receive one" and its "No one in League of Legends could get
+      a Duo Pop right now" true; Part 1.5 WARNING).
+- [ ] The four pre-launch accounts are still the only `is_demo` accounts outside the seed's
+      personas and the review account, or the notes' "four pre-launch tester accounts" is
+      changed to match.
 - [ ] 0084 (free chat cap 10) is live before release: the description, What's New, review notes
       and the 1.0.2 paywall all say 10. (Applied 15 Oct 2026.)
 - [ ] 0085 and the new `send-push-notification` are live before App Review, function first
       (plan S6), and S6's read-only check returns the six Queue Up functions.
-- [ ] The recovery template (6-digit code) is live before release (plan S4).
+- [x] The recovery template (6-digit code) is live before release (plan S4). Read 15 Oct 2026
+      from the hosted auth settings: subject "Your DuoQueue password reset code", a
+      `{{ .Token }}` code, no link, 6 digits.
 - [ ] Listing pasted from `DuoQueue-listing-1.0.2.txt`: keywords (99 bytes), description,
       What's New; name, subtitle and promotional text unchanged. Q22 answered first.
-- [ ] Notes pasted from `DuoQueue-review-notes-1.0.2.txt` (3,968 counting CRLF line ends).
+- [ ] Notes pasted from `DuoQueue-review-notes-1.0.2.txt` (3,976 counting CRLF line ends).
 - [ ] App Privacy answered per the Part 3 PROPOSAL or your changes to it, and privacy policy 1.6
       published when 1.0.2 is released (its effective date set that day).
 
