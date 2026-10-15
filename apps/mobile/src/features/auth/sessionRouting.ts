@@ -2,9 +2,9 @@
  * Where a session belongs, resolved to exactly one destination, plus the rule for what a
  * profile read is allowed to change.
  *
- * Extracted from the layouts that ask it — app/index.tsx, (tabs)/_layout.tsx,
+ * Extracted from the layouts that ask it (app/index.tsx, (tabs)/_layout.tsx,
  * (onboarding)/_layout.tsx, and since 1.0.2 every guard through `useSessionRoute()`, which is the
- * only caller outside tests — for the same reason `deckQueue.ts` and `invite.ts` were pulled
+ * only caller outside tests) for the same reason `deckQueue.ts` and `invite.ts` were pulled
  * out of their hooks: this is a decision that can be WRONG in a way a user notices, and none
  * of it needs React, a session, or a Supabase project to be wrong.
  *

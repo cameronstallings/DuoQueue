@@ -182,7 +182,7 @@ export default function ConfirmEmail() {
         disabled={cooldown > 0}
       />
       {/* The escape hatch. Clearing the pending email is what stops the cold-start
-          redirect from dragging them straight back here — without it, "back to start"
+          redirect from dragging them straight back here; without it, "back to start"
           would be a door that reopens onto the same room. "/" knows whether that is the front
           door or a card in progress. */}
       <Button

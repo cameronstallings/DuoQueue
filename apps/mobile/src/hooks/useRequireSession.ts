@@ -6,12 +6,12 @@ import { useSessionStore } from "@/store/session-store";
 
 /**
  * (auth), (onboarding), and (tabs) each guard their routes in their own layout (see
- * (tabs)/_layout.tsx). Root-level routes registered directly on the Stack in app/_layout.tsx —
- * chat/[matchId], profile/[profileId], party/*, paywall, filters, etc. — sit outside all three
+ * (tabs)/_layout.tsx). Root-level routes registered directly on the Stack in app/_layout.tsx
+ * (chat/[matchId], profile/[profileId], party/*, paywall, filters, etc.) sit outside all three
  * groups and skip that check entirely, so a signed-out deep link straight into one hits
  * RLS-denied queries with no way out.
  *
- * These are leaf screens, not layouts, so there's no `<Redirect/>` to render — this asks the
+ * These are leaf screens, not layouts, so there's no `<Redirect/>` to render; this asks the
  * same question through `router.replace` instead. Call it once near the top of the screen; the
  * returned status is available for optional render-gating.
  *

@@ -87,7 +87,7 @@ export default function Index() {
     // Hold a frame rather than flashing the front door before redirecting straight past it.
     if (pendingEmail === undefined) return null;
     // Someone who signed up, left to fetch the code, and came back belongs on the code
-    // screen — not back at the front door, hunting for the way in again. (Dormant while email
+    // screen, not back at the front door, hunting for the way in again. (Dormant while email
     // confirmation is off; kept so turning it back on needs no client change.)
     if (pendingEmail) {
       return <Redirect href={{ pathname: "/(auth)/confirm-email", params: { email: pendingEmail } }} />;
