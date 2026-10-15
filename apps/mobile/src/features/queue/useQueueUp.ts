@@ -105,9 +105,18 @@ export function useStopQueueUp() {
       const { error: fallbackError } = await supabase.rpc("set_looking_now", { p_looking: false });
       if (fallbackError) throw fallbackError;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      // The profile first, then the row. The sheet reads "queued" from the profile whenever no
+      // live row is there (a player queued only by the flag), so clearing the row first would
+      // swap in that body for a moment before the idle form. Awaited, so Stop keeps its busy label
+      // until the flag is really off; a failed read only leaves the flag as it was (it retries).
+      try {
+        await useSessionStore.getState().refreshProfile();
+      } catch {
+        // Stopping worked either way.
+      }
       queryClient.setQueryData(queueUpQueryKey(profileId), null);
-      refreshAfterQueueChange(queryClient);
+      void queryClient.invalidateQueries({ queryKey: ["online-now"] });
       useToastStore.getState().showToast(QUEUE_COPY.stopped, "info");
     },
     onError: (err) => {

@@ -80,6 +80,10 @@ describe("the small lines", () => {
     expect(ringClock(-3)).toBe("0:00");
   });
 
+  it("says only that matches can see a player queued by the profile with no live queue-up", () => {
+    expect(QUEUE_COPY.queuedFree).toBe("Your matches can see you're free.");
+  });
+
   it("titles the queued Online Now card by its game", () => {
     expect(ONLINE_NOW_COPY.queuedTitle("Valorant")).toBe("Queued for Valorant");
     expect(ONLINE_NOW_COPY.queuedTitle(null)).toBe("You're queued");

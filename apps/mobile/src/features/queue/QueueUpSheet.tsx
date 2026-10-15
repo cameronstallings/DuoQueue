@@ -141,7 +141,12 @@ export function QueueUpSheet({ visible, onClose, showOnlineLink = true }: QueueU
   // body, so the sheet does not flash the idle form first. A failed read says so.
   const loading = queueState.kind === "queued" && status.data === undefined && status.isFetching;
   const failed = queueState.kind === "queued" && status.data === undefined && status.isError && !status.isFetching;
-  const phase = loading ? "loading" : failed ? "error" : view.kind;
+  // Queued by the profile with no live queue-up behind it: 0085 is not live yet (the read is
+  // null), or a 1.0.1 phone's free-to-duo switch set the flag after this queue-up ended. The pill
+  // says "Queued 37m", so the sheet says so too and offers Stop (useStopQueueUp falls back to
+  // set_looking_now(false) before 0085), never the idle form with no way to stop.
+  const queuedByProfile = queueState.kind === "queued" && view.kind === "idle";
+  const phase = loading ? "loading" : failed ? "error" : queuedByProfile ? "profile" : view.kind;
 
   const titleStyle = { ...type.title, color: colors.text };
   const captionMuted = [type.caption, { color: colors.textMuted }];
@@ -230,6 +235,16 @@ export function QueueUpSheet({ visible, onClose, showOnlineLink = true }: QueueU
         <Text style={titleStyle}>{QUEUE_COPY.titleQueued}</Text>
         <Text style={captionMuted}>{QUEUE_COPY.loadFailed}</Text>
         <Button variant="ghost" label={QUEUE_COPY.tryAgain} onPress={() => void status.refetch()} />
+      </View>
+    );
+  } else if (phase === "profile" && queueState.kind === "queued") {
+    const until = formatTime(queueState.untilMs, false);
+    body = (
+      <View style={{ gap: spacing.md }}>
+        <Text style={titleStyle}>{QUEUE_COPY.titleQueued}</Text>
+        {until ? <Text style={captionMuted}>{untilLine(until)}</Text> : null}
+        <Text style={[type.body, { color: colors.text }]}>{QUEUE_COPY.queuedFree}</Text>
+        {footer}
       </View>
     );
   } else if (view.kind === "locked") {

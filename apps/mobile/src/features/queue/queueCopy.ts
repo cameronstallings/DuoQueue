@@ -42,6 +42,9 @@ export const QUEUE_COPY = {
   seeWhosOn: "See who's on now",
   stop: "Stop queueing",
   stopped: "You're not queued anymore.",
+  /** Queued by the profile's flag with no live queue-up behind it (0085 not live yet, or a 1.0.1
+   * phone's free-to-duo switch): the one thing that is true is that matches can see it. */
+  queuedFree: "Your matches can see you're free.",
   sendMessage: "Send a message",
   startFailed: "Couldn't queue you up. Please try again.",
   rateLimited: "You've queued up a lot in the last hour. Try again a little later.",
