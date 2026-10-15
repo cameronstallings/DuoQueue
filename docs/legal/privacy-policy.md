@@ -93,10 +93,31 @@
     the site; nothing is sent in the request beyond what any page view sends.
   - Section 2, Usage information, "Duo Pops and Duo Calls": the queue_ups table (migration
     0085): sender, game, recipients, can-duo, opened, declined, the call code, who locked it
-    and the resulting match. The sender's rows cascade on account deletion, an AFTER DELETE
-    trigger on profiles removes a deleted recipient from every array, and prune_queue_ups()
-    deletes rows older than 30 days daily (cron queue-ups-prune-daily). Recipients are only
-    players with notification_settings.queue_pop = true, which defaults to false.
+    and the resulting match. The sender's rows cascade on account deletion, a BEFORE DELETE
+    trigger on profiles (queue_ups_forget_profile) removes a deleted recipient from every
+    array, and prune_queue_ups() deletes rows older than 30 days daily (cron
+    queue-ups-prune-daily). Recipients are only players with notification_settings.queue_pop
+    = true, which defaults to false. The Duo Pop pushes themselves are logged in push_log
+    (event duo_pop per recipient, duo_locked for the sender), which keeps 90 days: see the
+    next note.
+  - Section 2, Device information, "Notification delivery log": the push_log table (migration
+    0080, applied 2026-10-15 and written by every Edge Function push since): recipient_id
+    (cascades on account deletion), category, event, sent_at, tokens tried, tokens accepted,
+    ticket status and Expo's error code. No title, body, names or data payload. prune_push_log()
+    deletes rows older than 90 days daily (cron push-log-cleanup-daily). This is server side
+    and already live for 1.0.1 phones, so the published 1.5 policy does not mention it yet:
+    publishing 1.6 closes that gap.
+  - Section 2, Usage information, presence, and Section 9, date of birth: worded by app version.
+    From 1.0.2 the free-to-duo flag is set by Queue up (start_queue_up writes what
+    set_looking_now(true) writes, for 60 minutes) and the Online Now switch is gone; the date of
+    birth is asked by the age gate before any account exists, held in the persisted onboarding
+    draft (apps/mobile/src/store/onboarding-store.ts, AsyncStorage key
+    duoqueue.onboarding-draft; 7-day TTL in commitDraft.ts sanitizeDraft; cleared by
+    discardDraft on Save and Start over, and by the store's reset, which is discardDraft, on
+    sign-out) and sent once when the account is created: as sign-up metadata on the email path
+    (app/(auth)/sign-up.tsx), or through complete_signup by the commit for a new Apple ID
+    (commit-store.ts). An Apple sign-in with no draft still reaches the post-auth age gate
+    (CompleteSignupScreen).
   - App Privacy (App Store Connect): the version stamp is probably "Other Diagnostic Data,
     linked to the user, used for App Functionality". That answer is Cameron's call before
     1.0.2 is submitted; this draft does not change the answers by itself.
@@ -133,7 +154,7 @@ We only collect what the app actually uses. Here's every category, itemized.
   - **An email address.** Either your real one, or, if you choose Hide My Email, a private relay address that Apple creates for DuoQueue and forwards to you. We use it for your account and for account-related messages, the same way we use the address of someone who signed up with email.
   - **Your name, if you choose to share it.** Apple sends it only the first time you sign in with Apple to DuoQueue, and you can edit or remove it on Apple's screen first. We use only your first name (or a nickname, if that is all Apple sends), and only as a suggested display name: it is filled in on the first step of setting up your profile, where you can change it before anyone sees it. Your profile is not shown to anyone until you finish setting it up. We do not store your last name.
   - **An identifier for your Apple ID.** A stable ID that Apple issues only to apps from our developer account, which is how we recognize you the next time you sign in with Apple. Other companies' apps cannot use it to recognize you.
-  - **Not your date of birth.** Apple does not share it, so we ask for it right after you sign in, before your profile is created. See [Section 9](#9-age-restriction).
+  - **Not your date of birth.** Apple does not share it. From version 1.0.2 of the app, a new player gives it on the first screen, before any account exists. If you sign in with Apple without having given it first (and in earlier versions of the app), we ask for it right after you sign in, before your profile is created. See [Section 9](#9-age-restriction).
 - **An Apple token kept only to revoke access.** When you sign in with Apple, our server exchanges a one-time code from Apple for a token (Apple calls it a refresh token) that lets us revoke DuoQueue's access to your Apple ID. We keep it for that one purpose: when you delete your account, we use it to tell Apple to remove DuoQueue from the apps using Sign in with Apple in your Apple ID settings, and then it is deleted with the rest of your account. It is stored where only our servers can read it, it is never shown to anyone, and it is never used for anything else.
 
 ### Profile information
@@ -153,14 +174,15 @@ We only collect what the app actually uses. Here's every category, itemized.
 - **Messages.** Chat messages you send to a match (or a party) are stored so the conversation is available across your devices. Messages are automatically screened by an on-device-adjacent profanity filter before being delivered. Messages are intended to be private between the participants of that conversation, with one exception: if a message is reported, a human moderator on our team reviews the reported conversation to investigate. This is a **policy commitment about how we access messages, not an absolute technical restriction**: our moderation tooling is built so an admin account is able to open any conversation to investigate a report, and admins are instructed to only do so in direct response to an open report. The limits of that control are described plainly in [Section 7](#7-security).
 
 ### Usage information
-- **Presence / "Online Now" status:** an explicit toggle you turn on to signal you're free to duo right now (it expires automatically after 60 minutes). We also track a general "last active" timestamp used to rank the deck and to show partners when you're around.
+- **Presence / "Online Now" status:** a signal that you're free to duo right now, on only when you turn it on. From version 1.0.2 of the app you turn it on by tapping Queue up; in earlier versions, with a switch in Online Now. Either way it ends after 60 minutes or when you stop. We also track a general "last active" timestamp used to rank the deck and to show partners when you're around.
 - **Swipes and matches:** who you liked, passed on, or matched with, needed to run the core matching feature and prevent the same profile from being shown to you twice.
-- **Duo Pops and Duo Calls.** When you tap Queue up, we record which players we sent a Duo Pop to, which of them opened or answered it, and the short code in your LFG post. If you turned Duo Pops on, we record that you were sent one and whether you opened or answered it. The player who queued up never sees who opened a Duo Pop or passed on it. Duo Pops only go to players who turned them on. We delete these records after 30 days, and your part of them right away when you delete your account.
+- **Duo Pops and Duo Calls.** When you tap Queue up, we record which players we sent a Duo Pop to, which of them opened or answered it, and the short code in your LFG post. If you turned Duo Pops on, we record that you were sent one and whether you opened or answered it. The player who queued up never sees who opened a Duo Pop or passed on it. Duo Pops only go to players who turned them on. We delete these records after 30 days, and your part of them right away when you delete your account. Separately, the notification itself (that a Duo Pop was sent to you, or that the player who queued up was told theirs was grabbed) is recorded in our notification delivery log like every other notification, and that record is kept for 90 days (see "Notification delivery log" below).
 - **Reports and blocks:** who you've reported or blocked, and why, so we can act on it and keep that person from reappearing in your deck.
 - **Match feedback tags:** optional, non-public tags ("good comms," "showed up on time," "flaked," etc.) you can leave about a match after the fact, used to build a lightweight reputation signal.
 
 ### Device information
 - **Push notification token and app version.** If you grant notification permission, we store a device-specific push token (via Expo's push service) so we can deliver notifications like new matches and messages. Starting with version 1.0.2 of the app, we store next to that token which version and build of DuoQueue your phone is running, which app update it has installed, and your phone's operating system and its version (for example, iOS 18.6). We use this only to see which app versions are still in use, so we can fix problems and tell people when an update is needed. It includes no other device identifier, no device name and no location, and it is deleted with the token when you sign out on that phone or delete your account. If your phone cannot reach DuoQueue when you sign out, the token and these details stay linked to your account until another account signs in on that phone, we learn the app was removed from it, or you delete your account.
+- **Notification delivery log.** For each notification we send you, we keep a short record: which kind it was (for example, a new match, a message or a Duo Pop), when it was sent, how many of your devices we sent it to, whether Expo's push service accepted it, and the error code if it did not. It holds no message content: no title, no text, no names. We use it only to check that notifications are delivered and to stop sending the ones that do not help. We delete these records after 90 days, and all of yours when you delete your account.
 
 ### Purchases
 - **Subscription and purchase status** (DuoQueue+, Power-Ups, Legendary Likes). Purchases are handled entirely by Apple's App Store or Google Play, and processed for us by RevenueCat. **We never see or store your card number, billing address, or any other payment credential.** We only receive purchase/subscription status (active, expired, product purchased, renewal date) from RevenueCat.
@@ -305,7 +327,7 @@ When you upload a photo, and our automated moderation provider (Sightengine) is 
 
 DuoQueue is for adults only: you must be 18 or older to create an account.
 
-We ask for your date of birth at signup, and we enforce the 18+ rule on the date you give us: a date of birth under 18 is rejected by the app and again by our database, which will not store a profile with one, so an under-18 date cannot complete a profile. If you sign in with Apple, which does not share a date of birth, we ask for it right after you sign in instead, and no profile is created until you give one that is 18 or older. Until then the account can see no one's profile and no one can see it, and you can delete it from that screen. What we do **not** do is verify that the date is true. We do not check identity documents and we do not use a third-party age-assurance service. It is a self-declaration that we then enforce, and we describe it that way here rather than calling it verification, which would imply a check we do not perform. The 18-or-older box on our website's waitlist form ([Section 2](#2-what-we-collect-and-why)) is a self-declaration in the same sense, with no profile behind it to enforce against.
+We ask for your date of birth at signup, and we enforce the 18+ rule on the date you give us: a date of birth under 18 is rejected by the app and again by our database, which will not store a profile with one, so an under-18 date cannot complete a profile. From version 1.0.2 of the app, we ask for it on the first screen, before you build your card and before any account exists. Until you save your card it is kept only on your phone and is not sent to us; it expires after 7 days, and it is cleared when you save your card, choose Start over or sign out. It is sent to us once, when your account is created. If you sign in with Apple, which does not share a date of birth, without having given it first (and in earlier versions of the app), we ask for it right after you sign in instead, and no profile is created until you give one that is 18 or older. Until then the account can see no one's profile and no one can see it, and you can delete it from that screen. What we do **not** do is verify that the date is true. We do not check identity documents and we do not use a third-party age-assurance service. It is a self-declaration that we then enforce, and we describe it that way here rather than calling it verification, which would imply a check we do not perform. The 18-or-older box on our website's waitlist form ([Section 2](#2-what-we-collect-and-why)) is a self-declaration in the same sense, with no profile behind it to enforce against.
 
 If we learn that someone under 18 has created an account (for example, through a report using the "underage" report reason, or otherwise), we will terminate that account and delete the associated data as described in Section 5. If you believe a minor is using DuoQueue, please report that profile in the app (profile → Report) or contact us directly using the email in Section 1.
 
