@@ -63,11 +63,40 @@
   MAILING ADDRESS (version 1.5, published 2026-10-02): Cameron moved the mailing address from
   Cary, NC to Houston, TX. The address itself lives in supabase/functions/_shared/org.ts and
   is substituted at build time; nothing else in this policy changed.
+
+  VERSION STAMP, VERSION CHECK, DUO POPS AND DUO CALLS (version 1.6 DRAFT, committed
+  2026-10-15 on the build-19 branch, NOT published; publish it when app 1.0.2 is released,
+  not before, because it describes 1.0.2 behaviour). Every paragraph is worded by app version,
+  so it stays true while 1.0.1 is still the version in the store:
+  - Section 2, Device information, "Push notification token and app version": from 1.0.2,
+    apps/mobile/src/lib/notifications.ts (savePushToken) claims the token for the signed-in
+    account with claim_push_token (migration 0081) and writes push_tokens.device_info, built
+    by apps/mobile/src/lib/appStamp.ts (buildDeviceStamp): app version, build, runtime
+    version, update id, update channel, whether the bundle is the embedded one, the OS and
+    its version, which kind of Supabase key the build carries, and when it stamped. No device
+    name, identifier or location. Each string is cut to 64 characters; migration 0086 caps
+    the column at 2 KB. Sign-out deletes the phone's row first (forgetThisDevicePushToken in
+    the same file, called by session-store.ts signOut), and account deletion cascades it.
+    1.0.0 and 1.0.1 never write device_info (all live rows were null on 2026-10-15).
+  - Section 3, the GitHub row: apps/mobile/src/features/update/ (appStatus.ts,
+    updateGateStore.ts, useUpdateGate.ts) reads https://duoqueue.io/app-status.json at launch
+    and at most about once an hour while the app is open (on every resume while blocked).
+    The file is site/app-status.json, committed and served by GitHub Pages like the rest of
+    the site; nothing is sent in the request beyond what any page view sends.
+  - Section 2, Usage information, "Duo Pops and Duo Calls": the queue_ups table (migration
+    0085): sender, game, recipients, can-duo, opened, declined, the call code, who locked it
+    and the resulting match. The sender's rows cascade on account deletion, an AFTER DELETE
+    trigger on profiles removes a deleted recipient from every array, and prune_queue_ups()
+    deletes rows older than 30 days daily (cron queue-ups-prune-daily). Recipients are only
+    players with notification_settings.queue_pop = true, which defaults to false.
+  - App Privacy (App Store Connect): the version stamp is probably "Other Diagnostic Data,
+    linked to the user, used for App Functionality". That answer is Cameron's call before
+    1.0.2 is submitted; this draft does not change the answers by itself.
 -->
 # DuoQueue Privacy Policy
 
-**Effective date:** October 2, 2026
-**Version:** 1.5
+**Effective date:** October 15, 2026
+**Version:** 1.6
 
 This policy explains what DuoQueue collects, why, who we share it with, and what control you have over it. It's written in plain language on purpose. If anything here is unclear, contact us using the details below.
 
@@ -118,11 +147,12 @@ We only collect what the app actually uses. Here's every category, itemized.
 ### Usage information
 - **Presence / "Online Now" status:** an explicit toggle you turn on to signal you're free to duo right now (it expires automatically after 60 minutes). We also track a general "last active" timestamp used to rank the deck and to show partners when you're around.
 - **Swipes and matches:** who you liked, passed on, or matched with, needed to run the core matching feature and prevent the same profile from being shown to you twice.
+- **Duo Pops and Duo Calls.** When you tap Queue up, we record which players we sent a Duo Pop to, which of them opened or answered it, and the short code in your LFG post. If you turned Duo Pops on, we record that you were sent one and whether you opened or answered it. The player who queued up never sees who opened a Duo Pop or passed on it. Duo Pops only go to players who turned them on. We delete these records after 30 days, and your part of them right away when you delete your account.
 - **Reports and blocks:** who you've reported or blocked, and why, so we can act on it and keep that person from reappearing in your deck.
 - **Match feedback tags:** optional, non-public tags ("good comms," "showed up on time," "flaked," etc.) you can leave about a match after the fact, used to build a lightweight reputation signal.
 
 ### Device information
-- **Push notification token.** If you grant notification permission, we store a device-specific push token (via Expo's push service) so we can deliver notifications like new matches and messages. No other device identifiers are collected. (Our schema has a `device_info` column reserved for future use; as of this writing no code path writes to it, so nothing is collected there.)
+- **Push notification token and app version.** If you grant notification permission, we store a device-specific push token (via Expo's push service) so we can deliver notifications like new matches and messages. Starting with version 1.0.2 of the app, we store next to that token which version and build of DuoQueue your phone is running, which app update it has installed, and your phone's operating system and its version (for example, iOS 18.6). We use this only to see which app versions are still in use, so we can fix problems and tell people when an update is needed. It includes no other device identifier, no device name and no location, and it is deleted with the token when you sign out on that phone or delete your account.
 
 ### Purchases
 - **Subscription and purchase status** (DuoQueue+, Power-Ups, Legendary Likes). Purchases are handled entirely by Apple's App Store or Google Play, and processed for us by RevenueCat. **We never see or store your card number, billing address, or any other payment credential.** We only receive purchase/subscription status (active, expired, product purchased, renewal date) from RevenueCat.
@@ -169,7 +199,7 @@ We use a small number of specialized service providers ("processors") to run the
 | **Sightengine** | Automated photo moderation, when configured (see below) | When our automated moderation provider is active, every photo you upload is sent to Sightengine to be automatically screened for nudity, graphic content, and whether the person in the photo appears to be a minor, before it's shown to anyone else | United States |
 | **Expo (push notification service)** | Delivers push notifications | Your device push token and the notification content (e.g. "You matched with X") | United States |
 | **Resend** | Sends our email: transactional messages (signup confirmation, account emails) and the two waitlist messages described in Section 2, one of which is a marketing announcement | Your email address and the content of the email being sent | United States |
-| **GitHub (GitHub Pages)** | Hosts duoqueue.io, our public website: the waitlist page, a short video about the app, and these legal documents | The IP address, user agent, and requested URL of every visit to duoqueue.io, as any web host receives. We do not receive or keep server logs from GitHub, and there is no analytics on the site | United States / global edge network |
+| **GitHub (GitHub Pages)** | Hosts duoqueue.io, our public website: the waitlist page, a short video about the app, and these legal documents, and a small file the DuoQueue app reads to check whether its version is still supported | The IP address, user agent, and requested URL of every visit to duoqueue.io, as any web host receives. From version 1.0.2, the DuoQueue app also reads one small file from duoqueue.io when it opens (and at most about once an hour after that) to check whether its version is still supported, so GitHub receives the same details for that request. We do not receive or keep server logs from GitHub, and there is no analytics on the site | United States / global edge network |
 | **RevenueCat** | Manages subscriptions and in-app purchases | Your app-level user ID and purchase/subscription events from Apple/Google (never your payment details) | United States |
 | **Apple (App Store) / Google (Play Store)** | Processes your payment when you buy a subscription or consumable | Your payment details, handled entirely by Apple/Google; we never receive them | Varies by platform |
 | **Apple (Sign in with Apple)** | Only if you choose to sign in with Apple: signs you in, and later lets us revoke that access | Apple authenticates you itself. Our server sends Apple the one-time code from your sign-in to obtain the revocation token described in Section 2, and, when you delete your account, that token (or a fresh code from the same Apple ID) so Apple can revoke DuoQueue's access | United States |
