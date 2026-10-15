@@ -7,13 +7,22 @@
 // notification_settings.nudge_unread), sends one "Your duo is waiting" push per match,
 // and records match_nudges — so a re-run within the same window, or a scheduler that
 // skips a beat, never double-nudges the same stale conversation.
+//
+// Since 0075 the RPC also keeps the nudge to 10:00-21:00 in the recipient's local time and
+// skips blocked pairs, locked chats and demo accounts; its columns are unchanged, so nothing
+// here had to change for that. The first-message nudge (a match nobody has written in yet) is
+// NOT sent from here: it is a pure-SQL sweep (send_first_message_nudges, 0075, scheduled by
+// 0083) that goes out through send-push-notification's first_message_nudge event.
+//
+// Each push is recorded in push_log (0080) as event "nudge_unread" (pushToProfile).
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-import { sendExpoPush } from "../_shared/expo-push.ts";
+import { pushToProfile } from "../_shared/push-delivery.ts";
 import { checkBearerAuth, requireSecret } from "../_shared/require-secret-auth.ts";
+import { supabaseSecretKey } from "../_shared/supabase-keys.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_SECRET_KEY = supabaseSecretKey();
 const INTERNAL_TRIGGER_AUTH_TOKEN = requireSecret("INTERNAL_TRIGGER_AUTH_TOKEN");
 
 function jsonResponse(body: unknown, status: number): Response {
@@ -30,7 +39,7 @@ Deno.serve(async (req) => {
   const unauthorized = await checkBearerAuth(req, INTERNAL_TRIGGER_AUTH_TOKEN);
   if (unauthorized) return unauthorized;
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY);
 
   const { data: candidates, error } = await supabase.rpc("get_stale_unread_conversations");
   if (error) {
@@ -54,12 +63,15 @@ Deno.serve(async (req) => {
     // `matchId` lets a tap open this conversation instead of resuming wherever the app was left
     // (apps/mobile/src/lib/notificationRouting.ts). Additive, like send-push-notification's: a
     // build that predates it reads only `category`. `category` stays last so nothing replaces it.
-    await sendExpoPush(
-      tokenList,
-      "Your duo is waiting",
-      `${sender?.display_name ?? "Someone"} sent you a message. Say hi back.`,
-      { matchId, category: "nudge_unread" },
-    );
+    await pushToProfile(supabase, {
+      recipientId,
+      event: "nudge_unread",
+      category: "nudge_unread",
+      tokens: tokenList,
+      title: "Your duo is waiting",
+      body: `${sender?.display_name ?? "Someone"} sent you a message. Say hi back.`,
+      extra: { matchId },
+    });
     notified++;
 
     await supabase.from("match_nudges").upsert({

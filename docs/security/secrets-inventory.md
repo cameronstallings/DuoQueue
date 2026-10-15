@@ -20,7 +20,7 @@ import path reaches them — only comments referencing the names (e.g.
 
 | Secret | Lives in | Used by | Who needs it |
 |---|---|---|---|
-| `SUPABASE_SERVICE_ROLE_KEY` | Auto-injected into every Edge Function by Supabase; local `.env` for one-off scripts | `delete-account`, `link-steam-callback`, `daily-swipes-refreshed`, `revenuecat-webhook`, `sync-verified-stats`, `send-reengagement-nudges`, `send-message`, `send-push-notification`, `moderate-photo`; `scripts/generate-fake-profiles.ts` (local dev only) | Project owner deploying functions; nobody should ever need to type it in by hand for a deployed function |
+| Supabase **secret key** (`sb_secret_...`): `SUPABASE_SECRET_KEYS` in Edge Functions, legacy `SUPABASE_SERVICE_ROLE_KEY` as the fallback | Auto-injected into every Edge Function by Supabase: `SUPABASE_SECRET_KEYS` is a JSON map keyed by key name (the project's key is `default`), next to the legacy `service_role` JWT in `SUPABASE_SERVICE_ROLE_KEY` until the legacy keys are switched off. Root `.env` for one-off scripts, still under the variable name `SUPABASE_SERVICE_ROLE_KEY` (supabase-js takes either value there) | All 13 Edge Functions, through `_shared/supabase-keys.ts` (`supabaseSecretKey()`): `apple-authorization`, `daily-swipes-refreshed`, `delete-account`, `invite`, `link-steam-callback`, `moderate-photo`, `revenuecat-webhook`, `send-message`, `send-new-player-alerts`, `send-push-notification`, `send-reengagement-nudges`, `sync-verified-stats`, `waitlist-signup`. It falls back to the legacy variable only when the map has no usable key, and logs the variable name (never the value) when it does. Scripts: `scripts/generate-fake-profiles.ts`, `scripts/seed-review-demo.mjs`, `scripts/waitlist.mjs` (local only) | Project owner deploying functions; nobody should ever need to type it in by hand for a deployed function |
 | `REVENUECAT_WEBHOOK_AUTH_TOKEN` | Supabase function secret (`supabase secrets set`) + the `Authorization: Bearer` header configured in the RevenueCat dashboard webhook | `revenuecat-webhook` (checked via `checkBearerAuth`, fails closed if unset — see `_shared/require-secret-auth.ts`) | RevenueCat dashboard admin + whoever deploys the function |
 | `INTERNAL_TRIGGER_AUTH_TOKEN` | Supabase function secret **and** duplicated as the `internal_trigger_token` row in `public.app_config` (service-role/trigger-only table, no client SELECT grant — see `0006_moderation_and_notifications.sql`) | `send-push-notification`, `daily-swipes-refreshed`, `send-reengagement-nudges`, `sync-verified-stats`; the external scheduler (Supabase Cron Trigger or equivalent) that calls the two hourly/30-min functions | Whoever deploys functions + whoever configures the scheduler. **Three places must agree**, see rotation below. |
 | `STEAM_WEB_API_KEY` | Supabase function secret | `link-steam-callback`, `sync-verified-stats` | Whoever deploys those functions |
@@ -34,7 +34,7 @@ import path reaches them — only comments referencing the names (e.g.
 | `IGDB_CLIENT_ID` / `IGDB_CLIENT_SECRET` | `.env.example` placeholder only | Not currently referenced by any script in `scripts/` — reserved for a future offline seed-generation script | Not live; nothing to rotate today |
 | `RESEND_SEND_API_KEY` | Supabase function secret (`supabase secrets set`) | `waitlist-signup`, to send the one welcome email per signup | Whoever deploys `waitlist-signup`. **Create a NEW Resend key with Sending access only, restricted to `duoqueue.io`. Do not reuse the key Supabase Auth uses as its custom SMTP password** — that one is on the account-confirmation path, and rotating this one must never be able to break account creation. Left unset, the function still stores every signup and marks its welcome email `deferred`; it never fails a signup and never 500s. Those `deferred` rows are recoverable with `node scripts/waitlist.mjs send-deferred --send`, which reads the SAME key from the local gitignored `.env` and honours the same 80/day cap. That is the only reason this value may also appear in `.env`: the endpoint's copy is the function secret, and the local copy is optional. |
 | `WAITLIST_IP_SALT` | Supabase function secret | `waitlist-signup`, to compute `sha256(salt + first hop of X-Forwarded-For)` for the rate limit | Whoever deploys `waitlist-signup`. 32 random bytes, base64url. It is what stops the 48-hour hashes in `public.waitlist_attempts` from being reversible by brute force: an IPv4 address is a 32-bit space, so an unsalted hash of one is not a pseudonym, it is a lookup. Left unset, the function logs a warning and skips rate limiting rather than storing an unsalted hash. |
-| `RESEND_ADMIN_API_KEY` | Local gitignored root `.env` only | Reserved for the Phase C launch-blast commands (`sync` / `broadcast` / `check`), which need contacts/broadcast access that a sending-only key does not have. Those commands are not written yet, so nothing reads this today — `scripts/waitlist.mjs` exists but its two current commands (`stats`, `send-deferred`) use the service role key and `RESEND_SEND_API_KEY` | Project owner, locally. Never a function secret: nothing deployed needs more than send access. |
+| `RESEND_ADMIN_API_KEY` | Local gitignored root `.env` only | Reserved for the Phase C launch-blast commands (`sync` / `broadcast` / `check`), which need contacts/broadcast access that a sending-only key does not have. Those commands are not written yet, so nothing reads this today — `scripts/waitlist.mjs` exists but its two current commands (`stats`, `send-deferred`) use the Supabase secret key (root `.env` `SUPABASE_SERVICE_ROLE_KEY`) and `RESEND_SEND_API_KEY` | Project owner, locally. Never a function secret: nothing deployed needs more than send access. |
 
 ### `waitlist-signup` is this project's first unauthenticated public write endpoint
 
@@ -76,7 +76,7 @@ backs up, or a key type its vendor explicitly designed to be embedded in a shipp
 | Variable | Why it's safe to ship |
 |---|---|
 | `EXPO_PUBLIC_SUPABASE_URL` | Just the project's REST endpoint — meaningless without valid credentials to call it |
-| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Designed to ship in every Supabase client. Grants nothing by itself — every table/RPC is gated by RLS. Also present, correctly gitignored, in the local-only `admin/config.js` (moderation page) alongside the same anon key. |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Designed to ship in every Supabase client. Grants nothing by itself — every table/RPC is gated by RLS. The variable keeps its old name but should hold the **publishable** key (`sb_publishable_...`), which carries exactly the legacy `anon` key's privileges; builds made with the legacy `anon` JWT stop working when the legacy keys are switched off. Also present, correctly gitignored, in the local-only `admin/config.js` (moderation page). Server-side, the four user-scoped Edge Functions (`send-message`, `moderate-photo`, `delete-account`, `apple-authorization`) read the same key from the auto-injected `SUPABASE_PUBLISHABLE_KEYS` JSON map through `_shared/supabase-keys.ts` (`supabasePublishableKey()`), with the legacy `SUPABASE_ANON_KEY` as the fallback. |
 | `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` / `_ANDROID_CLIENT_ID` / `_WEB_CLIENT_ID` | OAuth client IDs for public/native clients are identifiers, not secrets — Google doesn't issue a confidential secret for this flow type. The actual confidential Google secret (used server-side by Supabase for the OAuth code exchange) lives only in the Supabase Dashboard, per above. |
 | `EXPO_PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare's site keys are meant to be embedded in the page/app that renders the widget; the paired secret key (which validates the solve) stays server-side in Supabase's config, never here. |
 | `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` / `_ANDROID_API_KEY` | RevenueCat's public SDK keys, documented by RevenueCat as safe for client bundles. Server-side writes to `subscriptions` are gated by the `REVENUECAT_WEBHOOK_AUTH_TOKEN` bearer check, not by hiding this key. |
@@ -84,10 +84,21 @@ backs up, or a key type its vendor explicitly designed to be embedded in a shipp
 
 ## Rotation procedures
 
-- **`SUPABASE_SERVICE_ROLE_KEY`**: Dashboard → Project Settings → API → "Reset" on the
-  `service_role` secret. This invalidates the old key immediately. Every Edge Function
-  gets the new value auto-injected on next invocation — no redeploy needed. Update any
-  local `.env` used for one-off scripts.
+- **Supabase secret key (`sb_secret_...`)**: follow Supabase's procedure
+  (https://supabase.com/docs/guides/getting-started/api-keys#leaked-key): create a new
+  secret key in Dashboard → Project Settings → API Keys, move every user onto it, then
+  delete the leaked one (deletion cannot be undone). Edge Functions need no redeploy:
+  `_shared/supabase-keys.ts` reads the entry called `default` from `SUPABASE_SECRET_KEYS`,
+  and when that entry is gone and exactly one secret key is left, it uses that one. So the
+  functions move to the new key once the leaked `default` key is deleted, on their next
+  cold start. Do not leave two or more secret keys with none called `default`: the helper
+  treats that as ambiguous and falls back to the legacy key (or fails, after the
+  switch-off). Update the root `.env` used for one-off scripts.
+- **Legacy `service_role` key (`SUPABASE_SERVICE_ROLE_KEY`)**: only a fallback now. If it
+  leaks, deactivate the legacy keys in Dashboard → Project Settings → API Keys (reversible).
+  The Edge Functions already prefer the secret key, but deactivation takes the legacy
+  `anon` key down with it, so every app build still carrying that key stops working: check
+  which builds are still in use first.
 - **`REVENUECAT_WEBHOOK_AUTH_TOKEN`**: generate a new token, `supabase secrets set
   REVENUECAT_WEBHOOK_AUTH_TOKEN=<new>`, then update the `Authorization` header on the
   webhook in the RevenueCat dashboard. RevenueCat retries failed deliveries, so a brief
@@ -111,28 +122,32 @@ backs up, or a key type its vendor explicitly designed to be embedded in a shipp
   rotated entirely inside their respective dashboards (Apple Developer, Google Cloud
   Console, Cloudflare) and then re-pasted into the Supabase Dashboard's Auth Provider
   settings. None of this repo's files need to change.
-- **`EXPO_PUBLIC_*` public keys** (RevenueCat SDK keys, Supabase anon key, Turnstile site
+- **`EXPO_PUBLIC_*` public keys** (RevenueCat SDK keys, Supabase publishable key, Turnstile site
   key, Google client IDs): these aren't secrets, so "leaking" them is a non-event. If one
   needs to change (e.g. swapping a RevenueCat project), update `apps/mobile/.env` and the
   EAS per-environment variable, then rebuild — no incident-response steps required.
 
 ## Where each secret is configured, by environment
 
-- **Local development**: root `.env` (server-side: `SUPABASE_SERVICE_ROLE_KEY`, the two
-  auth tokens, provider keys — read by scripts and, for `supabase functions serve`, by
-  the CLI) and `apps/mobile/.env` (client-side `EXPO_PUBLIC_*` only). Both are gitignored
-  and confirmed untracked (`git check-ignore` clean, `git ls-files` has neither).
-- **Supabase (hosted)**: Edge Function secrets via `supabase secrets set` — this is the
-  only place `SUPABASE_SERVICE_ROLE_KEY`, `REVENUECAT_WEBHOOK_AUTH_TOKEN`,
-  `INTERNAL_TRIGGER_AUTH_TOKEN`, `STEAM_WEB_API_KEY`, `RIOT_API_KEY`, and the Sightengine
-  pair should exist for a deployed project. Plus the Auth Provider settings in the
-  Dashboard for the Apple `.p8`, Google web client secret, and Turnstile secret key.
+- **Local development**: root `.env` (server-side: `SUPABASE_SERVICE_ROLE_KEY`, which
+  should now hold the `sb_secret_...` key, the two auth tokens, provider keys — read by
+  scripts and, for `supabase functions serve`, by the CLI) and `apps/mobile/.env`
+  (client-side `EXPO_PUBLIC_*` only). Both are gitignored and confirmed untracked
+  (`git check-ignore` clean, `git ls-files` has neither).
+- **Supabase (hosted)**: the Supabase API keys (`SUPABASE_SECRET_KEYS`,
+  `SUPABASE_PUBLISHABLE_KEYS` and the legacy `SUPABASE_SERVICE_ROLE_KEY` /
+  `SUPABASE_ANON_KEY`) are injected by the platform, never set by hand (a secret name may
+  not start with `SUPABASE_`). Edge Function secrets via `supabase secrets set` — this is
+  the only place `REVENUECAT_WEBHOOK_AUTH_TOKEN`, `INTERNAL_TRIGGER_AUTH_TOKEN`,
+  `STEAM_WEB_API_KEY`, `RIOT_API_KEY`, and the Sightengine pair should exist for a deployed
+  project. Plus the Auth Provider settings in the Dashboard for the Apple `.p8`, Google web
+  client secret, and Turnstile secret key.
 - **EAS (build time)**: `EXPO_PUBLIC_*` variables per build profile (development /
   preview / production, per `apps/mobile/eas.json`), configured as EAS Environment
   Variables — not hardcoded anywhere in this repo.
 - **RevenueCat dashboard**: the webhook's bearer-token header (paired with
   `REVENUECAT_WEBHOOK_AUTH_TOKEN` above).
-- **Local-only, gitignored**: `admin/config.js` (Supabase URL + anon key for the
+- **Local-only, gitignored**: `admin/config.js` (Supabase URL + anon/publishable key for the
   moderation page — both public-safe values; the page's real access control is
   `profiles.is_admin`, checked server-side by every RLS policy the page's queries hit).
 

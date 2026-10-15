@@ -63,8 +63,9 @@ export function buildNewPlayerAlertCopy(count: number, headlineGame: string | nu
 /**
  * Whether to actually send, given what happened when we tried to claim the ledger rows.
  *
- * THE LEDGER IS WRITTEN BEFORE THE PUSH, ON PURPOSE. `sendExpoPush` returns void and swallows
- * transport errors, so this function can never know whether a send succeeded. Recording first
+ * THE LEDGER IS WRITTEN BEFORE THE PUSH, ON PURPOSE. `sendExpoPush` never throws, and the
+ * Expo ticket it reports (push_log, 0080) says "accepted", not "arrived", so this function can
+ * never know whether a send succeeded. Recording first
  * means a crash between the two produces a MISSED notification rather than a duplicate one,
  * and it means the 24 hour cooldown is honoured even while Expo is down. A missed new-player
  * ping is superseded by the next new player; a duplicate is a bug the user can see.
@@ -77,6 +78,10 @@ export function buildNewPlayerAlertCopy(count: number, headlineGame: string | nu
  * 24 hour cooldown — but "a scheduler double-fire cannot mass-notify" is the assertion this
  * whole workstream is judged on, and it should not depend on the two runs being politely
  * spaced.
+ *
+ * Since 0072 the claim is the claim_new_player_alert RPC, which also claims nothing when the
+ * recipient's shared one-person-push-a-day budget was spent after the batch was read (a like
+ * alert got there first). That zero is handled exactly like a lost race: skip.
  *
  * `claimedCount === null` means the insert came back without a representation to count, which
  * is an absence of an answer rather than a "somebody else has it". That resolves to sending:

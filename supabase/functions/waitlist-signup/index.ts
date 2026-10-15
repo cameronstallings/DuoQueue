@@ -83,9 +83,10 @@ import {
   WELCOME_TEXT,
   welcomeHtml,
 } from "../_shared/welcome-email.ts";
+import { supabaseSecretKey } from "../_shared/supabase-keys.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_SECRET_KEY = supabaseSecretKey();
 const RESEND_SEND_API_KEY = Deno.env.get("RESEND_SEND_API_KEY");
 const WAITLIST_IP_SALT = Deno.env.get("WAITLIST_IP_SALT");
 
@@ -112,7 +113,7 @@ const SOURCES = new Set(["direct", "tt", "ig", "yt"]);
  * bouncing or not, ten days before the launch email goes out. */
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
 
-const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+const admin = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 

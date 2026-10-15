@@ -106,7 +106,12 @@ export function parseInviteCodeFromUrl(url: string): string | null {
 /**
  * Where to send the browser.
  *
- * `appStoreUrl` is `app_config.app_store_url`, empty until DuoQueue is released. Only an
+ * `appStoreUrl` is `app_config.app_store_url`: since 0082 the App Store campaign link
+ * (`https://apps.apple.com/app/apple-store/id6798837181?pt=129274943&ct=invite&mt=8`), so an
+ * invite goes straight to the store and the install is credited to the "invite" campaign. It
+ * is redirected to exactly as stored (URL.toString() leaves that string as it is), and it is the
+ * one place the destination is decided: a per-code campaign token, if one is ever wanted, is
+ * built from it, never from a second hard-coded store URL. Empty means the waitlist site. Only an
  * https URL is accepted from it: that row is operator-editable at 11pm on launch night, and
  * a typo that produced `javascript:` or a scheme URL would turn a link thousands of people
  * were sent into something else entirely. A malformed value falls back to the waitlist,
@@ -122,4 +127,37 @@ export function inviteRedirectTarget(appStoreUrl: string | null | undefined): st
   } catch {
     return WAITLIST_URL;
   }
+}
+
+/** Whether the code in the link is a live invite. Reported, never acted on: see inviteResponse. */
+export type InviteCodeState = "live" | "unknown";
+
+export interface InviteResponse {
+  status: 302;
+  headers: Record<string, string>;
+}
+
+/**
+ * The whole answer: ALWAYS a 302 to the destination, whatever the code.
+ *
+ * Until 15 Oct 2026 a code that did not resolve (revoked, mistyped, a link from before a code
+ * was replaced, or no code at all) was answered 404 with the same Location, on the belief that a
+ * browser follows it either way. It does not: a browser follows Location only on a 3xx, so an
+ * old or broken invite link opened a blank page instead of the App Store. Every invite link
+ * ever sent now lands on the store, which is the point of it (and of item 3 at the top of this
+ * file).
+ *
+ * "Is this invite still live" stays answerable with curl and visible in the function logs, as
+ * the X-Invite-Code header: "live" or "unknown". It says no more than the 404 used to.
+ */
+export function inviteResponse(appStoreUrl: string | null | undefined, codeState: InviteCodeState): InviteResponse {
+  return {
+    status: 302,
+    headers: {
+      Location: inviteRedirectTarget(appStoreUrl),
+      "Cache-Control": "no-store",
+      "Referrer-Policy": "no-referrer",
+      "X-Invite-Code": codeState,
+    },
+  };
 }

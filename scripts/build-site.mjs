@@ -139,6 +139,21 @@ const SITE_ORIGIN = "https://duoqueue.io";
 const SUPPORT_EMAIL = "support@duoqueue.io";
 const CUSTOM_DOMAIN = "duoqueue.io";
 
+// RIOT'S NON-ENDORSEMENT NOTICE, in every page's footer.
+//
+// DuoQueue is League of Legends first and charges money, and Riot's Developer Policies
+// (developer.riotgames.com/policies/general, "Legal") say a product "must post the following
+// legal boilerplate ... in a location that is readily visible to players". This is that
+// boilerplate word for word, checked against the policy page on 14 Oct 2026, with
+// "[Your product]" filled in. Copy it exactly rather than shortening it: the trademark
+// sentence is part of what is required. The same paragraph goes into the App Store description
+// and under Settings > Legal in the app with 1.0.2, so change all three together if Riot ever
+// changes the wording. It names no Riot artwork and links nowhere, on purpose.
+const RIOT_NOTICE =
+  "DuoQueue isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games " +
+  "or anyone officially involved in producing or managing Riot Games properties. Riot Games, and " +
+  "all associated properties are trademarks or registered trademarks of Riot Games, Inc.";
+
 // ---------------------------------------------------------------------------
 // THE DESIGN SYSTEM, and where every number in it came from.
 //
@@ -1816,6 +1831,9 @@ const CSS = `
   footer.site-footer nav { margin-top: 8px; display: flex; gap: 10px; flex-wrap: wrap; }
   footer.site-footer a { color: var(--muted); }
   footer.site-footer a:hover { color: var(--accent); }
+  /* Riot's notice (RIOT_NOTICE): last, a step smaller, and held to a readable measure. Same
+     muted ink as the rest of the footer, so the contrast pairs above already cover it. */
+  footer.site-footer .riot-notice { margin: 14px 0 0; font-size: 12.5px; line-height: 1.55; max-width: 76ch; }
 
   /* ---- the queue bar ----------------------------------------------------- */
   /* THE CLOSING LOCKUP'S ONE JOB, DONE FROM THE TOP OF THE SCREEN. The lockup's only working
@@ -2795,6 +2813,7 @@ ${bodyHtml}
       <a href="/terms/">Terms of Service</a> <span aria-hidden="true">&middot;</span>
       <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>
     </nav>
+    <p class="riot-notice">${escapeHtml(RIOT_NOTICE)}</p>
   </div>
 </footer>
 </body>

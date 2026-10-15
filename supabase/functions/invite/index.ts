@@ -8,16 +8,23 @@
 // it) along with why duoqueue.io could not host the page either. Read that header before
 // changing the shape of this.
 //
-// WHAT IT DOES: validates the code, then sends the browser to the App Store if DuoQueue is
-// released and to the duoqueue.io waitlist if it is not. The destination lives in
-// app_config, so launch day is one UPDATE and every invite already sent starts pointing at
-// the App Store without an app update, a redeploy, or a site rebuild.
+// WHAT IT DOES: sends the browser to app_config.app_store_url, read on every request. Since
+// 0082 that is the App Store campaign link with ct=invite, so a tapped invite goes straight
+// to the store and the install is credited to invites. If the row is ever emptied, the
+// fallback is the duoqueue.io waitlist site. Changing the destination is one UPDATE: no app
+// update, no redeploy, no site rebuild.
+//
+// EVERY LINK EVER SENT KEEPS WORKING: both shapes above, a live code, a revoked or mistyped
+// one, and no code at all all get the same 302. Until 15 Oct 2026 a dead code got a 404 with a
+// Location header, and a browser does not follow Location on a 404, so an old invite opened a
+// blank page (inviteResponse in _shared/invite-link.ts has the detail).
 //
 // WHY IT LOOKS UP THE CODE AT ALL WHEN THE DESTINATION DOES NOT DEPEND ON IT. Two reasons,
 // both small and both real. It is the only place a revoked or malformed code can be
-// distinguished from a live one, which is what the 302-vs-404 below is; and resolving here
-// keeps this endpoint honest about being an invite endpoint rather than a general-purpose
-// open redirect with a decorative path segment.
+// distinguished from a live one, which is what the X-Invite-Code header below reports
+// ("live" or "unknown"; check it with curl -sI); and resolving here keeps this endpoint honest
+// about being an invite endpoint rather than a general-purpose open redirect with a
+// decorative path segment.
 //
 // verify_jwt = false, declared in supabase/config.toml rather than left to a
 // --no-verify-jwt flag in somebody's shell history: this is reached by a browser following
@@ -28,18 +35,19 @@
 // database, where it becomes one indexed equality probe.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-import { inviteRedirectTarget, parseInviteCodeFromUrl } from "../_shared/invite-link.ts";
+import { inviteResponse, parseInviteCodeFromUrl } from "../_shared/invite-link.ts";
+import { supabaseSecretKey } from "../_shared/supabase-keys.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_SECRET_KEY = supabaseSecretKey();
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY);
 
 /**
- * `app_config.app_store_url`, empty until DuoQueue is released.
+ * `app_config.app_store_url` (0082), or "" when the row is empty or unreadable.
  *
- * Read per request rather than cached in module scope on purpose: the flip is one UPDATE
- * (0065's section 7), and a cached value would mean it does nothing until the isolate
+ * Read per request rather than cached in module scope on purpose: changing it is one UPDATE
+ * (0065's section 7, 0082), and a cached value would mean it does nothing until the isolate
  * happens to recycle.
  */
 async function readAppStoreUrl(): Promise<string> {
@@ -50,7 +58,7 @@ async function readAppStoreUrl(): Promise<string> {
     .maybeSingle();
   if (error) {
     // Falling through to the waitlist is the safe direction: it is a real page either way,
-    // and before launch it is also the correct one.
+    // and it links to the App Store.
     console.error("app_store_url read failed", error.message);
     return "";
   }
@@ -79,22 +87,8 @@ Deno.serve(async (req) => {
     code ? codeResolves(code) : Promise.resolve(false),
   ]);
 
-  const target = inviteRedirectTarget(appStoreUrl);
-
-  return new Response(null, {
-    // 302 and not 301 for the live case: the destination genuinely changes on launch day,
-    // and a permanently-cached redirect to the waitlist would outlive the release in every
-    // browser that had ever followed one.
-    //
-    // 404 for a code that does not resolve, with the same Location. A browser follows it
-    // exactly the same way, so the person still gets the app; the status is there so that
-    // "is this invite still live" is answerable with curl and shows up in the function logs
-    // without anybody having to add a counter.
-    status: resolves ? 302 : 404,
-    headers: {
-      Location: target,
-      "Cache-Control": "no-store",
-      "Referrer-Policy": "no-referrer",
-    },
-  });
+  // 302 and not 301: the destination lives in app_config and can change, and a permanently
+  // cached redirect would outlive that change in every browser that had ever followed one.
+  const { status, headers } = inviteResponse(appStoreUrl, resolves ? "live" : "unknown");
+  return new Response(null, { status, headers });
 });

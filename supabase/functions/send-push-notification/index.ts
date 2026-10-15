@@ -1,14 +1,52 @@
-// Internal-only: called by Postgres triggers (via pg_net) on new matches, new
-// messages, Super Pings, "free to duo now", and the party events (an invite, a started
-// party, a new member, a party chat message), never by the client directly.
-// Authenticated with a shared secret (INTERNAL_TRIGGER_AUTH_TOKEN) rather than a user
-// JWT, since there's no end-user session in a database trigger.
+// Internal-only: called by Postgres (via pg_net, through notify_via_edge_function) on new
+// matches, new messages, Super Pings, "free to duo now", the party events (an invite, a started
+// party, a new member, a party chat message), a like (0072), a proposed time and a shared
+// Discord (0073), and the first-message nudge (0075); and by an operator for an announcement
+// (0081). Never by the client directly. Authenticated with a shared secret
+// (INTERNAL_TRIGGER_AUTH_TOKEN) rather than a user JWT, since there's no end-user session in a
+// database trigger.
+//
+// What each event becomes (its switch, its category, its sound) is the PUSH_ROUTES table in
+// events.ts, pinned by events.test.ts against the shipped 1.0.1 app. Every push goes out through
+// pushToProfile (_shared/push-delivery.ts), which writes push_log (0080) and deletes tokens Expo
+// says are dead.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-import { sendExpoPush } from "../_shared/expo-push.ts";
+import { pushToProfile, tokensForProfile } from "../_shared/push-delivery.ts";
 import { checkBearerAuth, requireSecret } from "../_shared/require-secret-auth.ts";
-import { isUuid, readJsonBody } from "../_shared/validation.ts";
+import { supabaseSecretKey } from "../_shared/supabase-keys.ts";
+import { readJsonBody } from "../_shared/validation.ts";
 
+import {
+  ANNOUNCEMENT_CATEGORY,
+  type AnnouncementEvent,
+  type DiscordSharedEvent,
+  type FirstMessageNudgeEvent,
+  isLiveMatchBetween,
+  isStillProposed,
+  isStillShared,
+  isValidEvent,
+  type LookingNowEvent,
+  type MatchRow,
+  type NewLikeEvent,
+  type PartyInviteEvent,
+  type PartyJoinedEvent,
+  type PartyMessageEvent,
+  type PartyStartedEvent,
+  type PersonEventType,
+  PUSH_ROUTES,
+  type SessionProposedEvent,
+  type SessionRow,
+  type ShareRow,
+} from "./events.ts";
+import { likeAlertPush } from "./likeAlertCopy.ts";
+import {
+  discordSharedPush,
+  firstMessageNudgePush,
+  formatPlayTime,
+  lookingNowPush,
+  sessionProposedPush,
+} from "./matchPushCopy.ts";
 import {
   lowercaseIds,
   partyInvitePush,
@@ -16,180 +54,230 @@ import {
   partyMessagePush,
   partyRecipients,
   partyStartedPush,
-  pushData,
-  type PartyPushCategory,
 } from "./partyPush.ts";
-import { superPingPush } from "./superPingCopy.ts";
+import { type PushCopy, superPingPush } from "./superPingCopy.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_SECRET_KEY = supabaseSecretKey();
 const INTERNAL_TRIGGER_AUTH_TOKEN = requireSecret("INTERNAL_TRIGGER_AUTH_TOKEN");
 
-// The boolean columns of notification_settings (0001, 0038, 0063): the switch that decides
-// whether a push goes out at all. Deliberately a separate thing from the push's category,
-// which is what the app routes and refreshes on. They were one value until the party pushes,
-// and the party categories are not columns: selecting "party_message" from
-// notification_settings would error, the settings row would read as missing, and a missing
-// row means "notify", so a person who had switched messages off would be pushed anyway.
-type SettingsColumn =
-  | "new_match"
-  | "new_message"
-  | "super_ping"
-  | "daily_swipes_refreshed"
-  | "nudge_unread"
-  | "nudge_online"
-  | "new_player";
-
-type NotificationCategory =
-  | "new_match"
-  | "new_message"
-  | "super_ping"
-  | "daily_swipes_refreshed"
-  | "nudge_online"
-  | PartyPushCategory;
-
-interface NewMatchEvent {
-  type: "new_match";
-  matchId: string;
-  userAId: string;
-  userBId: string;
-}
-interface NewMessageEvent {
-  type: "new_message";
-  matchId: string;
-  messageId: string;
-  senderId: string;
-}
-interface SuperPingEvent {
-  type: "super_ping";
-  senderId: string;
-  receiverId: string;
-}
-interface LookingNowEvent {
-  type: "looking_now";
-  matchId: string;
-  togglerId: string;
-  recipientId: string;
-}
-// The party events (migration 0070). Their pushes carry `partyId`, never `matchId`.
-interface PartyInviteEvent {
-  type: "party_invite";
-  partyId: string;
-  inviteId: string;
-  targetId: string;
-}
-interface PartyStartedEvent {
-  type: "party_started";
-  partyId: string;
-  creatorId: string;
-  partnerId: string;
-}
-interface PartyJoinedEvent {
-  type: "party_joined";
-  partyId: string;
-  joinerId: string;
-}
-interface PartyMessageEvent {
-  type: "party_message";
-  partyId: string;
-  messageId: string;
-  senderId: string;
-}
-type NotificationEvent =
-  | NewMatchEvent
-  | NewMessageEvent
-  | SuperPingEvent
-  | LookingNowEvent
-  | PartyInviteEvent
-  | PartyStartedEvent
-  | PartyJoinedEvent
-  | PartyMessageEvent;
+/** How many announcement recipients are pushed at once. */
+const ANNOUNCEMENT_CONCURRENCY = 10;
 
 function jsonResponse(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
 
-// This function only ever runs behind checkBearerAuth — its callers are Postgres
-// triggers (via pg_net) and other server-side code, never the client directly — but
-// "holds the right bearer token" isn't the same guarantee as "sent well-formed IDs",
-// and every field below ends up in a query (get_display_name, a push-token lookup) that
-// would otherwise surface a malformed value as a raw 500 deep in that lookup instead of
-// a clean 400 here.
-function isValidEvent(data: unknown): data is NotificationEvent {
-  if (!data || typeof data !== "object") return false;
-  const d = data as Record<string, unknown>;
-  switch (d.type) {
-    case "new_match":
-      return isUuid(d.matchId) && isUuid(d.userAId) && isUuid(d.userBId);
-    case "new_message":
-      return isUuid(d.matchId) && isUuid(d.messageId) && isUuid(d.senderId);
-    case "super_ping":
-      return isUuid(d.senderId) && isUuid(d.receiverId);
-    case "looking_now":
-      return isUuid(d.matchId) && isUuid(d.togglerId) && isUuid(d.recipientId);
-    case "party_invite":
-      return isUuid(d.partyId) && isUuid(d.inviteId) && isUuid(d.targetId);
-    case "party_started":
-      return isUuid(d.partyId) && isUuid(d.creatorId) && isUuid(d.partnerId);
-    case "party_joined":
-      return isUuid(d.partyId) && isUuid(d.joinerId);
-    case "party_message":
-      return isUuid(d.partyId) && isUuid(d.messageId) && isUuid(d.senderId);
-    default:
-      return false;
-  }
-}
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY);
 
 async function getDisplayName(profileId: string): Promise<string> {
   const { data } = await supabase.from("profiles").select("display_name").eq("id", profileId).single();
   return data?.display_name ?? "Someone";
 }
 
-// `setting` is the notification_settings column that has to be on for this push to go out;
-// `category` is what the push says it is, in its `data`. For every push before the party ones
-// the two are the same word. The party pushes reuse the "New match" and "New message"
-// switches under categories of their own (see SettingsColumn above, and partyPush.ts).
+// `event` decides everything about the push except its words: the notification_settings column
+// that has to be on, the category in its `data`, and whether it makes a sound (PUSH_ROUTES).
 //
-// `extra` rides in the push's `data` next to `category`, for a tapped push to route by. Today
-// that is `matchId` on new_match and new_message, so the app can open that chat instead of
-// resuming wherever it was left (the decision is apps/mobile/src/lib/notificationRouting.ts),
-// and `partyId` on the party pushes.
+// `extra` rides in the push's `data` next to `category`, for a tapped push to route by: `matchId`
+// on the 1:1 pushes, so the app can open that chat instead of resuming wherever it was left (the
+// decision is apps/mobile/src/lib/notificationRouting.ts), and `partyId` on the party pushes.
 //
 // STRICTLY ADDITIVE, because this deploys to every installed app at once and the app cannot be
-// patched: a build that predates `matchId` reads only `data.category` and ignores the rest, so
-// it behaves exactly as before. `category` is spread last (pushData) so no extra field can ever
+// patched: a build that predates `matchId` reads only `data.category` and ignores the rest, so it
+// behaves exactly as before. `category` is spread last (pushToProfile) so no extra field can ever
 // replace it, since every shipped build routes and refreshes on that one key.
 async function notifyProfile(
   profileId: string,
-  setting: SettingsColumn,
-  category: NotificationCategory,
-  title: string,
-  body: string,
+  event: PersonEventType,
+  copy: PushCopy,
   extra: Record<string, string> = {},
-) {
+): Promise<string> {
+  const route = PUSH_ROUTES[event];
   const { data: settings } = await supabase
     .from("notification_settings")
-    .select(setting)
+    .select(route.setting)
     .eq("profile_id", profileId)
     .maybeSingle();
 
-  // Default to notifying when no settings row exists yet, rather than silently
-  // dropping the notification (settings rows are created by the signup trigger, so
-  // a missing row is unexpected, not an intentional opt-out).
-  const enabled = settings ? (settings as Record<string, boolean>)[setting] !== false : true;
-  if (!enabled) return;
+  // Default to notifying when no settings row exists yet, rather than silently dropping the
+  // notification (settings rows are created by the signup trigger, so a missing row is
+  // unexpected, not an intentional opt-out). Announcements are the one exception and never come
+  // through here.
+  const enabled = settings ? (settings as Record<string, boolean>)[route.setting] !== false : true;
+  if (!enabled) return "skipped:switched_off";
 
-  const { data: tokens } = await supabase
-    .from("push_tokens")
-    .select("expo_push_token")
-    .eq("profile_id", profileId);
+  const tokens = await tokensForProfile(supabase, profileId);
+  const outcome = await pushToProfile(supabase, {
+    recipientId: profileId,
+    event,
+    category: route.category,
+    tokens,
+    title: copy.title,
+    body: copy.body,
+    extra,
+    sound: route.sound,
+  });
+  return outcome.ticketStatus;
+}
 
-  const tokenList = (tokens ?? []).map((t) => t.expo_push_token as string);
-  // Every push from here is about a real person (a match, a message, a ping, a party), so it
-  // makes a sound; see ExpoPushOptions in _shared/expo-push.ts.
-  await sendExpoPush(tokenList, title, body, pushData(extra, category), { sound: true });
+/** The match row, or null when it is gone or unreadable. */
+async function getMatch(matchId: string): Promise<MatchRow | null> {
+  const { data, error } = await supabase
+    .from("matches")
+    .select("user_a_id, user_b_id, unmatched_at")
+    .eq("id", matchId)
+    .maybeSingle();
+  if (error) {
+    console.error("match lookup failed:", error.message);
+    return null;
+  }
+  return (data as MatchRow | null) ?? null;
+}
+
+// ---------------------------------------------------------------------------------------------
+// The pushes about one match (0073, 0074, 0075)
+//
+// Each returns what happened, in the response's `result`, for the hand-fire test before 0083 is
+// applied: "ok" (or another push_log ticket status) when a push went out, "skipped:<why>" when
+// a re-check dropped it. Nothing reads it in production; pg_net ignores the response body.
+//
+// The SQL that sent each of these already checked the match is live, nobody is blocked, the
+// recipient's chat is unlocked and the per-hour or per-match budget. These re-read the rows the
+// push is about, because pg_net sends after the write commits and things can change in between.
+// ---------------------------------------------------------------------------------------------
+
+async function notifySessionProposed(event: SessionProposedEvent): Promise<string> {
+  const [{ data: session, error }, match] = await Promise.all([
+    supabase.from("match_sessions").select("match_id, proposed_by, status, scheduled_at").eq("id", event.sessionId)
+      .maybeSingle(),
+    getMatch(event.matchId),
+  ]);
+  if (error) {
+    console.error("session lookup failed:", error.message);
+    return "skipped:lookup_failed";
+  }
+  if (!isStillProposed(session as SessionRow | null, event, new Date())) return "skipped:not_pending";
+  if (!isLiveMatchBetween(match, event.proposerId, event.recipientId)) return "skipped:match_not_live";
+
+  const [proposerName, { data: recipient }] = await Promise.all([
+    getDisplayName(event.proposerId),
+    supabase.from("profiles").select("timezone").eq("id", event.recipientId).maybeSingle(),
+  ]);
+  const playTime = formatPlayTime(new Date((session as SessionRow).scheduled_at), recipient?.timezone as string | null);
+  return await notifyProfile(event.recipientId, "session_proposed", sessionProposedPush(proposerName, playTime), {
+    matchId: event.matchId,
+  });
+}
+
+async function notifyDiscordShared(event: DiscordSharedEvent): Promise<string> {
+  const [{ data: share, error }, match] = await Promise.all([
+    supabase.from("discord_shares").select("match_id, shared_by, revoked").eq("id", event.shareId).maybeSingle(),
+    getMatch(event.matchId),
+  ]);
+  if (error) {
+    console.error("discord share lookup failed:", error.message);
+    return "skipped:lookup_failed";
+  }
+  if (!isStillShared(share as ShareRow | null, event)) return "skipped:not_shared";
+  if (!isLiveMatchBetween(match, event.sharerId, event.recipientId)) return "skipped:match_not_live";
+
+  const sharerName = await getDisplayName(event.sharerId);
+  return await notifyProfile(event.recipientId, "discord_shared", discordSharedPush(sharerName), {
+    matchId: event.matchId,
+  });
+}
+
+async function notifyFirstMessageNudge(event: FirstMessageNudgeEvent): Promise<string> {
+  const [match, { data: messages, error }] = await Promise.all([
+    getMatch(event.matchId),
+    supabase.from("messages").select("id").eq("match_id", event.matchId).limit(1),
+  ]);
+  if (error) {
+    console.error("first message lookup failed:", error.message);
+    return "skipped:lookup_failed";
+  }
+  // Still live, still these two, and still nobody has written.
+  if (!isLiveMatchBetween(match, event.recipientId, event.otherId)) return "skipped:match_not_live";
+  if ((messages ?? []).length > 0) return "skipped:already_talking";
+
+  const { data: other } = await supabase.from("profiles").select("display_name").eq("id", event.otherId)
+    .maybeSingle();
+  return await notifyProfile(
+    event.recipientId,
+    "first_message_nudge",
+    firstMessageNudgePush(other?.display_name as string | null),
+    { matchId: event.matchId },
+  );
+}
+
+async function notifyLookingNow(event: LookingNowEvent): Promise<string> {
+  const match = await getMatch(event.matchId);
+  if (!isLiveMatchBetween(match, event.togglerId, event.recipientId)) return "skipped:match_not_live";
+  const togglerName = await getDisplayName(event.togglerId);
+  // matchId since 0074, under category new_message (PUSH_ROUTES), so a tap opens the chat.
+  return await notifyProfile(event.recipientId, "looking_now", lookingNowPush(togglerName), {
+    matchId: event.matchId,
+  });
+}
+
+// ---------------------------------------------------------------------------------------------
+// The like alert (0072)
+//
+// Every gate is in SQL (dispatch_like_alert): same server group, a shared game, both deck gates,
+// not demo, the shared one-a-day budget, quiet hours. The payload has no liker in it, so the push
+// cannot name one. The new_like switch is checked again here by notifyProfile.
+// ---------------------------------------------------------------------------------------------
+
+async function notifyNewLike(event: NewLikeEvent): Promise<string> {
+  return await notifyProfile(event.recipientId, "new_like", likeAlertPush(event.likeCount));
+}
+
+// ---------------------------------------------------------------------------------------------
+// Announcements (0081)
+//
+// Only to claim_announcement_recipients(title, body): announcements = true (default false, App
+// Store 4.5.4), onboarded, active, not banned, suspended or demo, with a token, AND inside
+// 10:00-20:59 in their own time zone right now, AND not already sent this exact title and body.
+// A player with no settings row is NOT opted in, the opposite of notifyProfile. Silent. The
+// claim is written before the send, so a failure is a missed announcement, never a duplicate.
+//
+// Sent by hand, and ONCE AN HOUR through the day with the same text, byte for byte: each firing
+// reaches the players whose local clock has just entered the window, and nobody twice (the
+// ledger is keyed on the text). One firing reaches only the zones inside 10:00-21:00 right now.
+//   curl -X POST .../functions/v1/send-push-notification -H "Authorization: Bearer <internal token>"
+//     -H "Content-Type: application/json" -d '{"type":"announcement","title":"...","body":"..."}'
+// ---------------------------------------------------------------------------------------------
+
+async function sendAnnouncement(event: AnnouncementEvent): Promise<Response> {
+  const { data: rows, error } = await supabase.rpc("claim_announcement_recipients", {
+    p_title: event.title,
+    p_body: event.body,
+  });
+  if (error) {
+    return jsonResponse({ error: error.message }, 500);
+  }
+  const recipientIds = [
+    ...new Set(((rows ?? []) as { profile_id: string }[]).map((r) => r.profile_id)),
+  ];
+
+  let notified = 0;
+  for (let i = 0; i < recipientIds.length; i += ANNOUNCEMENT_CONCURRENCY) {
+    const outcomes = await Promise.all(
+      recipientIds.slice(i, i + ANNOUNCEMENT_CONCURRENCY).map(async (profileId) =>
+        pushToProfile(supabase, {
+          recipientId: profileId,
+          event: "announcement",
+          category: ANNOUNCEMENT_CATEGORY,
+          tokens: await tokensForProfile(supabase, profileId),
+          title: event.title,
+          body: event.body,
+          sound: false,
+        })
+      ),
+    );
+    notified += outcomes.filter((o) => o.accepted > 0).length;
+  }
+  return jsonResponse({ ok: true, recipients: recipientIds.length, notified }, 200);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -235,14 +323,11 @@ async function getDisplayNames(ids: string[]): Promise<string[]> {
 /** Pushes the same copy to each recipient, each under their own settings. */
 async function notifyEach(
   recipientIds: string[],
-  setting: SettingsColumn,
-  category: PartyPushCategory,
-  copy: { title: string; body: string },
+  event: "party_invite" | "party_started" | "party_joined" | "party_message",
+  copy: PushCopy,
   partyId: string,
 ) {
-  await Promise.all(
-    recipientIds.map((id) => notifyProfile(id, setting, category, copy.title, copy.body, { partyId })),
-  );
+  await Promise.all(recipientIds.map((id) => notifyProfile(id, event, copy, { partyId })));
 }
 
 async function notifyPartyInvite(event: PartyInviteEvent) {
@@ -263,7 +348,7 @@ async function notifyPartyInvite(event: PartyInviteEvent) {
   const memberIds = partyRecipients(await getPartyMemberIds(event.partyId), event.targetId);
   if (memberIds.length === 0) return;
   const copy = partyInvitePush(await getDisplayNames(memberIds));
-  await notifyEach([event.targetId], "new_match", "party_invite", copy, event.partyId);
+  await notifyEach([event.targetId], "party_invite", copy, event.partyId);
 }
 
 async function notifyPartyStarted(event: PartyStartedEvent) {
@@ -271,7 +356,7 @@ async function notifyPartyStarted(event: PartyStartedEvent) {
   const memberIds = await getPartyMemberIds(event.partyId);
   if (!memberIds.includes(event.creatorId) || !memberIds.includes(event.partnerId)) return;
   const copy = partyStartedPush(await getDisplayName(event.creatorId));
-  await notifyEach([event.partnerId], "new_match", "party_started", copy, event.partyId);
+  await notifyEach([event.partnerId], "party_started", copy, event.partyId);
 }
 
 async function notifyPartyJoined(event: PartyJoinedEvent) {
@@ -279,7 +364,7 @@ async function notifyPartyJoined(event: PartyJoinedEvent) {
   if (!memberIds.includes(event.joinerId)) return;
   const copy = partyJoinedPush(await getDisplayName(event.joinerId));
   const recipients = partyRecipients(memberIds, event.joinerId);
-  await notifyEach(recipients, "new_match", "party_joined", copy, event.partyId);
+  await notifyEach(recipients, "party_joined", copy, event.partyId);
 }
 
 async function notifyPartyMessage(event: PartyMessageEvent) {
@@ -300,7 +385,7 @@ async function notifyPartyMessage(event: PartyMessageEvent) {
   if (!memberIds.includes(event.senderId)) return;
   const copy = partyMessagePush(await getDisplayName(event.senderId));
   const recipients = partyRecipients(memberIds, event.senderId);
-  await notifyEach(recipients, "new_message", "party_message", copy, event.partyId);
+  await notifyEach(recipients, "party_message", copy, event.partyId);
 }
 
 Deno.serve(async (req) => {
@@ -317,6 +402,8 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Invalid payload" }, 400);
   }
   const event = bodyResult.data;
+  // What happened, for the events that push one person (see "The pushes about one match").
+  let result: string | undefined;
 
   switch (event.type) {
     case "new_match": {
@@ -327,22 +414,8 @@ Deno.serve(async (req) => {
       // Both sides get the match id: either one tapping it lands in the new chat.
       const tapData = { matchId: event.matchId };
       await Promise.all([
-        notifyProfile(
-          event.userAId,
-          "new_match",
-          "new_match",
-          "New match!",
-          `You matched with ${nameB}.`,
-          tapData,
-        ),
-        notifyProfile(
-          event.userBId,
-          "new_match",
-          "new_match",
-          "New match!",
-          `You matched with ${nameA}.`,
-          tapData,
-        ),
+        notifyProfile(event.userAId, "new_match", { title: "New match!", body: `You matched with ${nameB}.` }, tapData),
+        notifyProfile(event.userBId, "new_match", { title: "New match!", body: `You matched with ${nameA}.` }, tapData),
       ]);
       break;
     }
@@ -355,7 +428,7 @@ Deno.serve(async (req) => {
       if (match) {
         const recipientId = match.user_a_id === event.senderId ? match.user_b_id : match.user_a_id;
         const senderName = await getDisplayName(event.senderId);
-        await notifyProfile(recipientId, "new_message", "new_message", senderName, "Sent you a message", {
+        await notifyProfile(recipientId, "new_message", { title: senderName, body: "Sent you a message" }, {
           matchId: event.matchId,
         });
       }
@@ -363,21 +436,27 @@ Deno.serve(async (req) => {
     }
     case "super_ping": {
       const senderName = await getDisplayName(event.senderId);
-      const copy = superPingPush(senderName);
-      await notifyProfile(event.receiverId, "super_ping", "super_ping", copy.title, copy.body);
+      await notifyProfile(event.receiverId, "super_ping", superPingPush(senderName));
       break;
     }
-    case "looking_now": {
-      const togglerName = await getDisplayName(event.togglerId);
-      await notifyProfile(
-        event.recipientId,
-        "nudge_online",
-        "nudge_online",
-        `${togglerName} is free to duo right now`,
-        "Jump in before the window closes.",
-      );
+    case "looking_now":
+      result = await notifyLookingNow(lowercaseIds(event));
       break;
-    }
+    case "new_like":
+      result = await notifyNewLike(lowercaseIds(event));
+      break;
+    case "session_proposed":
+      result = await notifySessionProposed(lowercaseIds(event));
+      break;
+    case "discord_shared":
+      result = await notifyDiscordShared(lowercaseIds(event));
+      break;
+    case "first_message_nudge":
+      result = await notifyFirstMessageNudge(lowercaseIds(event));
+      break;
+    case "announcement":
+      // Never lowercaseIds: its strings are the words.
+      return await sendAnnouncement(event);
     case "party_invite":
       await notifyPartyInvite(lowercaseIds(event));
       break;
@@ -392,5 +471,5 @@ Deno.serve(async (req) => {
       break;
   }
 
-  return jsonResponse({ ok: true }, 200);
+  return jsonResponse(result === undefined ? { ok: true } : { ok: true, result }, 200);
 });

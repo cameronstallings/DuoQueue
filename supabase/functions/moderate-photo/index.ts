@@ -15,10 +15,11 @@ import { checkImage } from "./provider.ts";
 import { ImageRejectedError, sanitizeImage } from "./sanitize.ts";
 import { checkRateLimit, RateLimitedError, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { isUuid, readJsonBody } from "../_shared/validation.ts";
+import { supabasePublishableKey, supabaseSecretKey } from "../_shared/supabase-keys.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_PUBLISHABLE_KEY = supabasePublishableKey();
+const SUPABASE_SECRET_KEY = supabaseSecretKey();
 
 function jsonResponse(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -34,7 +35,7 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Missing Authorization header" }, 401);
   }
 
-  const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  const userClient = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     global: { headers: { Authorization: authHeader } },
   });
 
@@ -46,7 +47,7 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Not authenticated" }, 401);
   }
 
-  const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const serviceClient = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY);
 
   // A real upload flow calls this once per photo (up to 6 gallery slots plus a cover
   // photo); this is generous enough to cover a full gallery re-upload plus retries in

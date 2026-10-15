@@ -9,9 +9,10 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 import { checkRateLimit, RateLimitedError } from "../_shared/rate-limit.ts";
+import { supabaseSecretKey } from "../_shared/supabase-keys.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_SECRET_KEY = supabaseSecretKey();
 const STEAM_WEB_API_KEY = Deno.env.get("STEAM_WEB_API_KEY");
 const APP_DEEP_LINK_SCHEME = Deno.env.get("APP_DEEP_LINK_SCHEME") ?? "duoqueue";
 
@@ -103,7 +104,7 @@ Deno.serve(async (req) => {
   }
   const steamId64 = match[1];
 
-  const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const serviceClient = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY);
 
   // Single statement that enforces the 15-minute TTL and consumes the token in one
   // shot (delete ... returning). The previous select-then-delete both let an abandoned

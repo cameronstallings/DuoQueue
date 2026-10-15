@@ -27,9 +27,10 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 import { checkBearerAuth, requireSecret } from "../_shared/require-secret-auth.ts";
+import { supabaseSecretKey } from "../_shared/supabase-keys.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_SECRET_KEY = supabaseSecretKey();
 const INTERNAL_TRIGGER_AUTH_TOKEN = requireSecret("INTERNAL_TRIGGER_AUTH_TOKEN");
 
 // Read directly, NOT via requireSecret: absence here means "skip this provider," not
@@ -225,7 +226,7 @@ Deno.serve(async (req) => {
   const unauthorized = await checkBearerAuth(req, INTERNAL_TRIGGER_AUTH_TOKEN);
   if (unauthorized) return unauthorized;
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY);
 
   let steam: SyncSummary | "skipped" = "skipped";
   if (STEAM_WEB_API_KEY) {

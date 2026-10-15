@@ -1,17 +1,26 @@
 // Scheduled (not trigger-driven) — invoke this hourly via a Supabase Cron Trigger or
 // any external scheduler (e.g. a GitHub Actions cron workflow) hitting this URL with
 // `Authorization: Bearer <INTERNAL_TRIGGER_AUTH_TOKEN>`. Each run asks Postgres which
-// free-tier users are at their local midnight right now and haven't been notified for
+// free-tier users should hear that their swipes are back and haven't been notified for
 // that local day yet (get_profiles_needing_swipe_refresh_notification), then sends and
 // records each one — so re-running this within the same hour, or a scheduler that skips
 // a beat, never double-notifies.
+//
+// WHO, since 0076 (all decided in that RPC, none of it here): only players who used all 25
+// free swipes yesterday, have not swiped yet today and still have someone in their deck, from
+// 10:00 their local time, never demo accounts. It used to be every free player at local
+// midnight, about 15 pushes a night that almost nobody acted on. The RPC's name and its one
+// column are unchanged, so this loop is too.
+//
+// Each push is recorded in push_log (0080) as event "daily_swipes_refreshed" (pushToProfile).
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-import { sendExpoPush } from "../_shared/expo-push.ts";
+import { pushToProfile } from "../_shared/push-delivery.ts";
 import { checkBearerAuth, requireSecret } from "../_shared/require-secret-auth.ts";
+import { supabaseSecretKey } from "../_shared/supabase-keys.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_SECRET_KEY = supabaseSecretKey();
 const INTERNAL_TRIGGER_AUTH_TOKEN = requireSecret("INTERNAL_TRIGGER_AUTH_TOKEN");
 
 function jsonResponse(body: unknown, status: number): Response {
@@ -28,7 +37,7 @@ Deno.serve(async (req) => {
   const unauthorized = await checkBearerAuth(req, INTERNAL_TRIGGER_AUTH_TOKEN);
   if (unauthorized) return unauthorized;
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY);
 
   const { data: candidates, error } = await supabase.rpc(
     "get_profiles_needing_swipe_refresh_notification",
@@ -56,12 +65,14 @@ Deno.serve(async (req) => {
 
     if (settings?.daily_swipes_refreshed !== false) {
       const tokenList = (tokens ?? []).map((t) => t.expo_push_token as string);
-      await sendExpoPush(
-        tokenList,
-        "Swipes refreshed!",
-        "Your daily swipes are back. Go find your next duo.",
-        { category: "daily_swipes_refreshed" },
-      );
+      await pushToProfile(supabase, {
+        recipientId: profileId,
+        event: "daily_swipes_refreshed",
+        category: "daily_swipes_refreshed",
+        tokens: tokenList,
+        title: "Swipes refreshed!",
+        body: "Your daily swipes are back. Go find your next duo.",
+      });
       notified++;
     }
 

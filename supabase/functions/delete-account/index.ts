@@ -58,10 +58,11 @@ import { createClient, type SupabaseClient, type User } from "npm:@supabase/supa
 
 import { appleAuthConfigFromEnv, exchangeAuthorizationCode, revokeRefreshToken } from "../_shared/apple-auth.ts";
 import { isCallersAppleSubject } from "../_shared/apple-id-token.ts";
+import { supabasePublishableKey, supabaseSecretKey } from "../_shared/supabase-keys.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_PUBLISHABLE_KEY = supabasePublishableKey();
+const SUPABASE_SECRET_KEY = supabaseSecretKey();
 
 /** Same cap apple-authorization applies. Apple's codes are short. */
 const MAX_CODE_LENGTH = 2048;
@@ -202,7 +203,7 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Missing Authorization header" }, 401);
   }
 
-  const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  const userClient = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     global: { headers: { Authorization: authHeader } },
   });
 
@@ -218,7 +219,7 @@ Deno.serve(async (req) => {
   // here and the revocation is a handful of queries.
   const appleAuthorizationCode = await readAppleAuthorizationCode(req);
 
-  const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const serviceClient = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY);
 
   // --- Refusal 1: a currently-banned profile cannot self-delete. ---
   const { data: profileRow, error: profileError } = await serviceClient

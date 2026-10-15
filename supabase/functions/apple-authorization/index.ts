@@ -52,10 +52,11 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 import { appleAuthConfigFromEnv, exchangeAuthorizationCode } from "../_shared/apple-auth.ts";
 import { isCallersAppleSubject } from "../_shared/apple-id-token.ts";
+import { supabasePublishableKey, supabaseSecretKey } from "../_shared/supabase-keys.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_PUBLISHABLE_KEY = supabasePublishableKey();
+const SUPABASE_SECRET_KEY = supabaseSecretKey();
 
 /** Apple's codes are short. A cap here means a hostile body cannot be streamed at us. */
 const MAX_CODE_LENGTH = 2048;
@@ -74,7 +75,7 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Missing Authorization header" }, 401);
   }
 
-  const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  const userClient = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     global: { headers: { Authorization: authHeader } },
   });
 
@@ -129,7 +130,7 @@ Deno.serve(async (req) => {
       return jsonResponse({ ok: false, reason: "identity_mismatch" }, 200);
     }
 
-    const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const serviceClient = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY);
     const { error: upsertError } = await serviceClient
       .from("apple_refresh_tokens")
       .upsert(

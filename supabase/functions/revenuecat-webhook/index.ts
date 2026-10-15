@@ -8,9 +8,10 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { CONSUMABLE_GRANTS, mapEventToStatus, mapStore, type RevenueCatEvent } from "./mapping.ts";
 import { checkBearerAuth, requireSecret } from "../_shared/require-secret-auth.ts";
 import { isBoundedString, readJsonBody } from "../_shared/validation.ts";
+import { supabaseSecretKey } from "../_shared/supabase-keys.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_SECRET_KEY = supabaseSecretKey();
 const WEBHOOK_AUTH_TOKEN = requireSecret("REVENUECAT_WEBHOOK_AUTH_TOKEN");
 
 interface RevenueCatWebhookBody {
@@ -66,7 +67,7 @@ Deno.serve(async (req) => {
   }
   const event = bodyResult.data.event as RevenueCatEvent;
 
-  const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const serviceClient = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY);
 
   const consumableGrant = CONSUMABLE_GRANTS[event.product_id];
   if (consumableGrant) {

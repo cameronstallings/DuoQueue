@@ -76,6 +76,15 @@ subject = "Your DuoQueue confirmation code"
 # Supabase docs use ("./supabase/templates/invite.html").
 content_path = "./supabase/templates/confirmation.html"
 
+# Password reset is code-based too (resetPasswordForEmail, then verifyOtp type "recovery",
+# then updateUser), for the same reasons as the confirmation code above; see the header of
+# templates/recovery.html. Same content_path form as above: relative to the project root.
+# The hosted copy is mailer_subjects_recovery / mailer_templates_recovery_content, set
+# through the Management API, and must be live before a build with "Forgot password?" ships.
+[auth.email.template.recovery]
+subject = "Your DuoQueue password reset code"
+content_path = "./supabase/templates/recovery.html"
+
 [auth.external.apple]
 enabled = false
 client_id = "env(APPLE_CLIENT_ID)"

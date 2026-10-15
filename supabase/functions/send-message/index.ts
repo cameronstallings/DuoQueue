@@ -8,10 +8,11 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { filterProfanity } from "./profanity.ts";
 import { isCleanText, isUuid, readJsonBody } from "../_shared/validation.ts";
 import { checkRateLimit, RateLimitedError, rateLimitResponse } from "../_shared/rate-limit.ts";
+import { supabasePublishableKey, supabaseSecretKey } from "../_shared/supabase-keys.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_PUBLISHABLE_KEY = supabasePublishableKey();
+const SUPABASE_SECRET_KEY = supabaseSecretKey();
 
 interface SendMessageBody {
   matchId?: string;
@@ -38,7 +39,7 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Missing Authorization header" }, 401);
     }
 
-    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    const userClient = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
       global: { headers: { Authorization: authHeader } },
     });
 
@@ -50,7 +51,7 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Not authenticated" }, 401);
     }
 
-    const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const serviceClient = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY);
 
     // Loose on purpose: public.enforce_message_send_guard() (migration 0042) already
     // rate-limits actual inserts into `messages` at 8/10s and 300/hour, which is the

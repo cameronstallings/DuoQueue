@@ -1,8 +1,23 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { buildPushBatches } from "./expo-push";
+import {
+  buildPushBatches,
+  buildPushLogRow,
+  type ExpoPushMessage,
+  readTickets,
+  safeErrorText,
+  sendExpoPush,
+  summarizePush,
+  transportFailure,
+} from "./expo-push";
 
 const TOKEN = "ExponentPushToken[abc]";
+const DEAD = "ExponentPushToken[dead]";
+const RECIPIENT = "3f2b8c1e-9a4d-4e6f-8b2a-1c3d5e7f9a0b";
+
+function messages(...tokens: string[]): ExpoPushMessage[] {
+  return tokens.map((to) => ({ to, title: "t", body: "b" }));
+}
 
 describe("buildPushBatches", () => {
   it("is silent unless asked, so the scheduled pushes stay quiet", () => {
@@ -28,5 +43,172 @@ describe("buildPushBatches", () => {
 
   it("sends nothing when no token is valid", () => {
     expect(buildPushBatches(["junk"], "t", "b")).toEqual([]);
+  });
+});
+
+describe("readTickets", () => {
+  it("pairs tickets with messages in order and flags DeviceNotRegistered", () => {
+    const results = readTickets(messages(TOKEN, DEAD), 200, {
+      data: [
+        { status: "ok", id: "x" },
+        {
+          status: "error",
+          message: `"${DEAD}" is not a registered push notification recipient`,
+          details: { error: "DeviceNotRegistered" },
+        },
+      ],
+    });
+    expect(results).toEqual([
+      { token: TOKEN, accepted: true, transport: false, deviceNotRegistered: false, error: null },
+      { token: DEAD, accepted: false, transport: false, deviceNotRegistered: true, error: "DeviceNotRegistered" },
+    ]);
+  });
+
+  it("falls back to the message with the token taken out when details has no error", () => {
+    const [result] = readTickets(messages(DEAD), 200, {
+      data: [{ status: "error", message: `"${DEAD}" is not valid` }],
+    });
+    expect(result.error).toBe('"<token>" is not valid');
+    expect(result.error).not.toContain("dead");
+    expect(result.deviceNotRegistered).toBe(false);
+  });
+
+  it("a request Expo refuses as a whole is a transport failure for every message", () => {
+    const results = readTickets(messages(TOKEN, DEAD), 429, {
+      errors: [{ code: "TOO_MANY_REQUESTS", message: "slow down" }],
+    });
+    expect(results.every((r) => r.transport && !r.accepted && r.error === "TOO_MANY_REQUESTS")).toBe(true);
+  });
+
+  it("a body that is not JSON names the HTTP status", () => {
+    expect(readTickets(messages(TOKEN), 502, null)[0].error).toBe("http_502");
+  });
+
+  it("a missing ticket is not counted as accepted", () => {
+    const results = readTickets(messages(TOKEN, DEAD), 200, { data: [{ status: "ok" }] });
+    expect(results[1]).toMatchObject({ accepted: false, transport: true, error: "no_ticket" });
+  });
+});
+
+describe("summarizePush", () => {
+  const ok = { token: TOKEN, accepted: true, transport: false, deviceNotRegistered: false, error: null };
+  const dead = { token: DEAD, accepted: false, transport: false, deviceNotRegistered: true, error: "DeviceNotRegistered" };
+
+  it("no tokens is no_token, not an error", () => {
+    expect(summarizePush([])).toEqual({ tokens: 0, accepted: 0, ticketStatus: "no_token", error: null, deadTokens: [] });
+  });
+
+  it("all accepted is ok", () => {
+    expect(summarizePush([ok]).ticketStatus).toBe("ok");
+  });
+
+  it("some accepted is partial, with the first error and the dead token", () => {
+    expect(summarizePush([ok, dead])).toEqual({
+      tokens: 2,
+      accepted: 1,
+      ticketStatus: "partial",
+      error: "DeviceNotRegistered",
+      deadTokens: [DEAD],
+    });
+  });
+
+  it("none accepted is error, or transport_error when no ticket came back at all", () => {
+    expect(summarizePush([dead]).ticketStatus).toBe("error");
+    expect(summarizePush(transportFailure(messages(TOKEN), new Error("network down")))).toMatchObject({
+      ticketStatus: "transport_error",
+      error: "network down",
+      deadTokens: [],
+    });
+  });
+});
+
+describe("safeErrorText", () => {
+  it("cuts to 200 characters and ignores non-strings", () => {
+    expect(safeErrorText("x".repeat(500))).toHaveLength(200);
+    expect(safeErrorText(42)).toBeNull();
+    expect(safeErrorText("   ")).toBeNull();
+  });
+});
+
+describe("buildPushLogRow", () => {
+  it("records who, what kind and what Expo said, and nothing of the message", () => {
+    const row = buildPushLogRow(RECIPIENT, "new_player", "new_like", {
+      tokens: 2,
+      accepted: 1,
+      ticketStatus: "partial",
+      error: "DeviceNotRegistered",
+      deadTokens: [DEAD],
+    });
+    expect(row).toEqual({
+      recipient_id: RECIPIENT,
+      category: "new_player",
+      event: "new_like",
+      tokens: 2,
+      accepted: 1,
+      ticket_status: "partial",
+      error: "DeviceNotRegistered",
+    });
+  });
+
+  it("stays inside 0080's check constraints whatever it is handed", () => {
+    const row = buildPushLogRow(RECIPIENT, "c".repeat(80), "", {
+      tokens: 3,
+      accepted: 9,
+      ticketStatus: "ok",
+      error: "e".repeat(400),
+      deadTokens: [],
+    });
+    expect(row.category).toHaveLength(40);
+    expect(row.event).toBeNull();
+    expect(row.accepted).toBe(3);
+    expect(row.error).toHaveLength(200);
+  });
+});
+
+describe("sendExpoPush", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("posts the batch and returns the outcome with the dead token", async () => {
+    const fetchMock = vi.fn(async () =>
+      new Response(
+        JSON.stringify({ data: [{ status: "ok" }, { status: "error", details: { error: "DeviceNotRegistered" } }] }),
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const outcome = await sendExpoPush([TOKEN, DEAD], "t", "b", { category: "new_match" }, { sound: true });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const sent = JSON.parse((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body as string);
+    expect(sent).toHaveLength(2);
+    expect(sent[0].sound).toBe("default");
+    expect(outcome).toEqual({
+      tokens: 2,
+      accepted: 1,
+      ticketStatus: "partial",
+      error: "DeviceNotRegistered",
+      deadTokens: [DEAD],
+    });
+  });
+
+  it("never throws when the POST fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("connection reset");
+      }),
+    );
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const outcome = await sendExpoPush([TOKEN], "t", "b");
+    spy.mockRestore();
+    expect(outcome).toMatchObject({ tokens: 1, accepted: 0, ticketStatus: "transport_error", error: "connection reset" });
+  });
+
+  it("makes no request when there is no valid token", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    expect((await sendExpoPush(["junk"], "t", "b")).ticketStatus).toBe("no_token");
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

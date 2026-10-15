@@ -117,16 +117,30 @@ pnpm install
      (0001, 0002, ...), into the SQL Editor.
 3. Seed the game/show catalogs: run `supabase/seed/seed.sql` the same way (or it runs
    automatically on `supabase db reset` for local dev, per `supabase/config.toml`).
-4. Deploy the Edge Functions: `supabase functions deploy <name>` for each of
+4. Deploy the Edge Functions: `supabase functions deploy <name>` for each of these 13
+   (every directory in `supabase/functions` except `_shared`):
    `send-message`, `revenuecat-webhook`, `moderate-photo`, `delete-account`,
-   `send-push-notification`, `daily-swipes-refreshed`, `send-reengagement-nudges`, and
-   `sync-verified-stats`. All of them get
-   `SUPABASE_URL`/`SUPABASE_ANON_KEY`/`SUPABASE_SERVICE_ROLE_KEY` injected automatically.
+   `send-push-notification`, `daily-swipes-refreshed`, `send-reengagement-nudges`,
+   `sync-verified-stats`, `send-new-player-alerts`, `invite`, `apple-authorization`,
+   `link-steam-callback` and `waitlist-signup` (that last one also has its own section
+   below). All of them get `SUPABASE_URL` and the API keys injected
+   automatically: the new `SUPABASE_SECRET_KEYS` / `SUPABASE_PUBLISHABLE_KEYS` (JSON maps
+   keyed by key name) and the legacy `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_ANON_KEY`.
+   Every function reads its key through `supabase/functions/_shared/supabase-keys.ts`,
+   which takes the `default` entry of the new map and falls back to the legacy variable
+   only until the legacy keys are switched off (it logs a warning when it does).
+   **All 13 have to be redeployed from this code before the legacy keys are deactivated**:
+   a copy deployed earlier reads `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_ANON_KEY` directly
+   and stops working the moment they are switched off (invite links, Sign in with Apple
+   token storage, Steam linking and the new-player alerts included).
    `revenuecat-webhook` additionally needs `REVENUECAT_WEBHOOK_AUTH_TOKEN` (step 3
    below), and
-   `send-push-notification`/`daily-swipes-refreshed`/`send-reengagement-nudges`/`sync-verified-stats`
+   `send-push-notification`/`daily-swipes-refreshed`/`send-reengagement-nudges`/`sync-verified-stats`/`send-new-player-alerts`
    need `INTERNAL_TRIGGER_AUTH_TOKEN` — set both with `supabase secrets set KEY=value`.
-   Those five refuse to start without their secret rather than running unauthenticated.
+   Those six refuse to start without their secret rather than running unauthenticated.
+   `apple-authorization` (and `delete-account`, for the token revoke) read `APPLE_TEAM_ID`,
+   `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` and `APPLE_BUNDLE_ID`; `link-steam-callback` reads
+   `STEAM_WEB_API_KEY`.
    `sync-verified-stats` additionally needs `STEAM_WEB_API_KEY`/`RIOT_API_KEY` to
    actually fetch anything — see "Before a production launch" below; it's safe to
    deploy without them.
@@ -177,9 +191,11 @@ pnpm install
    Verify with a fresh address on a domain you don't control (not a team address, and not
    `pnpm seed:profiles`, whose users are created with `email_confirm: true` and so prove
    nothing about the real signup path).
-8. Copy your project's URL and anon key (Project Settings → API) into `.env` (step 4
-   below), and into the placeholders at the top of `admin/index.html` if you'll use the
-   moderation page.
+8. Copy your project's URL and publishable key (`sb_publishable_...`, Project Settings →
+   API Keys) into `.env` (step 4 below), and into the placeholders at the top of
+   `admin/index.html` if you'll use the moderation page. The legacy anon key still works
+   in the same places until the legacy keys are switched off, but do not start anything
+   new on it.
 
 ### Regenerating the game/show seed data
 
@@ -240,9 +256,14 @@ EXPO_PUBLIC_SUPABASE_URL=...
 EXPO_PUBLIC_SUPABASE_ANON_KEY=...
 ```
 
+`EXPO_PUBLIC_SUPABASE_ANON_KEY` keeps its old name (it is the only variable
+`apps/mobile/src/lib/supabase.ts` reads) but should hold the publishable key
+(`sb_publishable_...`); supabase-js accepts either key in it.
+
 Add the Google/Apple/RevenueCat keys from `.env.example` as you wire those up. Expo only
 exposes variables prefixed `EXPO_PUBLIC_` to client code — never put the Supabase
-service role key there; it belongs in the root `.env` for scripts only.
+secret key (or the legacy service role key) there; it belongs in the root `.env` for
+scripts only.
 
 See `.env.example` for the full list and what each variable is for.
 
@@ -265,12 +286,15 @@ support).
 
 ## 6. Seed ~50 fake profiles
 
-Requires the schema + catalog seed already applied, and a service role key:
+Requires the schema + catalog seed already applied, and the project's secret key:
 
 ```bash
 # in the repo root .env:
 # SUPABASE_URL=...
-# SUPABASE_SERVICE_ROLE_KEY=...   (Project Settings → API — keep this secret)
+# SUPABASE_SERVICE_ROLE_KEY=sb_secret_...   (Project Settings → API Keys — keep this secret.
+#                                            The variable keeps its old name for the scripts;
+#                                            the legacy service_role key also works until the
+#                                            switch-off.)
 pnpm seed:profiles
 ```
 
