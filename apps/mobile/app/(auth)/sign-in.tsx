@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
-import { router, useLocalSearchParams } from "expo-router";
+import { type Href, router, useLocalSearchParams } from "expo-router";
 
 import { Button } from "@/components/Button";
 import { Logo } from "@/components/Logo";
@@ -51,6 +51,11 @@ export default function SignIn() {
   function showError(message: string) {
     hapticError();
     setError(message);
+  }
+
+  function backOr(fallback: Href) {
+    if (router.canGoBack()) router.back();
+    else router.replace(fallback);
   }
 
   async function handleSignIn() {
@@ -180,10 +185,14 @@ export default function SignIn() {
       <Animated.View layout={layoutTransition()} style={{ gap: spacing.md }}>
         <Button label={SIGN_IN_COPY.submit} onPress={() => void handleSignIn()} loading={loading} />
 
+        {/* BACK, not replace: this screen is always pushed (from the front door, the intro or
+            Save), so what it came from is underneath it. Replacing it put a second Save (or a
+            second front door) on the stack, and Back then landed on the copy. The fallbacks are
+            for a screen opened with no history. */}
         {hasDraft ? (
-          <Button label={SIGN_IN_COPY.backToCard} variant="ghost" onPress={() => router.replace("/")} />
+          <Button label={SIGN_IN_COPY.backToCard} variant="ghost" onPress={() => backOr("/")} />
         ) : (
-          <Button label={SIGN_IN_COPY.newHere} variant="ghost" onPress={() => router.replace("/(auth)/start")} />
+          <Button label={SIGN_IN_COPY.newHere} variant="ghost" onPress={() => backOr("/(auth)/start")} />
         )}
       </Animated.View>
     </ScreenContainer>
