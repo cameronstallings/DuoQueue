@@ -9,7 +9,7 @@ import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { useCommitStore } from "@/store/commit-store";
 import { useOnboardingStore } from "@/store/onboarding-store";
 import { useSessionStore } from "@/store/session-store";
-import { revealEntering } from "@/theme/entering";
+import { quickExiting, revealEntering } from "@/theme/entering";
 import { useTheme } from "@/theme/useTheme";
 
 import { CardPreview } from "./CardPreview";
@@ -63,12 +63,12 @@ export function CommitDraftScreen() {
   return (
     <ScreenContainer atmosphere="match">
       {phase === "welcome" || phase === "done" ? (
-        <Animated.View key="welcome" entering={revealEntering()} style={{ gap: spacing.sm, paddingTop: spacing.xl }}>
+        <Animated.View key="welcome" entering={revealEntering()} exiting={quickExiting()} style={{ gap: spacing.sm, paddingTop: spacing.xl }}>
           <Text style={[type.heroTitle, { color: colors.text }]}>{commitWelcome(welcomeName)}</Text>
           <Text style={[type.body, { color: colors.textMuted }]}>{COMMIT_COPY.saved}</Text>
         </Animated.View>
       ) : phase === "error" ? (
-        <Animated.View key="error" entering={revealEntering()} style={{ gap: spacing.md, paddingTop: spacing.xl }}>
+        <Animated.View key="error" entering={revealEntering()} exiting={quickExiting()} style={{ gap: spacing.md, paddingTop: spacing.xl }}>
           <Text style={[type.heroTitle, { color: colors.text }]}>{COMMIT_COPY.errorTitle}</Text>
           {error ? <Text style={[type.body, { color: colors.textMuted }]}>{error}</Text> : null}
           <View style={{ gap: spacing.sm, paddingTop: spacing.sm }}>
@@ -77,7 +77,7 @@ export function CommitDraftScreen() {
           </View>
         </Animated.View>
       ) : (
-        <Animated.View key="running" entering={revealEntering()} style={{ gap: spacing.md, paddingTop: spacing.xl }}>
+        <Animated.View key="running" entering={revealEntering()} exiting={quickExiting()} style={{ gap: spacing.md, paddingTop: spacing.xl }}>
           <View style={{ gap: spacing.sm }}>
             <Text style={[type.heroTitle, { color: colors.text }]}>{COMMIT_COPY.runningTitle}</Text>
             <Text style={[type.body, { color: colors.textMuted }]}>{COMMIT_COPY.runningBody}</Text>

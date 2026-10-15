@@ -220,7 +220,7 @@ export default function ResetPassword() {
       <Logo width={56} />
 
       {step === "email" ? (
-        <Animated.View key="email" entering={fade} style={{ gap: spacing.md }}>
+        <Animated.View key="email" entering={fade} exiting={quickExiting()} style={{ gap: spacing.md }}>
           <Text style={[type.screenTitle, { color: colors.text }]}>{RESET_COPY.title}</Text>
           <Text style={[type.body, { color: colors.textMuted }]}>{RESET_COPY.body}</Text>
           <TextField
@@ -239,7 +239,7 @@ export default function ResetPassword() {
           </Animated.View>
         </Animated.View>
       ) : step === "code" ? (
-        <Animated.View key="code" entering={fade} style={{ gap: spacing.md }}>
+        <Animated.View key="code" entering={fade} exiting={quickExiting()} style={{ gap: spacing.md }}>
           <Text style={[type.screenTitle, { color: colors.text }]}>{RESET_COPY.codeTitle}</Text>
           <View style={{ gap: spacing.sm }}>
             <Text style={[type.body, { color: colors.textMuted }]}>{resetSentBody(email)}</Text>
@@ -278,7 +278,7 @@ export default function ResetPassword() {
           </Animated.View>
         </Animated.View>
       ) : (
-        <Animated.View key="set-password" entering={fade} style={{ gap: spacing.md }}>
+        <Animated.View key="set-password" entering={fade} exiting={quickExiting()} style={{ gap: spacing.md }}>
           <Text style={[type.screenTitle, { color: colors.text }]}>{RESET_COPY.setTitle}</Text>
           <Text style={[type.body, { color: colors.textMuted }]}>{RESET_COPY.setBody}</Text>
           {passwordFields}
