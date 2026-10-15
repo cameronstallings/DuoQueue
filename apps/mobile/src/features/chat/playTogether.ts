@@ -98,21 +98,31 @@ type MessageLike = Pick<MessageRow, "sender_id" | "content" | "created_at">;
  * When the current "I'm free now" cooldown ends (ms), or null when there is none: 5 minutes
  * after the newest of MY messages that is exactly `FREE_NOW_MESSAGE`. An optimistic temp row
  * counts, so a double tap cannot slip a second one out before the first one lands.
+ *
+ * TWO CLOCKS. A server row's created_at is the server's clock, while `now` and a temp row are the
+ * phone's, so a phone whose clock is off reads its own message as older or newer than it is.
+ * - Slow phone: the server row looks like it is from the future. Every time is capped at `now`, so
+ *   the cooldown never runs more than 5 minutes past the moment it is worked out.
+ * - Fast phone: the server row looks old, and the cooldown would end the moment it replaced the
+ *   temp row. `sentAt` is this phone's own clock reading when it last sent one in this chat (the
+ *   chat keeps it while it is open), and the later of the two wins.
  */
 export function freeNowCooldownUntil({
   messages,
   myId,
   now,
+  sentAt,
 }: {
   messages: readonly MessageLike[];
   myId: string | undefined;
   now: number;
+  sentAt?: number | null;
 }): number | null {
   if (!myId) return null;
-  let newest = -Infinity;
+  let newest = typeof sentAt === "number" && Number.isFinite(sentAt) ? Math.min(sentAt, now) : -Infinity;
   for (const m of messages) {
     if (m.sender_id !== myId || m.content !== FREE_NOW_MESSAGE) continue;
-    const at = Date.parse(m.created_at);
+    const at = Math.min(Date.parse(m.created_at), now);
     if (Number.isFinite(at) && at > newest) newest = at;
   }
   const until = newest + FREE_NOW_COOLDOWN_MS;
@@ -123,6 +133,7 @@ export function freeNowCoolingDown(input: {
   messages: readonly MessageLike[];
   myId: string | undefined;
   now: number;
+  sentAt?: number | null;
 }): boolean {
   return freeNowCooldownUntil(input) !== null;
 }

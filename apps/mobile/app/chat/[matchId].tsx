@@ -463,6 +463,10 @@ export default function ChatScreen() {
   const [feedbackVisible, setFeedbackVisible] = useState(false);
   const [scheduleVisible, setScheduleVisible] = useState(false);
   const [discordEditorVisible, setDiscordEditorVisible] = useState(false);
+  // This phone's clock reading when it last sent "I'm free now" in this chat, so the cooldown
+  // holds for 5 minutes even when the server's timestamp on the row disagrees with the phone's
+  // clock (freeNowCooldownUntil). Keyed by match in case the route is reused for another chat.
+  const [freeNowSent, setFreeNowSent] = useState<{ matchId: string; at: number } | null>(null);
   // Opening a chat from anywhere (DUO LOCKED's Send a message, a push, the tab) means the match
   // has been seen, so the Matches badge never counts it as "new" after the two of you have talked.
   useEffect(() => {
@@ -524,14 +528,16 @@ export default function ChatScreen() {
   // still loading: a confirmed session is rare, and a row that pops in late is worse.
   const discordChip = discordChipState({ hasUsername: !!myDiscord, hasShared: hasSharedDiscord });
   const showChips = chipsVisible({ session, isLocked: !!matchInfo?.is_locked, now: Date.now() });
+  const freeNowSentAt = freeNowSent?.matchId === matchId ? freeNowSent.at : null;
   const freeNowUntil = useMemo(
     () =>
       freeNowCooldownUntil({
         messages: timeline.flatMap((item) => (item.kind === "message" ? [item.message] : [])),
         myId,
         now: Date.now(),
+        sentAt: freeNowSentAt,
       }),
-    [timeline, myId],
+    [timeline, myId, freeNowSentAt],
   );
   // Re-render once when the cooldown runs out, so "I'm free now" comes back on its own.
   const [, setCooldownTick] = useState(0);
@@ -624,9 +630,14 @@ export default function ChatScreen() {
     if (fromMenu) setMenuVisible(false);
     if (sendMessage.isPending || freeNowCooling) return;
     if (fromMenu) hapticLight();
+    // Set with the send, not after it, so the cooldown never has a frame without a source when
+    // the server row replaces the temp one; put back if the message did not go.
+    const previousSent = freeNowSent;
+    setFreeNowSent({ matchId, at: Date.now() });
     try {
       await sendMessage.mutateAsync(FREE_NOW_MESSAGE);
     } catch (err) {
+      setFreeNowSent(previousSent);
       hapticError();
       if (err instanceof ConversationLockedError) {
         Alert.alert("Conversation locked", err.message, [

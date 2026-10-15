@@ -126,6 +126,34 @@ describe("the I'm free now cooldown", () => {
     expect(freeNowCooldownUntil({ messages, myId: me, now: NOW })).toBe(NOW - MIN + FREE_NOW_COOLDOWN_MS);
     expect(freeNowCooldownUntil({ messages: [], myId: me, now: NOW })).toBeNull();
   });
+
+  // created_at on a server row is the server's clock; `now` and temp rows are the phone's.
+  it("never runs past five minutes from now when the phone is slow (a server row stamped in the future)", () => {
+    const future = msg(me, FREE_NOW_MESSAGE, -10 * MIN);
+    expect(freeNowCooldownUntil({ messages: [future], myId: me, now: NOW })).toBe(NOW + FREE_NOW_COOLDOWN_MS);
+  });
+
+  it("holds five minutes from this phone's own send when the phone is fast (the server row looks old)", () => {
+    // Sent 30 seconds ago by the phone's clock; the server, 6 minutes behind, stamped it 6.5 minutes ago.
+    const serverRow = msg(me, FREE_NOW_MESSAGE, 6.5 * MIN);
+    const sentAt = NOW - 30_000;
+    expect(freeNowCoolingDown({ messages: [serverRow], myId: me, now: NOW })).toBe(false);
+    expect(freeNowCooldownUntil({ messages: [serverRow], myId: me, now: NOW, sentAt })).toBe(sentAt + FREE_NOW_COOLDOWN_MS);
+  });
+
+  it("takes the later of the local send and the rows, and ignores a missing or stale local send", () => {
+    const row = msg(me, FREE_NOW_MESSAGE, MIN);
+    expect(freeNowCooldownUntil({ messages: [row], myId: me, now: NOW, sentAt: NOW - 3 * MIN })).toBe(
+      NOW - MIN + FREE_NOW_COOLDOWN_MS,
+    );
+    expect(freeNowCooldownUntil({ messages: [row], myId: me, now: NOW, sentAt: null })).toBe(NOW - MIN + FREE_NOW_COOLDOWN_MS);
+    expect(freeNowCooldownUntil({ messages: [], myId: me, now: NOW, sentAt: NOW - 6 * MIN })).toBeNull();
+    expect(freeNowCooldownUntil({ messages: [], myId: me, now: NOW, sentAt: NOW + MIN })).toBe(NOW + FREE_NOW_COOLDOWN_MS);
+  });
+
+  it("needs a signed-in player even with a local send", () => {
+    expect(freeNowCooldownUntil({ messages: [], myId: undefined, now: NOW, sentAt: NOW })).toBeNull();
+  });
 });
 
 describe("the chip row fits one line on a 375pt phone", () => {
