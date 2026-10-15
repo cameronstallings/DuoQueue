@@ -8,7 +8,7 @@ import { getLeagueGameId } from "@/features/league/leagueGame";
 import { type LeagueRankValue, toProfileGameRow, withTypedRankText } from "@/features/league/rankPickerState";
 import { resolveCustomGame } from "@/features/onboarding/customGames";
 import { displayNameSeed } from "@/features/onboarding/displayNameSeed";
-import { clearDraftPhotos, draftPhotoExists } from "@/features/onboarding/draftPhoto";
+import { clearDraftPhotos, currentDraftPhotoUri, draftPhotoExists } from "@/features/onboarding/draftPhoto";
 import { uploadPicture } from "@/features/profile/usePhotoUpload";
 import { supabase } from "@/lib/supabase";
 import { toUserMessage } from "@/lib/userMessage";
@@ -431,8 +431,14 @@ export const useOnboardingStore = create<OnboardingState>()(
       storage: createJSONStorage(() => draftStorage),
       partialize: partializeDraft,
       // Too late to use once the fallback has answered routing (see the header): keep this launch.
-      merge: (persisted, current) =>
-        hydrationFallbackFired ? current : { ...current, ...sanitizeDraft(persisted, Date.now()) },
+      // The kept picture's uri is re-anchored on this launch's documents folder, which an app
+      // update can move (draftPhotoPath.ts); the next write stores the new path.
+      merge: (persisted, current) => {
+        if (hydrationFallbackFired) return current;
+        const draft = sanitizeDraft(persisted, Date.now());
+        if (draft.profilePhotoUri) draft.profilePhotoUri = currentDraftPhotoUri(draft.profilePhotoUri);
+        return { ...current, ...draft };
+      },
       // Runs on success AND on a failed read: either way the stored draft can no longer be
       // overwritten by accident, and routing may answer. After the fallback, persistence stays
       // off for the rest of the launch, as the fallback promised.

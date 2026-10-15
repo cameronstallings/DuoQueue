@@ -124,6 +124,7 @@ vi.mock("@/features/onboarding/draftPhoto", () => ({
     return Promise.resolve();
   },
   keepDraftPhoto: (uri: string) => Promise.resolve(uri),
+  currentDraftPhotoUri: (uri: string) => uri,
 }));
 
 vi.mock("@/features/onboarding/displayNameSeed", async () => await import("../features/onboarding/displayNameSeed"));

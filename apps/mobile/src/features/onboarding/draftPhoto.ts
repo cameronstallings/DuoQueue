@@ -1,5 +1,7 @@
 import * as FileSystem from "expo-file-system/legacy";
 
+import { DRAFT_PHOTO_FOLDER, rebaseDraftPhotoUri } from "./draftPhotoPath";
+
 /**
  * The draft's one optional picture, kept where it survives a relaunch.
  *
@@ -11,12 +13,19 @@ import * as FileSystem from "expo-file-system/legacy";
  * Every call is fail-soft: a failed copy keeps the original uri (it works for this launch), a
  * failed existence check reads as "gone" (the commit then skips the upload and says so, exactly
  * like a failed upload), and a failed clear is only a stale file.
+ *
+ * The stored uri is absolute, and iOS can move the Documents folder with an app update, so every
+ * read goes through `currentDraftPhotoUri` (draftPhotoPath.ts): the store re-anchors it when the
+ * draft is read back, and the existence check does too.
  */
 
-const FOLDER = "onboarding-draft/";
-
 function folderUri(): string | null {
-  return FileSystem.documentDirectory ? `${FileSystem.documentDirectory}${FOLDER}` : null;
+  return FileSystem.documentDirectory ? `${FileSystem.documentDirectory}${DRAFT_PHOTO_FOLDER}` : null;
+}
+
+/** The kept picture under this launch's documents folder (draftPhotoPath.ts). */
+export function currentDraftPhotoUri(uri: string): string {
+  return rebaseDraftPhotoUri(uri, FileSystem.documentDirectory);
 }
 
 function extensionOf(uri: string): string {
@@ -42,7 +51,7 @@ export async function keepDraftPhoto(uri: string): Promise<string> {
 export async function draftPhotoExists(uri: string | null): Promise<boolean> {
   if (!uri) return false;
   try {
-    const info = await FileSystem.getInfoAsync(uri);
+    const info = await FileSystem.getInfoAsync(currentDraftPhotoUri(uri));
     return info.exists;
   } catch {
     return false;
