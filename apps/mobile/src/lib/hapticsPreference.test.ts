@@ -62,7 +62,9 @@ describe("HAPTICS_COPY", () => {
   });
 
   it.each(strings)("%s has no em or en dash", (s) => {
-    expect(s).not.toMatch(/[—–]/);
+    // The two dashes by code point (U+2014, U+2013), so this file holds neither character itself.
+    expect(s).not.toContain(String.fromCharCode(0x2014));
+    expect(s).not.toContain(String.fromCharCode(0x2013));
   });
 
   it.each(strings)("%s avoids the banned word (say moments)", (s) => {
