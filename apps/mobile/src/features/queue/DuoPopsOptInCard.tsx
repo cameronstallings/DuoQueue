@@ -1,0 +1,319 @@
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "expo-router";
+import Animated, { FadeInDown, useReducedMotion } from "react-native-reanimated";
+import { useQueryClient } from "@tanstack/react-query";
+
+import { EdgeCard } from "@/components/EdgeCard";
+import { askForPush } from "@/features/push/askForPush";
+import { LAUNCH_STARTED_AT, usePushAskStore } from "@/features/push/pushAskStore";
+import { hapticLight, hapticMedium } from "@/lib/haptics";
+import { useSessionStore } from "@/store/session-store";
+import { useToastStore } from "@/store/toast-store";
+import { quickExiting, revealEntering, stackSpringEntering } from "@/theme/entering";
+import { useTheme } from "@/theme/useTheme";
+
+import {
+  duoPopsWanted,
+  hasSeenDuoPopsOffer,
+  isNaRegion,
+  markDuoPopsOfferSeen,
+  offeredWithinWeek,
+  shouldOfferDuoPops,
+  type DuoPopsTrigger,
+} from "./duoPopsOptIn";
+import { DUO_POPS_OPT_IN_COPY } from "./queueCopy";
+import { useQueueUpSheetStore } from "./queueUpSheetStore";
+import { useDuoPopsSetting } from "./useDuoPopsSetting";
+
+/**
+ * "Get Duo Pops?": the one-time opt-in for Duo Pops, which also asks iOS for notifications (a
+ * pop is a push, and an opted-in phone that cannot be pushed gets nothing). An EdgeCard, like
+ * every ask.
+ *
+ * Two surfaces, sharing the deck's one ask slot and one weekly cap with the notification
+ * pre-ask (the contract is in pushAskStore.ts):
+ *   "deck"   over the bottom of the deck, springing up right after a like (the moment someone is
+ *            thinking "I want a duo"), or when the deck comes back into focus after a like in an
+ *            earlier launch. Mounted for the deck screen's whole life, so it also keeps
+ *            `duoPopsWanted` current, which makes the pre-ask let the like moment go to this card.
+ *   "empty"  at the top of the empty deck's column, in flow, decided once when the empty deck
+ *            mounts, from caches the deck has already warmed. Anything not loaded at that moment
+ *            means nothing this time: a card that arrived late would shove the empty deck's
+ *            buttons down under the player's thumb.
+ *
+ * Never outside NA (pops only go between NA players), never before the `queue_pop` column
+ * exists (0085), never twice per account on a phone, never within a week of another ask, and
+ * never over the open Queue Up sheet. Both buttons close it for good on this phone.
+ */
+export function DuoPopsOptInCard({ surface, active = true }: { surface: "deck" | "empty"; active?: boolean }) {
+  return surface === "deck" ? <DeckDuoPopsCard active={active} /> : <EmptyDuoPopsCard />;
+}
+
+// ---------------------------------------------------------------------------------------------
+// The seen flag, read once per account per launch and kept here, so the empty deck can decide
+// synchronously from it.
+// ---------------------------------------------------------------------------------------------
+
+const seenByUser = new Map<string, boolean>();
+const seenLoads = new Map<string, Promise<boolean>>();
+
+function loadSeen(userId: string): Promise<boolean> {
+  let load = seenLoads.get(userId);
+  if (!load) {
+    load = hasSeenDuoPopsOffer(AsyncStorage, userId).then((seen) => {
+      // A close during the read already said "seen"; never let the read undo it.
+      if (seenByUser.get(userId) !== true) seenByUser.set(userId, seen);
+      return seenByUser.get(userId) === true;
+    });
+    seenLoads.set(userId, load);
+  }
+  return load;
+}
+
+function useSeenFlag(userId: string | undefined): [boolean | undefined, () => void] {
+  const [seen, setSeen] = useState<boolean | undefined>(() => (userId ? seenByUser.get(userId) : undefined));
+
+  useEffect(() => {
+    if (!userId) return;
+    let live = true;
+    setSeen(seenByUser.get(userId));
+    void loadSeen(userId).then((value) => {
+      if (live) setSeen(value);
+    });
+    return () => {
+      live = false;
+    };
+  }, [userId]);
+
+  const markSeen = useCallback(() => {
+    if (!userId) return;
+    seenByUser.set(userId, true);
+    setSeen(true);
+    void markDuoPopsOfferSeen(AsyncStorage, userId);
+  }, [userId]);
+
+  return [seen, markSeen];
+}
+
+/** The inputs both surfaces decide on. */
+function useEligibility() {
+  const userId = useSessionStore((s) => s.session?.user.id);
+  const onboarded = useSessionStore((s) => s.profile?.onboarding_completed === true);
+  const inNa = useSessionStore((s) => isNaRegion(s.profile?.region));
+  const { queuePop, enable } = useDuoPopsSetting();
+  const [seen, markSeen] = useSeenFlag(userId);
+  const wanted = duoPopsWanted({ onboarded, inNa, queuePop, seen });
+  return { userId, wanted, enable, markSeen };
+}
+
+/** Turn on Duo Pops (write the setting, then ask iOS through askForPush), or Not now. */
+function useOptInActions({
+  userId,
+  enable,
+  onClose,
+}: {
+  userId: string | undefined;
+  enable: () => Promise<void>;
+  onClose: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const showToast = useToastStore((s) => s.showToast);
+  const [busy, setBusy] = useState(false);
+
+  async function turnOn() {
+    if (busy) return;
+    hapticMedium();
+    setBusy(true);
+    try {
+      await enable();
+    } catch {
+      setBusy(false);
+      showToast(DUO_POPS_OPT_IN_COPY.failed, "error");
+      onClose();
+      return;
+    }
+    const outcome = await askForPush(userId, queryClient);
+    setBusy(false);
+    // On, either way: the setting is saved. Without permission nothing can reach the phone, so
+    // that is said plainly rather than celebrated.
+    if (outcome === "register-token") showToast(DUO_POPS_OPT_IN_COPY.on);
+    else showToast(DUO_POPS_OPT_IN_COPY.needsSettings, "info");
+    onClose();
+  }
+
+  function notNow() {
+    hapticLight();
+    onClose();
+  }
+
+  return { busy, turnOn, notNow };
+}
+
+function DeckDuoPopsCard({ active }: { active: boolean }) {
+  const { spacing } = useTheme();
+  const reduced = useReducedMotion();
+  const { userId, wanted, enable, markSeen } = useEligibility();
+  const [shown, setShown] = useState(false);
+
+  // Published for the pre-ask, which lets a like moment go by while this is true.
+  useEffect(() => {
+    usePushAskStore.getState().setDuoPopsWanted(wanted);
+  }, [wanted]);
+  useEffect(() => () => usePushAskStore.getState().setDuoPopsWanted(false), []);
+
+  // Read inside the store listener, which outlives renders.
+  const latest = useRef({ wanted, active, shown });
+  latest.current = { wanted, active, shown };
+
+  const decide = useCallback((trigger: DuoPopsTrigger): boolean => {
+    const { wanted: isWanted, active: isActive, shown: isShown } = latest.current;
+    if (!isActive || isShown) return false;
+    const store = usePushAskStore.getState();
+    const now = Date.now();
+    const asked = offeredWithinWeek(store.loaded ? store.lastOfferedAt : undefined, now);
+    if (asked === undefined) return false;
+    const offer = shouldOfferDuoPops({
+      wanted: isWanted,
+      trigger,
+      firstLikeAt: store.firstLikeAt,
+      launchStartedAt: LAUNCH_STARTED_AT,
+      askedWithinWeek: asked,
+      queueSheetOpen: useQueueUpSheetStore.getState().visible,
+    });
+    if (!offer || !store.claimDeck("duo-pops")) return false;
+    store.markOffered(now);
+    latest.current = { ...latest.current, shown: true };
+    setShown(true);
+    return true;
+  }, []);
+
+  // A like without a match (offerPushAsk, the deck flow's onLiked).
+  useEffect(
+    () =>
+      usePushAskStore.subscribe((state, prev) => {
+        if (state.deckMomentAt !== null && state.deckMomentAt !== prev.deckMomentAt) decide("like");
+      }),
+    [decide],
+  );
+
+  // The deck coming into focus. On a cold launch the inputs (and the cards) are often still
+  // loading at that moment, so the focus is held until they are, and then decided once.
+  const focusPending = useRef(false);
+  const [focusTick, setFocusTick] = useState(0);
+  useFocusEffect(
+    useCallback(() => {
+      focusPending.current = true;
+      setFocusTick((n) => n + 1);
+      return () => {
+        focusPending.current = false;
+      };
+    }, []),
+  );
+  const storeLoaded = usePushAskStore((s) => s.loaded);
+  useEffect(() => {
+    if (!focusPending.current || !storeLoaded || !wanted || !active) return;
+    focusPending.current = false;
+    decide("focus");
+  }, [focusTick, storeLoaded, wanted, active, decide]);
+
+  const hide = useCallback(() => {
+    latest.current = { ...latest.current, shown: false };
+    setShown(false);
+    usePushAskStore.getState().releaseDeck("duo-pops");
+  }, []);
+
+  // The deck drained under it: fade out with the cards rather than cover the empty deck's buttons.
+  useEffect(() => {
+    if (!active && latest.current.shown) hide();
+  }, [active, hide]);
+  useEffect(() => () => usePushAskStore.getState().releaseDeck("duo-pops"), []);
+
+  const actions = useOptInActions({
+    userId,
+    enable,
+    onClose: () => {
+      markSeen();
+      hide();
+    },
+  });
+
+  if (!shown) return null;
+  return (
+    <Animated.View
+      pointerEvents="box-none"
+      style={{ position: "absolute", left: 0, right: 0, bottom: spacing.sm }}
+      entering={stackSpringEntering(FadeInDown, reduced)}
+      exiting={quickExiting()}
+    >
+      <EdgeCard
+        title={DUO_POPS_OPT_IN_COPY.title}
+        body={DUO_POPS_OPT_IN_COPY.body}
+        primaryLabel={DUO_POPS_OPT_IN_COPY.primary}
+        onPrimary={() => void actions.turnOn()}
+        primaryLoading={actions.busy}
+        secondaryLabel={DUO_POPS_OPT_IN_COPY.secondary}
+        onSecondary={actions.notNow}
+      />
+    </Animated.View>
+  );
+}
+
+function EmptyDuoPopsCard() {
+  const { spacing } = useTheme();
+  const { userId, wanted, enable, markSeen } = useEligibility();
+
+  // Decided once, in the first render, from what is already in memory.
+  const [offer] = useState(() => {
+    const store = usePushAskStore.getState();
+    const asked = offeredWithinWeek(store.loaded ? store.lastOfferedAt : undefined, Date.now());
+    if (asked === undefined) return false;
+    return shouldOfferDuoPops({
+      wanted,
+      trigger: "empty",
+      firstLikeAt: store.firstLikeAt,
+      launchStartedAt: LAUNCH_STARTED_AT,
+      askedWithinWeek: asked,
+      queueSheetOpen: useQueueUpSheetStore.getState().visible,
+    });
+  });
+  const [shown, setShown] = useState(offer);
+
+  // Claimed before the first paint; if the slot is somehow taken, the card never appears.
+  useLayoutEffect(() => {
+    if (!offer) return;
+    const store = usePushAskStore.getState();
+    if (store.claimDeck("duo-pops")) store.markOffered(Date.now());
+    else setShown(false);
+  }, [offer]);
+  useEffect(() => () => usePushAskStore.getState().releaseDeck("duo-pops"), []);
+
+  const actions = useOptInActions({
+    userId,
+    enable,
+    onClose: () => {
+      markSeen();
+      setShown(false);
+      usePushAskStore.getState().releaseDeck("duo-pops");
+    },
+  });
+
+  if (!shown) return null;
+  return (
+    <Animated.View
+      entering={revealEntering()}
+      exiting={quickExiting()}
+      style={{ alignSelf: "stretch", marginBottom: spacing.sm }}
+    >
+      <EdgeCard
+        title={DUO_POPS_OPT_IN_COPY.title}
+        body={DUO_POPS_OPT_IN_COPY.body}
+        primaryLabel={DUO_POPS_OPT_IN_COPY.primary}
+        onPrimary={() => void actions.turnOn()}
+        primaryLoading={actions.busy}
+        secondaryLabel={DUO_POPS_OPT_IN_COPY.secondary}
+        onSecondary={actions.notNow}
+      />
+    </Animated.View>
+  );
+}

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { PUSH_ASK_INTERVAL_MS } from "../push/pushAsk";
 import type { FlagStore } from "../tour/tourSeen";
 
 import {
@@ -8,6 +9,7 @@ import {
   hasSeenDuoPopsOffer,
   isNaRegion,
   markDuoPopsOfferSeen,
+  offeredWithinWeek,
   readQueuePop,
   shouldOfferDuoPops,
 } from "./duoPopsOptIn";
@@ -139,5 +141,24 @@ describe("shouldOfferDuoPops", () => {
     const spy = vi.spyOn(Date, "now").mockReturnValue(0);
     expect(shouldOfferDuoPops(base)).toBe(true);
     spy.mockRestore();
+  });
+});
+
+describe("offeredWithinWeek (the one weekly cap every ask shares)", () => {
+  const NOW = 10 * PUSH_ASK_INTERVAL_MS;
+
+  it("is unknown until the record has loaded", () => {
+    expect(offeredWithinWeek(undefined, NOW)).toBeUndefined();
+  });
+
+  it("is false with no ask on record, and from exactly a week on", () => {
+    expect(offeredWithinWeek(null, NOW)).toBe(false);
+    expect(offeredWithinWeek(NOW - PUSH_ASK_INTERVAL_MS, NOW)).toBe(false);
+  });
+
+  it("is true inside the week, matching pushAskKind's rule (a stamp in the near future counts too)", () => {
+    expect(offeredWithinWeek(NOW - PUSH_ASK_INTERVAL_MS + 1, NOW)).toBe(true);
+    expect(offeredWithinWeek(NOW, NOW)).toBe(true);
+    expect(offeredWithinWeek(NOW + 60_000, NOW)).toBe(true);
   });
 });

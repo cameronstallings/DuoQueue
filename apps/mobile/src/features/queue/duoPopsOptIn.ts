@@ -1,3 +1,4 @@
+import { PUSH_ASK_INTERVAL_MS } from "../push/pushAsk";
 import type { FlagStore } from "../tour/tourSeen";
 
 /**
@@ -68,6 +69,18 @@ export function duoPopsWanted(input: {
   seen: boolean | undefined;
 }): boolean {
   return input.onboarded && input.inNa && input.queuePop === false && input.seen === false;
+}
+
+/**
+ * Whether any notification ask was offered within the last week (the push-ask store's
+ * `lastOfferedAt`), by the same rule `pushAskKind` applies, so the Duo Pops card and the
+ * notification pre-ask share one weekly cap exactly: a stamp in the near future means the clock
+ * moved back and still counts. Undefined while the record has not loaded.
+ */
+export function offeredWithinWeek(lastOfferedAt: number | null | undefined, now: number): boolean | undefined {
+  if (lastOfferedAt === undefined) return undefined;
+  if (lastOfferedAt === null) return false;
+  return Math.abs(now - lastOfferedAt) < PUSH_ASK_INTERVAL_MS;
 }
 
 export type DuoPopsTrigger = "like" | "focus" | "empty";

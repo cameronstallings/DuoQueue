@@ -134,6 +134,9 @@ export const POP_COPY = {
   blockBody: "They will be removed from your matches and deck.",
   blockConfirm: "Block",
   cancel: "Cancel",
+  /** A report or block that failed (the app's usual pair). */
+  failedTitle: "Something went wrong",
+  failedBody: "Please try again.",
 } as const;
 
 /** "Duo Pops go fast", for a Pop someone else got to first and one that ran out. */
