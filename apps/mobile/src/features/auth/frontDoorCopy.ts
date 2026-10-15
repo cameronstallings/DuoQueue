@@ -92,6 +92,8 @@ export const GAMES_COPY = {
   searchHint: "Type at least 2 letters. Try lol, val or r6.",
   noMatches: "No matches yet.",
   needOne: "Add at least one game.",
+  /** profile_games keeps a rank to 40 characters (RANK_TEXT_MAX_LENGTH). */
+  rankTooLong: "Keep each rank to 40 characters or fewer.",
 } as const;
 
 export function addCustomLabel(name: string): string {

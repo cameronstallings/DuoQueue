@@ -12,6 +12,7 @@ import {
   firstIncompleteStep,
   firstName,
   isDraftComplete,
+  rankTextTooLong,
   sanitizeDraft,
 } from "./commitDraft";
 
@@ -84,6 +85,27 @@ describe("firstIncompleteStep", () => {
     ).toBe("prompts");
     expect(firstIncompleteStep(complete({ discordUsername: "a b!" }))).toBe("discord");
     expect(isDraftComplete(complete({ region: null }))).toBe(false);
+  });
+
+  it("sends a rank over 40 characters back to games (profile_games.rank_text_length would refuse it)", () => {
+    const other = { gameId: "g2", name: "Rocket League", skillLevel: "casual" as const, lolTier: null, lolDivision: null };
+    expect(firstIncompleteStep(complete({ games: [{ ...other, rankText: "x".repeat(41) }] }))).toBe("games");
+    // The server measures char_length(btrim(rank_text)), so surrounding spaces do not count.
+    expect(firstIncompleteStep(complete({ games: [{ ...other, rankText: ` ${"x".repeat(40)}  ` }] }))).toBeNull();
+    expect(firstIncompleteStep(complete({ games: [{ ...other, rankText: "" }] }))).toBeNull();
+    // Still in step order.
+    expect(firstIncompleteStep(complete({ region: null, games: [{ ...other, rankText: "x".repeat(41) }] }))).toBe(
+      "region",
+    );
+  });
+
+  it("counts a rank's characters as Postgres does (code points, trimmed)", () => {
+    expect(rankTextTooLong("x".repeat(40))).toBe(false);
+    expect(rankTextTooLong("x".repeat(41))).toBe(true);
+    expect(rankTextTooLong(`  ${"x".repeat(40)} `)).toBe(false);
+    // 40 emoji are 80 UTF-16 units but 40 characters to char_length.
+    expect(rankTextTooLong("\u{1F3C6}".repeat(40))).toBe(false);
+    expect(rankTextTooLong("\u{1F3C6}".repeat(41))).toBe(true);
   });
 
   it("sends a half-picked League rank back to games, as the games step's own Continue does", () => {

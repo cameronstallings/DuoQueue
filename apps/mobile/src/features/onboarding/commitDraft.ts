@@ -12,6 +12,7 @@ import {
   PLAYSTYLE_TAGS,
   type PlaystyleTag,
   PROMPT_COUNT,
+  RANK_TEXT_MAX_LENGTH,
   type Region,
   REGIONS,
   SKILL_LEVELS,
@@ -100,6 +101,12 @@ type AnswerFields = Pick<
  * refused by the games step, and would otherwise be written as no rank at all (toProfileGameRow
  * drops an incomplete one). Only the League picker can produce that state (a typed rank parses
  * whole or not at all), so checking every game is the same as checking the League one.
+ *
+ * Games also includes the rank's LENGTH. profile_games refuses a rank_text over 40 characters
+ * (`rank_text_length`, char_length(btrim(rank_text)) <= 40), and since 1.0.2 the card is written
+ * after the account exists: a rank the server refuses would hold a brand new account on "Your card
+ * isn't saved yet" with Try again repeating the same insert. Sent back to the games step instead,
+ * where the field (maxLength 40) and its Continue say so.
  */
 export function firstIncompleteStep(d: AnswerFields): OnboardingStep | null {
   if (!displayNameSchema.safeParse(d.displayName).success) return "display-name";
@@ -108,11 +115,20 @@ export function firstIncompleteStep(d: AnswerFields): OnboardingStep | null {
   if (d.platforms.length === 0) return "platforms";
   if (d.games.length === 0) return "games";
   if (d.games.some((g) => validateLolRank(g) !== null)) return "games";
+  if (d.games.some((g) => rankTextTooLong(g.rankText))) return "games";
   const answered =
     d.prompts.length === PROMPT_COUNT && d.prompts.every((p) => p !== null && p.answer.trim().length > 0);
   if (!answered) return "prompts";
   if (!discordUsernameSchema.safeParse(d.discordUsername.trim()).success) return "discord";
   return null;
+}
+
+/**
+ * Whether a rank is longer than profile_games allows. Counted the way Postgres's char_length
+ * counts (characters, not UTF-16 units), after trimming, as the constraint trims.
+ */
+export function rankTextTooLong(rankText: string): boolean {
+  return Array.from(rankText.trim()).length > RANK_TEXT_MAX_LENGTH;
 }
 
 export function isDraftComplete(d: AnswerFields): boolean {

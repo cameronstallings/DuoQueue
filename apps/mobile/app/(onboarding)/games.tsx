@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { router } from "expo-router";
-import { SKILL_LEVELS } from "@duoqueue/shared-types";
+import { RANK_TEXT_MAX_LENGTH, SKILL_LEVELS } from "@duoqueue/shared-types";
 
 import { Card } from "@/components/Card";
 import { ChipSelect } from "@/components/ChipSelect";
@@ -15,6 +15,7 @@ import { useLeagueGameId } from "@/features/league/leagueGame";
 import { validateLolRank } from "@/features/league/rankPickerState";
 import { CatalogPicker } from "@/features/onboarding/CatalogPicker";
 import { isPendingCustomGame } from "@/features/onboarding/catalogSearch";
+import { rankTextTooLong } from "@/features/onboarding/commitDraft";
 import { nextStepPath } from "@/features/onboarding/steps";
 import { useQuickPickGames } from "@/features/onboarding/useQuickPickGames";
 import { WizardStep } from "@/features/onboarding/WizardStep";
@@ -76,6 +77,12 @@ export default function GamesStep() {
     const rankError = league ? validateLolRank(league) : null;
     if (rankError) {
       setError(rankError);
+      return;
+    }
+    // The field stops at 40, so this only catches a rank that arrived some other way; the commit
+    // checks it again (commitDraft.ts) and sends a card back here rather than writing it.
+    if (games.some((g) => rankTextTooLong(g.rankText))) {
+      setError(GAMES_COPY.rankTooLong);
       return;
     }
     setError(null);
@@ -160,6 +167,7 @@ export default function GamesStep() {
                   value={game.rankText}
                   onChangeText={(text) => updateGameRank(game.gameId, text)}
                   placeholder="e.g. Diamond II"
+                  maxLength={RANK_TEXT_MAX_LENGTH}
                 />
               )}
             </Card>
