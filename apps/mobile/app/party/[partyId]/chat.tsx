@@ -29,6 +29,7 @@ import { usePartyMessages, useSendPartyMessage } from "@/features/party/useParty
 import { containsHiddenWord, useHiddenWords } from "@/features/settings/useHiddenWords";
 import { useRequireSession } from "@/hooks/useRequireSession";
 import { useSheetHandoff } from "@/hooks/useSheetHandoff";
+import { hapticError } from "@/lib/haptics";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
@@ -188,6 +189,7 @@ export default function PartyChatScreen() {
     try {
       await sendMessage.mutateAsync(content);
     } catch (err) {
+      hapticError();
       Alert.alert("Message not sent", err instanceof Error ? err.message : "Please try again.");
       setDraft(content);
     }
@@ -214,7 +216,10 @@ export default function PartyChatScreen() {
           setReportTarget(null);
           Alert.alert("Report submitted", "Thanks. Our team will review this.");
         },
-        onError: () => Alert.alert("Something went wrong", "Please try again."),
+        onError: () => {
+          hapticError();
+          Alert.alert("Something went wrong", "Please try again.");
+        },
       },
     );
   }

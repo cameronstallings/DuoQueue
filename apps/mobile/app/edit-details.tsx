@@ -48,6 +48,7 @@ import { useOwnPrompts } from "@/features/profile/useOwnPrompts";
 import { useSaveProfileDetails } from "@/features/profile/useSaveProfileDetails";
 import { YourPictureSlot } from "@/features/profile/YourPictureSlot";
 import { useRequireSession } from "@/hooks/useRequireSession";
+import { hapticError } from "@/lib/haptics";
 import { toUserMessage } from "@/lib/userMessage";
 import { useSessionStore } from "@/store/session-store";
 import { useToastStore } from "@/store/toast-store";
@@ -169,6 +170,7 @@ export default function EditDetailsScreen() {
     } catch (err) {
       // A RAISE's sentence lives in its hint (P0001); its message is a machine token such as
       // lol_rank_not_league. Same mapping onboarding uses.
+      hapticError();
       Alert.alert("Something went wrong", toUserMessage(err, "Please try again."));
     }
   }

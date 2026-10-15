@@ -2,6 +2,7 @@ import { Alert } from "react-native";
 
 import { useConsumableCredits } from "@/features/premium/useConsumables";
 import { useOfferings, usePurchasePackage } from "@/features/premium/useOfferings";
+import { hapticError } from "@/lib/haptics";
 
 import { POWER_UP_BOUGHT, POWER_UP_PRODUCT_ID } from "./paywallCopy";
 
@@ -27,6 +28,7 @@ export function usePowerUp(): PowerUpState {
       if (outcome.kind === "cancelled") return;
       Alert.alert(POWER_UP_BOUGHT.title, POWER_UP_BOUGHT.message);
     } catch (err) {
+      hapticError();
       Alert.alert("Purchase failed", err instanceof Error ? err.message : "Please try again.");
     }
   }

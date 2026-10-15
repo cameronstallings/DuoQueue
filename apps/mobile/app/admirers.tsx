@@ -17,6 +17,7 @@ import { useSwipeAction } from "@/features/swipe/useSwipeAction";
 import { useFirstReveal } from "@/hooks/useFirstReveal";
 import { listItemEntering } from "@/theme/entering";
 import { useRequireSession } from "@/hooks/useRequireSession";
+import { hapticError } from "@/lib/haptics";
 import { useTheme } from "@/theme/useTheme";
 
 function AdmirerRow({ item }: { item: AdmirerListItem }) {
@@ -39,6 +40,7 @@ function AdmirerRow({ item }: { item: AdmirerListItem }) {
         });
       }
     } catch (err) {
+      hapticError();
       Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
     }
   }
@@ -56,7 +58,7 @@ function AdmirerRow({ item }: { item: AdmirerListItem }) {
           </Text>
         ) : null}
       </View>
-      <Button label="Duo Up" onPress={() => void handleLikeBack()} loading={swipeAction.isPending} />
+      <Button label="Duo Up" haptic="light" onPress={() => void handleLikeBack()} loading={swipeAction.isPending} />
     </Card>
   );
 }

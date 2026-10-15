@@ -10,6 +10,7 @@ import { EMPTY_DECK_COPY } from "@/features/queue/queueCopy";
 import { queueUpEmptyDeckLabel } from "@/features/queue/queueState";
 import { useQueueUpSheetStore } from "@/features/queue/queueUpSheetStore";
 import { useQueueState } from "@/features/queue/useQueueState";
+import { hapticError } from "@/lib/haptics";
 import { useTheme } from "@/theme/useTheme";
 
 import { filteredSubtitle } from "./emptyDeckDecisions";
@@ -55,6 +56,7 @@ export function EmptyDeck({ onRefresh }: { onRefresh: () => void }) {
       // Going through it here is what lets the deck page again after the filters come off.
       onRefresh();
     } catch (err) {
+      hapticError();
       Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
     }
   }

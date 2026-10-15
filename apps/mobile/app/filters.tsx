@@ -35,6 +35,7 @@ import { usePremiumStatus } from "@/features/matching/usePremiumStatus";
 import { usePreferences } from "@/features/matching/usePreferences";
 import { paywallHref } from "@/features/premium/paywall/paywallCopy";
 import { useRequireSession } from "@/hooks/useRequireSession";
+import { hapticError } from "@/lib/haptics";
 import { supabase } from "@/lib/supabase";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
@@ -141,6 +142,7 @@ export default function FiltersScreen() {
       });
       goBack();
     } catch (err) {
+      hapticError();
       Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
     }
   }

@@ -15,6 +15,7 @@ import { usePromptCatalog } from "@/features/onboarding/usePromptCatalog";
 import { useOwnPrompts } from "@/features/profile/useOwnPrompts";
 import { type PromptSlot, useSavePrompts } from "@/features/profile/useSavePrompts";
 import { useRequireSession } from "@/hooks/useRequireSession";
+import { hapticError } from "@/lib/haptics";
 import { useSessionStore } from "@/store/session-store";
 import { useToastStore } from "@/store/toast-store";
 import { useTheme } from "@/theme/useTheme";
@@ -62,6 +63,7 @@ export default function EditPromptsScreen() {
       useToastStore.getState().showToast("Prompts saved");
       router.back();
     } catch (err) {
+      hapticError();
       Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
     }
   }

@@ -17,7 +17,7 @@ import type { ReportReason } from "@duoqueue/shared-types";
 import { ReportModal } from "@/components/ReportModal";
 import { useBlockUser, useReportUser } from "@/features/chat/useMatchActions";
 import { REGION_LABELS } from "@/features/onboarding/profile-labels";
-import { hapticLight, hapticMedium, hapticSelection, hapticWarning } from "@/lib/haptics";
+import { hapticError, hapticLight, hapticMedium, hapticSelection, hapticWarning } from "@/lib/haptics";
 import { SPRINGS } from "@/theme/motion";
 import { motion } from "@/theme/tokens";
 import { useTheme } from "@/theme/useTheme";
@@ -159,6 +159,7 @@ export function SwipeCard({
           Alert.alert("Report submitted", "Thanks. Our team will review this.");
         },
         onError: (err) => {
+          hapticError();
           Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
         },
       },

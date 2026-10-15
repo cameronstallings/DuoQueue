@@ -10,6 +10,7 @@ import { hasAppleIdentity } from "@/features/auth/appleIdentity";
 import { accountDeletionFinalMessage } from "@/features/auth/deleteThisSignIn";
 import { useDeleteAccount } from "@/features/settings/useDeleteAccount";
 import { useRequireSession } from "@/hooks/useRequireSession";
+import { hapticError } from "@/lib/haptics";
 import { useSessionStore } from "@/store/session-store";
 import { useTheme } from "@/theme/useTheme";
 
@@ -51,6 +52,7 @@ export default function AccountSettings() {
       await signOut();
       router.replace("/");
     } catch (err) {
+      hapticError();
       Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
     } finally {
       setDeleting(false);

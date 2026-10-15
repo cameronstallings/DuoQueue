@@ -3,6 +3,7 @@ import { Alert } from "react-native";
 
 import { goBack } from "@/components/ScreenContainer";
 import { useIntroEligibility, useOfferings, usePurchasePackage, useRestorePurchases } from "@/features/premium/useOfferings";
+import { hapticError } from "@/lib/haptics";
 
 import { PlansView } from "./PlansView";
 import { purchaseAlert, restoreAlert } from "./paywallCopy";
@@ -43,6 +44,7 @@ export function PlansPage({ bottomInset }: { bottomInset: number }) {
       const alert = purchaseAlert(outcome.active);
       Alert.alert(alert.title, alert.message, [{ text: "OK", onPress: goBack }]);
     } catch (err) {
+      hapticError();
       Alert.alert("Purchase failed", err instanceof Error ? err.message : "Please try again.");
     }
   }
@@ -54,6 +56,7 @@ export function PlansPage({ bottomInset }: { bottomInset: number }) {
       // Only a real restore leaves the paywall; "Nothing to restore" keeps the plans on screen.
       Alert.alert(alert.title, alert.message, active ? [{ text: "OK", onPress: goBack }] : undefined);
     } catch (err) {
+      hapticError();
       Alert.alert("Restore failed", err instanceof Error ? err.message : "Please try again.");
     }
   }

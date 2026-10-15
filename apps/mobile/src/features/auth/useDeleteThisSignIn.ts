@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Alert } from "react-native";
 
 import { useDeleteAccount } from "@/features/settings/useDeleteAccount";
+import { hapticError } from "@/lib/haptics";
 import { useSessionStore } from "@/store/session-store";
 
 import { hasAppleIdentity } from "./appleIdentity";
@@ -44,6 +45,7 @@ export function useDeleteThisSignIn(): { confirmDeleteThisSignIn: () => void; de
       await signOut();
     } catch (err) {
       console.error("delete this sign-in failed", err);
+      hapticError();
       Alert.alert("Could not delete", deleteThisSignInFailure(err));
     } finally {
       inFlight.current = false;
