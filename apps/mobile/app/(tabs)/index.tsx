@@ -3,7 +3,7 @@ import { Alert, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import Animated, { FadeIn } from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 
 import { GraticuleBackground } from "@/components/GraticuleBackground";
 import { EmptyState } from "@/components/EmptyState";
@@ -21,71 +21,38 @@ import {
   useConsumableCredits,
 } from "@/features/premium/useConsumables";
 import { paywallHref } from "@/features/premium/paywall/paywallCopy";
-import { matchParams } from "@/features/match/matchMoment";
-import { cardPicture, showsDuoLabel } from "@/features/swipe/cardChips";
 import { DeckStrip } from "@/features/swipe/DeckStrip";
 import { EmptyDeck } from "@/features/swipe/EmptyDeck";
-import { LikePassButtons } from "@/features/swipe/LikePassButtons";
+import { LIKE_PASS_ROW_HEIGHT, LikePassButtons } from "@/features/swipe/LikePassButtons";
 import { SwipeDeck, type SwipeDeckHandle } from "@/features/swipe/SwipeDeck";
-import type { DeckCard, SwipeDirection } from "@/features/swipe/types";
 import { useDeck } from "@/features/swipe/useDeck";
-import { SwipeLimitReachedError, useSwipeAction } from "@/features/swipe/useSwipeAction";
+import { useDeckPrefetch } from "@/features/swipe/useDeckPrefetch";
+import { useDeckSwipeFlow } from "@/features/swipe/useDeckSwipeFlow";
+import { useEmptyDeckReason } from "@/features/swipe/useEmptyDeckReason";
 import { useSwipeQuota } from "@/features/swipe/useSwipeQuota";
-import { hapticLight } from "@/lib/haptics";
+import { hapticError, hapticLight } from "@/lib/haptics";
+import { revealEntering } from "@/theme/entering";
 import { useTheme } from "@/theme/useTheme";
 
 export default function DeckScreen() {
   const { colors, spacing, type, radius } = useTheme();
   const insets = useSafeAreaInsets();
   const { cards, isLoading, error, popTop, restoreTop, refetch } = useDeck();
-  const swipeAction = useSwipeAction();
   const superPing = useSuperPing();
   const activateBoost = useActivateBoost();
   const { data: quota } = useSwipeQuota();
   const { data: admirersCount } = useAdmirersCount();
   const { data: credits } = useConsumableCredits();
   const deckRef = useRef<SwipeDeckHandle>(null);
-
-  async function handleSwiped(card: DeckCard, direction: SwipeDirection) {
-    popTop();
-    try {
-      const result = await swipeAction.mutateAsync({ targetId: card.profile_id, direction });
-      if (result.matched && result.match_id) {
-        // The match screen fires the one success haptic at the moment the rings lock.
-        router.push({
-          pathname: "/match/[matchId]",
-          params: matchParams({
-            matchId: result.match_id,
-            name: card.display_name,
-            photo: cardPicture(card),
-            canDuo: showsDuoLabel(card),
-            sharedGames: card.shared_games_count,
-          }),
-        });
-      }
-    } catch (err) {
-      // The card already animated off — the RPC failed, so put it back at the
-      // front of the deck instead of silently discarding an unrecorded swipe.
-      restoreTop(card);
-      if (err instanceof SwipeLimitReachedError) {
-        // Straight to the paywall rather than an alert that asks permission to show it.
-        //
-        // This is the app's highest-intent moment: somebody who has just spent every free swipe
-        // is, by definition, using the thing the subscription unlocks. An OS alert in front of it
-        // added a tap, put "Not now" in the reflexive-dismiss position, and named a price and a
-        // benefit the paywall was about to state properly anyway.
-        //
-        // Nothing is lost by skipping it, because the paywall is a modal with the close X on every
-        // page: dismissing is one gesture, and the deck is still underneath with the card
-        // restored above.
-        //
-        // It opens on page one, which for this entry is about the limit ("Out of swipes for today").
-        router.push(paywallHref("limit"));
-      } else {
-        Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
-      }
-    }
-  }
+  // The swipe itself (decide early, the free limit, putting a failed card back, DUO LOCKED, the
+  // limit paywall) lives in useDeckSwipeFlow.
+  const flow = useDeckSwipeFlow({ popTop, restoreTop, quota, openLimitPaywall: () => router.push(paywallHref("limit")) });
+  useDeckPrefetch(cards, !isLoading && !error);
+  // Asked here as well as in EmptyDeck (the same query keys), so when the deck drains the one
+  // skeleton below stays up until the empty deck knows which screen it is, and EmptyDeck mounts
+  // with the answer cached instead of showing a second skeleton of its own.
+  const emptyReason = useEmptyDeckReason(!isLoading && !error && cards.length === 0);
+  const holdSkeleton = isLoading || (!error && cards.length === 0 && emptyReason.kind === "resolving");
 
   async function handleSuperPing() {
     const top = cards[0];
@@ -102,6 +69,7 @@ export default function DeckScreen() {
       } else if (err instanceof SuperPingLimitReachedError) {
         Alert.alert("Super Ping used", err.message);
       } else {
+        hapticError();
         Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
       }
     }
@@ -119,6 +87,7 @@ export default function DeckScreen() {
           { text: "Get Power-Ups", onPress: () => router.push(paywallHref("powerup")) },
         ]);
       } else {
+        hapticError();
         Alert.alert("Something went wrong", err instanceof Error ? err.message : "Please try again.");
       }
     }
@@ -176,7 +145,9 @@ export default function DeckScreen() {
       {/* 12pt under the strip; 8pt above the buttons leaves room for the two cards peeking
           under the top one. */}
       <View style={{ flex: 1, marginHorizontal: spacing.lg, marginTop: spacing.tight, marginBottom: spacing.sm }}>
-        {isLoading ? (
+        {/* One Skeleton covers loading and the empty deck working out why it is empty; it keeps
+            this place in the tree, so its pulse never restarts between the two. */}
+        {holdSkeleton ? (
           <Skeleton style={{ flex: 1, borderRadius: radius.card }} />
         ) : error ? (
           <EmptyState
@@ -190,20 +161,33 @@ export default function DeckScreen() {
         ) : cards.length === 0 ? (
           <EmptyDeck onRefresh={() => void refetch()} />
         ) : (
-          <Animated.View entering={FadeIn.duration(220)} style={{ flex: 1 }}>
-            <SwipeDeck ref={deckRef} cards={cards} onSwiped={(card, direction) => void handleSwiped(card, direction)} />
+          <Animated.View entering={revealEntering()} style={{ flex: 1 }}>
+            <SwipeDeck
+              ref={deckRef}
+              cards={cards}
+              canCommit={flow.canCommit}
+              restored={flow.restored}
+              onDecided={flow.onDecided}
+              onSwiped={(card, direction) => void flow.onSwiped(card, direction)}
+              onBlocked={flow.onBlocked}
+            />
           </Animated.View>
         )}
       </View>
 
-      {cards.length > 0 && (
-        <LikePassButtons
-          onPass={() => deckRef.current?.pass()}
-          onLike={() => deckRef.current?.like()}
-          onSuperPing={() => void handleSuperPing()}
-          disabled={swipeAction.isPending || superPing.isPending}
-        />
-      )}
+      {/* The row's height is reserved while loading, swiping and empty, so the card area never
+          changes size. A swipe in flight no longer dims Duo and Pass (a request per card would
+          flash them on every swipe); Super Ping is for DuoQueue+ only, and fades in. */}
+      <View style={{ height: LIKE_PASS_ROW_HEIGHT, justifyContent: "center" }}>
+        {!isLoading && cards.length > 0 && (
+          <LikePassButtons
+            onPass={() => deckRef.current?.pass()}
+            onLike={() => deckRef.current?.like()}
+            onSuperPing={quota?.is_premium === true ? () => void handleSuperPing() : undefined}
+            disabled={superPing.isPending}
+          />
+        )}
+      </View>
     </View>
   );
 }

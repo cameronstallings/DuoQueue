@@ -1,8 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { SwipeResult } from "@duoqueue/shared-types";
+import type { SwipeQuota, SwipeResult } from "@duoqueue/shared-types";
 
 import { supabase } from "@/lib/supabase";
 
+import { optimisticQuota } from "./deckStripCopy";
 import type { SwipeDirection } from "./types";
 import { SWIPE_QUOTA_QUERY_KEY } from "./useSwipeQuota";
 
@@ -28,12 +29,34 @@ async function performSwipe(targetId: string, direction: SwipeDirection): Promis
   return result ?? { matched: false, match_id: null };
 }
 
-export function useSwipeAction() {
+/**
+ * `optimisticQuota: true` (only the Deck passes it) counts the swipe on the cached quota the
+ * moment it starts, so the strip's "swipes left" and the deck's limit check (canCommitSwipe) move
+ * with the card instead of a round trip later; a failure puts the previous quota back and refetches
+ * it, because with several swipes in flight the snapshot can be one behind. Highlights, Requests
+ * and the party deck leave it off and keep counting after the server answers, as before.
+ */
+export function useSwipeAction(options?: { optimisticQuota?: boolean }) {
   const queryClient = useQueryClient();
+  const optimistic = options?.optimisticQuota === true;
 
   return useMutation({
     mutationFn: ({ targetId, direction }: { targetId: string; direction: SwipeDirection }) =>
       performSwipe(targetId, direction),
+    onMutate: async (): Promise<{ previousQuota: SwipeQuota | undefined } | undefined> => {
+      if (!optimistic) return undefined;
+      // A quota fetch already in flight would land after this and wipe the count back out.
+      await queryClient.cancelQueries({ queryKey: SWIPE_QUOTA_QUERY_KEY });
+      const previousQuota = queryClient.getQueryData<SwipeQuota>(SWIPE_QUOTA_QUERY_KEY);
+      const next = optimisticQuota(previousQuota);
+      if (next && next !== previousQuota) queryClient.setQueryData(SWIPE_QUOTA_QUERY_KEY, next);
+      return { previousQuota };
+    },
+    onError: (_err, _vars, context) => {
+      if (!context) return;
+      if (context.previousQuota) queryClient.setQueryData(SWIPE_QUOTA_QUERY_KEY, context.previousQuota);
+      void queryClient.invalidateQueries({ queryKey: SWIPE_QUOTA_QUERY_KEY });
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: SWIPE_QUOTA_QUERY_KEY });
       // A duo-back here can match/remove someone from the requests list…

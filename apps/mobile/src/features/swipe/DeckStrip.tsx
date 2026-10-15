@@ -1,11 +1,13 @@
 import { useCallback, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { useFocusEffect } from "expo-router";
+import Animated from "react-native-reanimated";
 
 import { Name } from "@/components/Name";
 import { PresenceAvatar } from "@/components/PresenceAvatar";
 import { Sheet } from "@/components/Sheet";
 import { Skeleton } from "@/components/Skeleton";
+import { quickEntering } from "@/theme/entering";
 import { useTheme } from "@/theme/useTheme";
 
 import { cardPicture } from "./cardChips";
@@ -122,7 +124,9 @@ export function DeckStrip({ quota }: { quota: StripQuota | undefined }) {
             ))}
           </View>
         ) : hasHighlights ? (
-          <View style={{ flexDirection: "row" }}>
+          // The faces, the count and the swipes left fade in when they arrive instead of popping
+          // into the strip a frame after it draws.
+          <Animated.View entering={quickEntering()} style={{ flexDirection: "row" }}>
             {cards.slice(0, 3).map((card, i) => (
               <View
                 key={card.profile_id}
@@ -136,7 +140,7 @@ export function DeckStrip({ quota }: { quota: StripQuota | undefined }) {
                 <PresenceAvatar uri={cardPicture(card)} name={card.display_name} size={FACE_SIZE} />
               </View>
             ))}
-          </View>
+          </Animated.View>
         ) : null}
         {/* The three texts do not grow with Dynamic Type (STRIP_MAX_FONT_SCALE): the fit sums
             hold only at 1x and the strip is a fixed 32pt tall. */}
@@ -146,23 +150,25 @@ export function DeckStrip({ quota }: { quota: StripQuota | undefined }) {
           </Text>
         ) : null}
         {hasHighlights ? (
-          <Text
+          <Animated.Text
+            entering={quickEntering()}
             style={[type.tick, { color: colors.textMuted, flexShrink: 1 }]}
             numberOfLines={1}
             maxFontSizeMultiplier={STRIP_MAX_FONT_SCALE}
           >
             {`${highlightsCountLabel(cards.length)} ›`}
-          </Text>
+          </Animated.Text>
         ) : null}
         {/* An auto margin, not a flex spacer: a spacer View would add a fourth 8pt gap. */}
         {quotaText ? (
-          <Text
+          <Animated.Text
+            entering={quickEntering()}
             style={[type.tick, { color: colors.textMuted, marginLeft: "auto" }]}
             numberOfLines={1}
             maxFontSizeMultiplier={STRIP_MAX_FONT_SCALE}
           >
             {quotaText}
-          </Text>
+          </Animated.Text>
         ) : null}
       </Pressable>
 
