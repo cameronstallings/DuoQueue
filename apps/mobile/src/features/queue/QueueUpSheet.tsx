@@ -1,9 +1,9 @@
-import { type ReactNode, useCallback, useEffect, useState } from "react";
-import { Pressable, Share, Text, View } from "react-native";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { type LayoutChangeEvent, Pressable, Share, Text, View } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { router, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import Animated from "react-native-reanimated";
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/Button";
@@ -22,7 +22,7 @@ import { hapticSuccess } from "@/lib/haptics";
 import { inviteUrl } from "@/lib/invite";
 import { useSessionStore } from "@/store/session-store";
 import { useToastStore } from "@/store/toast-store";
-import { layoutTransition, quickExiting, revealEntering } from "@/theme/entering";
+import { quickExiting, revealEntering } from "@/theme/entering";
 import { useTheme } from "@/theme/useTheme";
 
 import { isNaRegion } from "./duoPopsOptIn";
@@ -111,8 +111,8 @@ interface QueueUpSheetProps {
  * they choose where it goes.
  *
  * Motion: each phase fades in as the last fades out (keyed), and the box between them glides to
- * its new height (a layout transition; if it misbehaves inside the Modal on a device, drop only
- * that prop).
+ * its new height, taking the panel's top edge with it (GlidingHeight, below). If it misbehaves
+ * inside the Modal on a device, swap GlidingHeight back to a plain View.
  */
 export function QueueUpSheet({ visible, onClose, showOnlineLink = true }: QueueUpSheetProps) {
   const { colors, spacing, type } = useTheme();
@@ -431,12 +431,52 @@ export function QueueUpSheet({ visible, onClose, showOnlineLink = true }: QueueU
 
   return (
     <Sheet visible={visible} onClose={onClose}>
-      <Animated.View layout={layoutTransition()}>
+      <GlidingHeight>
         <Animated.View key={phase} entering={revealEntering()} exiting={quickExiting()}>
           {body}
         </Animated.View>
-      </Animated.View>
+      </GlidingHeight>
     </Sheet>
+  );
+}
+
+/**
+ * The sheet body's box, gliding to each new height instead of jumping to it.
+ *
+ * The panel is anchored to the bottom of the screen and sized by what is in it, so every change
+ * of phase (the form to "You're queued", the 300pt skeleton to the real body, the games skeleton
+ * to the chips, Stop back to the form, a failure line appearing) used to move its top edge in one
+ * frame. A layout transition on the content only glides the content INSIDE a panel that has
+ * already jumped. So the box itself carries the height: the content is laid out at its own height
+ * inside it (React Native's flexShrink 0 keeps it from being squeezed), reports it, and the box
+ * follows over motion.base, clipping whatever is still outside it. The first height is taken as it
+ * is, so opening the sheet is exactly the Sheet's own rise.
+ *
+ * Only here, deliberately not in Sheet: the Discord editor's keyboard spacer grows its panel in
+ * step with the keyboard, and a height lagging behind it would let the keyboard cover the field.
+ * Under Reduce Motion the timing cuts (Reanimated's default) and the box simply takes each height.
+ */
+function GlidingHeight({ children }: { children: ReactNode }) {
+  const { motion } = useTheme();
+  /** -1 until the first layout: the box then takes its content's own height. */
+  const height = useSharedValue(-1);
+  const measured = useRef(false);
+  const box = useAnimatedStyle(() => (height.value < 0 ? {} : { height: height.value }));
+
+  function onLayout(e: LayoutChangeEvent) {
+    const next = e.nativeEvent.layout.height;
+    if (!measured.current) {
+      measured.current = true;
+      height.value = next;
+      return;
+    }
+    height.value = withTiming(next, { duration: motion.base, easing: Easing.out(Easing.cubic) });
+  }
+
+  return (
+    <Animated.View style={[{ overflow: "hidden" }, box]}>
+      <View onLayout={onLayout}>{children}</View>
+    </Animated.View>
   );
 }
 
