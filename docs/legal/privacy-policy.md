@@ -66,8 +66,10 @@
 
   VERSION STAMP, VERSION CHECK, DUO POPS AND DUO CALLS (version 1.6 DRAFT, committed
   2026-10-15 on the build-19 branch, NOT published; publish it when app 1.0.2 is released,
-  not before, because it describes 1.0.2 behaviour). Every paragraph is worded by app version,
-  so it stays true while 1.0.1 is still the version in the store:
+  not before, because it describes 1.0.2 behaviour). The Effective date line below still says
+  the day it was drafted: change it to the day it is published, in the same commit that
+  publishes it. Every paragraph is worded by app version, so it stays true while 1.0.1 is
+  still the version in the store:
   - Section 2, Device information, "Push notification token and app version": from 1.0.2,
     apps/mobile/src/lib/notifications.ts (savePushToken) claims the token for the signed-in
     account with claim_push_token (migration 0081) and writes push_tokens.device_info, built
@@ -77,6 +79,12 @@
     name, identifier or location. Each string is cut to 64 characters; migration 0086 caps
     the column at 2 KB. Sign-out deletes the phone's row first (forgetThisDevicePushToken in
     the same file, called by session-store.ts signOut), and account deletion cascades it.
+    The sign-out delete is best effort: it gives up after about 3 seconds and only logs a
+    warning, so a sign-out with no network leaves the row (stamp included) on the account.
+    That is what the policy's second sentence says: the row then moves to the next account
+    that signs in on the phone (claim_push_token), is deleted when Expo answers a push with
+    DeviceNotRegistered (supabase/functions/_shared/push-delivery.ts), or cascades with the
+    account.
     1.0.0 and 1.0.1 never write device_info (all live rows were null on 2026-10-15).
   - Section 3, the GitHub row: apps/mobile/src/features/update/ (appStatus.ts,
     updateGateStore.ts, useUpdateGate.ts) reads https://duoqueue.io/app-status.json at launch
@@ -152,7 +160,7 @@ We only collect what the app actually uses. Here's every category, itemized.
 - **Match feedback tags:** optional, non-public tags ("good comms," "showed up on time," "flaked," etc.) you can leave about a match after the fact, used to build a lightweight reputation signal.
 
 ### Device information
-- **Push notification token and app version.** If you grant notification permission, we store a device-specific push token (via Expo's push service) so we can deliver notifications like new matches and messages. Starting with version 1.0.2 of the app, we store next to that token which version and build of DuoQueue your phone is running, which app update it has installed, and your phone's operating system and its version (for example, iOS 18.6). We use this only to see which app versions are still in use, so we can fix problems and tell people when an update is needed. It includes no other device identifier, no device name and no location, and it is deleted with the token when you sign out on that phone or delete your account.
+- **Push notification token and app version.** If you grant notification permission, we store a device-specific push token (via Expo's push service) so we can deliver notifications like new matches and messages. Starting with version 1.0.2 of the app, we store next to that token which version and build of DuoQueue your phone is running, which app update it has installed, and your phone's operating system and its version (for example, iOS 18.6). We use this only to see which app versions are still in use, so we can fix problems and tell people when an update is needed. It includes no other device identifier, no device name and no location, and it is deleted with the token when you sign out on that phone or delete your account. If your phone cannot reach DuoQueue when you sign out, the token and these details stay linked to your account until another account signs in on that phone, we learn the app was removed from it, or you delete your account.
 
 ### Purchases
 - **Subscription and purchase status** (DuoQueue+, Power-Ups, Legendary Likes). Purchases are handled entirely by Apple's App Store or Google Play, and processed for us by RevenueCat. **We never see or store your card number, billing address, or any other payment credential.** We only receive purchase/subscription status (active, expired, product purchased, renewal date) from RevenueCat.
