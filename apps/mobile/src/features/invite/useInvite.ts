@@ -11,6 +11,7 @@ import {
   needsCallEndedCheck,
   normalizeInviteCode,
   partyRedemptionOutcome,
+  redemptionStillWanted,
   shouldRedeemInvite,
 } from "@/lib/invite";
 import { supabase } from "@/lib/supabase";
@@ -149,9 +150,13 @@ export function useInviteRedemption(): void {
     // for good (an invite deep link held its Logo frame, and the commit gave up after 5 s and
     // went to /welcome instead of /invited). The store itself says whether the answer is still
     // wanted: a newer code (setPendingCode resets it to "idle") or a cleared arrival means no.
+    // The decision is `redemptionStillWanted` in `@/lib/invite`, with tests.
     const stillWaiting = () => {
-      const s = useInviteStore.getState();
-      return s.pendingCode === code && s.redemption === "pending" && useSessionStore.getState().status === "signed_in";
+      const { pendingCode: nowPending, redemption: nowRedemption } = useInviteStore.getState();
+      return redemptionStillWanted(
+        { pendingCode: nowPending, redemption: nowRedemption, sessionStatus: useSessionStore.getState().status },
+        code,
+      );
     };
     const say = (notice: string | null) => {
       if (notice) useToastStore.getState().showToast(notice, "info");

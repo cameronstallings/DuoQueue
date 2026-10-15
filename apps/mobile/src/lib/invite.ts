@@ -264,6 +264,32 @@ export function shouldRedeemInvite(input: InviteRedemptionGateInput): boolean {
   return input.redemption === "idle";
 }
 
+/** What the invite store and the session say when a redemption's answer comes back. */
+export interface RedemptionSettleState {
+  pendingCode: string | null;
+  redemption: "idle" | "pending" | "done" | "failed";
+  sessionStatus: "loading" | "signed_out" | "signed_in";
+}
+
+/**
+ * Whether the answer to redeeming `code` should still be settled into the store, read from the
+ * store and the session at the moment the answer arrives.
+ *
+ * PURE AND TESTED BECAUSE THE LINE THAT HELD IT BROKE. `useInviteRedemption` used to decide this
+ * with a `cancelled` flag set by its effect's cleanup. But the effect calls `markRedeeming()`,
+ * which moves `redemption` from "idle" to "pending", and `redemption` is one of the effect's own
+ * dependencies: React ran the cleanup on the very next render, so EVERY answer arrived
+ * "cancelled", nothing ever settled, and `redemption` sat at "pending" for good. A deep link held
+ * its Logo frame, and an invited sign-up went to /welcome instead of /invited.
+ *
+ * So the store itself says whether the answer is still wanted: the same code is still pending
+ * (a newer code resets the status to "idle" and replaces the code; a cleared arrival drops it),
+ * and the session is still signed in (an answer that arrives after a sign-out is dropped).
+ */
+export function redemptionStillWanted(state: RedemptionSettleState, code: string): boolean {
+  return state.pendingCode === code && state.redemption === "pending" && state.sessionStatus === "signed_in";
+}
+
 /** Somebody's own invite, or a Duo Call code: the arrival screen shows the inviter's card. An
  * arrival stored by an older build has no `kind` and is one of these. */
 export interface DuoInviteArrival {
