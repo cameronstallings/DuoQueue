@@ -7,6 +7,7 @@ import { NavRow, RowDivider } from "@/components/NavRow";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { SectionLabel } from "@/components/SectionLabel";
 import { usePremiumStatus } from "@/features/matching/usePremiumStatus";
+import { DISCORD_COPY } from "@/features/profile/discordUsername";
 import { paywallHref } from "@/features/premium/paywall/paywallCopy";
 import { appearanceSummary } from "@/lib/appearance";
 import { LEGAL_URLS } from "@/lib/legal";
@@ -96,7 +97,7 @@ export default function SettingsScreen() {
           <NavRow
             icon="game-controller-outline"
             label="Connections"
-            hint="Verify your Steam account"
+            hint={DISCORD_COPY.settingsHint}
             onPress={() => router.push("/settings/connections")}
           />
         </Card>

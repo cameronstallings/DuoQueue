@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
 import { Card } from "@/components/Card";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { DiscordEditorSheet } from "@/features/profile/DiscordEditorSheet";
+import { DISCORD_COPY } from "@/features/profile/discordUsername";
 import { useLinkedAccounts, useLinkSteamAccount, useUnlinkAccount } from "@/features/profile/useLinkedAccounts";
 import { useRequireSession } from "@/hooks/useRequireSession";
 import { useSessionStore } from "@/store/session-store";
@@ -56,15 +59,27 @@ export default function ConnectionsSettings() {
   const { data: linked } = useLinkedAccounts(profile?.id);
   const { startLink, linking, error } = useLinkSteamAccount(profile?.id);
   const { unlink, unlinking } = useUnlinkAccount(profile?.id);
+  const [editorVisible, setEditorVisible] = useState(false);
 
   const steamLink = linked?.find((a) => a.provider === "steam");
+  const discord = profile?.discord_username?.trim() || null;
 
   return (
     <ScreenContainer title="Connections" showBack>
-      <Text style={[type.body, { color: colors.textMuted }]}>
-        A verified badge pulls your rank and username straight from the source, rather than trusting a typed-in
-        claim.
-      </Text>
+      <Text style={[type.body, { color: colors.textMuted }]}>{DISCORD_COPY.connectionsIntro}</Text>
+
+      {/* Discord first: it is the one connection a match actually uses (Share my Discord in a
+          chat), and until 1.0.2 there was no way to add it after signup. Private until shared. */}
+      <Card style={{ padding: 0, overflow: "hidden" }}>
+        <ProviderRow
+          name={DISCORD_COPY.rowName}
+          status={discord ?? DISCORD_COPY.notAdded}
+          action={discord ? DISCORD_COPY.edit : DISCORD_COPY.add}
+          onPress={() => setEditorVisible(true)}
+        />
+      </Card>
+
+      <Text style={[type.caption, { color: colors.textMuted }]}>{DISCORD_COPY.verifiedCaption}</Text>
 
       {/* Steam only. Riot and Xbox rows used to sit here marked "Coming soon" — App
           Review reads placeholder features as an incomplete app (Guideline 2.1), and
@@ -83,6 +98,8 @@ export default function ConnectionsSettings() {
       </Card>
 
       {error && <Text style={[type.caption, { color: colors.danger }]}>{error}</Text>}
+
+      <DiscordEditorSheet mode="save" visible={editorVisible} onClose={() => setEditorVisible(false)} />
     </ScreenContainer>
   );
 }
