@@ -13,7 +13,7 @@ import {
 import * as Clipboard from "expo-clipboard";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeInUp, useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MATCH_FEEDBACK_TAGS, MESSAGE_MAX_LENGTH, type MatchFeedbackTag, type ReportReason } from "@duoqueue/shared-types";
 
@@ -59,7 +59,7 @@ import { hapticError, hapticLight, hapticSuccess } from "@/lib/haptics";
 import { toUserMessage } from "@/lib/userMessage";
 import { useToastStore } from "@/store/toast-store";
 import { useSessionStore } from "@/store/session-store";
-import { layoutTransition, quickExiting } from "@/theme/entering";
+import { layoutTransition, quickExiting, revealEntering } from "@/theme/entering";
 import { useTheme } from "@/theme/useTheme";
 
 const SESSION_TIME_FORMAT = new Intl.DateTimeFormat(undefined, {
@@ -183,6 +183,9 @@ function SessionBanner({ matchId, myId }: { matchId: string; myId: string | unde
   const { data } = useActiveMatchSession(matchId);
   const respond = useRespondSession(matchId);
   const cancel = useCancelSession(matchId);
+  // FadeInDown left at Reanimated's default skips the whole entrance under Reduce Motion, fade
+  // included, so the banner popped in; there it is a plain fade instead (revealEntering).
+  const reduced = useReducedMotion();
 
   // Re-checked on every render; the chat re-renders on every poll and push.
   const session = liveSession(data, Date.now());
@@ -215,7 +218,7 @@ function SessionBanner({ matchId, myId }: { matchId: string; myId: string | unde
 
   return (
     <Animated.View
-      entering={FadeInDown.duration(motion.base)}
+      entering={reduced ? revealEntering() : FadeInDown.duration(motion.base)}
       exiting={quickExiting()}
       layout={layoutTransition()}
       style={{ marginHorizontal: spacing.md, marginBottom: spacing.sm }}
