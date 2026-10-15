@@ -19,6 +19,7 @@ import { inviteErrorMessage } from "@/lib/invite";
 import { useInviteStore } from "@/store/invite-store";
 import { useSessionStore } from "@/store/session-store";
 import { useToastStore } from "@/store/toast-store";
+import { SPRINGS } from "@/theme/motion";
 import { useTheme } from "@/theme/useTheme";
 
 const AVATAR_SIZE = 96;
@@ -121,7 +122,9 @@ export default function InvitedScreen() {
           </Animated.View>
         </View>
 
-        <Animated.View entering={ZoomIn.springify().delay(200)}>
+        <Animated.View
+          entering={ZoomIn.springify().mass(1).stiffness(SPRINGS.stack.stiffness).damping(SPRINGS.stack.damping).delay(200)}
+        >
           <Card luminous style={{ alignItems: "center", gap: spacing.sm }}>
             {isPending ? (
               <Skeleton width={AVATAR_SIZE} height={AVATAR_SIZE} borderRadius={radius.round} />
