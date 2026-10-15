@@ -438,7 +438,11 @@ export function DuoLockedScreen({
     <ScreenContainer atmosphere="match" overlay={flashOverlay}>
       {/* Top-anchored: the ring stays exactly where it is while the content below it changes. */}
       <View style={{ alignItems: "center", gap: spacing.lg, paddingTop: spacing.xl }}>
-        <View style={{ alignItems: "center", gap: spacing.md }}>
+        {/* The ring and its stamp fade in once, when the card replaces its loading skeleton:
+            their shared values start at full (arc, time, "Duo Pop"), so without this the ring and
+            the stamp cut in over the skeleton's circle while only the content under them faded.
+            Mount only, so the lock's own sequence later is untouched. */}
+        <Animated.View entering={revealEntering()} style={{ alignItems: "center", gap: spacing.md }}>
           {lockBox}
           {/* One slot, two stamps: "DUO POP" while it counts, "DUO LOCKED" stamped over it at the
               lock. VoiceOver reads whichever is showing. */}
@@ -460,7 +464,7 @@ export function DuoLockedScreen({
             </Animated.Text>
           </View>
           {poppedLine}
-        </View>
+        </Animated.View>
 
         {locked ? (
           afterLock

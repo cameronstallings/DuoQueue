@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Alert, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import Animated from "react-native-reanimated";
 import type { ReportReason } from "@duoqueue/shared-types";
 
 import { Button } from "@/components/Button";
@@ -20,6 +21,7 @@ import { useAnswerDuoPop, useDuoPop } from "@/features/queue/useDuoPop";
 import { useDuoLockedReviewPrompt } from "@/features/rating/useReviewTriggers";
 import { useRequireSession } from "@/hooks/useRequireSession";
 import { hapticError, hapticLight, hapticRigid, hapticWarning } from "@/lib/haptics";
+import { revealEntering } from "@/theme/entering";
 import { LOGO_MARK_ASPECT, R, VB_W, W } from "@/theme/logo-geometry";
 import { useTheme } from "@/theme/useTheme";
 
@@ -361,7 +363,8 @@ function PlainCard({ title, primary }: { title: string; primary?: { label: strin
   const { colors, spacing, type } = useTheme();
   return (
     <ScreenContainer atmosphere="match">
-      <View style={{ flex: 1, justifyContent: "center", gap: spacing.lg }}>
+      {/* Fades in, like every other state of this card, rather than cutting in over the skeleton. */}
+      <Animated.View entering={revealEntering()} style={{ flex: 1, justifyContent: "center", gap: spacing.lg }}>
         <Text accessibilityRole="header" style={[type.title, { color: colors.text, textAlign: "center" }]}>
           {title}
         </Text>
@@ -369,7 +372,7 @@ function PlainCard({ title, primary }: { title: string; primary?: { label: strin
           {primary && <Button label={primary.label} onPress={primary.onPress} />}
           <Button label={POP_COPY.close} variant={primary ? "ghost" : "primary"} onPress={closeCard} />
         </View>
-      </View>
+      </Animated.View>
     </ScreenContainer>
   );
 }
