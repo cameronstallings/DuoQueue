@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Redirect } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
+import { type Href, Redirect, useFocusEffect, useRouter } from "expo-router";
 
 import { COMMIT_COPY } from "@/features/auth/frontDoorCopy";
 import { CompleteSignupScreen } from "@/features/auth/CompleteSignupScreen";
@@ -31,6 +31,8 @@ import { useToastStore } from "@/store/toast-store";
  * A LEFT-OVER DRAFT AT "app" IS DISCARDED here: a returning player who signed in from the front
  * door or from Save, or a kill between the card's submit and the draft's discard. "app" always
  * means a finished card (sessionRouting.ts), so nothing in the draft can still be needed.
+ *
+ * EVERY ANSWER LEAVES ON A FRESH ROOT STACK (FreshRedirect, below).
  */
 export default function Index() {
   const status = useSessionStore((s) => s.status);
@@ -76,7 +78,7 @@ export default function Index() {
   if (status === "signed_in" && (phase === "running" || phase === "error" || phase === "welcome")) {
     return <CommitDraftScreen />;
   }
-  if (status === "signed_in" && phase === "done") return <Redirect href={destination ?? "/(tabs)"} />;
+  if (status === "signed_in" && phase === "done") return <FreshRedirect href={destination ?? "/(tabs)"} />;
 
   // A profile read that has not landed (or that failed), or a draft not yet read back from the
   // phone, is not an answer, and every guess is somebody's wrong screen. The store retries a
@@ -93,13 +95,46 @@ export default function Index() {
       return <Redirect href={{ pathname: "/(auth)/confirm-email", params: { email: pendingEmail } }} />;
     }
     // A card in progress picks up where it was left; nobody else has a draft to resume.
-    if (route === "draft") return <Redirect href={wizardResumePath(lastStep, false)} />;
-    return <Redirect href="/(auth)/start" />;
+    if (route === "draft") return <FreshRedirect href={wizardResumePath(lastStep, false)} />;
+    return <FreshRedirect href="/(auth)/start" />;
   }
 
   if (route === "complete-signup") return <CompleteSignupScreen />;
   if (route === "commit-draft") return <CommitDraftScreen />;
 
-  if (route === "onboarding") return <Redirect href={wizardResumePath(lastStep, true)} />;
-  return <Redirect href="/(tabs)" />;
+  if (route === "onboarding") return <FreshRedirect href={wizardResumePath(lastStep, true)} />;
+  return <FreshRedirect href="/(tabs)" />;
+}
+
+/**
+ * <Redirect>, onto a root stack holding nothing but the answer.
+ *
+ * WHY. Since 1.0.2 the signed-out flow crosses route groups with PUSHES: the age gate pushes the
+ * intro, Save pushes sign-up and sign-in, the intro pushes sign-in. Pushes that cross groups land
+ * on the ROOT stack (expo-router's getNavigateAction targets the navigator where the routes
+ * diverge), so an email Save used to end as [(auth), (onboarding), (tabs)] and Apple at Save as
+ * [(auth), (tabs)]. <Redirect> only replaces the focused entry, so those stayed underneath, and an
+ * iOS back swipe from the deck (a card drag that starts at the edge) popped into a layout that
+ * only redirects, which remounted (tabs): the deck reloaded and the screen flickered. 1.0.1 never
+ * pushed across groups, so (tabs) was always the only root entry.
+ *
+ * "/" is where every guard sends anybody whose place it cannot name itself, so whatever is below
+ * it is a flow that has ended (a signup, a sign-out, Start over). Dropping it here costs nothing,
+ * and every answer starts its own history. Both actions are queued in one go and applied before
+ * the next render, so nothing in between is drawn. A cold start (index alone) just replaces.
+ * Only while focused, as <Redirect> does.
+ */
+function FreshRedirect({ href }: { href: Href }) {
+  const router = useRouter();
+  useFocusEffect(
+    useCallback(() => {
+      try {
+        if (router.canDismiss()) router.dismissAll();
+        router.replace(href);
+      } catch (error) {
+        console.error(error);
+      }
+    }, [router, href]),
+  );
+  return null;
 }
