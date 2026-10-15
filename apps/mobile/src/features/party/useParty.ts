@@ -22,9 +22,15 @@ export const MY_PARTIES_QUERY_KEY = ["my-parties"] as const;
 const PARTY_MEMBERS_KEY = "party-members";
 /** The prefix of every party's "Waiting on" list. */
 const PARTY_PENDING_INVITES_KEY = "party-pending-invites";
+/** The prefix of every party's live LFG post read (usePartyCall). */
+const PARTY_CALL_KEY = "party-call";
 
 export function partyMembersQueryKey(partyId: string) {
   return [PARTY_MEMBERS_KEY, partyId] as const;
+}
+
+export function partyCallQueryKey(partyId: string | undefined) {
+  return [PARTY_CALL_KEY, partyId ?? ""] as const;
 }
 
 export function partyPendingInvitesQueryKey(partyId: string) {
@@ -33,8 +39,10 @@ export function partyPendingInvitesQueryKey(partyId: string) {
 
 /**
  * Re-reads everything the app draws about parties that is on screen right now: the invites
- * banner, "Your parties", each party's member list and its "Waiting on" line. Invalidating only
- * refetches what is mounted; the rest is marked stale and reads fresh when it next mounts.
+ * banner, "Your parties", each party's member list, its "Waiting on" line and its live LFG post
+ * (so the other member sees a post appear, or stop, as soon as anything tells this phone).
+ * Invalidating only refetches what is mounted; the rest is marked stale and reads fresh when it
+ * next mounts.
  *
  * One function for every moment a party can have changed without this phone being told by a
  * query: the app coming back to the front, the Matches tab gaining focus or being pulled, and a
@@ -46,6 +54,7 @@ export function refreshParties(queryClient: QueryClient): Promise<void> {
     queryClient.invalidateQueries({ queryKey: MY_PARTIES_QUERY_KEY }),
     queryClient.invalidateQueries({ queryKey: [PARTY_MEMBERS_KEY] }),
     queryClient.invalidateQueries({ queryKey: [PARTY_PENDING_INVITES_KEY] }),
+    queryClient.invalidateQueries({ queryKey: [PARTY_CALL_KEY] }),
   ]).then(() => undefined);
 }
 

@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MESSAGE_MAX_LENGTH, type ReportReason } from "@duoqueue/shared-types";
 
@@ -24,7 +24,13 @@ import { SectionLabel } from "@/components/SectionLabel";
 import { Sheet } from "@/components/Sheet";
 import { Skeleton } from "@/components/Skeleton";
 import { useBlockUser, useReportUser } from "@/features/chat/useMatchActions";
-import { type PartyMemberProfile, partyMembersQueryKey, usePartyMembers } from "@/features/party/useParty";
+import {
+  fetchMyParties,
+  MY_PARTIES_QUERY_KEY,
+  type PartyMemberProfile,
+  partyMembersQueryKey,
+  usePartyMembers,
+} from "@/features/party/useParty";
 import { usePartyMessages, useSendPartyMessage } from "@/features/party/usePartyMessages";
 import { containsHiddenWord, useHiddenWords } from "@/features/settings/useHiddenWords";
 import { useRequireSession } from "@/hooks/useRequireSession";
@@ -202,9 +208,25 @@ export default function PartyChatScreen() {
       {
         text: "Block",
         style: "destructive",
-        onPress: () => blockUser.mutate(member.profile_id),
+        onPress: () => blockUser.mutate(member.profile_id, { onSuccess: () => void leaveIfPartyGone() }),
       },
     ]);
+  }
+
+  // A block can take THIS player out of the party: since 0089, a player who joined with a party
+  // post's code and blocks a member is the one removed (they cannot evict a founder). Re-read the
+  // parties and leave a chat that is no longer theirs, instead of sitting in one whose messages
+  // now fail to load. Founders, and every deck party, stay exactly as before.
+  async function leaveIfPartyGone() {
+    if (!partyId) return;
+    try {
+      const parties = await queryClient.fetchQuery({ queryKey: MY_PARTIES_QUERY_KEY, queryFn: fetchMyParties, staleTime: 0 });
+      if (parties.some((p) => p.party_id.toLowerCase() === partyId.toLowerCase())) return;
+      // Back to Matches, past the party's deck too (it is not theirs either).
+      router.dismissTo("/(tabs)/matches");
+    } catch {
+      // Offline: the party list refreshes on the next focus or resume.
+    }
   }
 
   function handleReportSubmit(reason: ReportReason, details: string) {

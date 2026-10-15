@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { inviteUrl, parseInviteCode } from "../../lib/invite";
 
-import { LFG_TAG_ALLOWLIST, lfgPost, lfgRankParts, lfgTags } from "./lfgPost";
+import { LFG_TAG_ALLOWLIST, lfgPost, lfgRankParts, lfgTags, partyLfgPost } from "./lfgPost";
 
 const CODE = "K7Q2M9XA4P";
 const URL = inviteUrl(CODE, "https://<project>.supabase.co");
@@ -137,5 +137,84 @@ describe("lfgTags", () => {
 
   it("allows exactly the five tags that help a stranger decide", () => {
     expect([...LFG_TAG_ALLOWLIST]).toEqual(["chill", "competitive", "mic_required", "no_mic", "team_player"]);
+  });
+});
+
+/** The party post's tested fixture, exactly (the critic's corrected copy). */
+const PARTY_POST = [
+  "LF 1 more: League of Legends, NA East.",
+  "I'm Gold II.",
+  "Chill, mic required.",
+  "Code works until 11:40 PM CDT. First one in gets the spot.",
+  "",
+  "Join us on DuoQueue (18+, for teammates, not dates): https://<project>.supabase.co/functions/v1/invite/K7Q2M9XA4P",
+  "Code: K7Q2M9XA4P",
+].join("\n");
+
+function party() {
+  return {
+    gameName: "League of Legends" as string | null,
+    regionLabel: "NA East" as string | null,
+    rankLabel: lfgRankParts({ rankText: "Gold II", lolTier: "gold", lolDivision: 2 }).rankLabel,
+    tags: lfgTags(["chill", "mic_required"]),
+    untilLabel: "11:40 PM CDT" as string | null,
+    url: URL,
+    code: CODE,
+  };
+}
+
+describe("partyLfgPost (a party of two looking for a third)", () => {
+  it("writes the League party post exactly", () => {
+    expect(partyLfgPost(party())).toBe(PARTY_POST);
+  });
+
+  it("says whose rank it is (only the sharer's), and never Riot's Solo/Duo range", () => {
+    const post = partyLfgPost(party());
+    expect(post.split("\n")[1]).toBe("I'm Gold II.");
+    expect(post).not.toContain("Can duo");
+    expect(post).not.toContain("(by rank)");
+  });
+
+  it("writes another game's rank text as it is", () => {
+    const rank = lfgRankParts({ rankText: "Diamond 2", lolTier: null, lolDivision: null }).rankLabel;
+    const post = partyLfgPost({ ...party(), gameName: "Valorant", rankLabel: rank });
+    expect(post.split("\n").slice(0, 2)).toEqual(["LF 1 more: Valorant, NA East.", "I'm Diamond 2."]);
+  });
+
+  it("reads without a game, a region, a rank, tags or a time", () => {
+    expect(partyLfgPost({ ...party(), gameName: null }).split("\n")[0]).toBe("LF 1 more for our party, NA East.");
+    expect(partyLfgPost({ ...party(), regionLabel: null }).split("\n")[0]).toBe("LF 1 more: League of Legends.");
+    expect(partyLfgPost({ ...party(), gameName: null, regionLabel: null }).split("\n")[0]).toBe(
+      "LF 1 more for our party.",
+    );
+    expect(partyLfgPost({ ...party(), rankLabel: null }).split("\n")[1]).toBe("Chill, mic required.");
+    expect(partyLfgPost({ ...party(), tags: null }).split("\n")[2]).toBe(
+      "Code works until 11:40 PM CDT. First one in gets the spot.",
+    );
+    const noTime = partyLfgPost({ ...party(), untilLabel: null });
+    expect(noTime).not.toContain("works until");
+    expect(noTime.split("\n")[3]).toBe("First one in gets the spot.");
+  });
+
+  it("puts the code last, where a reader and the app's code reader both find it", () => {
+    const post = partyLfgPost(party());
+    const lines = post.split("\n");
+    expect(lines[lines.length - 1]).toBe(`Code: ${CODE}`);
+    expect(parseInviteCode(post)).toBe(CODE);
+  });
+
+  it("says 18+ and not dates, with no dating words and no dashes", () => {
+    const post = partyLfgPost(party());
+    expect(post).toContain("18+");
+    expect(post).toContain("not dates");
+    expect(post.replace(/not dates/g, "")).not.toMatch(
+      /\bdates?\b|dating|singles|hookup|nearby|meet people|match with singles/i,
+    );
+    expect(post).not.toMatch(new RegExp(`[${String.fromCharCode(0x2013, 0x2014)}]`));
+  });
+
+  it("carries no age and no other player's data (the input has no field for either)", () => {
+    const post = partyLfgPost(party());
+    expect(post).not.toMatch(/\b(1[89]|[2-9]\d) ?(yo|years)\b/i);
   });
 });

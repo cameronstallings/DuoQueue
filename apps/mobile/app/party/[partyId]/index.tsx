@@ -9,9 +9,11 @@ import { GraticuleBackground } from "@/components/GraticuleBackground";
 import { EmptyState } from "@/components/EmptyState";
 import { GrainOverlay } from "@/components/GrainOverlay";
 import { Skeleton } from "@/components/Skeleton";
-import { joinNames } from "@/features/party/partyCopy";
+import { PartyLfgRow } from "@/features/party/PartyLfgRow";
+import { joinNames, PARTY_DECK_COPY, PARTY_LFG_COPY } from "@/features/party/partyCopy";
 import { PARTY_CAP, PARTY_POLL_MS, usePartyMembers, usePartyPendingInvites } from "@/features/party/useParty";
 import { usePartyDeck, usePartySwipeAction } from "@/features/party/usePartyDeck";
+import { usePartyLfg } from "@/features/party/usePartyLfg";
 import { LikePassButtons } from "@/features/swipe/LikePassButtons";
 import { SwipeDeck, type SwipeDeckHandle } from "@/features/swipe/SwipeDeck";
 import type { DeckCard, SwipeDirection } from "@/features/swipe/types";
@@ -44,6 +46,8 @@ export default function PartyDeckScreen() {
   // (0070), so the deck would only be swipes that go nowhere. The chat is the party now.
   const isFull = (members?.ids.length ?? 0) >= PARTY_CAP;
   const waitingOn = joinNames((pendingInvites ?? []).map((invite) => invite.display_name));
+  const lfg = usePartyLfg(partyId, members);
+  const lfgShown = lfg.view.kind !== "hidden";
 
   function openChat() {
     router.push({ pathname: "/party/[partyId]/chat", params: { partyId } });
@@ -114,9 +118,14 @@ export default function PartyDeckScreen() {
 
       {!isFull && (
         <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm, gap: spacing.xs }}>
+          {/* "From the deck" while a post can also bring someone in: the deck's rule is no longer
+              the only way a third arrives. */}
           <Text style={[type.caption, { color: colors.textMuted }]}>
-            Everyone in the party has to like someone before they get invited.
+            {lfgShown ? PARTY_DECK_COPY.captionWithPost : PARTY_DECK_COPY.caption}
           </Text>
+          {/* The party LFG post (build 20, 0089): a party of two can share a code to find their
+              third anywhere. Hidden for any other size, and whenever the server has no 0089. */}
+          <PartyLfgRow lfg={lfg} />
           {/* Somebody the party already said yes to. Until they answer, the like is not lost, it
               is waiting, and without this line a sent invite looked like nothing had happened. */}
           {waitingOn ? (
@@ -152,14 +161,31 @@ export default function PartyDeckScreen() {
             tick="OFFLINE"
           />
         ) : cards.length === 0 ? (
-          <EmptyState
-            icon="people"
-            title="No more profiles right now"
-            subtitle="Check back later for more people to consider together."
-            actionLabel="Refresh"
-            onAction={() => void refetch()}
-            tick="QUEUE CLEAR"
-          />
+          // Out of people to consider together: the post is the way to find a third anywhere, so
+          // it leads when one can be made; Refresh stays for the deck itself. Without the feature
+          // (or with a post already live, shown just above) it is today's single Refresh.
+          lfg.view.kind === "idle" ? (
+            <EmptyState
+              icon="people"
+              title={PARTY_DECK_COPY.emptyTitle}
+              subtitle={PARTY_DECK_COPY.emptySubtitleWithPost}
+              actionLabel={PARTY_LFG_COPY.share}
+              actionVariant="primary"
+              onAction={lfg.share}
+              secondaryActionLabel={PARTY_DECK_COPY.refresh}
+              onSecondaryAction={() => void refetch()}
+              tick="QUEUE CLEAR"
+            />
+          ) : (
+            <EmptyState
+              icon="people"
+              title={PARTY_DECK_COPY.emptyTitle}
+              subtitle={PARTY_DECK_COPY.emptySubtitle}
+              actionLabel={PARTY_DECK_COPY.refresh}
+              onAction={() => void refetch()}
+              tick="QUEUE CLEAR"
+            />
+          )
         ) : (
           <Animated.View entering={FadeIn.duration(220)} style={{ flex: 1 }}>
             <SwipeDeck

@@ -109,3 +109,44 @@ export function lfgPost(input: LfgPostInput): string {
   lines.push(`Code: ${input.code}`);
   return lines.join("\n");
 }
+
+/** The party post's promise about its code: one join fills the seat. */
+const FIRST_IN_GETS_SPOT = "First one in gets the spot.";
+
+export interface PartyLfgPostInput {
+  /** The post's game (get_party_call's game_name: the sharer's first game the other member also
+   * plays), or null. */
+  gameName: string | null;
+  /** REGION_LABELS[profile.region] of the SHARER, or null. */
+  regionLabel: string | null;
+  /** The sharer's own rank in that game (lfgRankParts(...).rankLabel), or null. */
+  rankLabel: string | null;
+  /** lfgTags(...) of the sharer's playstyles, or null. */
+  tags: string | null;
+  /** When the code stops working, with the time zone ("11:40 PM CDT"), or null. */
+  untilLabel: string | null;
+  url: string;
+  code: string;
+}
+
+/**
+ * The party post: a party of two looking for one more, from a party screen's "Share LFG post".
+ * The same rules as the Duo Call post above, plus two of its own:
+ *  - The rank line says WHOSE rank it is ("I'm Gold II."): only the sharer's own data ever goes
+ *    in a post, and a reader would otherwise take one player's rank for the party's.
+ *  - No duo range. Riot's table is for Ranked Solo/Duo, two players; a party of three is not a
+ *    Solo/Duo team, so the range would be a claim the game does not make.
+ * The code is the last line, and "First one in gets the spot." because one join fills the seat.
+ */
+export function partyLfgPost(input: PartyLfgPostInput): string {
+  const lines: string[] = [];
+  const where = input.regionLabel ? `, ${input.regionLabel}` : "";
+  lines.push(input.gameName ? `LF 1 more: ${input.gameName}${where}.` : `LF 1 more for our party${where}.`);
+  if (input.rankLabel) lines.push(`I'm ${input.rankLabel}.`);
+  if (input.tags) lines.push(input.tags);
+  lines.push(input.untilLabel ? `Code works until ${input.untilLabel}. ${FIRST_IN_GETS_SPOT}` : FIRST_IN_GETS_SPOT);
+  lines.push("");
+  lines.push(`Join us on DuoQueue (18+, for teammates, not dates): ${input.url}`);
+  lines.push(`Code: ${input.code}`);
+  return lines.join("\n");
+}
