@@ -758,79 +758,83 @@ export default function ChatScreen() {
           tick="OFFLINE"
         />
       ) : (
-        <FlatList
-          ref={listRef}
-          data={reversedTimeline}
-          // Only invert once there's something to show — an inverted empty list flips
-          // `ListEmptyComponent` upside down too, since it isn't wrapped in the cell
-          // renderer that cancels the list's own flip for real rows.
-          inverted={reversedTimeline.length > 0}
-          keyExtractor={(item) => (item.kind === "message" ? item.message.id : item.share.id)}
-          contentContainerStyle={{ padding: spacing.md, flexGrow: 1 }}
-          onContentSizeChange={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
-          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
-          keyboardShouldPersistTaps="handled"
-          ListEmptyComponent={
-            <EmptyState
-              icon="chatbubbles"
-              title={`Say hi to ${matchInfo?.other_display_name ?? "your match"}!`}
-              subtitle={PLAY_TOGETHER_COPY.emptyChatSubtitle}
-              tick="SAY HI"
-            />
-          }
-          renderItem={({ item, index }: { item: ChatTimelineItem; index: number }) => {
-            if (item.kind === "discord_share") {
-              if (item.share.revoked) return null;
-              return <DiscordShareBubble matchId={matchId} sharedBy={item.share.shared_by} isMine={item.share.shared_by === myId} />;
+        // The thread fades in over the skeleton's place rather than cutting in, as Matches does
+        // after its skeleton. Mounted once per load, so a new message never replays it.
+        <Animated.View entering={revealEntering()} style={{ flex: 1 }}>
+          <FlatList
+            ref={listRef}
+            data={reversedTimeline}
+            // Only invert once there's something to show — an inverted empty list flips
+            // `ListEmptyComponent` upside down too, since it isn't wrapped in the cell
+            // renderer that cancels the list's own flip for real rows.
+            inverted={reversedTimeline.length > 0}
+            keyExtractor={(item) => (item.kind === "message" ? item.message.id : item.share.id)}
+            contentContainerStyle={{ padding: spacing.md, flexGrow: 1 }}
+            onContentSizeChange={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
+            keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+            keyboardShouldPersistTaps="handled"
+            ListEmptyComponent={
+              <EmptyState
+                icon="chatbubbles"
+                title={`Say hi to ${matchInfo?.other_display_name ?? "your match"}!`}
+                subtitle={PLAY_TOGETHER_COPY.emptyChatSubtitle}
+                tick="SAY HI"
+              />
             }
-            const isMine = item.message.sender_id === myId;
-            // `reversedTimeline` is newest-first, so the chronologically-previous
-            // message (the one rendered just above this one, since the list is
-            // inverted) sits at index + 1. Same sender back-to-back → tighten the
-            // gap into a "run"; anything else (including the very first item) gets
-            // the normal run-separating gap.
-            const previous = reversedTimeline[index + 1];
-            const isRunContinuation = previous?.kind === "message" && previous.message.sender_id === item.message.sender_id;
-            // A discord_share bubble carries its own marginVertical (spacing.sm top AND
-            // bottom). If the message right below it (chronologically after, rendered
-            // below on screen) ALSO applied the normal spacing.sm marginTop, the gap
-            // below the bubble would be 2x spacing.sm while the gap above it stays 1x.
-            // Zero this message's own marginTop so the share bubble's bottom margin is
-            // the only contributor — symmetric spacing.sm on both sides of the bubble.
-            const followsDiscordShare = previous?.kind === "discord_share";
-            const marginTop = index === reversedTimeline.length - 1 ? 0 : followsDiscordShare ? 0 : isRunContinuation ? 3 : spacing.sm;
-            // Entrance animation is gated so it only plays for rows that showed up
-            // after this screen mounted — never for history loaded on open or pulled
-            // in by a refetch.
-            //   - Own sends: gate on the temp- id prefix, not created_at. The
-            //     optimistic row and its server replacement carry different ids, so
-            //     keyExtractor treats the swap as an unmount/remount of this cell —
-            //     without this the real row would replay the animation a second time
-            //     right after the temp row already played it once.
-            //   - Incoming rows (from the other person): they only ever arrive once,
-            //     as their real id, so created_at > mountedAt is sufficient.
-            const isSending = isMine && item.message.id.startsWith("temp-");
-            const isNewIncoming = !isMine && new Date(item.message.created_at).getTime() > mountedAt;
-            const isNew = isSending || isNewIncoming;
-            return (
-              <Animated.View
-                style={{ marginTop }}
-                // Full-config spring (theme/entering.ts): the old spring chain set damping 16
-                // and stiffness 180 but never mass, so it ran at Reanimated's default of 4.
-                entering={isNew ? stackSpringEntering(FadeInUp, reduced) : undefined}
-              >
-                <MessageBubble
-                  content={item.message.content}
-                  isMine={isMine}
-                  isSending={isSending}
-                  showReceipt={isMine && item.message.id === latestOwnMessageId}
-                  readAt={item.message.read_at}
-                  hiddenWords={hiddenWords ?? []}
-                />
-              </Animated.View>
-            );
-          }}
-        />
+            renderItem={({ item, index }: { item: ChatTimelineItem; index: number }) => {
+              if (item.kind === "discord_share") {
+                if (item.share.revoked) return null;
+                return <DiscordShareBubble matchId={matchId} sharedBy={item.share.shared_by} isMine={item.share.shared_by === myId} />;
+              }
+              const isMine = item.message.sender_id === myId;
+              // `reversedTimeline` is newest-first, so the chronologically-previous
+              // message (the one rendered just above this one, since the list is
+              // inverted) sits at index + 1. Same sender back-to-back → tighten the
+              // gap into a "run"; anything else (including the very first item) gets
+              // the normal run-separating gap.
+              const previous = reversedTimeline[index + 1];
+              const isRunContinuation = previous?.kind === "message" && previous.message.sender_id === item.message.sender_id;
+              // A discord_share bubble carries its own marginVertical (spacing.sm top AND
+              // bottom). If the message right below it (chronologically after, rendered
+              // below on screen) ALSO applied the normal spacing.sm marginTop, the gap
+              // below the bubble would be 2x spacing.sm while the gap above it stays 1x.
+              // Zero this message's own marginTop so the share bubble's bottom margin is
+              // the only contributor — symmetric spacing.sm on both sides of the bubble.
+              const followsDiscordShare = previous?.kind === "discord_share";
+              const marginTop = index === reversedTimeline.length - 1 ? 0 : followsDiscordShare ? 0 : isRunContinuation ? 3 : spacing.sm;
+              // Entrance animation is gated so it only plays for rows that showed up
+              // after this screen mounted — never for history loaded on open or pulled
+              // in by a refetch.
+              //   - Own sends: gate on the temp- id prefix, not created_at. The
+              //     optimistic row and its server replacement carry different ids, so
+              //     keyExtractor treats the swap as an unmount/remount of this cell —
+              //     without this the real row would replay the animation a second time
+              //     right after the temp row already played it once.
+              //   - Incoming rows (from the other person): they only ever arrive once,
+              //     as their real id, so created_at > mountedAt is sufficient.
+              const isSending = isMine && item.message.id.startsWith("temp-");
+              const isNewIncoming = !isMine && new Date(item.message.created_at).getTime() > mountedAt;
+              const isNew = isSending || isNewIncoming;
+              return (
+                <Animated.View
+                  style={{ marginTop }}
+                  // Full-config spring (theme/entering.ts): the old spring chain set damping 16
+                  // and stiffness 180 but never mass, so it ran at Reanimated's default of 4.
+                  entering={isNew ? stackSpringEntering(FadeInUp, reduced) : undefined}
+                >
+                  <MessageBubble
+                    content={item.message.content}
+                    isMine={isMine}
+                    isSending={isSending}
+                    showReceipt={isMine && item.message.id === latestOwnMessageId}
+                    readAt={item.message.read_at}
+                    hiddenWords={hiddenWords ?? []}
+                  />
+                </Animated.View>
+              );
+            }}
+          />
+        </Animated.View>
       )}
 
       {/* The typing line's slot is always there, one caption line tall (capped at 1.3x text
