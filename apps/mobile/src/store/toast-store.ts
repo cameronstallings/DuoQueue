@@ -1,5 +1,7 @@
 import { create } from "zustand";
 
+import { hapticError } from "@/lib/haptics";
+
 export type ToastStatus = "success" | "error" | "info";
 
 interface ToastState {
@@ -17,6 +19,9 @@ export const useToastStore = create<ToastState>((set) => ({
   status: "success",
   showToast: (message, status = "success") => {
     if (hideTimer) clearTimeout(hideTimer);
+    // The haptic map: an error toast buzzes, here and only here, so no screen has to remember it
+    // and none fires it twice. Never call hapticError() right before showToast(..., "error").
+    if (status === "error") hapticError();
     set({ message, status });
     hideTimer = setTimeout(() => set({ message: null }), 2000);
   },
