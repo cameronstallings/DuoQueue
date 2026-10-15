@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { hapticError } from "@/lib/haptics";
 import { supabase } from "@/lib/supabase";
 import { useSessionStore } from "@/store/session-store";
 import { useToastStore } from "@/store/toast-store";
 
-import { QUEUE_COPY, queueErrorMessage } from "./queueCopy";
+import { QUEUE_COPY } from "./queueCopy";
 import type { QueueUpRow } from "./types";
 
 /**
@@ -21,6 +22,12 @@ import type { QueueUpRow } from "./types";
  *  - stop_queue_up's PGRST202 falls back to set_looking_now(false), which is live, so a player
  *    who is free to duo can always stop being;
  *  - call_code_ended answers false on any error, so the invite field keeps its old line.
+ *
+ * FAILURES ARE SAID WHERE THE TAP WAS, NOT IN A TOAST. Start and Stop are only ever tapped inside
+ * the Queue Up sheet (a React Native Modal) or on Online Now (a modal screen), and the one Toast
+ * is mounted under both at the root, so a toast from here was drawn behind the panel and gone in
+ * 2 s: one buzz and nothing to read. So these hooks only buzz (the haptic map's "inline form
+ * errors"), and each caller puts `queueErrorMessage(...)` under the button that failed.
  */
 
 /** Prefix of every queue-up read. Invalidate this to refresh the sheet and the resume check. */
@@ -105,9 +112,8 @@ export function useStartQueueUp() {
       if (row) refreshAfterQueueChange(queryClient);
       else void queryClient.invalidateQueries({ queryKey: ["online-now"] });
     },
-    onError: (err) => {
-      useToastStore.getState().showToast(queueErrorMessage(err, QUEUE_COPY.startFailed), "error");
-    },
+    // The caller says why, under the button (the header): queueErrorMessage(err, startFailed).
+    onError: () => hapticError(),
   });
 }
 
@@ -140,9 +146,8 @@ export function useStopQueueUp() {
       void queryClient.invalidateQueries({ queryKey: ["online-now"] });
       useToastStore.getState().showToast(QUEUE_COPY.stopped, "info");
     },
-    onError: (err) => {
-      useToastStore.getState().showToast(queueErrorMessage(err, QUEUE_COPY.stopFailed), "error");
-    },
+    // The caller says why, under Stop (the header): queueErrorMessage(err, stopFailed).
+    onError: () => hapticError(),
   });
 }
 

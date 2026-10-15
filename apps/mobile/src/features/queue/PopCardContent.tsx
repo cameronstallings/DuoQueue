@@ -5,6 +5,7 @@ import { Chip } from "@/components/Chip";
 import { Name } from "@/components/Name";
 import { useTheme } from "@/theme/useTheme";
 
+import { InlineError } from "./InlineError";
 import { POP_COPY, POP_RESULT_COPY, popEndedTitle, popSentence } from "./queueCopy";
 
 /** A quiet text action under the buttons (Report, Block): caption, textMuted. */
@@ -26,6 +27,9 @@ interface PopCardContentProps {
   canDuo: boolean;
   /** I'm in is in flight: its label pulses (Button's busy state). */
   answering: boolean;
+  /** Why the last I'm in failed (a dropped connection, the rate limit), under the buttons. The
+   * card is a modal screen and the root Toast draws under it (InlineError). */
+  answerError?: string | null;
   onImIn: () => void;
   onNotNow: () => void;
   onReport: () => void;
@@ -49,6 +53,7 @@ export function PopCardContent({
   rankText,
   canDuo,
   answering,
+  answerError = null,
   onImIn,
   onNotNow,
   onReport,
@@ -69,6 +74,7 @@ export function PopCardContent({
       <View style={{ alignSelf: "stretch", gap: spacing.sm }}>
         <Button label={POP_COPY.imIn} loading={answering} onPress={onImIn} />
         <Button label={POP_COPY.notNow} variant="ghost" disabled={answering} onPress={onNotNow} />
+        <InlineError message={answerError} />
       </View>
       <View style={{ flexDirection: "row", gap: spacing.lg }}>
         <QuietLink label={POP_COPY.report} onPress={onReport} />

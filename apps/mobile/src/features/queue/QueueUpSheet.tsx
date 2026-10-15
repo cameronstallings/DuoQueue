@@ -26,8 +26,9 @@ import { layoutTransition, quickExiting, revealEntering } from "@/theme/entering
 import { useTheme } from "@/theme/useTheme";
 
 import { isNaRegion } from "./duoPopsOptIn";
+import { InlineError } from "./InlineError";
 import { lfgPost, lfgRankParts, lfgTags } from "./lfgPost";
-import { lockedLine, outcomeLine, QUEUE_COPY, untilLine } from "./queueCopy";
+import { lockedLine, outcomeLine, QUEUE_COPY, queueErrorMessage, untilLine } from "./queueCopy";
 import { sheetViewOf } from "./queueState";
 import { useQueueUpSheetStore } from "./queueUpSheetStore";
 import { useMyQueueUp, useStartQueueUp, useStopQueueUp } from "./useQueueUp";
@@ -39,6 +40,9 @@ const SHEET_TICK_MS = 15_000;
 
 /** The queued body's height, for the one skeleton shown while its status loads. */
 const QUEUED_SKELETON_H = 300;
+
+/** How long Copy post reads "Post copied" (the toast it replaces lasted as long). */
+const COPIED_MS = 2000;
 
 /** A time in the phone's own clock ("10:40 PM", or "10:40 PM CDT" for a post that leaves the
  * phone). Null when it cannot be formatted, and the line it belongs to is left out. Exported for
@@ -131,6 +135,29 @@ export function QueueUpSheet({ visible, onClose, showOnlineLink = true }: QueueU
   const [ping, setPing] = useState(true);
   const [asking, setAsking] = useState(false);
 
+  // What went wrong in THIS presentation, said under the button that failed (InlineError: a toast
+  // would draw behind this Modal), and "Post copied" on the Copy button itself for the same reason.
+  // Cleared on the next try and whenever the sheet opens again, so a failure from an earlier visit
+  // never greets the next one. The reset happens in the render that sees the sheet open (React's
+  // "adjust state when a prop changes"), so not even one frame shows the old line.
+  const [startError, setStartError] = useState<string | null>(null);
+  const [stopError, setStopError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [presented, setPresented] = useState(visible);
+  if (presented !== visible) {
+    setPresented(visible);
+    if (visible) {
+      setStartError(null);
+      setStopError(null);
+      setCopied(false);
+    }
+  }
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), COPIED_MS);
+    return () => clearTimeout(timer);
+  }, [copied]);
+
   const games = details.data?.games ?? [];
   const gameId = chosenGameId && games.some((g) => g.gameId === chosenGameId) ? chosenGameId : (games[0]?.gameId ?? null);
   const inNa = isNaRegion(profile?.region);
@@ -195,10 +222,24 @@ export function QueueUpSheet({ visible, onClose, showOnlineLink = true }: QueueU
     try {
       await Clipboard.setStringAsync(message);
       hapticSuccess();
-      showToast(QUEUE_COPY.copied);
+      setCopied(true);
     } catch {
       // Clipboard unavailable. Share still works.
     }
+  }
+
+  function queueUp() {
+    if (!gameId) return;
+    setStartError(null);
+    start.mutate(
+      { gameId, ping: inNa && ping },
+      { onError: (err) => setStartError(queueErrorMessage(err, QUEUE_COPY.startFailed)) },
+    );
+  }
+
+  function stopQueueing() {
+    setStopError(null);
+    stop.mutate(undefined, { onError: (err) => setStopError(queueErrorMessage(err, QUEUE_COPY.stopFailed)) });
   }
 
   async function turnOnNotifications() {
@@ -213,16 +254,19 @@ export function QueueUpSheet({ visible, onClose, showOnlineLink = true }: QueueU
   }
 
   const footer = (
-    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm }}>
-      {showOnlineLink ? <TextLink label={QUEUE_COPY.seeWhosOn} onPress={openOnlineNow} /> : <View />}
-      <Button
-        size="sm"
-        variant="ghost"
-        haptic="light"
-        label={QUEUE_COPY.stop}
-        loading={stop.isPending}
-        onPress={() => stop.mutate()}
-      />
+    <View style={{ gap: spacing.xs }}>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm }}>
+        {showOnlineLink ? <TextLink label={QUEUE_COPY.seeWhosOn} onPress={openOnlineNow} /> : <View />}
+        <Button
+          size="sm"
+          variant="ghost"
+          haptic="light"
+          label={QUEUE_COPY.stop}
+          loading={stop.isPending}
+          onPress={stopQueueing}
+        />
+      </View>
+      <InlineError message={stopError} align="right" />
     </View>
   );
 
@@ -280,7 +324,12 @@ export function QueueUpSheet({ visible, onClose, showOnlineLink = true }: QueueU
             <View style={{ flex: 1 }}>
               <Button label={QUEUE_COPY.share} onPress={() => void sharePost()} />
             </View>
-            <Button size="sm" variant="ghost" label={QUEUE_COPY.copy} onPress={() => void copyPost()} />
+            <Button
+              size="sm"
+              variant="ghost"
+              label={copied ? QUEUE_COPY.copied : QUEUE_COPY.copy}
+              onPress={() => void copyPost()}
+            />
           </View>
         )}
         <Card style={{ flexDirection: "row", alignItems: "flex-start", gap: spacing.sm, padding: spacing.md }}>
@@ -354,10 +403,9 @@ export function QueueUpSheet({ visible, onClose, showOnlineLink = true }: QueueU
           haptic="medium"
           loading={start.isPending}
           disabled={!gameId}
-          onPress={() => {
-            if (gameId) start.mutate({ gameId, ping: inNa && ping });
-          }}
+          onPress={queueUp}
         />
+        <InlineError message={startError} />
         {/* The deck's old "Online" link is this pill now, so the list stays one tap away even
             before queueing (as in the mockup's setup sheet). */}
         {showOnlineLink && (

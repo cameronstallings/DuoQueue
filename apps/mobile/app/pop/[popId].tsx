@@ -20,7 +20,6 @@ import { useAnswerDuoPop, useDuoPop } from "@/features/queue/useDuoPop";
 import { useDuoLockedReviewPrompt } from "@/features/rating/useReviewTriggers";
 import { useRequireSession } from "@/hooks/useRequireSession";
 import { hapticError, hapticLight, hapticRigid, hapticWarning } from "@/lib/haptics";
-import { useToastStore } from "@/store/toast-store";
 import { LOGO_MARK_ASPECT, R, VB_W, W } from "@/theme/logo-geometry";
 import { useTheme } from "@/theme/useTheme";
 
@@ -72,7 +71,6 @@ export default function PopCardScreen() {
   const answer = useAnswerDuoPop();
   const reportUser = useReportUser();
   const blockUser = useBlockUser();
-  const showToast = useToastStore((s) => s.showToast);
 
   const [lockedMatchId, setLockedMatchId] = useState<string>();
   const [poppedIn, setPoppedIn] = useState<number | null>(null);
@@ -80,13 +78,16 @@ export default function PopCardScreen() {
   const [matchedId, setMatchedId] = useState<string | null>(null);
   const [reportVisible, setReportVisible] = useState(false);
   const [queueSheetVisible, setQueueSheetVisible] = useState(false);
+  // Why the last I'm in failed, under the buttons: this card is a modal and the root Toast draws
+  // under it, so a toast here was a buzz with nothing to read while the ring kept counting.
+  const [answerError, setAnswerError] = useState<string | null>(null);
 
   // What the FIRST read said decides which card this is; later reads only move a live countdown on
   // (or end it, or find this player already in, below).
   const firstStatus = useRef<DuoPopStatus | null>(null);
   if (pop.data && firstStatus.current === null) firstStatus.current = pop.data.status;
 
-  // I'm in can commit on the server with its answer lost: the error toast shows and the card keeps
+  // I'm in can commit on the server with its answer lost: the error line shows and the card keeps
   // counting. A later read of the card (a reconnect refetch, or the same push tapped again) then
   // says locked_by_you, and its seconds_left is 0, which would draw "This Duo Pop ended" over a
   // real duo. So the ring closes now instead, without a popped-in time (only the answer carries
@@ -188,6 +189,7 @@ export default function PopCardScreen() {
   function handleImIn() {
     if (!popId || answer.isPending) return;
     hapticRigid();
+    setAnswerError(null);
     answer.mutate(
       { popId, accept: true },
       {
@@ -222,7 +224,10 @@ export default function PopCardScreen() {
               return;
           }
         },
-        onError: (err) => showToast(queueErrorMessage(err, POP_COPY.answerFailed), "error"),
+        onError: (err) => {
+          hapticError();
+          setAnswerError(queueErrorMessage(err, POP_COPY.answerFailed));
+        },
       },
     );
   }
@@ -294,6 +299,7 @@ export default function PopCardScreen() {
         rankText={card.rank_text}
         canDuo={card.can_duo}
         answering={answer.isPending && answer.variables?.accept === true}
+        answerError={answerError}
         onImIn={handleImIn}
         onNotNow={handleNotNow}
         onReport={() => setReportVisible(true)}

@@ -11,7 +11,8 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { Skeleton } from "@/components/Skeleton";
 import { type OnlineNowCard, useOnlineNow } from "@/features/online-now/useOnlineNow";
 import { matchParams } from "@/features/match/matchMoment";
-import { ONLINE_NOW_COPY, untilLine } from "@/features/queue/queueCopy";
+import { InlineError } from "@/features/queue/InlineError";
+import { ONLINE_NOW_COPY, QUEUE_COPY, queueErrorMessage, untilLine } from "@/features/queue/queueCopy";
 import { formatTime, QueueUpSheet } from "@/features/queue/QueueUpSheet";
 import { useMyQueueUp, useStopQueueUp } from "@/features/queue/useQueueUp";
 import { useQueueState } from "@/features/queue/useQueueState";
@@ -111,30 +112,40 @@ function QueueStatusCard({ onQueueUp }: { onQueueUp: () => void }) {
   const queued = queueState.kind === "queued";
   const status = useMyQueueUp({ enabled: queued });
   const stop = useStopQueueUp();
+  // Said under the card: this screen is a modal, and the root Toast draws under it (InlineError).
+  const [stopError, setStopError] = useState<string | null>(null);
 
   const until = queueState.kind === "queued" ? formatTime(queueState.untilMs, false) : null;
   const title = queued ? ONLINE_NOW_COPY.queuedTitle(status.data?.game_name ?? null) : ONLINE_NOW_COPY.idleTitle;
   const line = queued ? (until ? untilLine(until) : null) : ONLINE_NOW_COPY.idleBody;
 
+  function stopQueueing() {
+    setStopError(null);
+    stop.mutate(undefined, { onError: (err) => setStopError(queueErrorMessage(err, QUEUE_COPY.stopFailed)) });
+  }
+
   return (
-    <Card style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md }}>
-      <View style={{ flex: 1, gap: 2 }}>
-        <Text style={[type.bodyStrong, { color: colors.text }]}>{title}</Text>
-        {line ? <Text style={[type.caption, { color: colors.textMuted }]}>{line}</Text> : null}
-      </View>
-      {queued ? (
-        <Button
-          size="sm"
-          variant="ghost"
-          haptic="light"
-          label={ONLINE_NOW_COPY.stop}
-          loading={stop.isPending}
-          onPress={() => stop.mutate()}
-        />
-      ) : (
-        <Button size="sm" haptic="light" label={ONLINE_NOW_COPY.queueUp} onPress={onQueueUp} />
-      )}
-    </Card>
+    <View style={{ gap: spacing.xs }}>
+      <Card style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md }}>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={[type.bodyStrong, { color: colors.text }]}>{title}</Text>
+          {line ? <Text style={[type.caption, { color: colors.textMuted }]}>{line}</Text> : null}
+        </View>
+        {queued ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            haptic="light"
+            label={ONLINE_NOW_COPY.stop}
+            loading={stop.isPending}
+            onPress={stopQueueing}
+          />
+        ) : (
+          <Button size="sm" haptic="light" label={ONLINE_NOW_COPY.queueUp} onPress={onQueueUp} />
+        )}
+      </Card>
+      <InlineError message={queued ? stopError : null} align="right" />
+    </View>
   );
 }
 
