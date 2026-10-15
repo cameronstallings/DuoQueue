@@ -25,12 +25,16 @@ export const DECK_POOL_SIZE_QUERY_KEY = ["deck-pool-size"] as const;
 export function useDeckPoolSize(enabled: boolean) {
   return useQuery({
     queryKey: DECK_POOL_SIZE_QUERY_KEY,
-    queryFn: async (): Promise<number> => {
-      const { data, error } = await supabase.rpc("get_deck_pool_size");
-      if (error) throw error;
-      return (data ?? 0) as number;
-    },
+    queryFn: fetchDeckPoolSize,
     enabled,
     staleTime: 30_000,
   });
+}
+
+/** The query's fetch, exported so useDeckPrefetch can warm the same cache entry (same key, same
+ * staleTime) while the last card is still on screen. */
+export async function fetchDeckPoolSize(): Promise<number> {
+  const { data, error } = await supabase.rpc("get_deck_pool_size");
+  if (error) throw error;
+  return (data ?? 0) as number;
 }

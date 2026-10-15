@@ -1,10 +1,10 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { RefreshControl, SectionList, Pressable, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { router, useFocusEffect } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Animated, { FadeIn } from "react-native-reanimated";
+import Animated, { FadeIn, useReducedMotion } from "react-native-reanimated";
 
 import { Chip } from "@/components/Chip";
 import { EmptyState } from "@/components/EmptyState";
@@ -15,8 +15,11 @@ import { useMatches, type MatchListItem } from "@/features/chat/useMatches";
 import { PartyInvitesBanner } from "@/features/party/PartyInvitesBanner";
 import { PartyListSection } from "@/features/party/PartyListSection";
 import { refreshParties } from "@/features/party/useParty";
+import { useFirstReveal } from "@/hooks/useFirstReveal";
 import { initialOf } from "@/lib/initialOf";
 import { useSessionStore } from "@/store/session-store";
+import { entranceFor, layoutTransition } from "@/theme/entering";
+import { entranceKind } from "@/theme/motion";
 import { useTheme } from "@/theme/useTheme";
 
 interface MatchSection {
@@ -138,10 +141,12 @@ function MatchRow({ item }: { item: MatchListItem }) {
   );
 }
 
+/** A row's skeleton, the same height as the real row (spacing.md above and below the 54pt avatar),
+ * so the list does not shift when the real rows replace it. */
 function MatchRowSkeleton() {
   const { spacing, radius } = useTheme();
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.lg }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, paddingVertical: spacing.md, paddingHorizontal: spacing.lg }}>
       <Skeleton width={54} height={54} borderRadius={radius.round} />
       <View style={{ flex: 1, gap: spacing.xs }}>
         <Skeleton width="50%" height={14} />
@@ -182,6 +187,19 @@ export default function MatchesScreen() {
     }
   }
 
+  // Row entrances (theme/motion.ts entranceKind): on the list's first reveal the rows cascade in,
+  // 45ms apart (capped at 400ms); a match that arrives later fades in on its own; a row already
+  // seen gets nothing, so a refetch or a return to this tab never replays the cascade. "Seen" is
+  // recorded after the commit, for every match in the data, not only the rows the list has drawn,
+  // so rows drawn later by scrolling do not fade in either.
+  const reduced = useReducedMotion();
+  const firstReveal = useFirstReveal(!isLoading && !!matches);
+  const seenRef = useRef(new Set<string>());
+  useEffect(() => {
+    for (const match of matches ?? []) seenRef.current.add(match.match_id);
+  }, [matches]);
+  const order = new Map(sections.flatMap((section) => section.data).map((item, index) => [item.match_id, index]));
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Text
@@ -200,11 +218,16 @@ export default function MatchesScreen() {
       <PartyListSection />
 
       {isLoading ? (
-        <View>
+        // Shaped like the list it stands in for: a section header (42pt, as the real one), then
+        // rows of the real rows' height.
+        <Animated.View layout={layoutTransition()}>
+          <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xs }}>
+            <Skeleton width={120} height={14} style={{ marginBottom: spacing.sm }} />
+          </View>
           {[0, 1, 2, 3, 4].map((i) => (
             <MatchRowSkeleton key={i} />
           ))}
-        </View>
+        </Animated.View>
       ) : error ? (
         <EmptyState
           icon="cloud-offline"
@@ -222,11 +245,21 @@ export default function MatchesScreen() {
           tick="NO DUOS YET"
         />
       ) : (
-        <Animated.View entering={FadeIn.duration(220)} style={{ flex: 1 }}>
+        <Animated.View entering={FadeIn.duration(220)} layout={layoutTransition()} style={{ flex: 1 }}>
           <SectionList
             sections={sections}
             keyExtractor={(item) => item.match_id}
-            renderItem={({ item }) => <MatchRow item={item} />}
+            renderItem={({ item }) => (
+              <Animated.View
+                entering={entranceFor(
+                  entranceKind({ seen: seenRef.current.has(item.match_id), firstReveal }),
+                  order.get(item.match_id) ?? 0,
+                  reduced,
+                )}
+              >
+                <MatchRow item={item} />
+              </Animated.View>
+            )}
             renderSectionHeader={({ section }) => (
               <View
                 style={{

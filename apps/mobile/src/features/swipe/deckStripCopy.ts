@@ -47,3 +47,28 @@ export function stripQuotaLabel(quota: StripQuota | undefined, compact: boolean)
 export function highlightsCountLabel(count: number): string {
   return `${count} picked today`;
 }
+
+/**
+ * Whether the deck may let a swipe go, from the quota it has cached. False only when the cache
+ * says a free account has spent every swipe today, which is when the card bounces back with a
+ * warning tap and the paywall opens, instead of flying off and then being restored when
+ * perform_swipe refuses it a moment later. Undefined (not loaded yet) lets it go: the server is
+ * still the one that decides, and a refusal still restores the card.
+ */
+export function canCommitSwipe(quota: StripQuota | undefined): boolean {
+  if (!quota || quota.is_premium) return true;
+  return (quota.swipes_limit ?? FREE_DAILY_SWIPES) - quota.swipes_used > 0;
+}
+
+/**
+ * The quota as it will be once the swipe in flight lands, so the strip's "swipes left" moves the
+ * moment a card is decided instead of a round trip later. perform_swipe counts likes and passes
+ * alike (0055), so every swipe adds one. DuoQueue+ is returned as the same object (nothing to
+ * count, and no needless re-render); a free quota is copied, never changed in place, because it
+ * is react-query's cached object and the error path puts the previous one back.
+ */
+export function optimisticQuota<Q extends StripQuota>(quota: Q | undefined): Q | undefined {
+  if (!quota) return undefined;
+  if (quota.is_premium) return quota;
+  return { ...quota, swipes_used: quota.swipes_used + 1 };
+}

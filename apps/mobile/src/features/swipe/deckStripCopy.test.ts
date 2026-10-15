@@ -6,11 +6,65 @@ import {
   STRIP_FACE_OVERLAP,
   STRIP_FACE_SIZE,
   STRIP_MAX_FONT_SCALE,
+  canCommitSwipe,
   highlightsCountLabel,
+  optimisticQuota,
   stripIsCompact,
   stripQuotaLabel,
   type StripQuota,
 } from "./deckStripCopy";
+
+describe("canCommitSwipe", () => {
+  it("lets the swipe go while the quota has not loaded (the server still decides)", () => {
+    expect(canCommitSwipe(undefined)).toBe(true);
+  });
+
+  it("always lets DuoQueue+ swipe", () => {
+    expect(canCommitSwipe({ is_premium: true, swipes_limit: null, swipes_used: 400 })).toBe(true);
+  });
+
+  it("lets the last free swipe go and stops the one after", () => {
+    expect(canCommitSwipe({ is_premium: false, swipes_limit: 25, swipes_used: 24 })).toBe(true);
+    expect(canCommitSwipe({ is_premium: false, swipes_limit: 25, swipes_used: 25 })).toBe(false);
+    expect(canCommitSwipe({ is_premium: false, swipes_limit: 25, swipes_used: 30 })).toBe(false);
+  });
+
+  it("uses the free limit when the server sends none", () => {
+    expect(canCommitSwipe({ is_premium: false, swipes_limit: null, swipes_used: 24 })).toBe(true);
+    expect(canCommitSwipe({ is_premium: false, swipes_limit: null, swipes_used: 25 })).toBe(false);
+  });
+});
+
+describe("optimisticQuota", () => {
+  it("has nothing to count before the quota loads", () => {
+    expect(optimisticQuota(undefined)).toBeUndefined();
+  });
+
+  it("leaves DuoQueue+ as it is (the same object)", () => {
+    const quota = { is_premium: true, swipes_limit: null, swipes_used: 3 };
+    expect(optimisticQuota(quota)).toBe(quota);
+  });
+
+  it("counts one more swipe for a free account, likes and passes alike", () => {
+    expect(optimisticQuota({ is_premium: false, swipes_limit: 25, swipes_used: 7 })).toEqual({
+      is_premium: false,
+      swipes_limit: 25,
+      swipes_used: 8,
+    });
+  });
+
+  it("does not change the cached object it was given", () => {
+    const quota = { is_premium: false, swipes_limit: 25, swipes_used: 7 };
+    const next = optimisticQuota(quota);
+    expect(next).not.toBe(quota);
+    expect(quota.swipes_used).toBe(7);
+  });
+
+  it("keeps any other field the cache holds", () => {
+    const quota = { is_premium: false, swipes_limit: 25, swipes_used: 1, extra: "kept" };
+    expect(optimisticQuota(quota)).toEqual({ ...quota, swipes_used: 2 });
+  });
+});
 
 describe("stripQuotaLabel", () => {
   it("is empty until the quota loads", () => {

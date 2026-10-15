@@ -1,6 +1,9 @@
 import { Alert, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
+import Animated from "react-native-reanimated";
 
+import { hapticError, hapticLight, hapticSuccess } from "@/lib/haptics";
+import { layoutTransition, quickExiting, revealEntering } from "@/theme/entering";
 import { useTheme } from "@/theme/useTheme";
 
 import { joinNames, partyInviteErrorMessage } from "./partyCopy";
@@ -22,18 +25,28 @@ function PartyInviteCard({ inviteId, partyId }: { inviteId: string; partyId: str
       { inviteId, partyId, accept },
       {
         onSuccess: () => {
-          if (accept) router.push({ pathname: "/party/[partyId]/chat", params: { partyId } });
+          if (accept) {
+            hapticSuccess();
+            router.push({ pathname: "/party/[partyId]/chat", params: { partyId } });
+          } else {
+            hapticLight();
+          }
         },
         // An Alert, not a toast: "it expired" or "it's full" is the end of this invite, and a
         // two-second toast over a card that then vanishes reads as the app eating the tap.
-        onError: (err) =>
-          Alert.alert(accept ? "Couldn't join the party" : "Couldn't decline the invite", partyInviteErrorMessage(err)),
+        onError: (err) => {
+          hapticError();
+          Alert.alert(accept ? "Couldn't join the party" : "Couldn't decline the invite", partyInviteErrorMessage(err));
+        },
       },
     );
   }
 
+  // An answered invite fades out and the cards under it glide up, instead of vanishing.
   return (
-    <View
+    <Animated.View
+      exiting={quickExiting()}
+      layout={layoutTransition()}
       style={{
         backgroundColor: colors.voltSoft,
         borderRadius: radius.lg,
@@ -64,7 +77,7 @@ function PartyInviteCard({ inviteId, partyId }: { inviteId: string; partyId: str
           <Text style={[type.bodyStrong, { color: colors.textMuted }]}>Decline</Text>
         </Pressable>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -73,11 +86,18 @@ export function PartyInvitesBanner() {
   const { data: invites } = usePartyInvites();
   if (!invites || invites.length === 0) return null;
 
+  // Fades in when the first invite arrives and out with the last, so the Matches list under it
+  // moves smoothly rather than jumping by a card's height.
   return (
-    <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm }}>
+    <Animated.View
+      entering={revealEntering()}
+      exiting={quickExiting()}
+      layout={layoutTransition()}
+      style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm }}
+    >
       {invites.map((invite) => (
         <PartyInviteCard key={invite.invite_id} inviteId={invite.invite_id} partyId={invite.party_id} />
       ))}
-    </View>
+    </Animated.View>
   );
 }

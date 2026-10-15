@@ -33,6 +33,7 @@ import { useOwnProfilePhotos } from "@/features/profile/useOwnProfilePhotos";
 import { useOwnPrompts } from "@/features/profile/useOwnPrompts";
 import { useVerifiedStats } from "@/features/profile/useVerifiedStats";
 import { useSessionStore } from "@/store/session-store";
+import { SPRINGS } from "@/theme/motion";
 import { useTheme } from "@/theme/useTheme";
 
 // First-reveal cascade: 45ms per block, capped so a full page settles inside ~400ms.
@@ -101,7 +102,7 @@ export default function ProfileScreen() {
     const delay = Math.min(staggerSlot++ * STAGGER_STEP_MS, STAGGER_CAP_MS);
     return reduced
       ? FadeIn.duration(200).delay(delay).reduceMotion(ReduceMotion.Never)
-      : FadeInDown.springify().delay(delay);
+      : FadeInDown.springify().mass(1).stiffness(SPRINGS.stack.stiffness).damping(SPRINGS.stack.damping).delay(delay);
   }
 
   // The atmosphere lags a beat behind the content: 0.15x scroll rate, capped at 40px.

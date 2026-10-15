@@ -9,11 +9,12 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import Animated, { FadeInUp } from "react-native-reanimated";
+import Animated, { FadeInUp, ReduceMotion, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MATCH_FEEDBACK_TAGS, MESSAGE_MAX_LENGTH, type MatchFeedbackTag, type ReportReason } from "@duoqueue/shared-types";
 
@@ -42,10 +43,13 @@ import { useCreateParty } from "@/features/party/useParty";
 import { paywallHref } from "@/features/premium/paywall/paywallCopy";
 import { useSubmitMatchFeedback } from "@/features/reputation/useReputation";
 import { containsHiddenWord, useHiddenWords } from "@/features/settings/useHiddenWords";
+import { usePressScale } from "@/hooks/usePressScale";
 import { useRequireSession } from "@/hooks/useRequireSession";
 import { useSheetHandoff } from "@/hooks/useSheetHandoff";
 import { hapticLight } from "@/lib/haptics";
 import { useSessionStore } from "@/store/session-store";
+import { quickEntering, quickExiting, stackSpringEntering } from "@/theme/entering";
+import { motion } from "@/theme/tokens";
 import { useTheme } from "@/theme/useTheme";
 
 const SESSION_TIME_FORMAT = new Intl.DateTimeFormat(undefined, {
@@ -559,6 +563,17 @@ export default function ChatScreen() {
   }
 
   const canSend = !sendMessage.isPending && !!draft.trim();
+  // Motion (Group M): new rows spring in on a full config (plain fade under Reduce Motion), the
+  // typing line has a slot of its own height, and the send button fades its disabled state and
+  // springs under the thumb. One style writes the send button's opacity: the dim goes into
+  // usePressScale, never a second opacity style.
+  const reduced = useReducedMotion();
+  const { fontScale } = useWindowDimensions();
+  const sendDim = useSharedValue(canSend ? 1 : 0.45);
+  useEffect(() => {
+    sendDim.value = withTiming(canSend ? 1 : 0.45, { duration: motion.quick, reduceMotion: ReduceMotion.Never });
+  }, [canSend, sendDim]);
+  const sendPress = usePressScale(0.94, sendDim);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -658,7 +673,9 @@ export default function ChatScreen() {
             return (
               <Animated.View
                 style={{ marginTop }}
-                entering={isNew ? FadeInUp.springify().damping(16).stiffness(180) : undefined}
+                // Full-config spring (theme/entering.ts): the old spring chain set damping 16
+                // and stiffness 180 but never mass, so it ran at Reanimated's default of 4.
+                entering={isNew ? stackSpringEntering(FadeInUp, reduced) : undefined}
               >
                 <MessageBubble
                   content={item.message.content}
@@ -674,11 +691,22 @@ export default function ChatScreen() {
         />
       )}
 
-      {otherIsTyping && (
-        <Text style={[type.caption, { color: colors.textMuted, paddingHorizontal: spacing.md }]}>
-          {matchInfo?.other_display_name ? `${matchInfo.other_display_name} is typing…` : "They are typing…"}
-        </Text>
-      )}
+      {/* The typing line's slot is always there, one caption line tall (capped at 1.3x text
+          size, as the line itself is), so the thread no longer jumps 18pt each time the other
+          person starts or stops typing; the line fades in and out inside it. */}
+      <View style={{ height: Math.ceil(18 * Math.min(fontScale, 1.3)), justifyContent: "center" }}>
+        {otherIsTyping && (
+          <Animated.Text
+            entering={quickEntering()}
+            exiting={quickExiting()}
+            maxFontSizeMultiplier={1.3}
+            numberOfLines={1}
+            style={[type.caption, { color: colors.textMuted, paddingHorizontal: spacing.md }]}
+          >
+            {matchInfo?.other_display_name ? `${matchInfo.other_display_name} is typing…` : "They are typing…"}
+          </Animated.Text>
+        )}
+      </View>
 
       <SessionBanner matchId={matchId} myId={myId} />
 
@@ -755,21 +783,25 @@ export default function ChatScreen() {
               accessibilityRole="button"
               accessibilityLabel="Send message"
               onPress={() => void handleSend()}
+              onPressIn={sendPress.onPressIn}
+              onPressOut={sendPress.onPressOut}
               disabled={!canSend}
-              style={({ pressed }) => [
-                {
-                  width: 40,
-                  height: 40,
-                  borderRadius: radius.round,
-                  backgroundColor: colors.volt,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  opacity: canSend ? 1 : 0.45,
-                },
-                { transform: [{ scale: pressed ? 0.94 : 1 }] },
-              ]}
             >
-              <Ionicons name="arrow-up" size={20} color={colors.onVolt} />
+              <Animated.View
+                style={[
+                  {
+                    width: 40,
+                    height: 40,
+                    borderRadius: radius.round,
+                    backgroundColor: colors.volt,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  },
+                  sendPress.style,
+                ]}
+              >
+                <Ionicons name="arrow-up" size={20} color={colors.onVolt} />
+              </Animated.View>
             </Pressable>
           </View>
         )}
