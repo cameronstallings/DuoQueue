@@ -141,8 +141,8 @@ changed.** The first three bullets are why the old plain seed was NOT safe to ru
 handles all three, and the table above is its re-measure after a plain run. What is still left
 before submitting is the last bullet.
 - Before the reseed, the review account had passed Dae and liked Devon on 10 Oct 2026, so only
-  11 personas passed `deck_gate_hard` and `deck_gate_preferences` for it (Bea, Chase, Kofi,
-  whose slug is Cameron's card since the reseed, Marcus, Nadia, Ophelia, Remy, Sana, Tobin, Wren,
+  11 personas passed `deck_gate_hard` and `deck_gate_preferences` for it (Bea, Chase, the
+  persona that is Cameron's card since the reseed, Marcus, Nadia, Ophelia, Remy, Sana, Tobin, Wren,
   Yuki), and neither CAN DUO card was among them. Every seed run deletes every swipe the review account made
   (`resetReviewAccountState`), so a plain run clears that; Priya (8 messages) and the three
   requests (now Sana, Marcus, Cameron) are rebuilt by it.
