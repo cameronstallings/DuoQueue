@@ -4,6 +4,7 @@ import {
   answerWithin,
   chatOpening,
   chatPush,
+  duoCallLockedNotificationOf,
   duoLockedNotificationOf,
   duoPopNotificationOf,
   frontScreen,
@@ -979,6 +980,33 @@ describe("duoPopNotificationOf and duoLockedNotificationOf", () => {
     expect(duoLockedNotificationOf("new_match", MATCH_ID, undefined, "41", "1")).toBeNull();
     expect(duoLockedNotificationOf("new_match", "nope", POP_ID, "41", "1")).toBeNull();
     expect(duoLockedNotificationOf("duo_pop", MATCH_ID, POP_ID, "41", "1")).toBeNull();
+  });
+});
+
+describe("duoCallLockedNotificationOf (a duo that came from the LFG post)", () => {
+  it("reads the sender's post-lock push: new_match, a match, a pop and via post", () => {
+    expect(duoCallLockedNotificationOf("new_match", MATCH_ID.toUpperCase(), POP_ID.toUpperCase(), "post")).toEqual({
+      matchId: MATCH_ID,
+      popId: POP_ID,
+    });
+  });
+
+  it("is null for anything else, so a Duo Pop lock or an ordinary match is read as before", () => {
+    expect(duoCallLockedNotificationOf("new_match", MATCH_ID, POP_ID, undefined)).toBeNull();
+    expect(duoCallLockedNotificationOf("new_match", MATCH_ID, POP_ID, "pop")).toBeNull();
+    expect(duoCallLockedNotificationOf("new_match", MATCH_ID, undefined, "post")).toBeNull();
+    expect(duoCallLockedNotificationOf("new_match", "nope", POP_ID, "post")).toBeNull();
+    expect(duoCallLockedNotificationOf("new_message", MATCH_ID, POP_ID, "post")).toBeNull();
+  });
+
+  it("leaves the tap alone: a post-lock push has no poppedIn, so a tap opens the chat", () => {
+    expect(
+      notificationTapAction({
+        ...readyMessage,
+        category: "new_match",
+        popId: POP_ID,
+      }),
+    ).toEqual(OPEN_CHAT);
   });
 });
 

@@ -9,8 +9,20 @@ import {
 } from "../../../../supabase/functions/_shared/invite-link";
 
 import {
+  CALL_ENDED_BEFORE_SIGNUP,
+  DUO_ARRIVAL_BODY,
+  duoArrivalBody,
+  duoRedemptionOutcome,
+  invitedPartyParams,
+  pushedPartyArrival,
   INVITE_CODE_LENGTH,
   INVITE_LINK_UNUSABLE,
+  needsCallEndedCheck,
+  parseArrival,
+  PARTY_LINK_NOTICE,
+  PARTY_REDEEM_NOTICE,
+  partyConfirmation,
+  partyRedemptionOutcome,
   inviteErrorMessage,
   inviteRouteAction,
   inviteShareMessage,
@@ -422,5 +434,232 @@ describe("inviteErrorMessage", () => {
       expect(shown).not.toMatch(/date|dating|singles|hookup|match with|meet people/i);
       expect(shown).not.toContain("—");
     }
+  });
+});
+
+describe("duoRedemptionOutcome (redeem_invite_code's answer, and why an invite vanished)", () => {
+  const row = { inviter_id: "inviter-1", display_name: "Kai", connected: false };
+
+  it("arrives at the inviter for a fresh redemption", () => {
+    expect(duoRedemptionOutcome({ errored: false, row })).toEqual({
+      arrival: { inviterId: "inviter-1", inviterName: "Kai" },
+      notice: null,
+    });
+  });
+
+  it("does not celebrate twice: a redemption already connected settles with no arrival", () => {
+    expect(duoRedemptionOutcome({ errored: false, row: { ...row, connected: true } })).toEqual({
+      arrival: null,
+      notice: null,
+    });
+  });
+
+  it("asks whether the Duo Call ended only for an empty answer, never after an error", () => {
+    expect(needsCallEndedCheck({ errored: false, row: null })).toBe(true);
+    expect(needsCallEndedCheck({ errored: false, row: undefined })).toBe(true);
+    expect(needsCallEndedCheck({ errored: false, row })).toBe(false);
+    expect(needsCallEndedCheck({ errored: true, row: null })).toBe(false);
+  });
+
+  it("says the Duo Call ended before sign-up finished, when the code was one that ended", () => {
+    // One duo per Queue up (0088): a call closes at its first duo, so the code someone typed at
+    // the front door can be gone by the time their profile exists. Said, not swallowed.
+    expect(duoRedemptionOutcome({ errored: false, row: null, callEnded: true })).toEqual({
+      arrival: null,
+      notice: CALL_ENDED_BEFORE_SIGNUP,
+    });
+    expect(CALL_ENDED_BEFORE_SIGNUP).toBe("That Duo Call ended before you finished. You can still find players here.");
+  });
+
+  it("leaves an onboarded player (a deep link) to the link screen's own line", () => {
+    expect(needsCallEndedCheck({ errored: false, row: null, onboarded: true })).toBe(false);
+    expect(duoRedemptionOutcome({ errored: false, row: null, callEnded: true, onboarded: true })).toEqual({
+      arrival: null,
+      notice: null,
+    });
+    expect(duoRedemptionOutcome({ errored: false, row: null, callEnded: true, onboarded: false }).notice).toBe(
+      CALL_ENDED_BEFORE_SIGNUP,
+    );
+  });
+
+  it("says nothing for an unknown code, an error, or a code whose call did not end", () => {
+    expect(duoRedemptionOutcome({ errored: false, row: null, callEnded: false })).toEqual({ arrival: null, notice: null });
+    expect(duoRedemptionOutcome({ errored: false, row: null })).toEqual({ arrival: null, notice: null });
+    expect(duoRedemptionOutcome({ errored: true, row: null, callEnded: true })).toEqual({ arrival: null, notice: null });
+  });
+
+  it("writes the notice without dashes and without dating words", () => {
+    expect(CALL_ENDED_BEFORE_SIGNUP).not.toMatch(new RegExp(`[${String.fromCharCode(0x2013, 0x2014)}]`));
+    expect(CALL_ENDED_BEFORE_SIGNUP).not.toMatch(/\bdates?\b|dating|singles|hookup|nearby|meet people|match with singles/i);
+  });
+});
+
+describe("partyRedemptionOutcome (resolve_party_code, asked before redeem_invite_code)", () => {
+  const live = { status: "live", sharer_name: "Sam", game_name: "League of Legends" };
+
+  it("arrives at the party for a live code, with the code normalised", () => {
+    expect(partyRedemptionOutcome({ error: null, rows: [live], code: "k7q2m9xa4p", onboarded: false })).toEqual({
+      kind: "arrival",
+      arrival: { kind: "party", code: "K7Q2M9XA4P", inviterName: "Sam" },
+    });
+  });
+
+  it("names nobody it was not told about", () => {
+    expect(
+      partyRedemptionOutcome({ error: null, rows: [{ ...live, sharer_name: "  " }], code: CODE, onboarded: false }),
+    ).toMatchObject({ arrival: { inviterName: "Someone" } });
+  });
+
+  it("says why a full or ended post has no seat, worded for where the player is", () => {
+    expect(
+      partyRedemptionOutcome({ error: null, rows: [{ ...live, status: "full" }], code: CODE, onboarded: false }),
+    ).toEqual({ kind: "refused", notice: PARTY_REDEEM_NOTICE.full });
+    expect(
+      partyRedemptionOutcome({ error: null, rows: [{ ...live, status: "ended" }], code: CODE, onboarded: false }),
+    ).toEqual({ kind: "refused", notice: PARTY_REDEEM_NOTICE.ended });
+    expect(
+      partyRedemptionOutcome({ error: null, rows: [{ ...live, status: "full" }], code: CODE, onboarded: true }),
+    ).toEqual({ kind: "refused", notice: PARTY_LINK_NOTICE.full });
+    expect(
+      partyRedemptionOutcome({ error: null, rows: [{ ...live, status: "ended" }], code: CODE, onboarded: true }),
+    ).toEqual({ kind: "refused", notice: PARTY_LINK_NOTICE.ended });
+    expect(PARTY_REDEEM_NOTICE).toEqual({
+      full: "That party's last seat was taken before you finished. You can still find players here.",
+      ended: "That party post ended before you finished. You can still find players here.",
+    });
+  });
+
+  it("falls through to today's redeem_invite_code for zero rows, a missing function or any error", () => {
+    // Read-only first, so a party code never touches invite_redemptions, and an ordinary invite is
+    // never lost to a party error (the design's redeem-first order settled null and lost it).
+    expect(partyRedemptionOutcome({ error: null, rows: [], code: CODE, onboarded: false })).toEqual({
+      kind: "not-party",
+    });
+    expect(partyRedemptionOutcome({ error: null, rows: null, code: CODE, onboarded: false })).toEqual({
+      kind: "not-party",
+    });
+    expect(
+      partyRedemptionOutcome({ error: { code: "PGRST202" }, rows: null, code: CODE, onboarded: false }),
+    ).toEqual({ kind: "not-party" });
+    expect(
+      partyRedemptionOutcome({ error: new TypeError("Network request failed"), rows: [live], code: CODE, onboarded: false }),
+    ).toEqual({ kind: "not-party" });
+    expect(
+      partyRedemptionOutcome({ error: null, rows: [{ ...live, status: "weird" }], code: CODE, onboarded: false }),
+    ).toEqual({ kind: "not-party" });
+  });
+
+  it("writes every notice without dashes or dating words", () => {
+    for (const s of [...Object.values(PARTY_REDEEM_NOTICE), ...Object.values(PARTY_LINK_NOTICE), partyConfirmation("Sam")]) {
+      expect(s).not.toMatch(new RegExp(`[${String.fromCharCode(0x2013, 0x2014)}]`));
+      expect(s).not.toMatch(/\bdates?\b|dating|singles|hookup|nearby|meet people|match with singles/i);
+    }
+  });
+});
+
+describe("partyConfirmation", () => {
+  it("names an open seat and never promises it (nothing holds it; first one in gets the spot)", () => {
+    expect(partyConfirmation("Sam")).toBe(
+      "Sam's party has an open seat. Finish signing up to join them if it's still open.",
+    );
+    expect(partyConfirmation("Sam")).not.toMatch(/for you/);
+  });
+});
+
+describe("the Matches party code, carried in /invited's route params", () => {
+  it("goes there and back as a party arrival", () => {
+    const params = invitedPartyParams({ code: CODE, inviterName: "Sam" });
+    expect(params).toEqual({ partyCode: CODE, partyName: "Sam" });
+    expect(pushedPartyArrival(params)).toEqual({ kind: "party", code: CODE, inviterName: "Sam" });
+  });
+
+  it("normalises the code and names nobody it was not told about", () => {
+    expect(pushedPartyArrival({ partyCode: CODE.toLowerCase(), partyName: "  " })).toEqual({
+      kind: "party",
+      code: CODE,
+      inviterName: "Someone",
+    });
+    expect(pushedPartyArrival({ partyCode: CODE })).toMatchObject({ inviterName: "Someone" });
+  });
+
+  it("holds no arrival for any other way in, or for a code that is not a code", () => {
+    expect(pushedPartyArrival({})).toBeNull();
+    expect(pushedPartyArrival({ partyCode: "nope", partyName: "Sam" })).toBeNull();
+    expect(pushedPartyArrival({ partyCode: ["a"], partyName: "Sam" })).toBeNull();
+  });
+});
+
+describe("the duo arrival's line (one duo per Queue up)", () => {
+  it("keeps the redeemed code on the arrival, so /invited can ask whether a Duo Call ended", () => {
+    const row = { inviter_id: "inviter-1", display_name: "Kai", connected: false };
+    expect(duoRedemptionOutcome({ errored: false, row, code: CODE.toLowerCase() })).toEqual({
+      arrival: { inviterId: "inviter-1", inviterName: "Kai", code: CODE },
+      notice: null,
+    });
+    expect(duoRedemptionOutcome({ errored: false, row, code: "nope" }).arrival).toEqual({
+      inviterId: "inviter-1",
+      inviterName: "Kai",
+    });
+  });
+
+  it("says Duo up only sends a request once the call has ended, and waits rather than swapping", () => {
+    expect(duoArrivalBody(true)).toBe("Their Duo Call has ended. You can still send them a duo request.");
+    expect(duoArrivalBody(false)).toBe("They asked you to come find duos here. Duo up and you already have one.");
+    expect(duoArrivalBody(undefined)).toBeNull();
+  });
+
+  it("writes both lines without dashes, beats or dating words", () => {
+    for (const s of Object.values(DUO_ARRIVAL_BODY)) {
+      expect(s).not.toMatch(new RegExp(`[${String.fromCharCode(0x2013, 0x2014)}]`));
+      expect(s).not.toMatch(/\bbeats?\b/i);
+      expect(s).not.toMatch(/\bdates?\b|dating|singles|hookup|nearby|meet people|match with singles/i);
+    }
+  });
+});
+
+describe("parseArrival (the stored arrival, across a restart)", () => {
+  it("keeps a duo arrival, and reads an older blob with no kind as one", () => {
+    expect(parseArrival(JSON.stringify({ inviterId: "i", inviterName: "Kai" }))).toEqual({
+      inviterId: "i",
+      inviterName: "Kai",
+    });
+    expect(parseArrival(JSON.stringify({ kind: "duo", inviterId: "i", inviterName: "Kai" }))).toEqual({
+      inviterId: "i",
+      inviterName: "Kai",
+    });
+  });
+
+  it("keeps a duo arrival's code when it has a code's shape, and drops a bad one alone", () => {
+    expect(parseArrival(JSON.stringify({ inviterId: "i", inviterName: "Kai", code: CODE }))).toEqual({
+      inviterId: "i",
+      inviterName: "Kai",
+      code: CODE,
+    });
+    expect(parseArrival(JSON.stringify({ inviterId: "i", inviterName: "Kai", code: "nope" }))).toEqual({
+      inviterId: "i",
+      inviterName: "Kai",
+    });
+  });
+
+  it("keeps a party arrival's kind and code", () => {
+    expect(parseArrival(JSON.stringify({ kind: "party", code: CODE, inviterName: "Sam" }))).toEqual({
+      kind: "party",
+      code: CODE,
+      inviterName: "Sam",
+    });
+  });
+
+  it("drops anything malformed rather than throwing", () => {
+    expect(parseArrival(null)).toBeNull();
+    expect(parseArrival("")).toBeNull();
+    expect(parseArrival("{")).toBeNull();
+    expect(parseArrival(JSON.stringify(["a"]))).toBeNull();
+    expect(parseArrival(JSON.stringify({ kind: "party", code: "nope", inviterName: "Sam" }))).toBeNull();
+    expect(parseArrival(JSON.stringify({ kind: "party", code: CODE }))).toBeNull();
+    expect(parseArrival(JSON.stringify({ inviterId: 3, inviterName: "Kai" }))).toBeNull();
+  });
+
+  it("reads a party blob that lost its code as nothing, never as a duo", () => {
+    expect(parseArrival(JSON.stringify({ kind: "party", inviterId: "i", inviterName: "Kai" }))).toBeNull();
   });
 });

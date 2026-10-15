@@ -3,10 +3,21 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { InviteAcceptance, InviteRedemption, ResolvedInviter } from "@duoqueue/shared-types";
 
 import { MATCHES_QUERY_KEY } from "@/features/chat/useMatches";
-import { inviteUrl, isInviteCodeShape, normalizeInviteCode, shouldRedeemInvite } from "@/lib/invite";
+import { PARTY_LFG_RPC, type ResolvedPartyCode } from "@/features/party/partyCall";
+import {
+  duoRedemptionOutcome,
+  inviteUrl,
+  isInviteCodeShape,
+  needsCallEndedCheck,
+  normalizeInviteCode,
+  partyRedemptionOutcome,
+  redemptionStillWanted,
+  shouldRedeemInvite,
+} from "@/lib/invite";
 import { supabase } from "@/lib/supabase";
 import { useInviteStore } from "@/store/invite-store";
 import { useSessionStore } from "@/store/session-store";
+import { useToastStore } from "@/store/toast-store";
 
 /**
  * The four server calls behind the invite flow, and the one effect that ties them to the
@@ -111,7 +122,9 @@ export function useResolveInviteCode(rawCode: string | null | undefined) {
  * FAILURE IS A NORMAL OUTCOME, NOT AN ERROR TO SURFACE. The window closed, they were
  * already invited by somebody else, the code was revoked. None of those are worth an alert
  * on top of a sign-up flow; they simply mean there is no arrival to show, and
- * `inviteRouteAction` reads "failed" as "carry on into the app".
+ * `inviteRouteAction` reads "failed" as "carry on into the app". Two endings ARE said, once, as
+ * an info toast, because the player did something and deserves to know why nothing came of it:
+ * a party post that filled or ended, and a Duo Call that ended, before their profile existed.
  */
 export function useInviteRedemption(): void {
   const status = useSessionStore((s) => s.status);
@@ -125,33 +138,110 @@ export function useInviteRedemption(): void {
     // The gate itself lives in `@/lib/invite` with tests, for the same reason
     // `inviteRouteAction` does: it is the part of this hook that can be wrong, it was wrong,
     // and being wrong cost every invited Apple install its attribution without saying so.
-    if (!shouldRedeemInvite({ sessionStatus: status, profileStatus, pendingCode, redemption })) return;
+    if (!pendingCode || !shouldRedeemInvite({ sessionStatus: status, profileStatus, pendingCode, redemption })) return;
 
-    let cancelled = false;
+    const code = pendingCode;
     markRedeeming();
 
-    void (async () => {
-      const { data, error } = await supabase.rpc("redeem_invite_code", { p_code: pendingCode });
-      if (cancelled) return;
-
-      const row = ((data ?? []) as InviteRedemption[])[0];
-      if (error || !row) {
-        settleRedemption(null);
-        return;
-      }
-
-      // `connected` means this account has already been through the arrival screen, most
-      // likely on a previous install. The attribution row stands; the celebration does not
-      // repeat, so this settles with no arrival.
-      settleRedemption(
-        row.connected ? null : { inviterId: row.inviter_id, inviterName: row.display_name },
+    // SETTLE ONLY WHILE THE STORE IS STILL WAITING ON THIS CODE. This used to be a `cancelled`
+    // flag set by the effect's cleanup, but `markRedeeming()` just above changes `redemption`,
+    // one of this effect's own dependencies, so React ran the cleanup on the very next render:
+    // every answer arrived "cancelled", nothing ever settled, and `redemption` sat at "pending"
+    // for good (an invite deep link held its Logo frame, and the commit gave up after 5 s and
+    // went to /welcome instead of /invited). The store itself says whether the answer is still
+    // wanted: a newer code (setPendingCode resets it to "idle") or a cleared arrival means no.
+    // The decision is `redemptionStillWanted` in `@/lib/invite`, with tests.
+    const stillWaiting = () => {
+      const { pendingCode: nowPending, redemption: nowRedemption } = useInviteStore.getState();
+      return redemptionStillWanted(
+        { pendingCode: nowPending, redemption: nowRedemption, sessionStatus: useSessionStore.getState().status },
+        code,
       );
-    })();
-
-    return () => {
-      cancelled = true;
     };
+    const say = (notice: string | null) => {
+      if (notice) useToastStore.getState().showToast(notice, "info");
+    };
+
+    void (async () => {
+      try {
+        const onboarded = useSessionStore.getState().profile?.onboarding_completed === true;
+
+        // A party LFG post's code first (0089). resolve_party_code is read-only, so asking costs an
+        // ordinary invite nothing, and any error or zero rows falls through to the path below
+        // exactly as before (partyRedemptionOutcome). Nothing is written for a party code here:
+        // the seat is only taken when the player taps Join on /invited (join_party_by_code), so an
+        // abandoned sign-up never holds it.
+        const party = await supabase.rpc(PARTY_LFG_RPC.resolve, { p_code: code });
+        if (!stillWaiting()) return;
+        const partyOutcome = partyRedemptionOutcome({ error: party.error, rows: party.data, code, onboarded });
+        if (partyOutcome.kind === "arrival") {
+          settleRedemption(partyOutcome.arrival);
+          return;
+        }
+        if (partyOutcome.kind === "refused") {
+          settleRedemption(null, partyOutcome.notice);
+          say(partyOutcome.notice);
+          return;
+        }
+
+        const { data, error } = await supabase.rpc("redeem_invite_code", { p_code: code });
+        if (!stillWaiting()) return;
+
+        const row = ((data ?? []) as InviteRedemption[])[0];
+        const answer = { errored: !!error, row, onboarded };
+        // An empty answer can be a Duo Call that ended between the front door and now (one duo per
+        // Queue up closes a call at its first duo). One more read says whether that is what
+        // happened, so the player is told instead of left wondering where the invite went.
+        let callEnded = false;
+        if (needsCallEndedCheck(answer)) {
+          const ended = await supabase.rpc("call_code_ended", { p_code: code });
+          if (!stillWaiting()) return;
+          callEnded = !ended.error && ended.data === true;
+        }
+
+        // `connected` means this account has already been through the arrival screen, most
+        // likely on a previous install. The attribution row stands; the celebration does not
+        // repeat, so that settles with no arrival (duoRedemptionOutcome).
+        // The code rides on the arrival, so /invited can tell a Duo Call that ended since.
+        const outcome = duoRedemptionOutcome({ ...answer, callEnded, code });
+        settleRedemption(outcome.arrival, outcome.notice);
+        say(outcome.notice);
+      } catch {
+        // A thrown request (supabase-js reports most failures as `error`, not by throwing).
+        if (stillWaiting()) settleRedemption(null);
+      }
+    })();
   }, [status, profileStatus, pendingCode, redemption, markRedeeming, settleRedemption]);
+}
+
+/**
+ * Whether a code is a party LFG post's (resolve_party_code, readable signed out, like
+ * resolve_invite_code). Asked by the invite field only once resolve_invite_code has said the code
+ * is nobody's invite, and by Matches > "Have a party code?".
+ *
+ *  - undefined while that one question is being asked, so the field keeps saying it is checking;
+ *  - null when the code is not a party code: zero rows, or ANY error (PGRST202 before 0089, the
+ *    kill switch, offline), so the field falls back to its old lines;
+ *  - the row ("live", "full" or "ended") otherwise.
+ */
+export function useResolvePartyCode(code: string | null, enabled: boolean): ResolvedPartyCode | null | undefined {
+  const normalized = normalizeInviteCode(code);
+  const asked = enabled && isInviteCodeShape(normalized);
+  const query = useQuery({
+    queryKey: ["party-code", normalized],
+    queryFn: async (): Promise<ResolvedPartyCode | null> => {
+      const { data, error } = await supabase.rpc(PARTY_LFG_RPC.resolve, { p_code: normalized });
+      if (error) return null;
+      const row = ((data ?? []) as ResolvedPartyCode[])[0];
+      return row && (row.status === "live" || row.status === "full" || row.status === "ended") ? row : null;
+    },
+    enabled: asked,
+    staleTime: 30_000,
+    retry: false,
+  });
+  if (!asked) return null;
+  if (query.data !== undefined) return query.data;
+  return query.isError ? null : undefined;
 }
 
 /**

@@ -12,6 +12,7 @@ import {
   popEndedTitle,
   popLockedTitle,
   popSentence,
+  popTakenTitle,
   QUEUE_COPY,
   queueErrorMessage,
   ringClock,
@@ -64,6 +65,18 @@ describe("outcomeLine", () => {
     expect(QUEUE_COPY.adultsOnly).toContain("15 minutes after your hour ends");
   });
 
+  it("says the code and the hour end at the first duo, by either path (one duo per Queue up)", () => {
+    // 0088: a Duo Pop's I'm in and the post's code both end the call, so the 18+ card and the
+    // idle caption name "once you find a duo", which covers both.
+    expect(QUEUE_COPY.adultsOnly).toBe(
+      "DuoQueue is 18+ and it is for finding teammates, not dates. Only share your post where adults look for teammates. Your code stops working once you find a duo, when you stop queueing, or 15 minutes after your hour ends.",
+    );
+    expect(QUEUE_COPY.adultsOnly).toContain("once you find a duo");
+    expect(QUEUE_COPY.matchesSeeYou).toBe(
+      "For the next hour, or until you find a duo, you show in Online Now, and your matches may get a heads-up that you're free.",
+    );
+  });
+
   it("never claims players were told when none were", () => {
     expect(outcomeLine("popping", { ...facts, notified: 0 })).toBe(outcomeLine("no_players", facts));
     expect(outcomeLine("no_players", { ...facts, gameName: null })).toContain("No one in your game");
@@ -73,12 +86,18 @@ describe("outcomeLine", () => {
 describe("the small lines", () => {
   it("reads the sheet's times and names", () => {
     expect(untilLine("10:40 PM")).toBe("On until 10:40 PM.");
-    expect(lockedLine("Kai")).toBe("Kai grabbed your Duo Pop.");
+    expect(lockedLine("Kai", false)).toBe("Kai grabbed your Duo Pop.");
+    expect(lockedLine("Kai", true)).toBe("Kai answered your LFG post.");
+    expect(popTakenTitle("Kai")).toBe("Kai already found a duo");
+    expect(QUEUE_COPY.queueAgain).toBe("Queue up again");
     expect(popSentence("Kai", "League of Legends")).toBe(
       "Kai is queueing League of Legends now. The first player to tap I'm in gets the duo.",
     );
     expect(popSentence("Kai", null)).toBe("Kai is queueing now. The first player to tap I'm in gets the duo.");
-    expect(popEndedTitle("Kai")).toBe("Kai stopped queueing");
+    // Not "stopped queueing": since 0088 a sender's queue-up also ends when they find a duo
+    // another way (another pop, or their LFG post's code), and they never stopped.
+    expect(popEndedTitle("Kai")).toBe("Kai isn't queued anymore");
+    expect(popEndedTitle("Kai")).not.toMatch(/stopped/i);
     expect(popLockedTitle("Kai")).toBe("You're duo locked with Kai");
   });
 
@@ -178,10 +197,12 @@ function everyString(): string[] {
   for (const o of outcomes) out.push(outcomeLine(o, facts), outcomeLine(o, { ...facts, notified: 1 }));
   out.push(
     untilLine("10:40 PM"),
-    lockedLine("Kai"),
+    lockedLine("Kai", false),
+    lockedLine("Kai", true),
     popSentence("Kai", "League of Legends"),
     popEndedTitle("Kai"),
     popLockedTitle("Kai"),
+    popTakenTitle("Kai"),
     ringClock(581),
   );
   return out;

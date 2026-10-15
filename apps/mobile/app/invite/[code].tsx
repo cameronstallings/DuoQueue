@@ -32,6 +32,7 @@ export default function InviteDeepLink() {
   const pendingCode = useInviteStore((s) => s.pendingCode);
   const redemption = useInviteStore((s) => s.redemption);
   const arrival = useInviteStore((s) => s.arrival);
+  const redemptionNotice = useInviteStore((s) => s.redemptionNotice);
   const setPendingCode = useInviteStore((s) => s.setPendingCode);
 
   const normalized = normalizeInviteCode(code);
@@ -64,8 +65,17 @@ export default function InviteDeepLink() {
   // asks strangers to "Answer on DuoQueue", this is a real path now, and "home" alone dropped
   // them on the deck with nothing said. One info toast, on the screen they land on (the root
   // toast is visible there; this route is not a modal).
+  //
+  // Unless the redemption already said something truer (a party post that filled or ended): the
+  // redemption hook showed that line, and "Invite links are for new players" would replace it with
+  // something false (any player can take a party's last seat).
   const unusable =
-    storedHere.current && action === "home" && onboardingCompleted === true && redemption === "failed" && !arrival;
+    storedHere.current &&
+    action === "home" &&
+    onboardingCompleted === true &&
+    redemption === "failed" &&
+    !arrival &&
+    !redemptionNotice;
   useEffect(() => {
     if (unusable) useToastStore.getState().showToast(INVITE_LINK_UNUSABLE, "info");
   }, [unusable]);

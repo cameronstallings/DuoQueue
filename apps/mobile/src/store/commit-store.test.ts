@@ -108,7 +108,10 @@ const mocks = vi.hoisted(() => {
 
   const invite = fakeStore({
     pendingCode: null as string | null,
-    arrival: null as { inviterId: string; inviterName: string } | null,
+    arrival: null as
+      | { inviterId: string; inviterName: string }
+      | { kind: "party"; code: string; inviterName: string }
+      | null,
     redemption: "idle" as "idle" | "pending" | "done" | "failed",
   });
 
@@ -203,6 +206,12 @@ describe("run: the order of a successful save", () => {
 
   it("goes to /invited when an invite arrived", async () => {
     invite.setState({ arrival: { inviterId: "i", inviterName: "Kai" }, redemption: "done" });
+    await runToEnd();
+    expect(useCommitStore.getState().destination).toBe("/invited");
+  });
+
+  it("goes to /invited for a party arrival too (a party LFG post's code)", async () => {
+    invite.setState({ arrival: { kind: "party", code: "K7Q2M9XA4P", inviterName: "Sam" }, redemption: "done" });
     await runToEnd();
     expect(useCommitStore.getState().destination).toBe("/invited");
   });

@@ -26,20 +26,24 @@ export interface QueueUpRow {
   /** created_at + 60 minutes: the queue window (the same instant as looking_now_expires_at). */
   looking_until: string;
   ended_at: string | null;
-  /** The Duo Call code, only while the row is live (not ended, window not passed). */
+  /** The Duo Call code, only while the row is live (not ended, window not passed) and, since
+   * 0088 (one duo per Queue up), not yet locked: the first duo by either path ends the call. */
   call_code: string | null;
   locked_at: string | null;
   match_id: string | null;
-  /** The player who tapped I'm in. */
+  /** The player who tapped I'm in, or (0088) who joined with the LFG post's code. */
   partner_id: string | null;
   partner_name: string | null;
-  /** ceil(locked_at - created_at), clamped 1..600, when locked. */
+  /** ceil(locked_at - created_at), clamped 1..600, when a Duo Pop locked it. Null when unlocked
+   * and, since 0088, null for a lock that came from the LFG post (locked_via 'call'): a post
+   * answered forty minutes in did not "pop in 10:00". queueState reads that null as `viaPost`. */
   popped_in_seconds: number | null;
   /** start_queue_up only: a live row already existed and was returned unchanged. */
   already_queued: boolean;
 }
 
-/** `get_duo_pop`'s status, from the recipient's side. */
+/** `get_duo_pop`'s status, from the recipient's side. "taken" since 0088 also means the sender's
+ * call found its duo through the LFG post. */
 export type DuoPopStatus = "open" | "locked_by_you" | "taken" | "expired" | "ended";
 
 /** One row of `get_duo_pop`: the 10 columns, in order. AGES STAY: `age` is shown on the card. */

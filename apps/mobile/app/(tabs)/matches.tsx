@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/Skeleton";
 import { SectionLabel } from "@/components/SectionLabel";
 import { useMatches, type MatchListItem } from "@/features/chat/useMatches";
 import { useMatchesTabFocus } from "@/features/chat/matchesTabFocus";
+import { PartyCodeField } from "@/features/party/PartyCodeField";
 import { PartyInvitesBanner } from "@/features/party/PartyInvitesBanner";
 import { PartyListSection } from "@/features/party/PartyListSection";
 import { refreshParties } from "@/features/party/useParty";
@@ -220,6 +221,9 @@ export default function MatchesScreen() {
       </Text>
 
       <PartyInvitesBanner />
+      {/* A party LFG post's code, for players who already have an account (its link opens the
+          App Store, not the app). A live code opens the party's arrival screen. */}
+      <PartyCodeField />
       <PartyListSection />
 
       {isLoading ? (

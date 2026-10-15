@@ -51,13 +51,22 @@ export function parseCelebrated(raw: string | null | undefined): string[] {
  * On resume: the sender's newest queue-up was grabbed (locked, with its match), within the last
  * 15 minutes, and this phone has not played that moment yet. A lock stamped slightly after this
  * phone's "now" (its clock runs behind the server's) still counts as recent.
+ *
+ * Never for a duo that came from the LFG post. 0088 leaves popped_in_seconds null for those
+ * (locked_via 'call'), and DUO LOCKED without a popped-in time says "You and {name} both queued
+ * up", which is not what happened: somebody answered the post. The Queue Up sheet ("{name}
+ * answered your LFG post.") and the push already say so; the resume check only refreshes.
  */
 export function celebrateOnResume(
-  row: { queue_id: string; locked_at: string | null; match_id: string | null } | null | undefined,
+  row:
+    | { queue_id: string; locked_at: string | null; match_id: string | null; popped_in_seconds: number | null }
+    | null
+    | undefined,
   nowMs: number,
   list: readonly string[],
 ): boolean {
   if (!row || row.locked_at === null || row.match_id === null) return false;
+  if (row.popped_in_seconds === null) return false;
   const lockedMs = Date.parse(row.locked_at);
   if (!Number.isFinite(lockedMs)) return false;
   if (nowMs - lockedMs > RESUME_WINDOW_MS) return false;

@@ -14,11 +14,19 @@ const NOW = Date.parse("2026-10-15T22:00:00.000Z");
 const MIN = 60_000;
 const POP = "6a2b8c1e-9a4d-4e6f-8b2a-1c3d5e7f9a0b";
 
-function lockedRow(over: Partial<{ queue_id: string; locked_at: string | null; match_id: string | null }> = {}) {
+function lockedRow(
+  over: Partial<{
+    queue_id: string;
+    locked_at: string | null;
+    match_id: string | null;
+    popped_in_seconds: number | null;
+  }> = {},
+) {
   return {
     queue_id: POP,
     locked_at: new Date(NOW - 2 * MIN).toISOString(),
     match_id: "3f2b8c1e-9a4d-4e6f-8b2a-1c3d5e7f9a0b",
+    popped_in_seconds: 41,
     ...over,
   };
 }
@@ -91,6 +99,12 @@ describe("celebrateOnResume", () => {
     expect(celebrateOnResume(lockedRow({ match_id: null }), NOW, [])).toBe(false);
     expect(celebrateOnResume(lockedRow({ locked_at: "garbage" }), NOW, [])).toBe(false);
     expect(celebrateOnResume(null, NOW, [])).toBe(false);
+  });
+
+  it("never opens DUO LOCKED for a duo that came from the LFG post (no popped-in time)", () => {
+    // Its sentence would say "You and {name} both queued up", which is not what happened; the
+    // sheet and the push already say who answered the post.
+    expect(celebrateOnResume(lockedRow({ popped_in_seconds: null }), NOW, [])).toBe(false);
   });
 
   it("still celebrates a lock stamped a little ahead of this phone's clock", () => {

@@ -1,6 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 
+import { type InviteArrival, parseArrival } from "@/lib/invite";
+
 /**
  * The invite an install arrived with, held across everything that happens between tapping
  * a link and finishing onboarding.
@@ -31,10 +33,9 @@ const ARRIVAL_KEY = "duoqueue.invite-arrival";
  */
 export type RedemptionStatus = "idle" | "pending" | "done" | "failed";
 
-export interface InviteArrival {
-  inviterId: string;
-  inviterName: string;
-}
+/** A duo arrival (somebody's invite or a Duo Call) or, since build 20, a party arrival (a party
+ * LFG post's code). The shapes and their parser live in `@/lib/invite`, with tests. */
+export type { InviteArrival } from "@/lib/invite";
 
 interface InviteState {
   /** A code captured from a link or typed in, not yet redeemed. */
@@ -42,6 +43,13 @@ interface InviteState {
   /** The inviter, once redemption has answered. Cleared when the arrival is acted on. */
   arrival: InviteArrival | null;
   redemption: RedemptionStatus;
+  /**
+   * Why the last redemption came to nothing, when that was worth saying (a party post that filled
+   * or ended, a Duo Call that ended). The redemption hook has already shown it as a toast; the
+   * invite deep-link screen reads it so its generic INVITE_LINK_UNUSABLE does not replace a true,
+   * specific line. Memory only.
+   */
+  redemptionNotice: string | null;
 
   /** A new code to try. Resets the status, so the redemption effect picks it up. */
   setPendingCode: (code: string) => void;
@@ -52,7 +60,7 @@ interface InviteState {
    * re-running the RPC on every cold start for the rest of the install's life, since the
    * status does not survive a restart but the code would.
    */
-  settleRedemption: (arrival: InviteArrival | null) => void;
+  settleRedemption: (arrival: InviteArrival | null, notice?: string | null) => void;
   /** The invited person has seen the arrival screen and chosen. Do not show it again. */
   clearArrival: () => void;
 }
@@ -69,22 +77,23 @@ export const useInviteStore = create<InviteState>((set) => ({
   pendingCode: null,
   arrival: null,
   redemption: "idle",
+  redemptionNotice: null,
 
   setPendingCode: (code) => {
-    set({ pendingCode: code, redemption: "idle" });
+    set({ pendingCode: code, redemption: "idle", redemptionNotice: null });
     persist(PENDING_KEY, code);
   },
 
   markRedeeming: () => set({ redemption: "pending" }),
 
-  settleRedemption: (arrival) => {
-    set({ pendingCode: null, arrival, redemption: arrival ? "done" : "failed" });
+  settleRedemption: (arrival, notice = null) => {
+    set({ pendingCode: null, arrival, redemption: arrival ? "done" : "failed", redemptionNotice: notice });
     persist(PENDING_KEY, null);
     persist(ARRIVAL_KEY, arrival ? JSON.stringify(arrival) : null);
   },
 
   clearArrival: () => {
-    set({ pendingCode: null, arrival: null, redemption: "idle" });
+    set({ pendingCode: null, arrival: null, redemption: "idle", redemptionNotice: null });
     persist(ARRIVAL_KEY, null);
     persist(PENDING_KEY, null);
   },
@@ -107,17 +116,8 @@ export async function loadInviteState(): Promise<void> {
       AsyncStorage.getItem(ARRIVAL_KEY),
     ]);
 
-    let arrival: InviteArrival | null = null;
-    if (arrivalRaw) {
-      try {
-        const parsed = JSON.parse(arrivalRaw) as Partial<InviteArrival>;
-        if (typeof parsed.inviterId === "string" && typeof parsed.inviterName === "string") {
-          arrival = { inviterId: parsed.inviterId, inviterName: parsed.inviterName };
-        }
-      } catch {
-        arrival = null;
-      }
-    }
+    // A duo arrival, a party arrival (its kind and code kept), or null for anything malformed.
+    const arrival = parseArrival(arrivalRaw);
 
     useInviteStore.setState({
       pendingCode,

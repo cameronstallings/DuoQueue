@@ -2,9 +2,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { MATCHES_QUERY_KEY } from "@/features/chat/useMatches";
 import { supabase } from "@/lib/supabase";
+import { useSessionStore } from "@/store/session-store";
 
 import type { DuoPopAnswer, DuoPopCard } from "./types";
-import { isMissingFunction } from "./useQueueUp";
+import { isMissingFunction, QUEUE_UP_QUERY_KEY } from "./useQueueUp";
 
 /**
  * The recipient's side of a Duo Pop: read the card (get_duo_pop) and answer it (answer_duo_pop).
@@ -51,9 +52,16 @@ export function useAnswerDuoPop() {
       if (!row) throw new Error("answer_duo_pop returned no row");
       return row;
     },
-    onSuccess: () => {
+    onSuccess: (answer) => {
       void queryClient.invalidateQueries({ queryKey: MATCHES_QUERY_KEY });
       void queryClient.invalidateQueries({ queryKey: ["deck"] });
+      // ONE DUO PER QUEUE UP (0088): a player who was queued themselves and locks someone else's
+      // pop has found their duo, so the server ends their own queue-up and takes them out of
+      // Online Now. Their pill (the profile) and their sheet (the queue status) re-read it.
+      if (answer.result === "locked") {
+        void queryClient.invalidateQueries({ queryKey: QUEUE_UP_QUERY_KEY });
+        void useSessionStore.getState().refreshProfile();
+      }
     },
   });
 }

@@ -216,6 +216,34 @@ export function duoLockedNotificationOf(
   return { matchId: matchId.toLowerCase(), popId: popId.toLowerCase(), poppedInSeconds, canDuo: duo === "1" };
 }
 
+/** The sender's call found its duo through the LFG post's code (0088, locked_via 'call'). */
+export interface DuoCallLockedNotification {
+  matchId: string;
+  popId: string;
+}
+
+/**
+ * A new_match push that says the sender's LFG post was answered (send-push-notification's call
+ * lock: `matchId`, `popId` and `via: "post"`, and no `poppedIn`), or null. Read only by the
+ * foreground listener (usePopPushes), to refresh the queue status, Matches and the profile.
+ *
+ * The TAP is deliberately not routed here: with no `poppedIn` the push fails
+ * `duoLockedNotificationOf` and opens its chat like any new match, which is right on every build
+ * (1.0.1 and build 19 do the same), because DUO LOCKED without a popped-in time would say "You
+ * and {name} both queued up" about a stranger who answered a post.
+ */
+export function duoCallLockedNotificationOf(
+  category: unknown,
+  matchId: unknown,
+  popId: unknown,
+  via: unknown,
+): DuoCallLockedNotification | null {
+  if (category !== "new_match" || via !== "post") return null;
+  if (typeof matchId !== "string" || !UUID_PATTERN.test(matchId)) return null;
+  if (typeof popId !== "string" || !UUID_PATTERN.test(popId)) return null;
+  return { matchId: matchId.toLowerCase(), popId: popId.toLowerCase() };
+}
+
 /**
  * The tapped push's destination, judged on its payload alone. Null for anything not routed.
  *

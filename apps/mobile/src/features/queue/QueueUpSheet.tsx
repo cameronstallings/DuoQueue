@@ -101,7 +101,8 @@ interface QueueUpSheetProps {
  *                  or why nobody was pinged); the Duo Call (share or copy the LFG post, with its
  *                  code); the 18+ card; a notifications row if they are off, so the sender hears
  *                  the moment someone is in; See who's on now; Stop queueing.
- *   Duo locked     who grabbed the pop, and Send a message.
+ *   Duo locked     who grabbed the pop or answered the post (one duo per Queue up, 0088: either
+ *                  ends the call), Send a message, and Queue up again for a new queue-up.
  *
  * Honest by construction: every count and reason is the server's (start_queue_up's row, or
  * get_my_queue_up's on open), nothing polls (one read when it opens, one more just after the
@@ -254,6 +255,28 @@ export function QueueUpSheet({ visible, onClose, showOnlineLink = true }: QueueU
     stop.mutate(undefined, { onError: (err) => setStopError(queueErrorMessage(err, QUEUE_COPY.stopFailed)) });
   }
 
+  // "Queue up again", in the locked view. The duo is found and the call is already over (0088),
+  // so this quietly ends the locked row: sheetViewOf then reads idle and the form comes back for a
+  // new queue-up. No "You're not queued anymore." toast; a failure is said under the button.
+  function queueAgain() {
+    setStopError(null);
+    stop.mutate({ quiet: true }, { onError: (err) => setStopError(queueErrorMessage(err, QUEUE_COPY.stopFailed)) });
+  }
+
+  // 0088 takes the sender out of Online Now the moment the call finds its duo, but the header pill
+  // reads the session profile, which still says "Queued 42m" until something re-reads it. A locked
+  // view with a queued profile is exactly that stale moment: re-read it once per duo, so the pill
+  // drops to Queue up. (Before 0088 a lock leaves the flag on and the read changes nothing; once
+  // per match keeps it from asking again.)
+  const lockedMatchId = view.kind === "locked" ? view.matchId : null;
+  const profileStillQueued = queueState.kind === "queued";
+  const refreshedForMatch = useRef<string | null>(null);
+  useEffect(() => {
+    if (!lockedMatchId || !profileStillQueued || refreshedForMatch.current === lockedMatchId) return;
+    refreshedForMatch.current = lockedMatchId;
+    void useSessionStore.getState().refreshProfile();
+  }, [lockedMatchId, profileStillQueued]);
+
   async function turnOnNotifications() {
     if (asking || !profile) return;
     setAsking(true);
@@ -265,22 +288,18 @@ export function QueueUpSheet({ visible, onClose, showOnlineLink = true }: QueueU
     }
   }
 
-  const footer = (
+  // See who's on now, and the way out of this phase: Stop queueing, or Queue up again once the
+  // duo is found (the locked view).
+  const footerWith = (label: string, onPress: () => void) => (
     <View style={{ gap: spacing.xs }}>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm }}>
         {showOnlineLink ? <TextLink label={QUEUE_COPY.seeWhosOn} onPress={openOnlineNow} /> : <View />}
-        <Button
-          size="sm"
-          variant="ghost"
-          haptic="light"
-          label={QUEUE_COPY.stop}
-          loading={stop.isPending}
-          onPress={stopQueueing}
-        />
+        <Button size="sm" variant="ghost" haptic="light" label={label} loading={stop.isPending} onPress={onPress} />
       </View>
       <InlineError message={stopError} align="right" />
     </View>
   );
+  const footer = footerWith(QUEUE_COPY.stop, stopQueueing);
 
   let body: ReactNode;
   if (phase === "loading") {
@@ -307,7 +326,7 @@ export function QueueUpSheet({ visible, onClose, showOnlineLink = true }: QueueU
     body = (
       <View style={{ gap: spacing.md }}>
         <Text style={titleStyle}>{QUEUE_COPY.titleLocked}</Text>
-        <Text style={[type.body, { color: colors.text }]}>{lockedLine(view.partnerName)}</Text>
+        <Text style={[type.body, { color: colors.text }]}>{lockedLine(view.partnerName, view.viaPost)}</Text>
         <Button
           label={QUEUE_COPY.sendMessage}
           onPress={() => {
@@ -315,7 +334,7 @@ export function QueueUpSheet({ visible, onClose, showOnlineLink = true }: QueueU
             router.push({ pathname: "/chat/[matchId]", params: { matchId: view.matchId } });
           }}
         />
-        {footer}
+        {footerWith(QUEUE_COPY.queueAgain, queueAgain)}
       </View>
     );
   } else if (view.kind === "queued" && row) {
