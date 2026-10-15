@@ -12,7 +12,17 @@
  *
  * The sound file is bundled by the expo-notifications plugin's `sounds` option in app.json and
  * named by the server push as `sound: "duo-pop.wav"`. iOS falls back to the default chime, with no
- * error anywhere, when the name and the bundled file differ, so `pushSound.test.ts` checks the two.
+ * error anywhere, when the name and the bundled file differ, so `pushSound.test.ts` checks app.json
+ * and the server's `DUO_POP_SOUND` (send-push-notification/events.ts) against this name.
+ *
+ * ANDROID: this name cannot ship in an Android build. The plugin copies every `sounds` file to
+ * android/app/src/main/res/raw/ under its basename and asserts it is a valid Android resource name
+ * (a-z, 0-9 and underscore only), so prebuild for Android throws on the hyphen. 1.0.2 is iOS only.
+ * Before the first Android build, rename it to duo_pop.wav everywhere AT ONCE: the generator's
+ * OUT (scripts/generate-pop-sound.mjs), the file, app.json's `sounds`, this constant, the
+ * paths in pushSound.test.ts, and the server's DUO_POP_SOUND. Cheapest before any 1.0.2 binary
+ * ships: after that, phones with the old name keep listening for "duo-pop.wav", and the server
+ * cannot send one name that both bundles play.
  *
  * Pure on purpose (no imports): vitest runs it in node.
  */

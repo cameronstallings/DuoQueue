@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { URL } from "node:url";
 
 import { describe, expect, it } from "vitest";
@@ -83,5 +83,26 @@ describe("app.json", () => {
     expect(sounds).toContain("./assets/sounds/duo-pop.wav");
     const bundled = sounds?.find((path) => path.endsWith(".wav")) ?? "";
     expect(bundled.split("/").pop()).toBe(DUO_POP_SOUND_FILE);
+  });
+});
+
+/**
+ * The server names the sound and the category in its own file (Group S's
+ * supabase/functions/send-push-notification/events.ts), read here as text only. iOS plays the
+ * default chime, with no error anywhere, when the pushed name and the bundled file differ, so a
+ * rename on one side alone (for example to duo_pop.wav, the name an Android build will need; see
+ * pushSound.ts) fails here instead of on a phone.
+ */
+describe("the server push agrees with the app", () => {
+  const eventsUrl = new URL("../../../../supabase/functions/send-push-notification/events.ts", import.meta.url);
+  const events = existsSync(eventsUrl) ? readFileSync(eventsUrl, "utf8") : "";
+  const constant = (name: string) => new RegExp(`export const ${name} = "([^"]*)";`).exec(events)?.[1];
+
+  it.skipIf(events === "")("sends the bundled sound file's name", () => {
+    expect(constant("DUO_POP_SOUND")).toBe(DUO_POP_SOUND_FILE);
+  });
+
+  it.skipIf(events === "")("sends the category the app routes and plays", () => {
+    expect(constant("DUO_POP_CATEGORY")).toBe(DUO_POP_PUSH_CATEGORY);
   });
 });
