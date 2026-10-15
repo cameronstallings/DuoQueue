@@ -2,7 +2,7 @@ import type { PropsWithChildren, ReactElement, ReactNode } from "react";
 import { KeyboardAvoidingView, Pressable, StyleSheet, Text, View } from "react-native";
 import type { RefreshControlProps } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { type Href, router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useTheme } from "@/theme/useTheme";
@@ -36,6 +36,13 @@ interface ScreenContainerProps extends PropsWithChildren {
    */
   showBack?: boolean;
   /**
+   * Where the back (or close) control goes when there is no history to pop. Defaults to the tabs
+   * (`goBack`). The signed-out age gate passes the front door: a resumed draft opens on the intro
+   * with nothing underneath, the intro's Back replaces to the age gate, and the tabs fallback sent
+   * the age gate's Back to "/", which resumed the intro again, a loop with no way to the front door.
+   */
+  backFallback?: Href;
+  /**
    * Which atmosphere wash sits behind the content: "match" draws the stronger graticule of the
    * moment screens, "none" opts out of it entirely. It is drawn here, edge to edge, because
    * anything absolutely positioned among the children fills only the padded scroll content.
@@ -62,12 +69,20 @@ export function ScreenContainer({
   title,
   showClose,
   showBack,
+  backFallback,
   atmosphere = "default",
   overlay,
   footer,
 }: ScreenContainerProps) {
   const { colors, spacing, type, radius } = useTheme();
   const insets = useSafeAreaInsets();
+  const onBack =
+    backFallback === undefined
+      ? goBack
+      : () => {
+          if (router.canGoBack()) router.back();
+          else router.replace(backFallback);
+        };
 
   /**
    * A modal sheet is already inset below the status bar by the presentation itself,
@@ -113,7 +128,7 @@ export function ScreenContainer({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Go back"
-              onPress={goBack}
+              onPress={onBack}
               hitSlop={8}
               style={{
                 width: 34,
@@ -161,7 +176,7 @@ export function ScreenContainer({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={showClose ? "Close" : "Go back"}
-            onPress={goBack}
+            onPress={onBack}
             hitSlop={8}
             style={{
               width: 34,

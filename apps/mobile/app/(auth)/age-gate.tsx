@@ -45,6 +45,9 @@ export default function AgeGate() {
       blurb={AGE_GATE_COPY.blurb}
       submitLabel={AGE_GATE_COPY.submit}
       showBack
+      // With no history (a resumed draft whose intro sent Back here), Back is the front door,
+      // where Continue my card and Start over are. The tabs fallback looped back to the intro.
+      backFallback="/(auth)/start"
       initialDob={initialDob}
       onSubmit={(dobIso) => {
         setAgeConfirmedDob(dobIso);

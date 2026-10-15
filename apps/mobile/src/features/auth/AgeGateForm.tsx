@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Platform, Text } from "react-native";
 import Animated from "react-native-reanimated";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import type { Href } from "expo-router";
 import { MIN_AGE } from "@duoqueue/shared-types";
 
 import { Button } from "@/components/Button";
@@ -77,6 +78,8 @@ interface AgeGateFormProps {
   children?: ReactNode;
   /** A back chevron (the pre-auth gate, pushed from the front door). */
   showBack?: boolean;
+  /** Where that chevron goes with no history to pop (ScreenContainer's `backFallback`). */
+  backFallback?: Href;
   /**
    * A date the player already confirmed (YYYY-MM-DD), put back on the wheel. Only ever passed for
    * a draft started in THIS launch (`canShowDraftDob`); never shown back from an earlier one.
@@ -107,6 +110,7 @@ export function AgeGateForm({
   consent,
   children,
   showBack,
+  backFallback,
   initialDob,
 }: AgeGateFormProps) {
   const { colors, scheme, spacing, type } = useTheme();
@@ -144,7 +148,7 @@ export function AgeGateForm({
   const shownError = localError ?? error ?? null;
 
   return (
-    <ScreenContainer showBack={showBack}>
+    <ScreenContainer showBack={showBack} backFallback={backFallback}>
       <Logo width={56} />
       <Text style={[type.screenTitle, { color: colors.text }]}>{title}</Text>
       <Text style={[type.body, { color: colors.textMuted, marginBottom: spacing.md }]}>{blurb}</Text>
