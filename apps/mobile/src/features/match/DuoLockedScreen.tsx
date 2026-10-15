@@ -74,6 +74,11 @@ const STAMP_LINE = 22;
 /** RING_BEZIER (matchMoment.ts), shared with duoqueue.io's match card. */
 const RING_EASING = Easing.bezier(...RING_BEZIER);
 const STAMP_EASING = Easing.bezier(0.23, 1, 0.32, 1);
+/** The countdown ring (track, arc and closed volt O) fading out from under the ink O, once the
+ * ink O is fully in. Drawn under it, the same circle three more times leaves volt and border in the
+ * ink O's anti-aliased rim; gone, the final frame is the mark alone. Covered by the ink O, so the
+ * fade itself shows nothing but the fringe going. */
+const POP_RING_OUT_MS = 120;
 
 export type DuoPopPhase = "counting" | "locked" | "over";
 
@@ -188,6 +193,8 @@ export function DuoLockedScreen({
   const arc = useSharedValue(counting);
   const time = useSharedValue(counting);
   const popLabel = useSharedValue(1);
+  /** The whole countdown ring, under the ink O: 1 until the ink O has taken over, then 0. */
+  const countdownRing = useSharedValue(1);
 
   // The lock happens once: one success haptic, one onLocked. The latest onLocked is called (the
   // Pop card's changes when the answer brings the match id, in the same render as "locked").
@@ -210,7 +217,7 @@ export function DuoLockedScreen({
   }
 
   function cancelAll() {
-    for (const value of [rings, woven, brackets, bracketsOpacity, stamp, flash, qOpacity, oInk, closed, arc, time, popLabel]) {
+    for (const value of [rings, woven, brackets, bracketsOpacity, stamp, flash, qOpacity, oInk, closed, arc, time, popLabel, countdownRing]) {
       cancelAnimation(value);
     }
   }
@@ -272,6 +279,7 @@ export function DuoLockedScreen({
       brackets.value = 1;
       bracketsOpacity.value = 1;
       oInk.value = 1;
+      countdownRing.value = 0;
       popLabel.value = 0;
       stamp.value = 1;
       handleLock();
@@ -293,7 +301,10 @@ export function DuoLockedScreen({
         flash.value = withSequence(withTiming(0.18, { duration: FLASH_MS }), withTiming(0, { duration: FLASH_MS }));
         stamp.value = withTiming(1, { duration: STAMP_MS, easing: STAMP_EASING });
         popLabel.value = withTiming(0, { duration: POP_LABEL_OUT_MS, reduceMotion: never });
-        oInk.value = withTiming(1, { duration: POP_INK_MS, reduceMotion: never });
+        oInk.value = withTiming(1, { duration: POP_INK_MS, reduceMotion: never }, (inkIn) => {
+          // The ink O is whole now: take the volt ring out from under it.
+          if (inkIn) countdownRing.value = withTiming(0, { duration: POP_RING_OUT_MS, reduceMotion: never });
+        });
         runOnJS(handleLock)();
       }),
     );
@@ -314,6 +325,7 @@ export function DuoLockedScreen({
     transform: [{ scale: 1.25 - 0.25 * stamp.value }],
   }));
   const popLabelStyle = useAnimatedStyle(() => ({ opacity: popLabel.value }));
+  const countdownRingStyle = useAnimatedStyle(() => ({ opacity: countdownRing.value }));
   const flashStyle = useAnimatedStyle(() => ({ opacity: flash.value }));
 
   const stampText = { ...type.label, fontSize: 16, lineHeight: STAMP_LINE, letterSpacing: 3, textAlign: "center" } as const;
@@ -334,9 +346,10 @@ export function DuoLockedScreen({
             oOpacity={oInk}
             oOverlay={
               // Stays drawn after the lock: the closed volt ring is the O until the ink O has
-              // faded in over it. VoiceOver stops reading it as a timer once it has closed.
-              <View
-                style={StyleSheet.absoluteFill}
+              // faded in over it, and then it fades out from under it (countdownRing), so the
+              // final frame is the mark. VoiceOver stops reading it as a timer once it has closed.
+              <Animated.View
+                style={[StyleSheet.absoluteFill, countdownRingStyle]}
                 accessibilityElementsHidden={locked}
                 importantForAccessibility={locked ? "no-hide-descendants" : "auto"}
               >
@@ -348,7 +361,7 @@ export function DuoLockedScreen({
                   arc={arc}
                   time={time}
                 />
-              </View>
+              </Animated.View>
             }
           />
         ) : (
