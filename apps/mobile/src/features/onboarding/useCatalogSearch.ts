@@ -3,10 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 
 import { supabase } from "@/lib/supabase";
 
-export interface CatalogItem {
-  id: string;
-  name: string;
-}
+import type { CatalogItem } from "./customGames";
+
+// Moved to customGames.ts in 1.0.2 (the onboarding store needs it without this hook module);
+// re-exported so every existing import keeps working.
+export { type CatalogItem, createCustomCatalogEntry } from "./customGames";
 
 function useDebouncedValue<T>(value: T, delayMs: number): T {
   const [debounced, setDebounced] = useState(value);
@@ -42,18 +43,4 @@ export function useCatalogSearch(table: "games" | "shows", query: string) {
     },
     enabled,
   });
-}
-
-export async function createCustomCatalogEntry(
-  table: "games" | "shows",
-  name: string,
-  createdBy: string,
-): Promise<CatalogItem> {
-  const { data, error } = await supabase
-    .from(table)
-    .insert({ name, is_custom: true, created_by: createdBy })
-    .select("id, name")
-    .single();
-  if (error) throw error;
-  return data as CatalogItem;
 }
