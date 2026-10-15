@@ -391,7 +391,8 @@ export function DuoLockedScreen({
       theirName={theirName}
       theirPhoto={theirPhoto}
       reason={reason}
-      sentence={lockSentence(theirName, popped)}
+      // The Pop card is always a Duo Pop, even if the answer came back without its time.
+      sentence={lockSentence(theirName, popped || isPop)}
       onExit={onExit}
       belowButtons={belowButtons}
     />

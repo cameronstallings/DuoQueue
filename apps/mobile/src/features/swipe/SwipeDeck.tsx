@@ -158,17 +158,19 @@ function StackSlot({
   });
 
   const isTop = index === 0;
+  // Two views: the exit fade on the outer one, the rise on the inner one. A layout animation and
+  // an animated style writing the same opacity on one view fight (Reanimated warns about it).
   return (
     <Animated.View
       exiting={quickExiting()}
-      style={[StyleSheet.absoluteFill, { zIndex: count - index }, style]}
+      style={[StyleSheet.absoluteFill, { zIndex: count - index }]}
       pointerEvents={isTop ? "auto" : "none"}
       // The two cards peeking under the top one are scenery: VoiceOver and TalkBack skip
       // them, or they read two more names and two dimmed "See full profile" buttons.
       accessibilityElementsHidden={!isTop}
       importantForAccessibility={isTop ? "auto" : "no-hide-descendants"}
     >
-      {children}
+      <Animated.View style={[StyleSheet.absoluteFill, style]}>{children}</Animated.View>
     </Animated.View>
   );
 }
