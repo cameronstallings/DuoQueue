@@ -5,6 +5,8 @@ import type { LinkedAccountProvider, LinkedAccountRow } from "@duoqueue/shared-t
 
 import { supabase } from "@/lib/supabase";
 
+import { STEAM_LINK_COPY, steamLinkDetailMessage } from "./steamLinkError";
+
 const FUNCTIONS_BASE_URL = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1`;
 
 export function usePublicLinkedAccounts(profileId: string | undefined) {
@@ -63,13 +65,14 @@ export function useLinkSteamAccount(profileId: string | undefined) {
 
       const result = await WebBrowser.openAuthSessionAsync(steamLoginUrl.toString(), "duoqueue://link-steam-result");
       if (result.type === "success" && result.url.includes("result=error")) {
-        const detail = new URL(result.url).searchParams.get("detail");
-        setError(detail ?? "Steam linking failed. Please try again.");
+        setError(steamLinkDetailMessage(new URL(result.url).searchParams.get("detail")));
       } else if (result.type === "success") {
         void queryClient.invalidateQueries({ queryKey: ["linked-accounts", profileId] });
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Please try again.");
+    } catch {
+      // A raw error here was a Postgres message (start_steam_link failed on every call until
+      // 0087) or a network error; neither means anything to a player.
+      setError(STEAM_LINK_COPY.couldNotStart);
     } finally {
       setLinking(false);
     }
