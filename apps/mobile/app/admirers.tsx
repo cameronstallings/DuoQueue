@@ -45,8 +45,9 @@ function AdmirerRow({ item }: { item: AdmirerListItem }) {
     <Card style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md, marginBottom: spacing.sm }}>
       <PresenceAvatar uri={item.photoUrl} name={item.display_name} size={56} />
       <View style={{ flex: 1 }}>
-        {/* Name only, as in Online Now: an age beside a name reads like a dating app. */}
-        <Text style={[type.bodyStrong, { color: colors.text }]}>{item.display_name}</Text>
+        <Text style={[type.bodyStrong, { color: colors.text }]}>
+          {item.display_name}, {item.age}
+        </Text>
         {item.bio ? (
           <Text numberOfLines={1} style={[type.body, { color: colors.textMuted }]}>
             {item.bio}
