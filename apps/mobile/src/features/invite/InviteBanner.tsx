@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { Ionicons } from "@expo/vector-icons";
+import Animated from "react-native-reanimated";
 
 import { Card } from "@/components/Card";
 import { TextField } from "@/components/TextField";
 import { FRONT_DOOR_COPY } from "@/features/auth/frontDoorCopy";
 import { CALL_ENDED_COPY } from "@/features/queue/queueCopy";
 import { useCallCodeEnded } from "@/features/queue/useQueueUp";
-import { hapticSelection, hapticSuccess } from "@/lib/haptics";
+import { hapticError, hapticSelection, hapticSuccess } from "@/lib/haptics";
 import {
   INVITE_CODE_LENGTH,
   inviterConfirmation,
@@ -17,6 +18,7 @@ import {
   parseInviteCode,
 } from "@/lib/invite";
 import { useInviteStore } from "@/store/invite-store";
+import { quickEntering, quickExiting, revealEntering } from "@/theme/entering";
 import { useTheme } from "@/theme/useTheme";
 
 import { useResolveInviteCode } from "./useInvite";
@@ -58,8 +60,18 @@ export function InviteBanner({
   // whatever is half-typed in the field.
   const active = pendingCode ?? (isInviteCodeShape(normalizeInviteCode(typed)) ? normalizeInviteCode(typed) : null);
   const { inviter, isPending, notFound } = useResolveInviteCode(active);
-  // A Duo Call code whose queue-up is over resolves to nobody, like a typo; asked only then.
+  // A Duo Call code whose queue-up is over resolves to nobody, like a typo; asked only then, and
+  // the field keeps saying it is checking until that answers (undefined), so "did not work" never
+  // flashes up before "That Duo Call has ended".
   const callEnded = useCallCodeEnded(active, notFound);
+  const checking = isPending || (notFound && callEnded === undefined);
+  const rejected = notFound && callEnded === false;
+
+  // The haptic map's inline form error: once, as the "did not work" line appears in the open
+  // field (a stored code that did not resolve, with the field closed, says nothing yet).
+  useEffect(() => {
+    if (expanded && rejected) hapticError();
+  }, [expanded, rejected]);
 
   async function handleExpand() {
     hapticSelection();
@@ -87,30 +99,38 @@ export function InviteBanner({
     }
   }
 
+  // MOTION. Each state fades in where the last one was and fades out as it goes (keyed), and the
+  // field's caption line cross-fades between its four sentences, so nothing on the first screen of
+  // a fresh install pops or swaps in one frame. The screens around it glide their own blocks
+  // (start.tsx's layout transitions).
   if (inviter && !revealInviter) {
     return (
-      <Card style={{ marginBottom: spacing.md }} luminous>
-        <View style={{ flexDirection: "row", alignItems: "flex-start", gap: spacing.sm }}>
-          <Ionicons name="checkmark-circle" size={18} color={colors.volt} />
-          <View style={{ flex: 1, gap: spacing.xs }}>
-            <Text style={[type.caption, { color: colors.text }]}>{FRONT_DOOR_COPY.inviteSaved}</Text>
-            <Text style={[type.caption, { color: colors.textMuted }]}>{FRONT_DOOR_COPY.inviteSavedCaption}</Text>
+      <Animated.View key="saved" entering={revealEntering()} exiting={quickExiting()}>
+        <Card style={{ marginBottom: spacing.md }} luminous>
+          <View style={{ flexDirection: "row", alignItems: "flex-start", gap: spacing.sm }}>
+            <Ionicons name="checkmark-circle" size={18} color={colors.volt} />
+            <View style={{ flex: 1, gap: spacing.xs }}>
+              <Text style={[type.caption, { color: colors.text }]}>{FRONT_DOOR_COPY.inviteSaved}</Text>
+              <Text style={[type.caption, { color: colors.textMuted }]}>{FRONT_DOOR_COPY.inviteSavedCaption}</Text>
+            </View>
           </View>
-        </View>
-      </Card>
+        </Card>
+      </Animated.View>
     );
   }
 
   if (inviter) {
     return (
-      <Card style={{ marginBottom: spacing.md }} luminous>
-        <View style={{ flexDirection: "row", alignItems: "flex-start", gap: spacing.sm }}>
-          <Ionicons name="people" size={18} color={colors.volt} />
-          <Text style={[type.caption, { color: colors.text, flex: 1 }]}>
-            {inviterConfirmation(inviter.display_name)}
-          </Text>
-        </View>
-      </Card>
+      <Animated.View key="inviter" entering={revealEntering()} exiting={quickExiting()}>
+        <Card style={{ marginBottom: spacing.md }} luminous>
+          <View style={{ flexDirection: "row", alignItems: "flex-start", gap: spacing.sm }}>
+            <Ionicons name="people" size={18} color={colors.volt} />
+            <Text style={[type.caption, { color: colors.text, flex: 1 }]}>
+              {inviterConfirmation(inviter.display_name)}
+            </Text>
+          </View>
+        </Card>
+      </Animated.View>
     );
   }
 
@@ -136,8 +156,29 @@ export function InviteBanner({
     );
   }
 
+  const caption = checking
+    ? { key: "checking", color: colors.textMuted, text: "Checking that code..." }
+    : rejected
+      ? {
+          key: "rejected",
+          color: colors.danger,
+          text: "That code did not work. Check it against the message you were sent.",
+        }
+      : notFound
+        ? { key: "ended", color: colors.textMuted, text: CALL_ENDED_COPY }
+        : {
+            key: "hint",
+            color: colors.textMuted,
+            text: `${INVITE_CODE_LENGTH} characters, from the message a friend sent you. Optional.`,
+          };
+
   return (
-    <View style={{ marginBottom: spacing.md, gap: spacing.xs }}>
+    <Animated.View
+      key="field"
+      entering={revealEntering()}
+      exiting={quickExiting()}
+      style={{ marginBottom: spacing.md, gap: spacing.xs }}
+    >
       <TextField
         label="Invite code"
         value={typed}
@@ -147,21 +188,15 @@ export function InviteBanner({
         placeholder="ABCDE12345"
         maxLength={INVITE_CODE_LENGTH}
       />
-      {isPending ? (
-        <Text style={[type.caption, { color: colors.textMuted }]}>Checking that code...</Text>
-      ) : notFound ? (
-        callEnded ? (
-          <Text style={[type.caption, { color: colors.textMuted }]}>{CALL_ENDED_COPY}</Text>
-        ) : (
-          <Text style={[type.caption, { color: colors.danger }]}>
-            That code did not work. Check it against the message you were sent.
-          </Text>
-        )
-      ) : (
-        <Text style={[type.caption, { color: colors.textMuted }]}>
-          {INVITE_CODE_LENGTH} characters, from the message a friend sent you. Optional.
-        </Text>
-      )}
-    </View>
+      <Animated.Text
+        key={caption.key}
+        entering={quickEntering()}
+        exiting={quickExiting()}
+        accessibilityLiveRegion="polite"
+        style={[type.caption, { color: caption.color }]}
+      >
+        {caption.text}
+      </Animated.Text>
+    </Animated.View>
   );
 }

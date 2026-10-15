@@ -8,7 +8,7 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { FRONT_DOOR_COPY, START_OVER_SHEET } from "@/features/auth/frontDoorCopy";
 import { InviteBanner } from "@/features/invite/InviteBanner";
 import { useOnboardingStore } from "@/store/onboarding-store";
-import { listItemEntering } from "@/theme/entering";
+import { layoutTransition, listItemEntering } from "@/theme/entering";
 import { useTheme } from "@/theme/useTheme";
 
 /**
@@ -42,6 +42,8 @@ export default function Start() {
   }
 
   // Each block cascades in once, on mount; their contents can change later without replaying it.
+  // The invite field opening (and the saved card replacing it) changes the second block's height,
+  // so the blocks under it glide to their new places rather than jumping under the thumb.
   return (
     <ScreenContainer>
       <Animated.View entering={listItemEntering(0, reduced)} style={{ gap: spacing.md, paddingTop: spacing.xl }}>
@@ -50,11 +52,11 @@ export default function Start() {
         <Text style={[type.body, { color: colors.textMuted }]}>{FRONT_DOOR_COPY.body}</Text>
       </Animated.View>
 
-      <Animated.View entering={listItemEntering(1, reduced)}>
+      <Animated.View entering={listItemEntering(1, reduced)} layout={layoutTransition()}>
         <InviteBanner revealInviter={false} />
       </Animated.View>
 
-      <Animated.View entering={listItemEntering(2, reduced)} style={{ gap: spacing.sm }}>
+      <Animated.View entering={listItemEntering(2, reduced)} layout={layoutTransition()} style={{ gap: spacing.sm }}>
         {hasDraft ? (
           <>
             <Button label={FRONT_DOOR_COPY.continueCard} onPress={() => router.replace("/")} />
@@ -68,7 +70,7 @@ export default function Start() {
         )}
       </Animated.View>
 
-      <Animated.View entering={listItemEntering(3, reduced)}>
+      <Animated.View entering={listItemEntering(3, reduced)} layout={layoutTransition()}>
         <View style={{ alignItems: "center" }}>
           <Text style={[type.caption, { color: colors.textMuted }]}>{FRONT_DOOR_COPY.caption}</Text>
         </View>

@@ -155,8 +155,13 @@ export function useStopQueueUp() {
  * Whether a typed or tapped code is a Duo Call whose queue-up is over (call_code_ended, readable
  * signed out). Only asked once the invite field has said the code did not resolve, and false on
  * any error, so the field never says "ended" about a code it cannot vouch for.
+ *
+ * Undefined while that one question is still being asked, so the field can keep saying it is
+ * checking instead of flashing "That code did not work" (and buzzing) before "That Duo Call has
+ * ended" replaces it. False when not asked at all.
  */
-export function useCallCodeEnded(code: string | null, enabled: boolean): boolean {
+export function useCallCodeEnded(code: string | null, enabled: boolean): boolean | undefined {
+  const asked = enabled && !!code;
   const query = useQuery({
     queryKey: ["call-code-ended", code],
     queryFn: async (): Promise<boolean> => {
@@ -164,9 +169,11 @@ export function useCallCodeEnded(code: string | null, enabled: boolean): boolean
       if (error) return false;
       return data === true;
     },
-    enabled: enabled && !!code,
+    enabled: asked,
     staleTime: 60_000,
     retry: false,
   });
-  return query.data === true;
+  if (!asked) return false;
+  if (query.data !== undefined) return query.data;
+  return query.isError ? false : undefined;
 }
