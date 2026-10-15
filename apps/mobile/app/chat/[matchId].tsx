@@ -52,6 +52,7 @@ import { DiscordEditorSheet } from "@/features/profile/DiscordEditorSheet";
 import { MATCH_FEEDBACK_LABELS } from "@/features/onboarding/profile-labels";
 import { useCreateParty } from "@/features/party/useParty";
 import { paywallHref } from "@/features/premium/paywall/paywallCopy";
+import { useFirstReplyReviewPrompt } from "@/features/rating/useReviewTriggers";
 import { useSubmitMatchFeedback } from "@/features/reputation/useReputation";
 import { containsHiddenWord, useHiddenWords } from "@/features/settings/useHiddenWords";
 import { usePressScale } from "@/hooks/usePressScale";
@@ -485,6 +486,7 @@ export default function ChatScreen() {
   // Gates the entrance animation below: only rows that showed up after the screen
   // mounted spring in. History loaded on open (or refetched later) must never replay it.
   const mountedAt = useRef(Date.now()).current;
+  useFirstReplyReviewPrompt(timeline, myId, mountedAt);
 
   useEffect(() => {
     void markAsRead();
