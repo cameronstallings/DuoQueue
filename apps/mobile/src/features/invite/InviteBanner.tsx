@@ -7,6 +7,7 @@ import Animated from "react-native-reanimated";
 import { Card } from "@/components/Card";
 import { TextField } from "@/components/TextField";
 import { FRONT_DOOR_COPY } from "@/features/auth/frontDoorCopy";
+import { PARTY_INVITE_FIELD_LINES } from "@/features/party/partyCopy";
 import { CALL_ENDED_COPY } from "@/features/queue/queueCopy";
 import { useCallCodeEnded } from "@/features/queue/useQueueUp";
 import { hapticError, hapticSelection, hapticSuccess } from "@/lib/haptics";
@@ -16,12 +17,13 @@ import {
   isInviteCodeShape,
   normalizeInviteCode,
   parseInviteCode,
+  partyConfirmation,
 } from "@/lib/invite";
 import { useInviteStore } from "@/store/invite-store";
 import { quickEntering, quickExiting, revealEntering } from "@/theme/entering";
 import { useTheme } from "@/theme/useTheme";
 
-import { useResolveInviteCode } from "./useInvite";
+import { useResolveInviteCode, useResolvePartyCode } from "./useInvite";
 
 /**
  * "Cameron invited you", above the sign-up form.
@@ -36,6 +38,11 @@ import { useResolveInviteCode } from "./useInvite";
  * TWO STATES, AND THE COLLAPSED ONE IS ONE LINE. Somebody who was not invited should see a
  * row they can ignore, not a form field that looks required. Somebody who was sees the
  * inviter's name, resolved before they have an account at all.
+ *
+ * A PARTY POST'S CODE (build 20, 0089) goes in the same field: the post's link line pastes in
+ * the same way. resolve_invite_code knows nothing of it, so it is asked of resolve_party_code
+ * too. Live, it reads "Invite code saved." at the front door and "{name}'s party has a seat for
+ * you" from Save on; full or ended, the field says so. 1.0.1 and build 19 say "did not work".
  */
 export function InviteBanner({
   allowEntry = true,
@@ -64,8 +71,14 @@ export function InviteBanner({
   // the field keeps saying it is checking until that answers (undefined), so "did not work" never
   // flashes up before "That Duo Call has ended".
   const callEnded = useCallCodeEnded(active, notFound);
-  const checking = isPending || (notFound && callEnded === undefined);
-  const rejected = notFound && callEnded === false;
+  // A party LFG post's code (0089) is nobody's invite either, so it is asked about alongside,
+  // and the field keeps checking until both have answered. Null whenever it is not a party code
+  // (including before 0089 exists), which leaves every line below exactly as it was.
+  const party = useResolvePartyCode(active, notFound);
+  const checking = isPending || (notFound && (callEnded === undefined || party === undefined));
+  const partyLive = notFound && party?.status === "live";
+  const partyClosed = notFound && (party?.status === "full" || party?.status === "ended") ? party.status : null;
+  const rejected = notFound && callEnded === false && party === null;
 
   // The haptic map's inline form error: once, as the "did not work" line appears in the open
   // field (a stored code that did not resolve, with the field closed, says nothing yet).
@@ -103,7 +116,7 @@ export function InviteBanner({
   // field's caption line cross-fades between its four sentences, so nothing on the first screen of
   // a fresh install pops or swaps in one frame. The screens around it glide their own blocks
   // (start.tsx's layout transitions).
-  if (inviter && !revealInviter) {
+  if ((inviter || partyLive) && !revealInviter) {
     return (
       <Animated.View key="saved" entering={revealEntering()} exiting={quickExiting()}>
         <Card style={{ marginBottom: spacing.md }} luminous>
@@ -127,6 +140,23 @@ export function InviteBanner({
             <Ionicons name="people" size={18} color={colors.volt} />
             <Text style={[type.caption, { color: colors.text, flex: 1 }]}>
               {inviterConfirmation(inviter.display_name)}
+            </Text>
+          </View>
+        </Card>
+      </Animated.View>
+    );
+  }
+
+  // A party post's code, from Save your card on: a seat in a named player's party. (Nothing is
+  // held for them yet: the seat is taken only when they tap Join on the arrival screen.)
+  if (partyLive && party) {
+    return (
+      <Animated.View key="party" entering={revealEntering()} exiting={quickExiting()}>
+        <Card style={{ marginBottom: spacing.md }} luminous>
+          <View style={{ flexDirection: "row", alignItems: "flex-start", gap: spacing.sm }}>
+            <Ionicons name="people" size={18} color={colors.volt} />
+            <Text style={[type.caption, { color: colors.text, flex: 1 }]}>
+              {partyConfirmation(party.sharer_name?.trim() || "Someone")}
             </Text>
           </View>
         </Card>
@@ -158,19 +188,21 @@ export function InviteBanner({
 
   const caption = checking
     ? { key: "checking", color: colors.textMuted, text: "Checking that code..." }
-    : rejected
-      ? {
-          key: "rejected",
-          color: colors.danger,
-          text: "That code did not work. Check it against the message you were sent.",
-        }
-      : notFound
-        ? { key: "ended", color: colors.textMuted, text: CALL_ENDED_COPY }
-        : {
-            key: "hint",
-            color: colors.textMuted,
-            text: `${INVITE_CODE_LENGTH} characters, from the message a friend sent you. Optional.`,
-          };
+    : partyClosed
+      ? { key: `party-${partyClosed}`, color: colors.textMuted, text: PARTY_INVITE_FIELD_LINES[partyClosed] }
+      : rejected
+        ? {
+            key: "rejected",
+            color: colors.danger,
+            text: "That code did not work. Check it against the message you were sent.",
+          }
+        : notFound
+          ? { key: "ended", color: colors.textMuted, text: CALL_ENDED_COPY }
+          : {
+              key: "hint",
+              color: colors.textMuted,
+              text: `${INVITE_CODE_LENGTH} characters, from the message a friend sent you. Optional.`,
+            };
 
   return (
     <Animated.View

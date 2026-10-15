@@ -10,6 +10,7 @@ import { Name } from "@/components/Name";
 import { PlayerMark } from "@/components/PlayerMark";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { Skeleton } from "@/components/Skeleton";
+import { PartyArrival } from "@/features/invite/PartyArrival";
 import { useAcceptInvite } from "@/features/invite/useInvite";
 import { matchParams } from "@/features/match/matchMoment";
 import { useProfileCard } from "@/features/profile/useProfileCard";
@@ -52,8 +53,9 @@ export default function InvitedScreen() {
   const refreshProfile = useSessionStore((s) => s.refreshProfile);
 
   // Reached by a redirect that already checked this, and by a back-navigation that did not.
-  // `useProfileCard` is called unconditionally below, so this cannot move above the hooks.
-  const inviterId = arrival?.inviterId ?? "";
+  // `useProfileCard` is called unconditionally below, so this cannot move above the hooks. A
+  // party arrival has no inviter card to read ("" leaves the query off).
+  const inviterId = arrival && arrival.kind !== "party" ? arrival.inviterId : "";
   const { data: card, isPending, isError } = useProfileCard(inviterId);
   const inviterPicture = card ? cardPicture(card) : null;
 
@@ -69,6 +71,10 @@ export default function InvitedScreen() {
     await refreshProfile();
     router.replace("/(tabs)");
   }
+
+  // A party LFG post's code (build 20): the party, its members with their ages, and Join. Same
+  // layout and motion; the way out is the same leave().
+  if (arrival.kind === "party") return <PartyArrival arrival={arrival} onLeave={leave} />;
 
   async function handleDuoUp() {
     if (!arrival) return;

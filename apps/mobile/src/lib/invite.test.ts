@@ -14,6 +14,11 @@ import {
   INVITE_CODE_LENGTH,
   INVITE_LINK_UNUSABLE,
   needsCallEndedCheck,
+  parseArrival,
+  PARTY_LINK_NOTICE,
+  PARTY_REDEEM_NOTICE,
+  partyConfirmation,
+  partyRedemptionOutcome,
   inviteErrorMessage,
   inviteRouteAction,
   inviteShareMessage,
@@ -482,5 +487,109 @@ describe("duoRedemptionOutcome (redeem_invite_code's answer, and why an invite v
   it("writes the notice without dashes and without dating words", () => {
     expect(CALL_ENDED_BEFORE_SIGNUP).not.toMatch(new RegExp(`[${String.fromCharCode(0x2013, 0x2014)}]`));
     expect(CALL_ENDED_BEFORE_SIGNUP).not.toMatch(/\bdates?\b|dating|singles|hookup|nearby|meet people|match with singles/i);
+  });
+});
+
+describe("partyRedemptionOutcome (resolve_party_code, asked before redeem_invite_code)", () => {
+  const live = { status: "live", sharer_name: "Sam", game_name: "League of Legends" };
+
+  it("arrives at the party for a live code, with the code normalised", () => {
+    expect(partyRedemptionOutcome({ error: null, rows: [live], code: "k7q2m9xa4p", onboarded: false })).toEqual({
+      kind: "arrival",
+      arrival: { kind: "party", code: "K7Q2M9XA4P", inviterName: "Sam" },
+    });
+  });
+
+  it("names nobody it was not told about", () => {
+    expect(
+      partyRedemptionOutcome({ error: null, rows: [{ ...live, sharer_name: "  " }], code: CODE, onboarded: false }),
+    ).toMatchObject({ arrival: { inviterName: "Someone" } });
+  });
+
+  it("says why a full or ended post has no seat, worded for where the player is", () => {
+    expect(
+      partyRedemptionOutcome({ error: null, rows: [{ ...live, status: "full" }], code: CODE, onboarded: false }),
+    ).toEqual({ kind: "refused", notice: PARTY_REDEEM_NOTICE.full });
+    expect(
+      partyRedemptionOutcome({ error: null, rows: [{ ...live, status: "ended" }], code: CODE, onboarded: false }),
+    ).toEqual({ kind: "refused", notice: PARTY_REDEEM_NOTICE.ended });
+    expect(
+      partyRedemptionOutcome({ error: null, rows: [{ ...live, status: "full" }], code: CODE, onboarded: true }),
+    ).toEqual({ kind: "refused", notice: PARTY_LINK_NOTICE.full });
+    expect(
+      partyRedemptionOutcome({ error: null, rows: [{ ...live, status: "ended" }], code: CODE, onboarded: true }),
+    ).toEqual({ kind: "refused", notice: PARTY_LINK_NOTICE.ended });
+    expect(PARTY_REDEEM_NOTICE).toEqual({
+      full: "That party's last seat was taken before you finished. You can still find players here.",
+      ended: "That party post ended before you finished. You can still find players here.",
+    });
+  });
+
+  it("falls through to today's redeem_invite_code for zero rows, a missing function or any error", () => {
+    // Read-only first, so a party code never touches invite_redemptions, and an ordinary invite is
+    // never lost to a party error (the design's redeem-first order settled null and lost it).
+    expect(partyRedemptionOutcome({ error: null, rows: [], code: CODE, onboarded: false })).toEqual({
+      kind: "not-party",
+    });
+    expect(partyRedemptionOutcome({ error: null, rows: null, code: CODE, onboarded: false })).toEqual({
+      kind: "not-party",
+    });
+    expect(
+      partyRedemptionOutcome({ error: { code: "PGRST202" }, rows: null, code: CODE, onboarded: false }),
+    ).toEqual({ kind: "not-party" });
+    expect(
+      partyRedemptionOutcome({ error: new TypeError("Network request failed"), rows: [live], code: CODE, onboarded: false }),
+    ).toEqual({ kind: "not-party" });
+    expect(
+      partyRedemptionOutcome({ error: null, rows: [{ ...live, status: "weird" }], code: CODE, onboarded: false }),
+    ).toEqual({ kind: "not-party" });
+  });
+
+  it("writes every notice without dashes or dating words", () => {
+    for (const s of [...Object.values(PARTY_REDEEM_NOTICE), ...Object.values(PARTY_LINK_NOTICE), partyConfirmation("Sam")]) {
+      expect(s).not.toMatch(new RegExp(`[${String.fromCharCode(0x2013, 0x2014)}]`));
+      expect(s).not.toMatch(/\bdates?\b|dating|singles|hookup|nearby|meet people|match with singles/i);
+    }
+  });
+});
+
+describe("partyConfirmation", () => {
+  it("promises a seat, and only what the arrival screen delivers", () => {
+    expect(partyConfirmation("Sam")).toBe("Sam's party has a seat for you. Finish signing up to join them.");
+  });
+});
+
+describe("parseArrival (the stored arrival, across a restart)", () => {
+  it("keeps a duo arrival, and reads an older blob with no kind as one", () => {
+    expect(parseArrival(JSON.stringify({ inviterId: "i", inviterName: "Kai" }))).toEqual({
+      inviterId: "i",
+      inviterName: "Kai",
+    });
+    expect(parseArrival(JSON.stringify({ kind: "duo", inviterId: "i", inviterName: "Kai" }))).toEqual({
+      inviterId: "i",
+      inviterName: "Kai",
+    });
+  });
+
+  it("keeps a party arrival's kind and code", () => {
+    expect(parseArrival(JSON.stringify({ kind: "party", code: CODE, inviterName: "Sam" }))).toEqual({
+      kind: "party",
+      code: CODE,
+      inviterName: "Sam",
+    });
+  });
+
+  it("drops anything malformed rather than throwing", () => {
+    expect(parseArrival(null)).toBeNull();
+    expect(parseArrival("")).toBeNull();
+    expect(parseArrival("{")).toBeNull();
+    expect(parseArrival(JSON.stringify(["a"]))).toBeNull();
+    expect(parseArrival(JSON.stringify({ kind: "party", code: "nope", inviterName: "Sam" }))).toBeNull();
+    expect(parseArrival(JSON.stringify({ kind: "party", code: CODE }))).toBeNull();
+    expect(parseArrival(JSON.stringify({ inviterId: 3, inviterName: "Kai" }))).toBeNull();
+  });
+
+  it("reads a party blob that lost its code as nothing, never as a duo", () => {
+    expect(parseArrival(JSON.stringify({ kind: "party", inviterId: "i", inviterName: "Kai" }))).toBeNull();
   });
 });

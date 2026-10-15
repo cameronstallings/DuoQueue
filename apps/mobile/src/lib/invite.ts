@@ -1,13 +1,14 @@
 import type { InviteRedemption } from "@duoqueue/shared-types";
 
 import type { ProfileStatus } from "@/features/auth/sessionRouting";
+import type { ResolvedPartyCode } from "@/features/party/partyCall";
 
 /**
  * Everything about invites that can be WRONG without a component being involved: the code
  * format, what a shared link looks like, what the share message says, and where a tapped
  * invite link should send somebody.
  *
- * The one import is type-only, so it is erased before this file ever runs and the module
+ * Every import is type-only, so they are erased before this file ever runs and the module
  * stays as free-standing as the rest of its family. `ProfileStatus` is shared rather than
  * restated because a copy of a four-member union is a copy that drifts, and the member that
  * matters here ("missing") is the one an 18+ gate is built on.
@@ -263,10 +264,111 @@ export function shouldRedeemInvite(input: InviteRedemptionGateInput): boolean {
   return input.redemption === "idle";
 }
 
-/** Somebody's own invite, or a Duo Call code: the arrival screen shows the inviter's card. */
+/** Somebody's own invite, or a Duo Call code: the arrival screen shows the inviter's card. An
+ * arrival stored by an older build has no `kind` and is one of these. */
 export interface DuoInviteArrival {
+  kind?: "duo";
   inviterId: string;
   inviterName: string;
+}
+
+/**
+ * A party LFG post's code (0089): the arrival screen previews the party and offers its last seat.
+ * Only the code and the sharer's name are kept: nothing is written for a party code until the
+ * player taps Join (join_party_by_code), so an abandoned sign-up never holds a seat.
+ */
+export interface PartyInviteArrival {
+  kind: "party";
+  code: string;
+  inviterName: string;
+}
+
+export type InviteArrival = DuoInviteArrival | PartyInviteArrival;
+
+/**
+ * The stored arrival, read back after a restart. Tolerant of anything: a malformed blob, or one
+ * from an older build missing a field, is dropped (it costs one screen), and a blob marked
+ * "party" is a party arrival or nothing, never a duo one (it has no inviter to duo with).
+ */
+export function parseArrival(raw: string | null | undefined): InviteArrival | null {
+  if (!raw) return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+  const blob = parsed as { kind?: unknown; code?: unknown; inviterId?: unknown; inviterName?: unknown };
+  if (typeof blob.inviterName !== "string") return null;
+  if (blob.kind === "party") {
+    if (typeof blob.code !== "string" || !isInviteCodeShape(blob.code)) return null;
+    return { kind: "party", code: blob.code, inviterName: blob.inviterName };
+  }
+  if (blob.kind !== undefined && blob.kind !== "duo") return null;
+  if (typeof blob.inviterId !== "string") return null;
+  return { inviterId: blob.inviterId, inviterName: blob.inviterName };
+}
+
+/** A pending party code that was full or ended by the time the player's profile existed, said
+ * once as an info toast. "before you finished": they are mid sign-up. */
+export const PARTY_REDEEM_NOTICE = {
+  full: "That party's last seat was taken before you finished. You can still find players here.",
+  ended: "That party post ended before you finished. You can still find players here.",
+} as const;
+
+/** The same, for a player who is already set up (a `duoqueue://invite/<code>` deep link). */
+export const PARTY_LINK_NOTICE = {
+  full: "That party's last seat was taken. You can still find players here.",
+  ended: "That party post has ended. You can still find players here.",
+} as const;
+
+export type PartyRedemptionOutcome =
+  | { kind: "arrival"; arrival: PartyInviteArrival }
+  | { kind: "refused"; notice: string }
+  | { kind: "not-party" };
+
+/**
+ * What a pending code is, asked of resolve_party_code BEFORE redeem_invite_code. Read-only, so
+ * asking first costs an ordinary invite nothing, and it has to be first: redeem_invite_code
+ * returns an account's earlier redemption whatever code it is given (0066), so it cannot be the
+ * one to say "this is not mine".
+ *  - live: a party arrival (the code, normalised, and the sharer's name);
+ *  - full or ended: no arrival, and a notice worded for where the player is;
+ *  - zero rows, an unknown status or ANY error (PGRST202 before 0089, offline): not a party code,
+ *    so today's redeem_invite_code path runs exactly as before. An error here must never lose an
+ *    ordinary invite.
+ */
+export function partyRedemptionOutcome(input: {
+  error: unknown;
+  rows: unknown;
+  code: string;
+  onboarded: boolean;
+}): PartyRedemptionOutcome {
+  if (input.error) return { kind: "not-party" };
+  const first = Array.isArray(input.rows) ? (input.rows[0] as Partial<ResolvedPartyCode> | undefined) : undefined;
+  if (!first) return { kind: "not-party" };
+  const notices = input.onboarded ? PARTY_LINK_NOTICE : PARTY_REDEEM_NOTICE;
+  switch (first.status) {
+    case "live": {
+      const name = typeof first.sharer_name === "string" ? first.sharer_name.trim() : "";
+      return {
+        kind: "arrival",
+        arrival: { kind: "party", code: normalizeInviteCode(input.code), inviterName: name || "Someone" },
+      };
+    }
+    case "full":
+      return { kind: "refused", notice: notices.full };
+    case "ended":
+      return { kind: "refused", notice: notices.ended };
+    default:
+      return { kind: "not-party" };
+  }
+}
+
+/** The sign-up screen's line once a party code resolved: a seat, and who it is with. */
+export function partyConfirmation(sharerName: string): string {
+  return `${sharerName}'s party has a seat for you. Finish signing up to join them.`;
 }
 
 /**
