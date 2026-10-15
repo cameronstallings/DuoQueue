@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { NOTIFICATION_CATEGORIES, turningOnNeedsPermission, visibleCategories } from "./notificationCategories";
+import {
+  NOTIFICATION_CATEGORIES,
+  NOTIFICATION_SAVE_FAILED,
+  turningOnNeedsPermission,
+  visibleCategories,
+} from "./notificationCategories";
 
 const TODAY = {
   profile_id: "p",
@@ -102,9 +107,13 @@ describe("turningOnNeedsPermission", () => {
 describe("notification copy", () => {
   const dashes = new RegExp(`[${String.fromCharCode(0x2013, 0x2014)}]`);
 
+  it("toasts a failed save plainly", () => {
+    expect(NOTIFICATION_SAVE_FAILED).toBe("Couldn't save that. Try again.");
+  });
+
   it("has no dashes, no 'beats' and no dating words", () => {
     for (const c of NOTIFICATION_CATEGORIES) {
-      for (const text of [c.label, c.hint]) {
+      for (const text of [c.label, c.hint, NOTIFICATION_SAVE_FAILED]) {
         expect(text).not.toMatch(dashes);
         expect(text).not.toMatch(/\bbeats?\b/i);
         expect(text).not.toMatch(/dating|singles|hookup|nearby|meet people|match with singles/i);

@@ -1,91 +1,30 @@
-import { Switch, Text, View } from "react-native";
-import type { NotificationSettingsRow } from "@duoqueue/shared-types";
+import { useState } from "react";
+import { View } from "react-native";
+import { useQueryClient } from "@tanstack/react-query";
+import Animated from "react-native-reanimated";
 
 import { Card } from "@/components/Card";
+import { EdgeCard } from "@/components/EdgeCard";
 import { EmptyState } from "@/components/EmptyState";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { Skeleton } from "@/components/Skeleton";
+import { ToggleRow } from "@/components/ToggleRow";
+import { askForPush } from "@/features/push/askForPush";
+import { PUSH_ON_TOAST, settingsBannerCopy } from "@/features/push/pushAsk";
+import { usePushPermission } from "@/features/push/usePushPermission";
+import {
+  NOTIFICATION_CATEGORIES,
+  turningOnNeedsPermission,
+  visibleCategories,
+  type NotificationCategory,
+} from "@/features/settings/notificationCategories";
 import { useNotificationSettings } from "@/features/settings/useNotificationSettings";
 import { useRequireSession } from "@/hooks/useRequireSession";
-import { hapticSelection } from "@/lib/haptics";
+import { hapticSuccess } from "@/lib/haptics";
+import { useSessionStore } from "@/store/session-store";
+import { useToastStore } from "@/store/toast-store";
+import { layoutTransition, quickExiting, revealEntering } from "@/theme/entering";
 import { useTheme } from "@/theme/useTheme";
-
-type NotificationCategory =
-  | "new_match"
-  | "new_message"
-  | "super_ping"
-  | "new_player"
-  | "daily_swipes_refreshed"
-  | "nudge_unread"
-  | "nudge_online";
-
-const CATEGORIES: { value: NotificationCategory; label: string; hint: string }[] = [
-  { value: "new_match", label: "New match", hint: "When someone you picked wants to duo with you too." },
-  { value: "new_message", label: "New message", hint: "When a match sends you something." },
-  { value: "super_ping", label: "Super Ping", hint: "When someone sends you a Super Ping." },
-  // Sits with the other person-driven categories rather than down with the scheduled ones,
-  // because that is what it is: somebody joined.
-  {
-    value: "new_player",
-    label: "New players in your games",
-    hint: "When someone who plays your games joins DuoQueue.",
-  },
-  {
-    value: "daily_swipes_refreshed",
-    label: "Swipes refreshed",
-    hint: "Once a day, when your free swipes reset.",
-  },
-  {
-    value: "nudge_unread",
-    label: "Your duo is waiting",
-    hint: "A gentle nudge when you haven't read a match's message.",
-  },
-  {
-    value: "nudge_online",
-    label: "Free to duo right now",
-    hint: "When a match turns on Online Now.",
-  },
-];
-
-function Row({
-  category,
-  label,
-  hint,
-  settings,
-  onToggle,
-}: {
-  category: NotificationCategory;
-  label: string;
-  hint: string;
-  settings: NotificationSettingsRow;
-  onToggle: (category: NotificationCategory, value: boolean) => void;
-}) {
-  const { colors, spacing, type } = useTheme();
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        gap: spacing.md,
-        padding: spacing.md,
-      }}
-    >
-      <View style={{ flex: 1, gap: 2 }}>
-        <Text style={[type.body, { color: colors.text }]}>{label}</Text>
-        <Text style={[type.caption, { color: colors.textMuted }]}>{hint}</Text>
-      </View>
-      <Switch
-        value={settings[category]}
-        onValueChange={(value) => {
-          hapticSelection();
-          onToggle(category, value);
-        }}
-        trackColor={{ true: colors.volt }}
-      />
-    </View>
-  );
-}
 
 function RowSkeleton() {
   const { radius, spacing } = useTheme();
@@ -107,10 +46,54 @@ function RowSkeleton() {
   );
 }
 
+/**
+ * Settings > Notifications: one switch per category the database actually has.
+ *
+ * The rows come from `visibleCategories` (notificationCategories.ts): a category shows only when
+ * the fetched settings row has its column, so "Someone wants to duo with you" (0072), "News from
+ * DuoQueue" (0081) and "Duo Pops" (the Queue Up migration) each appear the moment their column
+ * is live, and never as a switch that saves nothing.
+ *
+ * Above the switches, when iOS has notifications off, a standing line says so: denied with no
+ * prompt left gets Open Settings, never asked gets Turn on. No "Not now": the player opened this
+ * screen, so it is a status, not an interruption. Back from the Settings app with notifications
+ * on, the permission re-read (usePushPermission) removes the line, the list slides up into its
+ * place, and the phone's push token is registered without a relaunch.
+ *
+ * Turning a switch on while iOS has never been asked asks it then: that is the player saying
+ * they want the notification.
+ */
 export default function NotificationSettings() {
   useRequireSession();
   const { colors, spacing } = useTheme();
+  const queryClient = useQueryClient();
+  const profileId = useSessionStore((s) => s.session?.user.id);
+  const showToast = useToastStore((s) => s.showToast);
   const { settings, isLoading, error, update, refetch } = useNotificationSettings();
+  const { data: permission } = usePushPermission();
+  const [asking, setAsking] = useState(false);
+
+  const banner =
+    !permission || permission.status === "granted" ? null : permission.canAskAgain ? "undetermined" : "denied";
+
+  function onToggle(category: NotificationCategory, next: boolean) {
+    update.mutate({ [category]: next });
+    if (turningOnNeedsPermission(next, permission)) void askForPush(profileId, queryClient);
+  }
+
+  async function handleBanner() {
+    if (asking) return;
+    setAsking(true);
+    const outcome = await askForPush(profileId, queryClient);
+    setAsking(false);
+    if (outcome === "register-token") {
+      hapticSuccess();
+      showToast(PUSH_ON_TOAST);
+    }
+  }
+
+  const rows = visibleCategories(settings);
+  const divider = <View style={{ height: 1, backgroundColor: colors.border, marginLeft: spacing.md }} />;
 
   return (
     <ScreenContainer title="Notifications" showBack>
@@ -124,27 +107,35 @@ export default function NotificationSettings() {
           tick="OFFLINE"
         />
       ) : (
-        <Card style={{ padding: 0, overflow: "hidden" }}>
-          {isLoading || !settings
-            ? [0, 1, 2, 3].map((i) => (
-                <View key={i}>
-                  {i > 0 && <View style={{ height: 1, backgroundColor: colors.border, marginLeft: spacing.md }} />}
-                  <RowSkeleton />
-                </View>
-              ))
-            : CATEGORIES.map((c, i) => (
-                <View key={c.value}>
-                  {i > 0 && <View style={{ height: 1, backgroundColor: colors.border, marginLeft: spacing.md }} />}
-                  <Row
-                    category={c.value}
-                    label={c.label}
-                    hint={c.hint}
-                    settings={settings}
-                    onToggle={(category, value) => update.mutate({ [category]: value })}
-                  />
-                </View>
-              ))}
-        </Card>
+        <>
+          {banner && (
+            <Animated.View key={banner} entering={revealEntering()} exiting={quickExiting()}>
+              <EdgeCard {...settingsBannerCopy(banner)} onPrimary={() => void handleBanner()} primaryLoading={asking} />
+            </Animated.View>
+          )}
+          <Animated.View layout={layoutTransition()}>
+            <Card style={{ padding: 0, overflow: "hidden" }}>
+              {isLoading || !settings
+                ? NOTIFICATION_CATEGORIES.map((c, i) => (
+                    <View key={c.value}>
+                      {i > 0 && divider}
+                      <RowSkeleton />
+                    </View>
+                  ))
+                : rows.map((c, i) => (
+                    <View key={c.value}>
+                      {i > 0 && divider}
+                      <ToggleRow
+                        label={c.label}
+                        hint={c.hint}
+                        value={settings[c.value] === true}
+                        onValueChange={(next) => onToggle(c.value, next)}
+                      />
+                    </View>
+                  ))}
+            </Card>
+          </Animated.View>
+        </>
       )}
     </ScreenContainer>
   );

@@ -64,10 +64,14 @@ export const NOTIFICATION_CATEGORIES: readonly NotificationCategoryRow[] = [
 ];
 
 /** The rows whose column is present in the fetched row as a boolean, in screen order. */
-export function visibleCategories(row: Partial<Record<string, unknown>> | null | undefined): NotificationCategoryRow[] {
+export function visibleCategories(row: object | null | undefined): NotificationCategoryRow[] {
   if (!row) return [];
-  return NOTIFICATION_CATEGORIES.filter((c) => typeof row[c.value] === "boolean");
+  const columns = row as Partial<Record<string, unknown>>;
+  return NOTIFICATION_CATEGORIES.filter((c) => typeof columns[c.value] === "boolean");
 }
+
+/** The error toast when a switch did not save (the switch has already slid back). */
+export const NOTIFICATION_SAVE_FAILED = "Couldn't save that. Try again.";
 
 /** Turning a switch on while iOS has never been asked is the moment to ask it: the player just
  * said they want that notification. Never for denied (iOS will not ask again; the banner above
