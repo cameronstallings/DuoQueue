@@ -305,6 +305,19 @@ export function QueueUpSheet({ visible, onClose, showOnlineLink = true }: QueueU
             <Skeleton width={60} height={12} />
             <Skeleton width="70%" height={28} />
           </View>
+        ) : details.isError && !details.data ? (
+          // The read failed (offline, after its retries): say so, never "Add a game" to a player
+          // who has games. With no game chosen, Queue up below stays off.
+          <View style={{ gap: spacing.sm, alignItems: "flex-start" }}>
+            <Text style={captionMuted}>{QUEUE_COPY.gamesLoadFailed}</Text>
+            <Button
+              size="sm"
+              variant="ghost"
+              label={QUEUE_COPY.tryAgain}
+              loading={details.isFetching}
+              onPress={() => void details.refetch()}
+            />
+          </View>
         ) : games.length === 0 ? (
           <View style={{ gap: spacing.sm, alignItems: "flex-start" }}>
             <Text style={captionMuted}>{QUEUE_COPY.noGames}</Text>

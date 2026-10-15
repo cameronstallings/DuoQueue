@@ -31,6 +31,8 @@ export const QUEUE_COPY = {
   queueUp: "Queue up",
   outsideNa: "Duo Pops reach players in North America for now. You can still share your LFG post.",
   noGames: "Add a game to your profile to queue up.",
+  /** The games read failed (offline): a player with games is never told to add one. */
+  gamesLoadFailed: "Couldn't load your games.",
   editDetails: "Edit details",
   share: "Share my LFG post",
   copy: "Copy post",

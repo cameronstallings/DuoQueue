@@ -84,6 +84,11 @@ describe("the small lines", () => {
     expect(QUEUE_COPY.queuedFree).toBe("Your matches can see you're free.");
   });
 
+  it("says the games could not be loaded, never 'Add a game', when the read fails", () => {
+    expect(QUEUE_COPY.gamesLoadFailed).toBe("Couldn't load your games.");
+    expect(QUEUE_COPY.gamesLoadFailed).not.toBe(QUEUE_COPY.noGames);
+  });
+
   it("titles the queued Online Now card by its game", () => {
     expect(ONLINE_NOW_COPY.queuedTitle("Valorant")).toBe("Queued for Valorant");
     expect(ONLINE_NOW_COPY.queuedTitle(null)).toBe("You're queued");
