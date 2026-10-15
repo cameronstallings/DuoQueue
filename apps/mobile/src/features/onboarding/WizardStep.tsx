@@ -194,9 +194,13 @@ export function WizardStep({
   const { confirmDeleteThisSignIn, deleting } = useDeleteThisSignIn();
 
   // Where the draft resumes after a relaunch (ignored until the stored draft has been read back).
-  useEffect(() => {
-    setLastStep(step);
-  }, [step, setLastStep]);
+  // On FOCUS, not on mount: Back pops to a step that is still mounted underneath, and a relaunch
+  // must resume where the player actually was, not on the furthest step they had opened.
+  useFocusEffect(
+    useCallback(() => {
+      setLastStep(step);
+    }, [step, setLastStep]),
+  );
 
   // An inline error is felt as well as seen, once each time a new one appears.
   useEffect(() => {

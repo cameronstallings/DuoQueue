@@ -1,7 +1,7 @@
-import { useEffect, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { Text } from "react-native";
 import Animated, { useReducedMotion } from "react-native-reanimated";
-import { Redirect, router } from "expo-router";
+import { Redirect, router, useFocusEffect } from "expo-router";
 
 import { Button } from "@/components/Button";
 import { ScreenContainer } from "@/components/ScreenContainer";
@@ -47,9 +47,12 @@ export default function SaveCard() {
   // card itself. Signed out, only a finished card that the player sent here can be saved.
   const showing = route !== "onboarding" && missing === null && draft.readyToSave;
 
-  useEffect(() => {
-    if (showing) setLastStep("save");
-  }, [showing, setLastStep]);
+  // On focus, like every step (WizardStep): coming Back from sign-in or sign-up lands here again.
+  useFocusEffect(
+    useCallback(() => {
+      if (showing) setLastStep("save");
+    }, [showing, setLastStep]),
+  );
 
   const preview = useMemo(() => cardPreviewLines(draft, new Date()), [draft]);
 

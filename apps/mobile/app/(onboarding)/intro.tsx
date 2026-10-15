@@ -1,9 +1,9 @@
-import { useEffect } from "react";
+import { useCallback } from "react";
 import { Pressable, Text, useWindowDimensions } from "react-native";
 import Animated, { useReducedMotion } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import * as Localization from "expo-localization";
-import { Redirect, router } from "expo-router";
+import { Redirect, router, useFocusEffect } from "expo-router";
 
 import { Button } from "@/components/Button";
 import { ScreenContainer } from "@/components/ScreenContainer";
@@ -43,9 +43,12 @@ export default function Intro() {
   const setLastStep = useOnboardingStore((s) => s.setLastStep);
   const prefillFromDevice = useOnboardingStore((s) => s.prefillFromDevice);
 
-  useEffect(() => {
-    if (status !== "signed_in") setLastStep("intro");
-  }, [status, setLastStep]);
+  // On focus, like every step (WizardStep): Back from step 1 lands here again.
+  useFocusEffect(
+    useCallback(() => {
+      if (status !== "signed_in") setLastStep("intro");
+    }, [status, setLastStep]),
+  );
 
   if (status === "signed_in") return <Redirect href="/(onboarding)/display-name" />;
 

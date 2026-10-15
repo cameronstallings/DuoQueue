@@ -86,6 +86,23 @@ describe("firstIncompleteStep", () => {
     expect(isDraftComplete(complete({ region: null }))).toBe(false);
   });
 
+  it("sends a half-picked League rank back to games, as the games step's own Continue does", () => {
+    const halfPicked = { gameId: "g1", name: "League of Legends", skillLevel: "casual" as const, rankText: "Gold II" };
+    // A tier change clears the division (rankPickerState.selectLolTier); a relaunch at Save must
+    // not carry that past the step that would have refused it.
+    expect(firstIncompleteStep(complete({ games: [{ ...halfPicked, lolTier: "platinum", lolDivision: null }] }))).toBe(
+      "games",
+    );
+    // Apex tiers and Unranked have no division; no rank at all is fine too.
+    for (const lolTier of ["master", "grandmaster", "challenger", "unranked", null] as const) {
+      expect(firstIncompleteStep(complete({ games: [{ ...halfPicked, lolTier, lolDivision: null }] }))).toBeNull();
+    }
+    // Still in step order: a gap before games wins.
+    expect(
+      firstIncompleteStep(complete({ region: null, games: [{ ...halfPicked, lolTier: "iron", lolDivision: null }] })),
+    ).toBe("region");
+  });
+
   it("reports the earliest gap when several are missing", () => {
     expect(firstIncompleteStep(complete({ region: null, games: [], displayName: "" }))).toBe("display-name");
     expect(firstIncompleteStep(complete({ platforms: [], discordUsername: "!" }))).toBe("platforms");

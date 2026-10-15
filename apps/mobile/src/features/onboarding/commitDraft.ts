@@ -20,6 +20,7 @@ import {
 
 import { checkDob } from "../auth/completeSignup";
 import type { ProfileStatus } from "../auth/sessionRouting";
+import { validateLolRank } from "../league/rankPickerState";
 import { cardDetailsLine } from "../swipe/cardChips";
 import { REGION_LABELS } from "./profile-labels";
 import { type DraftStep, isDraftStep, type OnboardingStep } from "./steps";
@@ -94,6 +95,11 @@ type AnswerFields = Pick<
  * The first step whose answer is missing or invalid, in step order, or null when the card can be
  * saved. Mirrors each step's own Continue check, so a draft that reached Save by any route (a
  * relaunch, a stale persisted draft) is checked again before anything is written.
+ *
+ * Games includes the League rank: a divisional tier with no division (Platinum, then no "II") is
+ * refused by the games step, and would otherwise be written as no rank at all (toProfileGameRow
+ * drops an incomplete one). Only the League picker can produce that state (a typed rank parses
+ * whole or not at all), so checking every game is the same as checking the League one.
  */
 export function firstIncompleteStep(d: AnswerFields): OnboardingStep | null {
   if (!displayNameSchema.safeParse(d.displayName).success) return "display-name";
@@ -101,6 +107,7 @@ export function firstIncompleteStep(d: AnswerFields): OnboardingStep | null {
   if (d.languages.length === 0) return "languages";
   if (d.platforms.length === 0) return "platforms";
   if (d.games.length === 0) return "games";
+  if (d.games.some((g) => validateLolRank(g) !== null)) return "games";
   const answered =
     d.prompts.length === PROMPT_COUNT && d.prompts.every((p) => p !== null && p.answer.trim().length > 0);
   if (!answered) return "prompts";
