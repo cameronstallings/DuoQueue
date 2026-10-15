@@ -164,6 +164,7 @@ export default function RootLayout() {
                 <Stack.Screen name="edit-prompts" options={{ presentation: "modal" }} />
                 <Stack.Screen name="edit-details" options={{ presentation: "modal" }} />
                 <Stack.Screen name="match/[matchId]" options={{ presentation: "modal" }} />
+                <Stack.Screen name="pop/[popId]" options={{ presentation: "modal" }} />
                 <Stack.Screen name="profile/[profileId]" options={{ presentation: "modal" }} />
                 <Stack.Screen name="party/[partyId]/index" options={{ headerShown: false }} />
                 <Stack.Screen name="party/[partyId]/chat" />

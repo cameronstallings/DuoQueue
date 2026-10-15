@@ -1,11 +1,17 @@
 import type { ProfileStatus } from "@/features/auth/sessionRouting";
 
+import { parsePoppedSeconds } from "../features/match/matchMoment";
+import { DUO_POP_PUSH_CATEGORY } from "./pushSound";
+
 /**
  * What tapping a push should do, decided without React, expo-notifications or a router.
  *
- * The one import is type-only and erased at build, so this module still needs nothing at
- * runtime. `ProfileStatus` is shared with the session store rather than restated here,
- * because a second copy of that union is a copy that drifts.
+ * The `@/` import is type-only and erased at build. The two runtime imports are pure modules
+ * reached relatively (no React Native, no Expo), so vitest runs this in node as before:
+ * `DUO_POP_PUSH_CATEGORY`, the one spelling of the Duo Pop category shared with the foreground
+ * sound rule, and `parsePoppedSeconds`, the one reading of a popped-in time shared with the match
+ * route. `ProfileStatus` is shared with the session store rather than restated here, because a
+ * second copy of that union is a copy that drifts.
  *
  * Same shape `deckQueue.ts` and `emptyDeckDecisions.ts` established: the part that can be
  * wrong is pure and tested, and the hook around it (`useNotificationTapRouting`) is a
@@ -31,8 +37,16 @@ import type { ProfileStatus } from "@/features/auth/sessionRouting";
  *      party_joined    that party's deck, which shows "Your party is full" and the chat button
  *      party_message   that party's chat
  *
- * The rest (super_ping, nudge_online, daily_swipes_refreshed) still resume where the user left
- * off. None of them is about a conversation.
+ *  - The two Duo Pop pushes (1.0.2, 0085 and send-push-notification's duo_pop event):
+ *      duo_pop         the Pop card for that pop (`data.popId`), as a modal over whatever is in
+ *                      front: it has a ten-minute clock, so no detour through Matches
+ *      new_match       when the payload ALSO names a pop and a usable popped-in time
+ *                      (`data.popId`, `data.poppedIn`, `data.duo`), the sender's DUO LOCKED for
+ *                      that match ("Duo locked: Kai grabbed your Duo Pop"); every other new_match
+ *                      still opens its chat, and so does a lock whose fields do not read
+ *
+ * The rest (super_ping, nudge_online, daily_swipes_refreshed, announcement) still resume where the
+ * user left off. None of them is about a conversation or a pop.
  *
  * WHY THIS IS NOT JUST `if (category === ...) navigate()`. A tap can arrive at a moment when
  * navigating is the wrong move, and there are four of them:
@@ -68,6 +82,13 @@ export interface NotificationTapInput {
   matchId: unknown;
   /** `data.partyId` from the push payload, sent on the four party pushes. Just as untrusted. */
   partyId: unknown;
+  /** `data.popId`: the queue_ups row a duo_pop push (and a grabbed pop's new_match) is about.
+   *  Optional, so every caller from before Duo Pops compiles and reads the same. */
+  popId?: unknown;
+  /** `data.poppedIn`: whole seconds as a string, on a grabbed pop's new_match push. */
+  poppedIn?: unknown;
+  /** `data.duo`: "1" when Riot's table lets the two duo, on a grabbed pop's new_match push. */
+  duo?: unknown;
   /** Whether `RootLayout` is past its font and launch-intro gates and actually rendering the
    *  `Stack`. */
   navigatorReady: boolean;
@@ -91,7 +112,11 @@ export type NotificationDestination =
   /** Open one of this party's screens, on top of the Matches tab (where "Your parties" lists it). */
   | { kind: "open-party"; partyId: string; screen: PartyScreen }
   /** Go to the Matches tab itself: a party invite is answered on its banner. */
-  | { kind: "open-matches" };
+  | { kind: "open-matches" }
+  /** Open the Pop card for this Duo Pop, as a modal over whatever is in front. */
+  | { kind: "open-pop"; popId: string }
+  /** The sender's DUO LOCKED for a grabbed pop (or the chat, when this phone already played it). */
+  | { kind: "open-duo-locked"; matchId: string; popId: string; poppedInSeconds: number; canDuo: boolean };
 
 export type NotificationTapAction =
   | NotificationDestination
@@ -142,19 +167,74 @@ export function partyNotificationOf(category: unknown, partyId: unknown): PartyN
   return { category: category as PartyCategory, partyId: partyId.toLowerCase() };
 }
 
+/** A Duo Pop push's pop. */
+export interface DuoPopNotification {
+  /** Lowercased, the spelling get_duo_pop returns and the Pop card route is opened with. */
+  popId: string;
+}
+
+/**
+ * A duo_pop push's pop, or null when the payload is not one: the category is not exactly
+ * `DUO_POP_PUSH_CATEGORY`, or the pop id is missing or not the shape of an id.
+ *
+ * Exported for the same reason as `partyNotificationOf`: the tap (below) and the foreground
+ * listener (`usePopPushes`) both read Duo Pop pushes, and one reading means they never disagree.
+ */
+export function duoPopNotificationOf(category: unknown, popId: unknown): DuoPopNotification | null {
+  if (category !== DUO_POP_PUSH_CATEGORY) return null;
+  if (typeof popId !== "string" || !UUID_PATTERN.test(popId)) return null;
+  return { popId: popId.toLowerCase() };
+}
+
+/** A grabbed pop's new_match push, read for the sender's DUO LOCKED. */
+export interface DuoLockedNotification {
+  matchId: string;
+  popId: string;
+  /** 1..600 (parsePoppedSeconds). */
+  poppedInSeconds: number;
+  canDuo: boolean;
+}
+
+/**
+ * A new_match push that came out of a Duo Pop (send-push-notification's enrichment: it names the
+ * match, the pop and the popped-in time, and `duo: "1"` when Riot's table lets them duo), or null.
+ * Every part has to read: a new_match whose pop fields are missing or broken is an ordinary match,
+ * and opens its chat as it always has.
+ */
+export function duoLockedNotificationOf(
+  category: unknown,
+  matchId: unknown,
+  popId: unknown,
+  poppedIn: unknown,
+  duo: unknown,
+): DuoLockedNotification | null {
+  if (category !== "new_match") return null;
+  if (typeof matchId !== "string" || !UUID_PATTERN.test(matchId)) return null;
+  if (typeof popId !== "string" || !UUID_PATTERN.test(popId)) return null;
+  const poppedInSeconds = parsePoppedSeconds(poppedIn);
+  if (poppedInSeconds === null) return null;
+  return { matchId: matchId.toLowerCase(), popId: popId.toLowerCase(), poppedInSeconds, canDuo: duo === "1" };
+}
+
 /**
  * The tapped push's destination, judged on its payload alone. Null for anything not routed.
  *
  * Lowercased because Postgres prints UUIDs lowercase, so that is how `match_id` arrives from
  * `get_matches_summary` and how the Matches list routes. A chat opened on an uppercase spelling
  * of the same id would find no `matchInfo` and draw itself as "Chat". Party ids get the same
- * treatment for the same reason (`get_my_parties`, the "already open" comparison).
+ * treatment for the same reason (`get_my_parties`, the "already open" comparison), and so do pop
+ * ids (the "already open" comparison on the Pop card).
  *
  * A party push reads only `partyId`. The category decides what a push is, and a stray `matchId`
  * on one must never turn it into a 1:1 chat.
  */
-function destinationOf(category: unknown, matchId: unknown, partyId: unknown): NotificationDestination | null {
+function destinationOf(input: NotificationTapInput): NotificationDestination | null {
+  const { category, matchId, partyId } = input;
   if (category === "new_player") return { kind: "open-deck" };
+  const pop = duoPopNotificationOf(category, input.popId);
+  if (pop) return { kind: "open-pop", popId: pop.popId };
+  const lock = duoLockedNotificationOf(category, matchId, input.popId, input.poppedIn, input.duo);
+  if (lock) return { kind: "open-duo-locked", ...lock };
   if (category === "new_message" || category === "new_match" || category === "nudge_unread") {
     if (typeof matchId !== "string" || !UUID_PATTERN.test(matchId)) return null;
     return { kind: "open-chat", matchId: matchId.toLowerCase() };
@@ -175,7 +255,7 @@ function destinationOf(category: unknown, matchId: unknown, partyId: unknown): N
 export function notificationTapAction(input: NotificationTapInput): NotificationTapAction {
   // The payload first, so a push that is not ours (or names nothing) never waits. A held tap is
   // re-asked on every store change, and holding one that can never go anywhere is a leak.
-  const destination = destinationOf(input.category, input.matchId, input.partyId);
+  const destination = destinationOf(input);
   if (!destination) return { kind: "ignore" };
 
   if (!input.navigatorReady) return { kind: "wait" };
@@ -228,6 +308,8 @@ export function shouldHandleTap(identifier: string | undefined, handled: Readonl
 /** expo-router's route names: file paths under app/, without the extension. */
 const TABS_ROUTE = "(tabs)";
 const CHAT_ROUTE = "chat/[matchId]";
+/** The Pop card (app/pop/[popId].tsx), a modal on the root Stack. */
+const POP_ROUTE = "pop/[popId]";
 const PARTY_ROUTES: ReadonlyMap<string, PartyScreen> = new Map([
   ["party/[partyId]/index", "deck"],
   ["party/[partyId]/chat", "chat"],
@@ -256,6 +338,8 @@ export type FrontScreen =
   | { kind: "chat"; matchId: string | undefined }
   /** A party's deck or its group chat. */
   | { kind: "party"; partyId: string | undefined; screen: PartyScreen }
+  /** A Duo Pop's card. */
+  | { kind: "pop"; popId: string | undefined }
   /**
    * The auth gate (app/index.tsx): the root Stack's first screen on every launch, which is
    * about to replace itself with the tab bar (or sign-in, or onboarding) through its own
@@ -297,6 +381,7 @@ export function frontScreen(state: NavigationStateLike | undefined): FrontScreen
       return { kind: "tabs", tab: tabs?.routes[tabs.index ?? 0]?.name };
     }
     if (route.name === CHAT_ROUTE) return { kind: "chat", matchId: stringParam(route.params, "matchId") };
+    if (route.name === POP_ROUTE) return { kind: "pop", popId: stringParam(route.params, "popId") };
     const partyScreen = PARTY_ROUTES.get(route.name);
     if (partyScreen) return { kind: "party", partyId: stringParam(route.params, "partyId"), screen: partyScreen };
     if (route.name === GATE_ROUTE && (parent === undefined || parent === ROOT_SLOT)) return { kind: "gate" };
@@ -373,6 +458,22 @@ export function partyOpening(front: FrontScreen, partyId: string, screen: PartyS
  */
 export function matchesOpening(front: FrontScreen): ChatOpening {
   return openingFrom(front, isOnMatches(front));
+}
+
+/**
+ * The one move toward a Pop card: push it as a modal over whatever is in front. Unlike a chat it
+ * takes no detour through Matches: the pop has a ten-minute clock, its card closes back to
+ * wherever the player was, and nothing about it lives on the Matches tab. Already open (the same
+ * pop's card is in front) moves nothing, so a second tap never stacks a copy. The auth gate waits,
+ * for the reason on `ChatOpening`'s "wait-for-gate": a push made under the gate's own redirect is
+ * replaced by it.
+ */
+export type PopOpening = "wait-for-gate" | "already-open" | "push";
+
+export function popOpening(front: FrontScreen, popId: string): PopOpening {
+  if (front.kind === "gate") return "wait-for-gate";
+  if (front.kind === "pop" && front.popId?.toLowerCase() === popId.toLowerCase()) return "already-open";
+  return "push";
 }
 
 function openingFrom(front: FrontScreen, alreadyOpen: boolean): ChatOpening {

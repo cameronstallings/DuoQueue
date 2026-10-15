@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { InviteAcceptance, InviteRedemption, ResolvedInviter } from "@duoqueue/shared-types";
 
+import { MATCHES_QUERY_KEY } from "@/features/chat/useMatches";
 import { inviteUrl, isInviteCodeShape, normalizeInviteCode, shouldRedeemInvite } from "@/lib/invite";
 import { supabase } from "@/lib/supabase";
 import { useInviteStore } from "@/store/invite-store";
@@ -172,7 +173,7 @@ export function useAcceptInvite() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["deck"] });
-      void queryClient.invalidateQueries({ queryKey: ["matches"] });
+      void queryClient.invalidateQueries({ queryKey: MATCHES_QUERY_KEY });
       void queryClient.invalidateQueries({ queryKey: ["admirers"] });
       void queryClient.invalidateQueries({ queryKey: ["admirers-count"] });
     },

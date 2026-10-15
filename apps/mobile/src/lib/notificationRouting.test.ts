@@ -4,6 +4,8 @@ import {
   answerWithin,
   chatOpening,
   chatPush,
+  duoLockedNotificationOf,
+  duoPopNotificationOf,
   frontScreen,
   isOnMatches,
   matchesOpening,
@@ -11,6 +13,7 @@ import {
   partyNotificationOf,
   partyOpening,
   partyPush,
+  popOpening,
   shouldHandleTap,
   whenFront,
   type FrontScreen,
@@ -852,5 +855,160 @@ describe("answerWithin", () => {
     await read;
     vi.advanceTimersByTime(4000);
     expect(decide).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Duo Pops (1.0.2): a duo_pop push opens the Pop card; a new_match push for a grabbed pop opens
+// the sender's DUO LOCKED with its popped-in time.
+// ---------------------------------------------------------------------------------------------
+
+const POP_ID = "6a2b8c1e-9a4d-4e6f-8b2a-1c3d5e7f9a0b";
+
+/** A tapped Duo Pop push at a settled app. */
+const readyPop: NotificationTapInput = { ...ready, category: "duo_pop", popId: POP_ID };
+
+/** A tapped "Duo locked" push (the new_match enrichment for a grabbed pop), at a settled app. */
+const readyLock: NotificationTapInput = {
+  ...ready,
+  category: "new_match",
+  matchId: MATCH_ID,
+  popId: POP_ID,
+  poppedIn: "41",
+  duo: "1",
+};
+
+describe("notificationTapAction: Duo Pop pushes", () => {
+  it("opens the pop a duo_pop push names", () => {
+    expect(notificationTapAction(readyPop)).toEqual({ kind: "open-pop", popId: POP_ID });
+  });
+
+  it("lowercases the pop id", () => {
+    expect(notificationTapAction({ ...readyPop, popId: POP_ID.toUpperCase() })).toEqual({
+      kind: "open-pop",
+      popId: POP_ID,
+    });
+  });
+
+  it("ignores a missing or malformed pop id", () => {
+    for (const popId of [undefined, null, "", "not-a-uuid", `${POP_ID}x`, 42, { popId: POP_ID }, [POP_ID]]) {
+      expect(notificationTapAction({ ...readyPop, popId })).toEqual({ kind: "ignore" });
+    }
+  });
+
+  it("reads the category exactly: the settings column's name is not a push category", () => {
+    for (const category of ["queue_pop", "DUO_POP", "duo-pop", "duo_pops"]) {
+      expect(notificationTapAction({ ...readyPop, category })).toEqual({ kind: "ignore" });
+    }
+  });
+
+  it("waits while loading and before the navigator, like every other tap", () => {
+    for (const tap of [readyPop, readyLock]) {
+      expect(notificationTapAction({ ...tap, navigatorReady: false })).toEqual({ kind: "wait" });
+      expect(notificationTapAction({ ...tap, sessionStatus: "loading" })).toEqual({ kind: "wait" });
+      expect(notificationTapAction({ ...tap, onboardingCompleted: undefined })).toEqual({ kind: "wait" });
+    }
+  });
+
+  it("is dropped signed out, mid-onboarding and with no profile row", () => {
+    for (const tap of [readyPop, readyLock]) {
+      expect(notificationTapAction({ ...tap, sessionStatus: "signed_out" })).toEqual({ kind: "ignore" });
+      expect(notificationTapAction({ ...tap, onboardingCompleted: false })).toEqual({ kind: "ignore" });
+      expect(notificationTapAction({ ...tap, profileStatus: "missing", onboardingCompleted: undefined })).toEqual({
+        kind: "ignore",
+      });
+    }
+  });
+
+  it("opens the sender's DUO LOCKED for a grabbed pop's new_match push", () => {
+    expect(notificationTapAction(readyLock)).toEqual({
+      kind: "open-duo-locked",
+      matchId: MATCH_ID,
+      popId: POP_ID,
+      poppedInSeconds: 41,
+      canDuo: true,
+    });
+    expect(notificationTapAction({ ...readyLock, duo: undefined })).toMatchObject({ canDuo: false });
+    expect(notificationTapAction({ ...readyLock, duo: "0" })).toMatchObject({ canDuo: false });
+    expect(
+      notificationTapAction({ ...readyLock, matchId: MATCH_ID.toUpperCase(), popId: POP_ID.toUpperCase() }),
+    ).toMatchObject({ matchId: MATCH_ID, popId: POP_ID });
+  });
+
+  it("falls back to the chat when the popped-in time or the pop id is not usable", () => {
+    for (const poppedIn of ["0", "601", "x", "4.1", "", undefined, null]) {
+      expect(notificationTapAction({ ...readyLock, poppedIn })).toEqual(OPEN_CHAT);
+    }
+    for (const popId of [undefined, "not-a-uuid"]) {
+      expect(notificationTapAction({ ...readyLock, popId })).toEqual(OPEN_CHAT);
+    }
+  });
+
+  it("only new_match carries a lock: a message push with pop fields is still a chat", () => {
+    expect(notificationTapAction({ ...readyLock, category: "new_message" })).toEqual(OPEN_CHAT);
+    expect(notificationTapAction({ ...readyLock, category: "nudge_unread" })).toEqual(OPEN_CHAT);
+  });
+
+  it("leaves every other case exactly as it was", () => {
+    // The fields are optional, so every existing call (and every older push) reads the same.
+    expect(notificationTapAction(ready)).toEqual({ kind: "open-deck" });
+    expect(notificationTapAction(readyMessage)).toEqual(OPEN_CHAT);
+    expect(notificationTapAction({ ...readyMessage, category: "new_match" })).toEqual(OPEN_CHAT);
+    expect(notificationTapAction({ ...ready, category: "announcement" })).toEqual({ kind: "ignore" });
+    expect(notificationTapAction({ ...ready, category: "nudge_online", popId: POP_ID })).toEqual({ kind: "ignore" });
+  });
+});
+
+describe("duoPopNotificationOf and duoLockedNotificationOf", () => {
+  it("read a push the way a tap does", () => {
+    expect(duoPopNotificationOf("duo_pop", POP_ID.toUpperCase())).toEqual({ popId: POP_ID });
+    expect(duoPopNotificationOf("duo_pop", "nope")).toBeNull();
+    expect(duoPopNotificationOf("new_match", POP_ID)).toBeNull();
+
+    expect(duoLockedNotificationOf("new_match", MATCH_ID, POP_ID, "41", "1")).toEqual({
+      matchId: MATCH_ID,
+      popId: POP_ID,
+      poppedInSeconds: 41,
+      canDuo: true,
+    });
+    expect(duoLockedNotificationOf("new_match", MATCH_ID, POP_ID, 41, undefined)).toMatchObject({
+      poppedInSeconds: 41,
+      canDuo: false,
+    });
+    expect(duoLockedNotificationOf("new_match", MATCH_ID, POP_ID, "601", "1")).toBeNull();
+    expect(duoLockedNotificationOf("new_match", MATCH_ID, undefined, "41", "1")).toBeNull();
+    expect(duoLockedNotificationOf("new_match", "nope", POP_ID, "41", "1")).toBeNull();
+    expect(duoLockedNotificationOf("duo_pop", MATCH_ID, POP_ID, "41", "1")).toBeNull();
+  });
+});
+
+describe("frontScreen and popOpening for the Pop card", () => {
+  function pop(popId: unknown): Route {
+    return { name: "pop/[popId]", params: { popId } };
+  }
+
+  it("reads the Pop card in front, with its pop", () => {
+    expect(frontScreen(app(tabs("index"), pop(POP_ID)))).toEqual({ kind: "pop", popId: POP_ID });
+    expect(frontScreen(app(tabs("index"), pop(7)))).toEqual({ kind: "pop", popId: undefined });
+  });
+
+  it("pushes the card over whatever is in front, without a detour", () => {
+    expect(popOpening({ kind: "tabs", tab: "index" }, POP_ID)).toBe("push");
+    expect(popOpening({ kind: "chat", matchId: MATCH_ID }, POP_ID)).toBe("push");
+    expect(popOpening({ kind: "other" }, POP_ID)).toBe("push");
+    expect(popOpening({ kind: "pop", popId: "a1b2c3d4-e5f6-4a7b-9c8d-0e1f2a3b4c5d" }, POP_ID)).toBe("push");
+  });
+
+  it("never stacks a second copy of the same pop", () => {
+    expect(popOpening({ kind: "pop", popId: POP_ID }, POP_ID)).toBe("already-open");
+    expect(popOpening({ kind: "pop", popId: POP_ID.toUpperCase() }, POP_ID)).toBe("already-open");
+  });
+
+  it("waits for the auth gate's redirect on a cold start", () => {
+    expect(popOpening({ kind: "gate" }, POP_ID)).toBe("wait-for-gate");
+  });
+
+  it("is dismissed like any other modal when a chat tap comes in", () => {
+    expect(chatOpening({ kind: "pop", popId: POP_ID }, MATCH_ID)).toBe("dismiss-to-matches");
   });
 });

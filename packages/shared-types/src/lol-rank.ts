@@ -247,3 +247,36 @@ export function lolDuoRuleSummary(rank: LolRank): string | null {
       return "Duo isn't available at Grandmaster or Challenger.";
   }
 }
+
+/**
+ * Riot's row for a player, as the short range a Duo Call post prints after the rank: "Gold II.
+ * Can duo Silver to Platinum (by rank)." The same rows as `lolDuoRuleSummary` (and its SQL twin,
+ * the lo/hi CASE in lol_solo_duo_eligible, 0069_league_rank_duo.sql), cut down to the range alone;
+ * lol-rank.test.ts checks every divisional rank's label against the picker's sentence, so the two
+ * cannot drift apart.
+ *
+ * Null wherever there is no row to restate: no rank, Unranked, a divisional tier with no division
+ * yet, and Master and above (whose duo rules turn on LP, which DuoQueue does not collect).
+ *
+ * Diamond I is the one place this says less than the picker: "Diamond III to Diamond I", not "to
+ * Master (under 200 LP)". A post goes to strangers, and a Master player over 200 LP who answers
+ * it could not actually queue with them, so the post claims only the part that is always true.
+ */
+export function lolDuoRangeLabel(rank: LolRank | null): string | null {
+  if (!rank || !isLolDivisionalTier(rank.tier) || !isLolDivision(rank.division)) return null;
+  switch (rank.tier) {
+    case "iron":
+    case "bronze":
+      return "Iron to Silver";
+    case "silver":
+      return "Iron to Gold";
+    case "gold":
+      return "Silver to Platinum";
+    case "platinum":
+      return "Gold to Emerald";
+    case "emerald":
+      return "Platinum to Diamond III";
+    case "diamond":
+      return rank.division === 1 ? "Diamond III to Diamond I" : "Emerald II to Diamond II";
+  }
+}

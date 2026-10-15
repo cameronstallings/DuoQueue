@@ -13,6 +13,9 @@ import {
   partyPendingInvitesQueryKey,
 } from "@/features/party/useParty";
 import { partyMessagesQueryKey } from "@/features/party/usePartyMessages";
+import { isDuoLockedCelebrated, loadCelebrated, openDuoLocked } from "@/features/queue/openDuoLocked";
+import { duoPopQueryKey } from "@/features/queue/useDuoPop";
+import { QUEUE_UP_QUERY_KEY } from "@/features/queue/useQueueUp";
 import {
   answerWithin,
   chatOpening,
@@ -23,6 +26,7 @@ import {
   notificationTapAction,
   partyOpening,
   partyPush,
+  popOpening,
   shouldHandleTap,
   whenFront,
   type ChatOpening,
@@ -58,7 +62,9 @@ const MATCH_READ_DEADLINE_MS = 4000;
  * Sends a tapped push where it points: a "new players in your games" push to the deck, a new
  * message, a new match or an unread-message reminder to that chat, a party push to that party's
  * deck or chat, and a party invite to the Matches tab, where its banner is. Everything but the
- * deck lands on top of the Matches tab.
+ * deck lands on top of the Matches tab, except the two Duo Pop pushes: a Duo Pop opens its card
+ * as a modal over whatever is in front (it has a ten-minute clock), and a grabbed pop's "Duo
+ * locked" opens the sender's DUO LOCKED, once per lock on the phone (then the chat).
  *
  * Mounted once, from `RootLayout`. Two sources, because a tap arrives differently depending
  * on whether the app was already running: the listener catches warm taps, and one read of
@@ -121,6 +127,9 @@ export function useNotificationTapRouting(navigatorReady: boolean): void {
       category: data?.category,
       matchId: data?.matchId,
       partyId: data?.partyId,
+      popId: data?.popId,
+      poppedIn: data?.poppedIn,
+      duo: data?.duo,
       navigatorReady,
       sessionStatus: status,
       profileStatus,
@@ -151,10 +160,66 @@ export function useNotificationTapRouting(navigatorReady: boolean): void {
       front: () => frontScreen(navigationRef.isReady() ? navigationRef.getRootState() : undefined),
       onChange: (callback) => navigationRef.addListener("state", () => callback()),
     };
-    if (action.kind === "open-chat") cancelOpening.current = openChat(action.matchId, nav);
+    if (action.kind === "open-pop") cancelOpening.current = openPop(action.popId, nav);
+    else if (action.kind === "open-duo-locked") cancelOpening.current = openSendersDuoLocked(action, nav);
+    else if (action.kind === "open-chat") cancelOpening.current = openChat(action.matchId, nav);
     else if (action.kind === "open-party") cancelOpening.current = openParty(action.partyId, action.screen, nav);
     else cancelOpening.current = openMatches(nav);
   }, [pending, navigatorReady, status, profileStatus, onboardingCompleted, navigationRef]);
+}
+
+/**
+ * A tapped Duo Pop: its card, as a modal over whatever is in front (popOpening). No detour
+ * through Matches: the pop has a ten-minute clock, and its card closes back to where the player
+ * was. On a cold start it waits for the auth gate's redirect to land first, like a chat; the same
+ * pop already in front moves nothing, so a second tap never stacks a copy. The card's read is
+ * marked stale first, so it opens on fresh numbers.
+ */
+function openPop(popId: string, nav: NavigationReader): () => void {
+  void queryClient.invalidateQueries({ queryKey: duoPopQueryKey(popId) });
+  return whenFront(
+    nav,
+    (front) => popOpening(front, popId) !== "wait-for-gate",
+    (front) => {
+      if (popOpening(front, popId) === "push") router.push({ pathname: "/pop/[popId]", params: { popId } });
+    },
+    NAVIGATION_WAIT_MS,
+  );
+}
+
+/**
+ * A tapped "Duo locked" (a grabbed pop's new_match push, for its sender): DUO LOCKED with
+ * "Popped in 0:41", once per lock on this phone. If this phone already played it (the push landed
+ * while the app was open, or the resume check found it), the tap is an ordinary new-match tap and
+ * opens the chat. The celebrated list is read first, because on a cold start this tap can be
+ * decided before anything else has loaded it.
+ */
+function openSendersDuoLocked(
+  lock: { matchId: string; popId: string; poppedInSeconds: number; canDuo: boolean },
+  nav: NavigationReader,
+): () => void {
+  void queryClient.invalidateQueries({ queryKey: QUEUE_UP_QUERY_KEY });
+  void queryClient.invalidateQueries({ queryKey: MATCHES_QUERY_KEY });
+
+  let cancelled = false;
+  let stop: () => void = () => undefined;
+  void loadCelebrated().then(() => {
+    if (cancelled) return;
+    if (isDuoLockedCelebrated(lock.popId)) {
+      stop = openChat(lock.matchId, nav);
+      return;
+    }
+    stop = whenFront(
+      nav,
+      (front) => front.kind !== "gate",
+      () => void openDuoLocked({ ...lock, mode: "push" }),
+      NAVIGATION_WAIT_MS,
+    );
+  });
+  return () => {
+    cancelled = true;
+    stop();
+  };
 }
 
 /** A tapped chat: its thread and the match list are stale until read, then the chat on top. */
