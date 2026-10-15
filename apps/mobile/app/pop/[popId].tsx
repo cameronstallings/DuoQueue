@@ -58,6 +58,9 @@ function closeCard() {
  *   taken, expired, ended   the matching "over" card straight away
  *   no row          (not a recipient any more, blocked, reported, the sender gone, or 0085 not
  *                   live): "This Duo Pop isn't available anymore"
+ *
+ * A LATER read that says locked_by_you while the card counts (I'm in landed but its answer was
+ * lost) closes the ring in place, as the answer would have.
  */
 export default function PopCardScreen() {
   useRequireSession();
@@ -77,11 +80,29 @@ export default function PopCardScreen() {
   const [matchedId, setMatchedId] = useState<string | null>(null);
   const [reportVisible, setReportVisible] = useState(false);
   const [queueSheetVisible, setQueueSheetVisible] = useState(false);
-  const onLocked = useDuoLockedReviewPrompt(lockedMatchId);
 
-  // What the FIRST read said decides which card this is; later reads only move a live countdown on.
+  // What the FIRST read said decides which card this is; later reads only move a live countdown on
+  // (or end it, or find this player already in, below).
   const firstStatus = useRef<DuoPopStatus | null>(null);
   if (pop.data && firstStatus.current === null) firstStatus.current = pop.data.status;
+
+  // I'm in can commit on the server with its answer lost: the error toast shows and the card keeps
+  // counting. A later read of the card (a reconnect refetch, or the same push tapped again) then
+  // says locked_by_you, and its seconds_left is 0, which would draw "This Duo Pop ended" over a
+  // real duo. So the ring closes now instead, without a popped-in time (only the answer carries
+  // it), and the latch below keeps it closed. Never while an answer is in flight: its own "locked"
+  // does this, with the time.
+  const readLockedMatchId =
+    after === null && !answer.isPending && firstStatus.current === "open" && pop.data?.status === "locked_by_you"
+      ? pop.data.match_id
+      : null;
+  useEffect(() => {
+    if (!readLockedMatchId) return;
+    setLockedMatchId(readLockedMatchId);
+    setAfter({ kind: "locked" });
+  }, [readLockedMatchId]);
+  const lockMatchId = lockedMatchId ?? readLockedMatchId ?? undefined;
+  const onLocked = useDuoLockedReviewPrompt(lockMatchId);
 
   // The countdown, from the server's seconds_left at the moment that read landed.
   const deadlineMs = pop.data ? pop.dataUpdatedAt + pop.data.seconds_left * 1000 : 0;
@@ -137,7 +158,7 @@ export default function PopCardScreen() {
   // (which a later read can end: someone else got it, or the sender stopped), and zero is over.
   let phase: DuoPopPhase;
   let overResult: PopOverResult = "expired";
-  if (after?.kind === "locked") {
+  if (after?.kind === "locked" || readLockedMatchId) {
     phase = "locked";
   } else if (after?.kind === "over") {
     phase = "over";
@@ -145,6 +166,10 @@ export default function PopCardScreen() {
   } else if (firstStatus.current !== "open") {
     phase = "over";
     overResult = firstStatus.current === "taken" || firstStatus.current === "ended" ? firstStatus.current : "expired";
+  } else if (card.status === "locked_by_you" && !answer.isPending) {
+    // In, but the match is gone since (unmatched, or a block): there is no duo to show or open.
+    phase = "over";
+    overResult = "unavailable";
   } else if (card.status === "taken" || card.status === "ended" || card.status === "expired") {
     phase = "over";
     overResult = card.status;
@@ -285,7 +310,7 @@ export default function PopCardScreen() {
         reason={matchReason({ duo: card.can_duo ? "1" : undefined })}
         poppedInSeconds={poppedIn}
         onExit={(exit) => {
-          if (lockedMatchId) exitMatchMoment(exit, lockedMatchId);
+          if (lockMatchId) exitMatchMoment(exit, lockMatchId);
           else closeCard();
         }}
         onLocked={onLocked}
