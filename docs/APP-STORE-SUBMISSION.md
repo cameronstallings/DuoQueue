@@ -720,16 +720,18 @@ carried over from an earlier draft.
 | Reports & Blocks (who reported/blocked whom, and why) | Yes | No | App Functionality (Trust & Safety, abuse prevention) |
 
 **1.0.2 App Privacy: PROPOSAL FOR CAMERON, NOT A DECISION (plan Q23 and R2).** The table above
-is still the 1.0.1 label and nothing in it changes until you say yes. It does not cover three
+is still the 1.0.1 label and nothing in it changes until you say yes. It does not cover four
 things that 1.0.2 and the 15 Oct server changes collect. Privacy policy 1.6 (the draft in
-`docs/legal/privacy-policy.md` on build-19, not published) already describes all three. The
+`docs/legal/privacy-policy.md` on build-19, not published) already describes all four (the
+party LFG posts since the build 20 merge). The
 proposed answers, in Apple's own category names:
 
 | Proposed row | Covers | Linked to identity | Used for tracking | Purpose |
 |---|---|---|---|---|
 | Diagnostics: **Other Diagnostic Data** | `push_tokens.device_info` (1.0.2 only, `src/lib/appStamp.ts`): app version, build, runtime, update id and channel, embedded or not, OS and OS version, which kind of Supabase key, when it stamped. No device name, identifier or location. | Yes (the token row belongs to the account) | No | App Functionality (which versions are still in use, so problems get fixed and players can be told when an update is needed, the policy's words) |
 | (same row) | The notification delivery log (`push_log`, migration 0080, written for every push since 15 Oct, so it applies to 1.0.1 phones today): recipient, kind of push, time, tokens tried and accepted, Expo's status and error code. No title, text or names. 90 days. | Yes (`recipient_id`) | No | App Functionality (checking delivery, dropping pushes that do not arrive) |
-| Usage Data: **Product Interaction** | Duo Pop records (`queue_ups`, migration 0085): who was sent a pop, who opened it, who tapped Not now, who tapped I'm in, the call code. 30 days, and a deleted account's id is removed at once. | Yes | No | App Functionality (who may get a pop, the 3-a-day and 3-hour caps, the 7-day Not now memory) |
+| Usage Data: **Product Interaction** | Duo Pop records (`queue_ups`, migration 0085): who was sent a pop, who opened it, who tapped Not now, who tapped I'm in, the call code, and since 0088 who became the duo by the post's code (`locked_via`). 30 days, and a deleted account's id is removed at once. | Yes | No | App Functionality (who may get a pop, the 3-a-day and 3-hour caps, the 7-day Not now memory, one duo per Queue up) |
+| (same row) | Party LFG posts (`party_calls`, migration 0089, build 20): the code, the game, who shared it, when it was made, ended and filled, and who joined with it; plus `party_members.joined_by_code` and `lfg_seen_at` on the membership. 30 days for posts; a deleted sharer's posts go with the account and a deleted joiner is removed from the post; the membership columns go with the membership. | Yes | No | App Functionality (who takes the third seat, the 3-a-day join cap, what a code joiner may read of the chat, and that both members can see and stop a post) |
 
 Why these, and what is left to your judgement:
 - **Other Diagnostic Data** fits both technical records; neither is crash or performance data,
@@ -851,12 +853,43 @@ Revisit this answer if a future release adds any cryptography beyond HTTPS + thi
 
 ## Part 4 — Draft App Review notes (paste into App Review Information → Notes)
 
-**1.0.2 (build 19) paste, written 15 Oct 2026: the block at the end of this Part.** The same text,
+**1.0.2 paste (build 20), written 15 Oct 2026: the block at the end of this Part.** The same text,
 with the checks to do before pasting, is in
-`C:\Users\stall\Documents\DuoQueue-review-notes-1.0.2.txt`. Measured 3,976 characters counting
-CRLF line ends (3,943 counting a line break as 1, 3,982 counting UTF-8 bytes with CRLF, since
-each dot of "•••" is 3 bytes); the limit is 4,000, so count again after any edit. Built from the
-1.0.1 paste (in `DuoQueue-listing-1.0.1.txt`), with:
+`C:\Users\stall\Documents\DuoQueue-review-notes-1.0.2.txt`. Measured by script after the build 20
+edits: 3,985 characters counting CRLF line ends, without a line end after the last line (3,951
+counting a line break as 1, 3,997 counting UTF-8 bytes with CRLF, since each dot of "•••" is 3
+bytes); the limit is 4,000, so count again after any edit.
+
+**Build 20 edits** (the client merged from `b19-party`; 0088 and 0089 live since 15 Oct):
+- NEW item 3, the party LFG post, with the reviewer's path read from the client: Priya's chat,
+  the ••• menu ("Chat options", `ChatHeader`) > "Invite a third" (`create_party`, which returns
+  the existing party of exactly these two if there is one) opens `/party/[partyId]`, where
+  `PartyLfgRow` shows "Share LFG post" under the deck caption (and the empty party deck leads
+  with it). The demo account reaches it: the row shows for a party of exactly two once 0089
+  answers (`partyLfgView`), both members are in `public_profiles` for this viewer (a demo viewer
+  sees demo rows, itself included) and Priya is a live match (`partyPairCanPost`), and
+  `start_party_call` lets the post through because the seed makes both accounts onboarded and
+  active, they share a live match, and a demo persona counts as having seen the post
+  (`lfg_seen_at` is skipped for `is_demo`). Share asks first (`partyConsent`), then opens the iOS
+  share sheet, and writes a note in the party chat. The line 0089 asks for: "A demo party's code
+  never resolves, so a reviewer cannot join a party with one" (`party_call_status` is null when
+  the sharer or any member is a demo account, so `resolve_party_code` and `preview_party_code`
+  return no row and Matches > "Have a party code?" reads "That code did not work. Check it
+  against the post.").
+- Item 2 says one duo per Queue up (0088): the first in, by "I'm in" on a Duo Pop or by the post's
+  code, is matched with the sender and ends it (the code stops resolving, open pops read taken,
+  the sender leaves Online Now).
+- Item 1 no longer says how long the call code lasts (until Stop, or 15 minutes after the hour,
+  and since 0088 also until the first duo): the demo account's code never works, so no reviewer
+  can see it, and the room was needed. It says "This demo account's code never works".
+- To fit, also cut or shortened without losing a reviewer instruction: "Copy post", "Ophelia does
+  not", "(under 18 refused)" in SIGN IN WITH APPLE (item 4 still says it), "with "Not now"",
+  "deliberately", "Server-side blocking" (block is still exercised in HOW TO EXERCISE 2),
+  "server-side" before row-level security, "the buttons" after the Terms line, "You will see",
+  and "artwork" became "art". The NEW IN 1.0.2 items are renumbered 1 to 8.
+
+The build 19 version (3,976 characters counting CRLF, 3,985 once the reseed put Cameron in the
+deck line) was built from the 1.0.1 paste (in `DuoQueue-listing-1.0.1.txt`), with:
 - the sign-in path first, in Group A's words: "The demo account signs in from the first screen:
   tap "I already have an account", then enter the email and password below." (1.0.2's front door
   has no email fields; `FRONT_DOOR_COPY.haveAccount` in `frontDoorCopy.ts`);
@@ -900,7 +933,10 @@ will not see: the plain seed is re-run and re-measured as the 1.0.2 WARNING in P
 photograph, and the Duo Pop lines rest on the review account's passes on the four pre-launch
 accounts, which every run of the fixed seed records); and Queue Up's server pieces are live
 (0085 and the new `send-push-notification`, plan S2 and S3), or the sheet falls back to the
-queued-by-profile phase and shows no Duo Pop line. The recovery template (plan S4) is already
+queued-by-profile phase and shows no Duo Pop line. Item 3 (the party LFG post) also needs 0089,
+and item 2's one duo per Queue up needs 0088: both were applied on 15 Oct 2026 after
+`send-push-notification` was deployed (dae7da2), so they are already true; their kill switches
+(0089's header) would make item 3 false. The recovery template (plan S4) is already
 live: read 15 Oct 2026, subject "Your DuoQueue password reset code", a `{{ .Token }}` code, no
 link, 6 digits.
 
@@ -940,19 +976,20 @@ DEMO ACCOUNT
 The demo account signs in from the first screen: tap "I already have an account", then enter the email and password below.
   Email:    review@duoqueue.io
   Password: ipTH0uV9uRfA9O2xsg7eb6WH
-Pre-confirmed and onboarded. You will see a Deck of 13 profiles (League Gold II, so Cameron, Dae and Devon show the lit "CAN DUO" cell, ranks that can queue Ranked Solo/Duo together by Riot's rules; Ophelia does not), a match with "Priya" (8 messages, newest unread), and three profiles under "Requests". Real users never see these synthetic profiles or this account (server-side row-level security); only this account and four pre-launch tester accounts can see them. Their pictures are abstract artwork. Store screenshots show real people, with consent.
+Pre-confirmed and onboarded: a Deck of 13 profiles (League Gold II, so Cameron, Dae and Devon show the lit "CAN DUO" cell: ranks that can queue Ranked Solo/Duo together by Riot's rules), a match with "Priya" (8 messages, newest unread), and three profiles under "Requests". Real users never see these synthetic profiles or this account (row-level security); only this account and four pre-launch tester accounts can see them. Their pictures are abstract art. Store screenshots show real people, with consent.
 
 NEW IN 1.0.2
-1. Queue up (top right of the Deck): pick a game and tap Queue up. For an hour the player is in Online Now and matches may get a "free to duo" push. It also makes a plain-text LFG post with a code: "Share my LFG post" opens the iOS share sheet, "Copy post" copies it; the app never posts by itself. Until "Stop queueing" (or 15 minutes after the hour), a new player who enters the code at sign-up lands on the sender's card. A demo account's code never works, so this one's shows "That code did not work."
-2. Duo Pops: with "Ping players" on, Queue up pings up to 6 players in the same game, and the first to tap "I'm in" is matched with the sender. Opt-in (off by default; Settings > Notifications), North America only, at most 3 a day, never between 1 am and 10 am local time. Pops never cross between demo and real accounts, and this account cannot receive one; its Queue up says "No one in League of Legends could get a Duo Pop right now."
-3. Sign-up: "Get started" asks for a date of birth first (under 18 refused), then builds the card; the account is created at "Save your card" (Apple or email, Terms line above the buttons).
-4. "Forgot password?" emails a 6-digit code. Try it with your own email: this account's goes to review@duoqueue.io.
-5. Chat: Discord, I'm free now and Pick a time buttons above the message box (Discord also in Settings > Connections).
-6. No notification prompt at sign-up: an in-app card with "Not now" asks first, after a Duo or a match.
-7. Free accounts can message in their 10 most recently active matches.
+1. Queue up (top right of the Deck): pick a game, tap Queue up. For an hour the player is in Online Now and matches may get a "free to duo" push. "Share my LFG post" sends a plain-text post with a code to the iOS share sheet; the app never posts by itself. A new player who enters the code at sign-up lands on the sender's card. This demo account's code never works ("That code did not work.").
+2. Duo Pops: with "Ping players" on, Queue up pings up to 6 players in the same game. One duo per Queue up: the first in, by "I'm in" or the post's code, is matched with the sender and ends it. Opt-in (Settings > Notifications), North America only, at most 3 a day, never 1 am to 10 am local time. Pops never cross between demo and real accounts, and this account cannot receive one; its Queue up says "No one in League of Legends could get a Duo Pop right now."
+3. Party LFG post: Priya chat, ••• menu > Invite a third > "Share LFG post" (asks first, then the share sheet). The first to join with its code takes the third seat. A demo party's code never resolves, so a reviewer cannot join a party with one.
+4. Sign-up: "Get started" asks for a date of birth first (under 18 refused), then builds the card; the account is created at "Save your card" (Apple or email; Terms line above).
+5. "Forgot password?" emails a 6-digit code. Try it with your own email: this account's goes to review@duoqueue.io.
+6. Chat: Discord, I'm free now and Pick a time buttons above the message box (Discord also in Settings > Connections).
+7. No notification prompt at sign-up; an in-app card asks first, after a Duo or a match.
+8. Free accounts can message in their 10 most recently active matches.
 
 SIGN IN WITH APPLE
-On "Save your card" and "I already have an account". A new Apple ID takes the date of birth from the age screen or, with no card, asks for it on "Confirm your age" before any profile exists (under 18 refused). Apple-created accounts do not see the demo profiles. Deleting an Apple account revokes Sign in with Apple through Apple's REST API; an unfinished one can be deleted from any setup screen.
+On "Save your card" and "I already have an account". A new Apple ID with no card is asked for a date of birth on "Confirm your age" before any profile exists. Apple-created accounts do not see the demo profiles. Deleting an Apple account revokes Sign in with Apple through Apple's REST API; an unfinished one can be deleted from any setup screen.
 
 HOW TO EXERCISE
 1. Paywall: Settings > DuoQueue+ (or Deck > Filters), swipe left twice to page 3: four auto-renewing plans and a one-time Power-Up, renewal terms under the purchase button, Restore purchases, Terms, Privacy Policy and "Continue with Free".
@@ -960,10 +997,10 @@ HOW TO EXERCISE
 3. Account deletion (5.1.1(v)): Settings > "Sign out or delete account" > "Delete account", two confirmations. Please use a fresh account.
 
 SAFETY
-Photos are auto-screened (nudity, gore, apparent minors) before anyone sees them; uncertain ones go to manual review. Five report categories, including Underage. Server-side blocking. A hidden-word filter.
+Photos are auto-screened (nudity, gore, apparent minors) before anyone sees them; uncertain ones go to manual review. Five report categories, including Underage. A hidden-word filter.
 
 AGE RATING
-18+ via the Override to Higher Age Rating, deliberately; our Terms require 18+. The server creates no profile without a date of birth of 18 or older.
+18+ via the Override to Higher Age Rating; our Terms require 18+. The server creates no profile without a date of birth of 18 or older.
 
 Contact: support@duoqueue.io
 ```
@@ -1055,9 +1092,11 @@ Submit, not before.
       `{{ .Token }}` code, no link, 6 digits.
 - [ ] Listing pasted from `DuoQueue-listing-1.0.2.txt`: keywords (99 bytes), description,
       What's New; name, subtitle and promotional text unchanged. Q22 answered first.
-- [ ] Notes pasted from `DuoQueue-review-notes-1.0.2.txt` (3,976 counting CRLF line ends).
+- [ ] Notes pasted from `DuoQueue-review-notes-1.0.2.txt` (3,985 counting CRLF line ends, build 20).
 - [ ] App Privacy answered per the Part 3 PROPOSAL or your changes to it, and privacy policy 1.6
-      published when 1.0.2 is released (its effective date set that day).
+      published when 1.0.2 is released (its effective date set that day). Since the build 20
+      merge 1.6 also has the "Party LFG posts" bullet (0089) and says who joined with a Duo
+      Call code (0088).
 
 ---
 

@@ -64,7 +64,7 @@
   Cary, NC to Houston, TX. The address itself lives in supabase/functions/_shared/org.ts and
   is substituted at build time; nothing else in this policy changed.
 
-  VERSION STAMP, VERSION CHECK, DUO POPS AND DUO CALLS (version 1.6 DRAFT, committed
+  VERSION STAMP, VERSION CHECK, DUO POPS, DUO CALLS AND PARTY LFG POSTS (version 1.6 DRAFT, committed
   2026-10-15 on the build-19 branch, NOT published; publish it when app 1.0.2 is released,
   not before, because it describes 1.0.2 behaviour). The Effective date line below still says
   the day it was drafted: change it to the day it is published, in the same commit that
@@ -99,7 +99,24 @@
     queue-ups-prune-daily). Recipients are only players with notification_settings.queue_pop
     = true, which defaults to false. The Duo Pop pushes themselves are logged in push_log
     (event duo_pop per recipient, duo_locked for the sender), which keeps 90 days: see the
-    next note.
+    next note. Since 0088 (applied 2026-10-15) a lock also says which path filled it
+    (queue_ups.locked_via, 'pop' or 'call'): the first player whose redemption of the post's
+    code becomes a new match is locked_by, with the match_id, which is the policy's "who joined
+    with your post's code". locked_by is SET NULL when that account is deleted.
+  - Section 2, Usage information, "Party LFG posts" (build 20, the 1.0.2 submission; migration
+    0089, applied 2026-10-15): party_calls holds party_id, sharer_id, game_id, code, created_at,
+    expires_at (2 hours), ended_at (Stop post, by either member), filled_at and filled_by.
+    sharer_id and party_id CASCADE (deleting the sharer's account, or the party, deletes the
+    post); filled_by is SET NULL when the joiner's account is deleted (filled_at stays, so the
+    post stays full). prune_party_calls() deletes posts older than 30 days daily at 09:58 UTC
+    (cron party-calls-prune-daily). party_members gains joined_by_code (read by
+    party_message_visible: a code joiner reads the party chat only from their joined_at) and
+    lfg_seen_at (stamped by get_party_call; start_party_call refuses a new post until every
+    other non-demo member has one); both live and die with the membership row (leaving, a block,
+    account or party deletion). What other people see: resolve_party_code (anon too) returns
+    the sharer's display name and the game while a post is live, and preview_party_code returns
+    every member's display name and age to a signed-in player who may join. A new post also
+    writes PARTY_CALL_NOTE into the party chat from the poster, an ordinary party message.
   - Section 2, Device information, "Notification delivery log": the push_log table (migration
     0080, applied 2026-10-15 and written by every Edge Function push since): recipient_id
     (cascades on account deletion), category, event, sent_at, tokens tried, tokens accepted,
@@ -176,7 +193,8 @@ We only collect what the app actually uses. Here's every category, itemized.
 ### Usage information
 - **Presence / "Online Now" status:** a signal that you're free to duo right now, on only when you turn it on. From version 1.0.2 of the app you turn it on by tapping Queue up; in earlier versions, with a switch in Online Now. Either way it ends after 60 minutes or when you stop. We also track a general "last active" timestamp used to rank the deck and to show partners when you're around.
 - **Swipes and matches:** who you liked, passed on, or matched with, needed to run the core matching feature and prevent the same profile from being shown to you twice.
-- **Duo Pops and Duo Calls.** When you tap Queue up, we record which players we sent a Duo Pop to, which of them opened or answered it, and the short code in your LFG post. If you turned Duo Pops on, we record that you were sent one and whether you opened or answered it. The player who queued up never sees who opened a Duo Pop or passed on it. Duo Pops only go to players who turned them on. We delete these records after 30 days, and your part of them right away when you delete your account. Separately, the notification itself (that a Duo Pop was sent to you, or that the player who queued up was told theirs was grabbed) is recorded in our notification delivery log like every other notification, and that record is kept for 90 days (see "Notification delivery log" below).
+- **Duo Pops and Duo Calls.** When you tap Queue up, we record which players we sent a Duo Pop to, which of them opened or answered it, the short code in your LFG post, and, if someone becomes your duo by joining with that code, who it was. If you turned Duo Pops on, we record that you were sent one and whether you opened or answered it. The player who queued up never sees who opened a Duo Pop or passed on it. Duo Pops only go to players who turned them on. We delete these records after 30 days, and your part of them right away when you delete your account. Separately, the notification itself (that a Duo Pop was sent to you, or that the player who queued up was told theirs was grabbed) is recorded in our notification delivery log like every other notification, and that record is kept for 90 days (see "Notification delivery log" below).
+- **Party LFG posts.** From version 1.0.2 of the app, either player in a party of two can share an LFG post with a code to find a third. For each post we record its code, the game it names, who shared it, when it was made and until when it works, whether it was stopped, and who joined the party with it and when. Making a post also puts a note from you in your party chat. While a post is live, anyone with its code, even before they sign up, can see the name of the player who shared it and the game, and a signed-in player who is allowed to join sees the name and age of everyone in the party before joining. If you join a party with a code, we note that on your party membership, so the party chat shows you messages only from when you joined; we also note when each member's app first showed the party's post, so a post can only be made once everyone in the party can see it and stop it. We delete posts after 30 days. Deleting the account that shared a post deletes the post, and deleting the account that joined with it removes that account from it. The notes on your party membership are kept while you are in the party and deleted when you leave it, or when the party or your account is deleted.
 - **Reports and blocks:** who you've reported or blocked, and why, so we can act on it and keep that person from reappearing in your deck.
 - **Match feedback tags:** optional, non-public tags ("good comms," "showed up on time," "flaked," etc.) you can leave about a match after the fact, used to build a lightweight reputation signal.
 
