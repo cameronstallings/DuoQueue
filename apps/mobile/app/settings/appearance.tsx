@@ -4,8 +4,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { APPEARANCE_OPTIONS, isAppearanceOptionSelected } from "@/lib/appearance";
 import { Card } from "@/components/Card";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { ToggleRow } from "@/components/ToggleRow";
 import { useRequireSession } from "@/hooks/useRequireSession";
 import { hapticSelection } from "@/lib/haptics";
+import { HAPTICS_COPY } from "@/lib/hapticsPreference";
+import { useHapticsStore } from "@/store/haptics-store";
 import { useThemeStore } from "@/store/theme-store";
 import { useTheme } from "@/theme/useTheme";
 
@@ -37,12 +40,22 @@ import { useTheme } from "@/theme/useTheme";
  * The rows and the tick rule live in `lib/appearance.ts`, typed on the RESOLVED scheme so
  * that handing them the stored preference is a compile error rather than a screen that
  * ticks nothing. See the header there.
+ *
+ * HAPTICS (1.0.2) lives here too, in its own card under the theme, because it is the same kind
+ * of thing: how the app feels on this phone, not anything about your profile. It is per device
+ * (`store/haptics-store.ts`, AsyncStorage) and defaults ON; iOS's own System Haptics switch
+ * still applies on top of it. Its row passes `haptic={false}` and orders the tap itself so the
+ * tap is felt either way: switching on, the store turns on first and then the tap plays (it would
+ * be swallowed the other way round); switching off, the tap plays first and then the store goes
+ * quiet. Every other haptic in the app checks this switch in `lib/haptics.ts`.
  */
 
 export default function AppearanceSettings() {
   useRequireSession();
   const { colors, spacing, type, radius, hairline, scheme } = useTheme();
   const setPreference = useThemeStore((s) => s.setPreference);
+  const hapticsEnabled = useHapticsStore((s) => s.enabled);
+  const setHapticsEnabled = useHapticsStore((s) => s.setEnabled);
 
   return (
     <ScreenContainer title="Appearance" showBack>
@@ -86,6 +99,23 @@ export default function AppearanceSettings() {
             </View>
           );
         })}
+      </Card>
+      <Card style={{ padding: 0, overflow: "hidden" }}>
+        <ToggleRow
+          label={HAPTICS_COPY.label}
+          hint={HAPTICS_COPY.hint}
+          value={hapticsEnabled}
+          haptic={false}
+          onValueChange={(next) => {
+            if (next) {
+              setHapticsEnabled(true);
+              hapticSelection();
+            } else {
+              hapticSelection();
+              setHapticsEnabled(false);
+            }
+          }}
+        />
       </Card>
     </ScreenContainer>
   );

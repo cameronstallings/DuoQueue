@@ -74,7 +74,7 @@ export default function SettingsScreen() {
           <NavRow
             icon="color-palette-outline"
             label="Appearance"
-            hint="Light or dark"
+            hint="Light or dark, and haptics"
             value={appearanceSummary(scheme)}
             onPress={() => router.push("/settings/appearance")}
           />

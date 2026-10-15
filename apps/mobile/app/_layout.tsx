@@ -28,6 +28,7 @@ import { supabase } from "@/lib/supabase";
 import { useSessionStore } from "@/store/session-store";
 import { loadInviteState } from "@/store/invite-store";
 import { loadThemePreference } from "@/store/theme-store";
+import { loadHapticsPreference } from "@/store/haptics-store";
 import { useTheme } from "@/theme/useTheme";
 
 // Supabase's token auto-refresh timer only ticks while the JS runtime is active;
@@ -110,6 +111,7 @@ export default function RootLayout() {
   useEffect(() => {
     void initialize();
     void loadThemePreference();
+    void loadHapticsPreference();
     void loadInviteState();
   }, [initialize]);
 
