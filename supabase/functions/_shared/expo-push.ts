@@ -7,12 +7,19 @@
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
 const MAX_TOKENS_PER_REQUEST = 100;
 
+/** Expo's delivery priority. "high" wakes the phone at once (APNs priority 10). */
+export type ExpoPushPriority = "default" | "normal" | "high";
+
 export interface ExpoPushMessage {
   to: string;
   title: string;
   body: string;
   data?: Record<string, unknown>;
-  sound?: "default";
+  /** "default" (the system sound) or a sound file bundled in the app, by its file name. */
+  sound?: string;
+  /** Seconds Expo and APNs keep trying to deliver before dropping the push. */
+  ttl?: number;
+  priority?: ExpoPushPriority;
 }
 
 /**
@@ -23,12 +30,38 @@ export interface ExpoPushMessage {
  * scheduled ones (daily swipes, new player alerts, re-engagement and first-message nudges,
  * announcements) stay silent, so a sound always means someone.
  *
- * Additive for every shipped build: `sound` is a plain APNs field the app never reads. While
+ * `sound` is `true` for the system sound (sent as "default", exactly as before 1.0.2), or a
+ * string: the file name, WITH its extension, of a sound bundled in the app ("duo-pop.wav", the
+ * Duo Pop, 1.0.2). An empty string is no sound. Apple documents that a sound file the app does
+ * not bundle plays the default alert sound instead, so naming a 1.0.2 sound cannot silence an
+ * older build (and only 1.0.2 can opt in to Duo Pops anyway).
+ *
+ * `ttl` (whole seconds, at least 1) and `priority` go in the message only when given, so every
+ * push that does not ask for them is byte-for-byte what it was (the Duo Pop asks for both: it
+ * is worthless after its 10 minutes, and it has to arrive now).
+ *
+ * Additive for every shipped build: these are plain APNs fields the app never reads. While
  * the app is open, its own handler (apps/mobile/src/lib/notifications.ts) still decides, and it
  * keeps the in-app banner quiet.
  */
 export interface ExpoPushOptions {
-  sound?: boolean;
+  sound?: boolean | string;
+  ttl?: number;
+  priority?: ExpoPushPriority;
+}
+
+/** The message fields ExpoPushOptions turns into: only the ones that apply. Pure. */
+export function pushOptionFields(options: ExpoPushOptions = {}): Pick<ExpoPushMessage, "sound" | "ttl" | "priority"> {
+  const out: Pick<ExpoPushMessage, "sound" | "ttl" | "priority"> = {};
+  if (options.sound === true) out.sound = "default";
+  else if (typeof options.sound === "string" && options.sound.trim() !== "") out.sound = options.sound.trim();
+  if (typeof options.ttl === "number" && Number.isFinite(options.ttl) && options.ttl >= 1) {
+    out.ttl = Math.floor(options.ttl);
+  }
+  if (options.priority === "default" || options.priority === "normal" || options.priority === "high") {
+    out.priority = options.priority;
+  }
+  return out;
 }
 
 function chunk<T>(items: T[], size: number): T[][] {
@@ -47,8 +80,9 @@ export function buildPushBatches(
   options: ExpoPushOptions = {},
 ): ExpoPushMessage[][] {
   const validTokens = tokens.filter((t) => t.startsWith("ExponentPushToken") || t.startsWith("ExpoPushToken"));
+  const extra = pushOptionFields(options);
   return chunk(validTokens, MAX_TOKENS_PER_REQUEST).map((batch) =>
-    batch.map((to) => ({ to, title, body, data, ...(options.sound ? { sound: "default" as const } : {}) })),
+    batch.map((to) => ({ to, title, body, data, ...extra })),
   );
 }
 

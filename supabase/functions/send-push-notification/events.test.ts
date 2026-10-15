@@ -8,11 +8,20 @@ import { notificationTapAction } from "../../../apps/mobile/src/lib/notification
 import {
   ANNOUNCEMENT_BODY_MAX,
   ANNOUNCEMENT_TITLE_MAX,
+  canDuoWith,
+  DUO_POP_CATEGORY,
+  DUO_POP_MIN_SECONDS_LEFT,
+  DUO_POP_SOUND,
+  DUO_POP_TTL_SECONDS,
+  duoPopTtlSeconds,
   isAnnouncementText,
+  isDuoPopOpenFor,
   isLiveMatchBetween,
+  isOptedInToDuoPops,
   isStillProposed,
   isStillShared,
   isValidEvent,
+  popLockFor,
   PUSH_ROUTES,
 } from "./events";
 
@@ -48,6 +57,7 @@ describe("isValidEvent: the new events, exactly as the SQL builds them", () => {
     { type: "discord_shared", matchId: MATCH, shareId: ROW, sharerId: A, recipientId: B },
     { type: "first_message_nudge", matchId: MATCH, recipientId: A, otherId: B },
     { type: "announcement", title: "New in DuoQueue", body: "Parties are here. Swipe together to find a third." },
+    { type: "duo_pop", popId: ROW, recipientId: A },
   ])("$type", (body) => {
     expect(isValidEvent(body)).toBe(true);
   });
@@ -72,6 +82,9 @@ describe("isValidEvent stays strict", () => {
     ["an announcement with an em dash", { type: "announcement", title: `New${EM_DASH}now`, body: "b" }],
     ["an announcement with an en dash", { type: "announcement", title: "t", body: `a ${EN_DASH} b` }],
     ["an announcement over two lines", { type: "announcement", title: "t", body: "one\ntwo" }],
+    ["a Duo Pop with a bad pop id", { type: "duo_pop", popId: "pop", recipientId: A }],
+    ["a Duo Pop with no recipient", { type: "duo_pop", popId: ROW }],
+    ["a Duo Pop with a bad recipient", { type: "duo_pop", popId: ROW, recipientId: "everyone" }],
   ])("refuses %s", (_label, body) => {
     expect(isValidEvent(body)).toBe(false);
   });
@@ -126,6 +139,131 @@ describe("PUSH_ROUTES: the contract with the SQL and with the shipped app", () =
 
   it("an announcement is not routed anywhere (a tap just opens the app)", () => {
     expect(tap("announcement")).toEqual({ kind: "ignore" });
+  });
+
+  it("a Duo Pop's category without its popId is ignored (1.0.1 never routes it, and cannot opt in)", () => {
+    expect(tap(DUO_POP_CATEGORY)).toEqual({ kind: "ignore" });
+  });
+
+  it("the sender's Duo locked push rides new_match + matchId, so the shipped app opens that chat", () => {
+    expect(tap(PUSH_ROUTES.new_match.category, MATCH)).toEqual({ kind: "open-chat", matchId: MATCH });
+  });
+
+  it("the Duo Pop is not a notifyProfile route: it never takes the missing-row-means-notify default", () => {
+    expect("duo_pop" in PUSH_ROUTES).toBe(false);
+    expect(DUO_POP_CATEGORY).toBe("duo_pop");
+    expect(DUO_POP_SOUND).toBe("duo-pop.wav");
+    expect(DUO_POP_TTL_SECONDS).toBe(600);
+  });
+});
+
+describe("Duo Pop re-checks (0085)", () => {
+  const now = new Date("2026-10-15T20:00:00Z");
+  const open = {
+    id: ROW,
+    sender_id: A,
+    game_id: C,
+    recipients: [B, MATCH],
+    declined: [],
+    can_duo: [B],
+    locked_at: null,
+    ended_at: null,
+    pop_expires_at: "2026-10-15T20:09:00+00:00",
+  };
+
+  it("isDuoPopOpenFor: unlocked, not stopped, more than 30 seconds left, a recipient, no Not now", () => {
+    expect(isDuoPopOpenFor(open, B, now)).toBe(true);
+    expect(isDuoPopOpenFor(open, B.toUpperCase(), now)).toBe(true);
+    expect(isDuoPopOpenFor({ ...open, locked_at: "2026-10-15T19:59:00Z" }, B, now)).toBe(false);
+    expect(isDuoPopOpenFor({ ...open, ended_at: "2026-10-15T19:59:00Z" }, B, now)).toBe(false);
+    expect(isDuoPopOpenFor({ ...open, declined: [B] }, B, now)).toBe(false);
+    expect(isDuoPopOpenFor(open, C, now)).toBe(false);
+    expect(isDuoPopOpenFor(null, B, now)).toBe(false);
+    expect(isDuoPopOpenFor({ ...open, recipients: null }, B, now)).toBe(false);
+    expect(isDuoPopOpenFor({ ...open, pop_expires_at: "not a time" }, B, now)).toBe(false);
+  });
+
+  it("isDuoPopOpenFor: the 30-second edge", () => {
+    const at = (seconds: number) => new Date(now.getTime() + seconds * 1000).toISOString();
+    expect(isDuoPopOpenFor({ ...open, pop_expires_at: at(DUO_POP_MIN_SECONDS_LEFT) }, B, now)).toBe(false);
+    expect(isDuoPopOpenFor({ ...open, pop_expires_at: at(DUO_POP_MIN_SECONDS_LEFT + 1) }, B, now)).toBe(true);
+    expect(isDuoPopOpenFor({ ...open, pop_expires_at: at(-5) }, B, now)).toBe(false);
+  });
+
+  it("duoPopTtlSeconds: the seconds the pop has left, floored, never past the pop or over 600", () => {
+    const at = (ms: number) => new Date(now.getTime() + ms).toISOString();
+    // 20:09:00 against 20:00:00: 9 minutes left.
+    expect(duoPopTtlSeconds(open, now)).toBe(540);
+    // A fresh pop, as Postgres writes it (microseconds and an offset).
+    expect(duoPopTtlSeconds({ pop_expires_at: "2026-10-15T20:10:00.000000+00:00" }, now)).toBe(600);
+    // Floored: 45.9 seconds left is a 45-second ttl, so the push never outlives the pop.
+    expect(duoPopTtlSeconds({ pop_expires_at: at(45_900) }, now)).toBe(45);
+    // Clock skew between the database and this function never lifts it past the pop's 10 minutes.
+    expect(duoPopTtlSeconds({ pop_expires_at: at(605_000) }, now)).toBe(DUO_POP_TTL_SECONDS);
+    // Nothing left, already past, unreadable or missing: do not send.
+    expect(duoPopTtlSeconds({ pop_expires_at: at(999) }, now)).toBeNull();
+    expect(duoPopTtlSeconds({ pop_expires_at: at(-5_000) }, now)).toBeNull();
+    expect(duoPopTtlSeconds({ pop_expires_at: "not a time" }, now)).toBeNull();
+    expect(duoPopTtlSeconds(null, now)).toBeNull();
+  });
+
+  it("duoPopTtlSeconds: the last pop of the night (fanned out 00:49:30 local) can never land at 01:00", () => {
+    // America/New_York in October is UTC-4: the pop closes at 00:59:30 local, 04:59:30Z.
+    const pop = { pop_expires_at: "2026-10-16T04:59:30+00:00" };
+    const oneAm = Date.parse("2026-10-16T05:00:00Z");
+    // Whenever the push leaves (on time, or late behind a pg_net backlog), the provider may hold it
+    // only until the pop closes.
+    for (const leaves of ["2026-10-16T04:49:30Z", "2026-10-16T04:55:00Z", "2026-10-16T04:58:59.500Z"]) {
+      const sent = new Date(leaves);
+      const ttl = duoPopTtlSeconds(pop, sent);
+      expect(ttl).not.toBeNull();
+      expect(sent.getTime() + (ttl ?? 0) * 1000).toBeLessThanOrEqual(Date.parse(pop.pop_expires_at));
+      expect(sent.getTime() + (ttl ?? 0) * 1000).toBeLessThan(oneAm);
+    }
+  });
+
+  it("canDuoWith: only a recipient in can_duo", () => {
+    expect(canDuoWith(open, B)).toBe(true);
+    expect(canDuoWith(open, MATCH)).toBe(false);
+    expect(canDuoWith({ can_duo: null }, B)).toBe(false);
+    expect(canDuoWith(null, B)).toBe(false);
+  });
+
+  it("isOptedInToDuoPops: the row must exist and say exactly true (the opposite of notifyProfile)", () => {
+    expect(isOptedInToDuoPops({ queue_pop: true })).toBe(true);
+    expect(isOptedInToDuoPops({ queue_pop: false })).toBe(false);
+    expect(isOptedInToDuoPops(null)).toBe(false);
+    expect(isOptedInToDuoPops(undefined)).toBe(false);
+    expect(isOptedInToDuoPops({})).toBe(false);
+    expect(isOptedInToDuoPops({ queue_pop: "true" })).toBe(false);
+  });
+
+  const lockedRow = {
+    id: ROW.toUpperCase(),
+    sender_id: A,
+    locked_by: B,
+    locked_at: "2026-10-15T20:00:41+00:00",
+    created_at: "2026-10-15T20:00:00+00:00",
+    can_duo: [B],
+  };
+
+  it("popLockFor: a locked pop whose sender and locker are exactly the match's two players", () => {
+    expect(popLockFor(lockedRow, { userAId: A, userBId: B })).toEqual({
+      popId: ROW,
+      senderId: A,
+      lockerId: B,
+      canDuo: true,
+    });
+    expect(popLockFor(lockedRow, { userAId: B, userBId: A.toUpperCase() })?.senderId).toBe(A);
+    expect(popLockFor({ ...lockedRow, can_duo: [] }, { userAId: A, userBId: B })?.canDuo).toBe(false);
+  });
+
+  it("popLockFor: anything else is an ordinary match", () => {
+    expect(popLockFor(null, { userAId: A, userBId: B })).toBeNull();
+    expect(popLockFor({ ...lockedRow, locked_at: null }, { userAId: A, userBId: B })).toBeNull();
+    expect(popLockFor({ ...lockedRow, locked_by: null }, { userAId: A, userBId: B })).toBeNull();
+    expect(popLockFor(lockedRow, { userAId: A, userBId: C })).toBeNull();
+    expect(popLockFor({ ...lockedRow, locked_by: A }, { userAId: A, userBId: B })).toBeNull();
   });
 });
 

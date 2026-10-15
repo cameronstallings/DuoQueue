@@ -17,7 +17,7 @@
 // SQL ledgers that decide to push.
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 
-import { buildPushLogRow, type PushOutcome, sendExpoPush } from "./expo-push.ts";
+import { buildPushLogRow, type ExpoPushPriority, type PushOutcome, sendExpoPush } from "./expo-push.ts";
 
 export interface ProfilePush {
   recipientId: string;
@@ -32,8 +32,13 @@ export interface ProfilePush {
   body: string;
   /** Rides in data next to category, for a tapped push to route by (matchId, partyId). */
   extra?: Record<string, string>;
-  /** A real person reaching you. See ExpoPushOptions. */
-  sound?: boolean;
+  /** A real person reaching you: true for the system sound, or a bundled sound's file name
+   * ("duo-pop.wav"). See ExpoPushOptions. */
+  sound?: boolean | string;
+  /** Seconds to keep trying (the Duo Pop: 600). Absent means Expo's default. */
+  ttl?: number;
+  /** "high" for a push that has to arrive now (the Duo Pop). Absent means Expo's default. */
+  priority?: ExpoPushPriority;
 }
 
 /** This profile's push tokens; empty (and a console line) if the read fails. */
@@ -48,7 +53,11 @@ export async function tokensForProfile(supabase: SupabaseClient, profileId: stri
 
 export async function pushToProfile(supabase: SupabaseClient, push: ProfilePush): Promise<PushOutcome> {
   const data: Record<string, string> = { ...(push.extra ?? {}), category: push.category };
-  const outcome = await sendExpoPush(push.tokens, push.title, push.body, data, { sound: push.sound === true });
+  const outcome = await sendExpoPush(push.tokens, push.title, push.body, data, {
+    sound: push.sound,
+    ttl: push.ttl,
+    priority: push.priority,
+  });
   await Promise.all([
     forgetDeadTokens(supabase, push.recipientId, outcome.deadTokens),
     logPush(supabase, push, outcome),

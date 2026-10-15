@@ -1,7 +1,8 @@
 // Internal-only: called by Postgres (via pg_net, through notify_via_edge_function) on new
 // matches, new messages, Super Pings, "free to duo now", the party events (an invite, a started
 // party, a new member, a party chat message), a like (0072), a proposed time and a shared
-// Discord (0073), and the first-message nudge (0075); and by an operator for an announcement
+// Discord (0073), the first-message nudge (0075), and a Duo Pop (0085, which also enriches the
+// new_match push of a match that came out of one); and by an operator for an announcement
 // (0081). Never by the client directly. Authenticated with a shared secret
 // (INTERNAL_TRIGGER_AUTH_TOKEN) rather than a user JWT, since there's no end-user session in a
 // database trigger.
@@ -20,25 +21,39 @@ import { readJsonBody } from "../_shared/validation.ts";
 import {
   ANNOUNCEMENT_CATEGORY,
   type AnnouncementEvent,
+  canDuoWith,
   type DiscordSharedEvent,
+  DUO_LOCKED_LOG_EVENT,
+  DUO_POP_CATEGORY,
+  DUO_POP_SOUND,
+  type DuoPopEvent,
+  type DuoPopRow,
+  duoPopTtlSeconds,
   type FirstMessageNudgeEvent,
+  isDuoPopOpenFor,
   isLiveMatchBetween,
+  isOptedInToDuoPops,
   isStillProposed,
   isStillShared,
   isValidEvent,
+  type LockedPopRow,
   type LookingNowEvent,
   type MatchRow,
   type NewLikeEvent,
+  type NewMatchEvent,
   type PartyInviteEvent,
   type PartyJoinedEvent,
   type PartyMessageEvent,
   type PartyStartedEvent,
   type PersonEventType,
+  type PopLock,
+  popLockFor,
   PUSH_ROUTES,
   type SessionProposedEvent,
   type SessionRow,
   type ShareRow,
 } from "./events.ts";
+import { duoLockedPush, duoPopPush, duoPopVariant, poppedInSeconds } from "./duoPopCopy.ts";
 import { likeAlertPush } from "./likeAlertCopy.ts";
 import {
   discordSharedPush,
@@ -86,11 +101,15 @@ async function getDisplayName(profileId: string): Promise<string> {
 // patched: a build that predates `matchId` reads only `data.category` and ignores the rest, so it
 // behaves exactly as before. `category` is spread last (pushToProfile) so no extra field can ever
 // replace it, since every shipped build routes and refreshes on that one key.
+//
+// `logEvent` replaces `event` in push_log only (the route is still `event`'s): the sender's
+// "Duo locked" push is a new_match push in every way the app can see, logged as duo_locked.
 async function notifyProfile(
   profileId: string,
   event: PersonEventType,
   copy: PushCopy,
   extra: Record<string, string> = {},
+  logEvent?: string,
 ): Promise<string> {
   const route = PUSH_ROUTES[event];
   const { data: settings } = await supabase
@@ -109,7 +128,7 @@ async function notifyProfile(
   const tokens = await tokensForProfile(supabase, profileId);
   const outcome = await pushToProfile(supabase, {
     recipientId: profileId,
-    event,
+    event: logEvent ?? event,
     category: route.category,
     tokens,
     title: copy.title,
@@ -281,6 +300,120 @@ async function sendAnnouncement(event: AnnouncementEvent): Promise<Response> {
 }
 
 // ---------------------------------------------------------------------------------------------
+// Queue Up (0085, DuoQueue 1.0.2)
+//
+// THE DUO POP. start_queue_up decided the recipients in SQL (opted in, NA, the game, quiet hours
+// for the whole pop, the 3-hour and 3-a-day caps, every pair rule) and queued one
+// { type: "duo_pop", popId, recipientId } per recipient. pg_net sends it after the commit, and a
+// pop is a 10-minute race,
+// so this re-reads the row and drops the push unless it can still be won: not locked, not
+// stopped, more than 30 seconds left, still a recipient, no Not now. Then the switch: the
+// settings row must EXIST and say queue_pop = true (isOptedInToDuoPops), never notifyProfile's
+// "missing row means notify". The push names nobody: the game, the sender's rank text and
+// whether Riot's duo table lets the two queue together. data { category: "duo_pop", popId },
+// the bundled Duo Pop sound, a ttl of the seconds the pop has left (duoPopTtlSeconds, at most
+// 600, so a late delivery can never land after the pop closes, which 0085 keeps before 01:00
+// local), high priority; push_log event duo_pop.
+//
+// "DUO LOCKED". answer_duo_pop inserts the match, so on_match_created sends the ordinary
+// new_match event. Before the two "New match!" pushes go out, the match is looked up in
+// queue_ups (popLockFor). For a pop, ONLY the sender is pushed ("Duo locked", "{name} grabbed
+// your Duo Pop. Popped in m:ss.") under the new_match switch, sound and category, with matchId,
+// popId, poppedIn and, when Riot's table lets them duo, duo "1" (the 1.0.2 app opens DUO LOCKED
+// from these; 1.0.1 reads category + matchId and opens the chat). The player who tapped I'm in
+// gets nothing: their Pop card is already playing the moment. Any lookup error, including the
+// table not existing yet, means "not a pop", so every other match is exactly as before.
+// ---------------------------------------------------------------------------------------------
+
+async function notifyDuoPop(event: DuoPopEvent): Promise<string> {
+  const { data: pop, error } = await supabase
+    .from("queue_ups")
+    .select("id, sender_id, game_id, recipients, declined, can_duo, locked_at, ended_at, pop_expires_at")
+    .eq("id", event.popId)
+    .maybeSingle();
+  if (error) {
+    console.error("duo pop lookup failed:", error.message);
+    return "skipped:lookup_failed";
+  }
+  const row = pop as DuoPopRow | null;
+  if (!row || !isDuoPopOpenFor(row, event.recipientId, new Date())) return "skipped:pop_closed";
+
+  const { data: settings, error: settingsError } = await supabase
+    .from("notification_settings")
+    .select("queue_pop")
+    .eq("profile_id", event.recipientId)
+    .maybeSingle();
+  if (settingsError) {
+    console.error("duo pop settings lookup failed:", settingsError.message);
+    return "skipped:lookup_failed";
+  }
+  if (!isOptedInToDuoPops(settings)) return "skipped:not_opted_in";
+
+  const [{ data: game }, { data: senderGame }] = await Promise.all([
+    supabase.from("games").select("name").eq("id", row.game_id).maybeSingle(),
+    supabase.from("profile_games").select("rank_text").eq("profile_id", row.sender_id).eq("game_id", row.game_id)
+      .maybeSingle(),
+  ]);
+  const gameName = (game?.name as string | undefined)?.trim();
+  if (!gameName) return "skipped:no_game";
+
+  const copy = duoPopPush({
+    gameName,
+    rankText: senderGame?.rank_text as string | null | undefined,
+    canDuo: canDuoWith(row, event.recipientId),
+    variant: duoPopVariant(event.popId),
+  });
+  const tokens = await tokensForProfile(supabase, event.recipientId);
+  // The pop's remaining seconds, read after the lookups above, so the push dies with the pop.
+  const ttl = duoPopTtlSeconds(row, new Date());
+  if (ttl === null) return "skipped:pop_closed";
+  const outcome = await pushToProfile(supabase, {
+    recipientId: event.recipientId,
+    event: "duo_pop",
+    category: DUO_POP_CATEGORY,
+    tokens,
+    title: copy.title,
+    body: copy.body,
+    extra: { popId: event.popId },
+    sound: DUO_POP_SOUND,
+    ttl,
+    priority: "high",
+  });
+  return outcome.ticketStatus;
+}
+
+/** The queue_ups row that locked into this match, or null: none, or any error at all (the table
+ * may not exist yet when this deploys ahead of 0085). Never throws. */
+async function findLockedPop(matchId: string): Promise<LockedPopRow | null> {
+  try {
+    const { data, error } = await supabase
+      .from("queue_ups")
+      .select("id, sender_id, locked_by, locked_at, created_at, can_duo")
+      .eq("match_id", matchId)
+      .not("locked_at", "is", null)
+      .order("locked_at", { ascending: false })
+      .limit(1);
+    if (error) {
+      // Before 0085 this is "relation does not exist": an ordinary match.
+      console.error("duo pop match lookup failed:", error.message);
+      return null;
+    }
+    return ((data ?? [])[0] as LockedPopRow | undefined) ?? null;
+  } catch (err) {
+    console.error("duo pop match lookup failed:", err);
+    return null;
+  }
+}
+
+async function notifyDuoLocked(event: NewMatchEvent, pop: LockedPopRow, lock: PopLock): Promise<string> {
+  const seconds = poppedInSeconds(pop.created_at, pop.locked_at) ?? 1;
+  const lockerName = await getDisplayName(lock.lockerId);
+  const extra: Record<string, string> = { matchId: event.matchId, popId: lock.popId, poppedIn: String(seconds) };
+  if (lock.canDuo) extra.duo = "1";
+  return await notifyProfile(lock.senderId, "new_match", duoLockedPush(lockerName, seconds), extra, DUO_LOCKED_LOG_EVENT);
+}
+
+// ---------------------------------------------------------------------------------------------
 // Parties
 //
 // Every party push re-reads the party before it goes out, because pg_net sends it after the
@@ -407,6 +540,13 @@ Deno.serve(async (req) => {
 
   switch (event.type) {
     case "new_match": {
+      // A match that came out of a Duo Pop: "Duo locked" to the sender only (Queue Up, above).
+      const pop = await findLockedPop(event.matchId);
+      const lock = popLockFor(pop, event);
+      if (pop && lock && poppedInSeconds(pop.created_at, pop.locked_at) !== null) {
+        result = await notifyDuoLocked(event, pop, lock);
+        break;
+      }
       const [nameA, nameB] = await Promise.all([
         getDisplayName(event.userAId),
         getDisplayName(event.userBId),
@@ -457,6 +597,9 @@ Deno.serve(async (req) => {
     case "announcement":
       // Never lowercaseIds: its strings are the words.
       return await sendAnnouncement(event);
+    case "duo_pop":
+      result = await notifyDuoPop(lowercaseIds(event));
+      break;
     case "party_invite":
       await notifyPartyInvite(lowercaseIds(event));
       break;

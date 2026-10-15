@@ -7,7 +7,8 @@
 // pinned: every request body a deployed trigger sends today must stay valid, and every new event
 // must ride a category the 1.0.1 app already routes (apps/mobile/src/lib/notificationRouting.ts:
 // new_player opens the deck; new_message, new_match and nudge_unread with a matchId open that
-// chat; the party categories with a partyId) or one it safely ignores (announcement).
+// chat; the party categories with a partyId) or one it safely ignores (announcement, and
+// duo_pop, which only a 1.0.2 phone can opt in to).
 //
 // A deploy reaches every installed app at once and the app cannot be patched, so changes here are
 // additive: never rename an event, a field or a category that a trigger or a shipped build uses.
@@ -29,7 +30,8 @@ export type SettingsColumn =
   | "nudge_online"
   | "new_player"
   | "new_like"
-  | "announcements";
+  | "announcements"
+  | "queue_pop";
 
 export interface NewMatchEvent {
   type: "new_match";
@@ -114,6 +116,13 @@ export interface AnnouncementEvent {
   title: string;
   body: string;
 }
+/** 0085: one Duo Pop to one recipient, from start_queue_up. Names nobody: the push re-reads the
+ * queue_ups row (popId) for everything it says. */
+export interface DuoPopEvent {
+  type: "duo_pop";
+  popId: string;
+  recipientId: string;
+}
 
 export type NotificationEvent =
   | NewMatchEvent
@@ -128,10 +137,13 @@ export type NotificationEvent =
   | SessionProposedEvent
   | DiscordSharedEvent
   | FirstMessageNudgeEvent
-  | AnnouncementEvent;
+  | AnnouncementEvent
+  | DuoPopEvent;
 
-/** Every event sent to one person through notifyProfile (everything but the announcement). */
-export type PersonEventType = Exclude<NotificationEvent["type"], "announcement">;
+/** Every event sent to one person through notifyProfile: everything but the announcement and the
+ * Duo Pop, which are both opt-in and so never take notifyProfile's "a missing settings row means
+ * notify" default. */
+export type PersonEventType = Exclude<NotificationEvent["type"], "announcement" | "duo_pop">;
 
 export interface PushRoute {
   /** The switch that has to be on. A missing settings row means "notify" for these. */
@@ -182,6 +194,23 @@ export const PUSH_ROUTES: Record<PersonEventType, PushRoute> = {
  * by claim_announcement_recipients() (opted in, inside 10:00-20:59 local, not yet sent this
  * text) rather than by notifyProfile's "missing row means notify". */
 export const ANNOUNCEMENT_CATEGORY = "announcement";
+
+/**
+ * The Duo Pop (0085, DuoQueue 1.0.2). Its own category, "duo_pop" (the 1.0.2 app's
+ * DUO_POP_PUSH_CATEGORY opens the Pop card from it; 1.0.1 does not route it, so a tap just opens
+ * the app, and 1.0.1 cannot opt in anyway). Its own sound, bundled in 1.0.2 as
+ * assets/sounds/duo-pop.wav. A ttl of the seconds the pop has left (duoPopTtlSeconds, at most its
+ * 10 minutes), because after that it is worthless and, near midnight, against the quiet hours;
+ * and high priority, because it is a race. Sent only when the recipient's settings row EXISTS
+ * and says queue_pop = true: the opposite of notifyProfile's default (App Store 4.5.4).
+ */
+export const DUO_POP_CATEGORY = "duo_pop";
+export const DUO_POP_SOUND = "duo-pop.wav";
+export const DUO_POP_TTL_SECONDS = 600;
+/** A pop with less than this left is not pushed: by the time it lands and is opened, it is gone. */
+export const DUO_POP_MIN_SECONDS_LEFT = 30;
+/** push_log.event for the sender's push when a pop locks (category new_match). */
+export const DUO_LOCKED_LOG_EVENT = "duo_locked";
 export const ANNOUNCEMENT_TITLE_MAX = 60;
 export const ANNOUNCEMENT_BODY_MAX = 180;
 
@@ -247,6 +276,8 @@ export function isValidEvent(data: unknown): data is NotificationEvent {
       return (
         isAnnouncementText(d.title, ANNOUNCEMENT_TITLE_MAX) && isAnnouncementText(d.body, ANNOUNCEMENT_BODY_MAX)
       );
+    case "duo_pop":
+      return isUuid(d.popId) && isUuid(d.recipientId);
     default:
       return false;
   }
@@ -311,4 +342,101 @@ export function isStillShared(
     String(share.match_id).toLowerCase() === event.matchId.toLowerCase() &&
     String(share.shared_by).toLowerCase() === event.sharerId.toLowerCase()
   );
+}
+
+// ---------------------------------------------------------------------------------------------
+// Queue Up (0085)
+// ---------------------------------------------------------------------------------------------
+
+/** The queue_ups columns the Duo Pop push re-reads. */
+export interface DuoPopRow {
+  id: string;
+  sender_id: string;
+  game_id: string;
+  recipients: string[] | null;
+  declined: string[] | null;
+  can_duo: string[] | null;
+  locked_at: string | null;
+  ended_at: string | null;
+  pop_expires_at: string;
+}
+
+function hasId(ids: string[] | null | undefined, id: string): boolean {
+  const want = id.toLowerCase();
+  return Array.isArray(ids) && ids.some((x) => String(x).toLowerCase() === want);
+}
+
+/** The pop can still be answered by this recipient when the push lands: nobody has locked it,
+ * the sender has not stopped, at least 30 seconds are left, and the recipient is one of its
+ * recipients and has not said Not now. */
+export function isDuoPopOpenFor(pop: DuoPopRow | null | undefined, recipientId: string, now: Date): boolean {
+  if (!pop || pop.locked_at || pop.ended_at) return false;
+  const expires = Date.parse(String(pop.pop_expires_at));
+  if (!Number.isFinite(expires) || expires <= now.getTime() + DUO_POP_MIN_SECONDS_LEFT * 1000) return false;
+  return hasId(pop.recipients, recipientId) && !hasId(pop.declined, recipientId);
+}
+
+/** The Duo Pop push's ttl: the whole seconds the pop has left, at most DUO_POP_TTL_SECONDS, read
+ * right before the push leaves. APNs and FCM then drop an undelivered pop when the pop closes,
+ * not up to 10 minutes later. With 0085's duo_pop_clock_ok (the whole pop inside 10:00-00:59 on
+ * the recipient's clock) this is what keeps Cameron's decision 6 true for a phone that was
+ * briefly unreachable: no Duo Pop ARRIVES between 01:00 and 09:59. Floored, so the push never
+ * outlives the pop. Null when the time is unreadable or under 1 second is left: do not send. */
+export function duoPopTtlSeconds(pop: Pick<DuoPopRow, "pop_expires_at"> | null | undefined, now: Date): number | null {
+  if (!pop) return null;
+  const expires = Date.parse(String(pop.pop_expires_at));
+  if (!Number.isFinite(expires)) return null;
+  const left = Math.floor((expires - now.getTime()) / 1000);
+  if (left < 1) return null;
+  return Math.min(DUO_POP_TTL_SECONDS, left);
+}
+
+/** Riot's duo table let this recipient and the sender queue together (queue_ups.can_duo). */
+export function canDuoWith(pop: Pick<DuoPopRow, "can_duo"> | null | undefined, recipientId: string): boolean {
+  return hasId(pop?.can_duo, recipientId);
+}
+
+/** Opted in to Duo Pops: the settings row exists and queue_pop is exactly true. A missing row,
+ * a missing column (0085 not applied yet: the select errors and this sees null) or anything but
+ * `true` is NOT opted in. */
+export function isOptedInToDuoPops(settings: unknown): boolean {
+  return !!settings && typeof settings === "object" && (settings as Record<string, unknown>).queue_pop === true;
+}
+
+/** The queue_ups columns the new_match enrichment reads, for a row whose match_id is the match. */
+export interface LockedPopRow {
+  id: string;
+  sender_id: string;
+  locked_by: string | null;
+  locked_at: string | null;
+  created_at: string;
+  can_duo: string[] | null;
+}
+
+export interface PopLock {
+  popId: string;
+  /** Gets "Duo locked". */
+  senderId: string;
+  /** Tapped I'm in; gets nothing (their Pop card plays the moment). */
+  lockerId: string;
+  /** Riot's duo table let the two queue together: data.duo = "1". */
+  canDuo: boolean;
+}
+
+/** A new match that came out of a Duo Pop: the row is locked, and its sender and locker are
+ * exactly the match's two players. Anything else (no row, a lookup error, a row that does not
+ * fit) is an ordinary match and gets the ordinary two pushes. */
+export function popLockFor(
+  pop: LockedPopRow | null | undefined,
+  match: Pick<NewMatchEvent, "userAId" | "userBId">,
+): PopLock | null {
+  if (!pop || !pop.locked_at || !pop.locked_by) return null;
+  const sender = String(pop.sender_id).toLowerCase();
+  const locker = String(pop.locked_by).toLowerCase();
+  const a = match.userAId.toLowerCase();
+  const b = match.userBId.toLowerCase();
+  if (sender === locker) return null;
+  const sides = [a, b];
+  if (!sides.includes(sender) || !sides.includes(locker)) return null;
+  return { popId: String(pop.id).toLowerCase(), senderId: sender, lockerId: locker, canDuo: hasId(pop.can_duo, locker) };
 }

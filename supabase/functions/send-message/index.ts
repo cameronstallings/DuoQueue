@@ -1,6 +1,6 @@
 // Sends a chat message on behalf of the authenticated caller. This is the only path
 // that can write to public.messages (the table has no client INSERT grant) so the
-// profanity filter and the free-tier "5 active conversations" gate are always applied
+// profanity filter and the free-tier "10 active conversations" gate (5 until 0084) are always applied
 // before a message is delivered, never left to be skipped by a client that calls the
 // table directly.
 import { createClient } from "npm:@supabase/supabase-js@2";
