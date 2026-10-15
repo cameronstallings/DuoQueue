@@ -1,11 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { View } from "react-native";
 import { Redirect, useLocalSearchParams } from "expo-router";
 
 import { Logo } from "@/components/Logo";
-import { inviteRouteAction, isInviteCodeShape, normalizeInviteCode } from "@/lib/invite";
+import { INVITE_LINK_UNUSABLE, inviteRouteAction, isInviteCodeShape, normalizeInviteCode } from "@/lib/invite";
 import { useInviteStore } from "@/store/invite-store";
 import { useSessionStore } from "@/store/session-store";
+import { useToastStore } from "@/store/toast-store";
 import { useTheme } from "@/theme/useTheme";
 
 /**
@@ -36,10 +37,16 @@ export default function InviteDeepLink() {
   const normalized = normalizeInviteCode(code);
   const codeValid = isInviteCodeShape(normalized);
 
+  // Whether THIS screen stored the code, so a "failed" below is this link's answer and not one
+  // left in the store by an earlier link.
+  const storedHere = useRef(false);
   useEffect(() => {
     // Only if it is actually new: re-storing the same code would reset `redemption` to
     // "idle" on every render of this screen and put the redemption hook in a loop.
-    if (codeValid && normalized !== pendingCode) setPendingCode(normalized);
+    if (codeValid && normalized !== pendingCode) {
+      setPendingCode(normalized);
+      storedHere.current = true;
+    }
   }, [codeValid, normalized, pendingCode, setPendingCode]);
 
   const action = inviteRouteAction({
@@ -51,6 +58,17 @@ export default function InviteDeepLink() {
     // relaunch) is a redemption that has answered, whatever the status field says.
     redemption: arrival ? "done" : redemption,
   });
+
+  // A player who is already set up tapped a link their account cannot use (invites are for new
+  // players: the 14-day window, one per player, an ended or own code). Since the Duo Call post
+  // asks strangers to "Answer on DuoQueue", this is a real path now, and "home" alone dropped
+  // them on the deck with nothing said. One info toast, on the screen they land on (the root
+  // toast is visible there; this route is not a modal).
+  const unusable =
+    storedHere.current && action === "home" && onboardingCompleted === true && redemption === "failed" && !arrival;
+  useEffect(() => {
+    if (unusable) useToastStore.getState().showToast(INVITE_LINK_UNUSABLE, "info");
+  }, [unusable]);
 
   switch (action) {
     case "sign-in":

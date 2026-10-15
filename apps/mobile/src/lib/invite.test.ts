@@ -10,6 +10,7 @@ import {
 
 import {
   INVITE_CODE_LENGTH,
+  INVITE_LINK_UNUSABLE,
   inviteErrorMessage,
   inviteRouteAction,
   inviteShareMessage,
@@ -200,6 +201,20 @@ describe("inviterConfirmation", () => {
     expect(inviterConfirmation("Cameron")).toBe(
       "Cameron invited you. Finish signing up and they are the first player you see.",
     );
+  });
+});
+
+describe("INVITE_LINK_UNUSABLE", () => {
+  it("says the link changed nothing and why, without blaming anyone", () => {
+    expect(INVITE_LINK_UNUSABLE).toBe(
+      "That invite link didn't change anything here. Invite links are for new players.",
+    );
+  });
+
+  it("follows the copy rules", () => {
+    expect(INVITE_LINK_UNUSABLE).not.toMatch(/[–—]/);
+    expect(INVITE_LINK_UNUSABLE).not.toMatch(/beats/i);
+    expect(INVITE_LINK_UNUSABLE).not.toMatch(/dating|singles|hookup|nearby|meet people|match with singles/i);
   });
 });
 

@@ -273,6 +273,15 @@ export function inviterConfirmation(inviterName: string): string {
 }
 
 /**
+ * Said once (an info toast) when a player who is already set up taps an invite or Duo Call link
+ * that their account cannot use. Redemption is for new players: accounts older than 14 days
+ * (0066's window), one invite per player, and never a code that has ended or is their own. Since
+ * 1.0.2 the Duo Call post invites strangers to "Answer on DuoQueue", and an existing player who
+ * tapped it was dropped on the deck with nothing said at all.
+ */
+export const INVITE_LINK_UNUSABLE = "That invite link didn't change anything here. Invite links are for new players.";
+
+/**
  * What to put in front of somebody whose "Duo with {Name}" tap came back an error.
  *
  * WHY THIS EXISTS. `accept_invite` signals failure the way the rest of this schema does,
