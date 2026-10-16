@@ -9,6 +9,7 @@ import {
 } from "@duoqueue/shared-types";
 
 import { PICTURE_TAG } from "../profile/pictureStatus";
+import { duoPopsWanted, isNaRegion } from "../queue/duoPopsOptIn";
 import { LEAGUE_GAME_NAME } from "../swipe/cardChips";
 import { FREE_DAILY_SWIPES } from "../swipe/deckStripCopy";
 import type { DeckCard, DeckCardPrompt } from "../swipe/types";
@@ -16,9 +17,12 @@ import type { DeckCard, DeckCardPrompt } from "../swipe/types";
 /**
  * The tour after profile setup (build 17, option A): which pages it has, what they say, and Kai,
  * the example card. Pure, so every rule and sentence is unit-tested (tourPages.test.ts).
+ *
+ * Build 22 adds the Queue up page ("queue"), so a new player hears about the deck's Queue up
+ * button and Duo Pops before their first deck, not only from the header they have never tapped.
  */
 
-export type TourPage = "card" | "canDuo" | "locked" | "yours";
+export type TourPage = "card" | "canDuo" | "locked" | "queue" | "yours";
 
 export interface TourGame {
   lolTier: LolTierChoice | null;
@@ -49,8 +53,15 @@ export function showsCanDuoPage(facts: TourFacts): boolean {
   return facts.region !== null && NA_REGIONS.includes(facts.region) && tourRank(facts.games) !== null;
 }
 
+/**
+ * Queue up is for every player (it works for every game, and the LFG post works anywhere), so it
+ * is on every tour, after Duo locked (the like explained first, then the faster way to a duo) and
+ * before the player's own card, which stays last so the tour still ends on Start swiping beside it.
+ */
 export function tourPages(facts: TourFacts): TourPage[] {
-  return showsCanDuoPage(facts) ? ["card", "canDuo", "locked", "yours"] : ["card", "locked", "yours"];
+  return showsCanDuoPage(facts)
+    ? ["card", "canDuo", "locked", "queue", "yours"]
+    : ["card", "locked", "queue", "yours"];
 }
 
 export interface TourRankLine {
@@ -128,8 +139,31 @@ export interface TourCopy {
 const NBSP = String.fromCharCode(0xa0);
 
 /**
- * Titles on pages 2 and 3 keep a no-break space (NBSP) so they break well. Page 3's limit is the
- * Deck's own constant, so the tour and the paywall's Deck page always name the same number.
+ * The Queue up page's body, by where the player is. Only true things, in the sheet's own words
+ * (queueCopy.ts):
+ *  - "na": a Duo Pop goes to players in your game who turned Duo Pops on (0085's recipient rule:
+ *    the switch is opt-in and starts off), and the first to tap I'm in is the duo (0088, one duo
+ *    per Queue up). Every Queue up also gets a call code, so the LFG post is always there.
+ *  - "other": outside North America, and when the region is unknown, no pop is ever sent
+ *    (0085's `outside_na`), so the page says what Queue up still does: Online Now for the hour,
+ *    or until a duo is found ("up to an hour"), and the post with its code.
+ * Neither promises a count or a time: how many hear depends on who is on.
+ */
+export const TOUR_QUEUE_BODY = {
+  na: "Players in your game who turned on Duo Pops get a ping. The first to tap I'm in is your duo. Or share an LFG post with your code.",
+  other:
+    "You show in Online Now for up to an hour. Duo Pops reach North America for now. You can still share an LFG post with your code.",
+} as const;
+
+/** The Queue up page's body for the player's region (frozen with the tour's pages). */
+export function queueTourBody(region: Region | null): string {
+  return isNaRegion(region) ? TOUR_QUEUE_BODY.na : TOUR_QUEUE_BODY.other;
+}
+
+/**
+ * Titles on pages 2, 3 and Queue up keep a no-break space (NBSP) so they break well. Duo locked's
+ * limit is the Deck's own constant, so the tour and the paywall's Deck page always name the same
+ * number.
  */
 export const TOUR_COPY: Record<TourPage, TourCopy> = {
   card: {
@@ -150,6 +184,12 @@ export const TOUR_COPY: Record<TourPage, TourCopy> = {
     // can no longer also mean a like. The title and DUO LOCKED keep "both queued up".
     body: `Swipe the card or tap the bolt to duo. When they duo you back, chat opens. Free accounts get ${FREE_DAILY_SWIPES} swipes a day.`,
   },
+  queue: {
+    heading: "Queue up",
+    title: `Ready to play? Queue${NBSP}up.`,
+    // The NA sentence; welcome.tsx picks by region through queueTourBody.
+    body: TOUR_QUEUE_BODY.na,
+  },
   yours: {
     heading: "Your card",
     title: "This is your card.",
@@ -162,7 +202,7 @@ export const YOUR_CARD_BODY = {
   add: "It's what players see in their deck. Add a picture any time from Profile.",
 } as const;
 
-/** Page 4's sentence follows the picture state the card shows (pictureStatus.ts). */
+/** The last page's sentence follows the picture state the card shows (pictureStatus.ts). */
 export function yourCardBody(pictureTag: string | null): string {
   if (pictureTag === PICTURE_TAG.review) return YOUR_CARD_BODY.review;
   if (pictureTag === PICTURE_TAG.add || pictureTag === PICTURE_TAG.rejected) return YOUR_CARD_BODY.add;
@@ -179,7 +219,7 @@ export const TAP_HINT = { next: "Next page ›", back: "‹ Back" } as const;
 
 /**
  * What VoiceOver calls the card whose pages a tour page's tap zones turn, so "Kai's card, next
- * page" is never mistaken for the tour's own dots ("Tour page, 1 of 4").
+ * page" is never mistaken for the tour's own dots ("Tour page, 1 of 5").
  */
 export const TOUR_CARD_NAME = { kai: "Kai's card", yours: "Your card" } as const;
 
@@ -224,6 +264,82 @@ export function tourLockedFit(pictureHeight: number, overflowSteps: number): Loc
 /** Short keeps the first two bubbles: Kai's question and its answer, a whole exchange. */
 export function tourChat(fit: LockedFit): readonly { from: "kai" | "you"; text: string }[] {
   return fit > 0 ? TOUR_CHAT.slice(0, 2) : TOUR_CHAT;
+}
+
+/** Who the example notice on the Queue up page is from, and when (rendered uppercase). */
+export const TOUR_POP = { app: "DuoQueue", when: "now" } as const;
+
+export interface TourPopPush {
+  title: string;
+  body: string;
+}
+
+/** "A" or "An" by the next word's first letter, as the server's push does ("An Emerald IV"). */
+function article(next: string): "A" | "An" {
+  return /^[aeiou]/i.test(next) ? "An" : "A";
+}
+
+/**
+ * The Duo Pop push Kai's Queue up would send this player, word for word what send-push-notification
+ * writes (supabase/functions/send-push-notification/duoPopCopy.ts; the test holds the two
+ * together). It names nobody, as the real one never does.
+ *
+ * Kai is the same Kai as page 1 (exampleCard): with the player's own League rank (`rankLabel`,
+ * NA and ranked only), League in that rank, which can always duo with itself, so the push is the
+ * can-duo one and true for this player. Otherwise Rocket League, rank-less, the first of the three
+ * rank-less bodies (the one that says I'm in).
+ */
+export function tourPopPush(rankLabel: string | null): TourPopPush {
+  const game = exampleCard(rankLabel).topGames[0]?.name ?? LEAGUE_GAME_NAME;
+  if (rankLabel !== null) {
+    return {
+      title: "Duo Pop",
+      body: `${article(rankLabel)} ${rankLabel} player who can duo with you (by rank) is queueing ${game} now.`,
+    };
+  }
+  return { title: "Duo Pop", body: `${article(game)} ${game} player is queueing now. First to tap I'm in gets the duo.` };
+}
+
+/** The notice for VoiceOver, as one element: "Duo Pop: A Rocket League player is queueing now...". */
+export function tourPopSpoken(push: TourPopPush): string {
+  return `${push.title}: ${push.body}`;
+}
+
+/**
+ * Whether the Queue up page offers "Get Duo Pops?" (the deck's own opt-in card, same words, same
+ * path). The deck card's rule (duoPopsWanted), with `onboarded` true because the tour is reached
+ * only from the end of setup: in North America (no pop reaches anyone else), the setting known and
+ * off (undefined means the column is not there or not loaded, and is never guessed), and not
+ * answered on this phone before.
+ */
+export function tourOffersDuoPops(input: {
+  region: Region | null;
+  queuePop: boolean | undefined;
+  seen: boolean | undefined;
+}): boolean {
+  return duoPopsWanted({ onboarded: true, inNa: isNaRegion(input.region), queuePop: input.queuePop, seen: input.seen });
+}
+
+/**
+ * When the offer is decided: once the pager settles on the page before Queue up (or anywhere
+ * after it), while the Queue up page is still off screen. Later than the tour's start, so the
+ * settings read has had the first pages to land; never while the page is in view, so the card can
+ * never arrive under the player's eyes and push the picture up. Decided once (welcome.tsx).
+ */
+export function tourDecidesDuoPops(settledPage: number, queueIndex: number): boolean {
+  return queueIndex >= 0 && settledPage >= queueIndex - 1;
+}
+
+/**
+ * How far the Queue up page gives way to fit its picture area. 0: the Queue up control, the seam
+ * down to the notice, and the notice. 1, compact: the notice alone (the heading below names Queue
+ * up). The page starts at 0 and takes the step when it measures taller than its picture area (a
+ * short phone with the Duo Pops card, or a larger text size). Past 1 the page scrolls.
+ */
+export type QueueFit = 0 | 1;
+
+export function tourQueueFit(overflowSteps: number): QueueFit {
+  return Math.min(1, Math.max(0, overflowSteps)) as QueueFit;
 }
 
 /** The picture area: 458pt on a 393 x 852 phone at the default text size, never under 280. */

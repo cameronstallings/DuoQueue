@@ -1,7 +1,7 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { URL } from "node:url";
 
-import { LOL_DIVISIONAL_TIERS, lolSoloDuoEligible, type LolDivision } from "@duoqueue/shared-types";
+import { LOL_DIVISIONAL_TIERS, REGIONS, lolSoloDuoEligible, type LolDivision } from "@duoqueue/shared-types";
 import { describe, expect, it } from "vitest";
 
 import { PLATFORM_LABELS, PLAYSTYLE_LABELS, REGION_LABELS, SKILL_LABELS } from "../onboarding/profile-labels";
@@ -19,14 +19,22 @@ import {
   TOUR_COPY,
   TOUR_FOOT,
   TOUR_OFFLINE,
+  TOUR_POP,
+  TOUR_QUEUE_BODY,
   YOUR_CARD_BODY,
   exampleCard,
+  queueTourBody,
   showsCanDuoPage,
   tourChat,
   tourChatSpoken,
+  tourDecidesDuoPops,
   tourLockedFit,
+  tourOffersDuoPops,
   tourPages,
   tourPictureHeight,
+  tourPopPush,
+  tourPopSpoken,
+  tourQueueFit,
   tourRank,
   tourRankLine,
   yourCardBody,
@@ -66,9 +74,152 @@ describe("showsCanDuoPage", () => {
     for (const game of unlit) expect(showsCanDuoPage({ region: "na_east", games: [game] })).toBe(false);
   });
 
-  it("makes the tour four pages or three", () => {
-    expect(tourPages({ region: "na_east", games: [goldII] })).toEqual(["card", "canDuo", "locked", "yours"]);
-    expect(tourPages({ region: "eu", games: [goldII] })).toEqual(["card", "locked", "yours"]);
+  it("makes the tour five pages or four: Queue up after Duo locked, and the player's own card last", () => {
+    expect(tourPages({ region: "na_east", games: [goldII] })).toEqual(["card", "canDuo", "locked", "queue", "yours"]);
+    expect(tourPages({ region: "na_west", games: [goldII] })).toEqual(["card", "canDuo", "locked", "queue", "yours"]);
+    expect(tourPages({ region: "na_east", games: [notLeague] })).toEqual(["card", "locked", "queue", "yours"]);
+    expect(tourPages({ region: "eu", games: [goldII] })).toEqual(["card", "locked", "queue", "yours"]);
+    expect(tourPages({ region: null, games: [] })).toEqual(["card", "locked", "queue", "yours"]);
+  });
+
+  it("shows Queue up to every player (it works for every game; only the Duo Pops are NA)", () => {
+    for (const region of [...REGIONS, null]) {
+      for (const games of [[goldII], [notLeague], []]) {
+        const pages = tourPages({ region, games });
+        expect(pages).toContain("queue");
+        expect(pages.indexOf("queue")).toBe(pages.indexOf("locked") + 1);
+        expect(pages[pages.length - 1]).toBe("yours");
+      }
+    }
+  });
+});
+
+describe("the Queue up page", () => {
+  it("says the design's words", () => {
+    expect(TOUR_COPY.queue.heading).toBe("Queue up");
+    // The no-break space keeps "Queue up." together when the title wraps.
+    expect(TOUR_COPY.queue.title).toBe(`Ready to play? Queue${NBSP}up.`);
+    expect(TOUR_COPY.queue.body).toBe(TOUR_QUEUE_BODY.na);
+  });
+
+  it("promises Duo Pops only where they go: between players in North America (0085)", () => {
+    expect(TOUR_QUEUE_BODY.na).toBe(
+      "Players in your game who turned on Duo Pops get a ping. The first to tap I'm in is your duo. Or share an LFG post with your code.",
+    );
+    expect(TOUR_QUEUE_BODY.other).toBe(
+      "You show in Online Now for up to an hour. Duo Pops reach North America for now. You can still share an LFG post with your code.",
+    );
+    expect(queueTourBody("na_east")).toBe(TOUR_QUEUE_BODY.na);
+    expect(queueTourBody("na_west")).toBe(TOUR_QUEUE_BODY.na);
+    for (const region of REGIONS.filter((r) => r !== "na_east" && r !== "na_west")) {
+      expect(queueTourBody(region)).toBe(TOUR_QUEUE_BODY.other);
+    }
+    // An unknown region (the card read failed or is off) gets the sentence that is true anywhere.
+    expect(queueTourBody(null)).toBe(TOUR_QUEUE_BODY.other);
+  });
+
+  it("keeps each body as short as the tour's other three-line bodies", () => {
+    // The picture budget (TOUR_TEXT_LINES) counts a three-line body; page 1's 122 characters
+    // render in three at 393pt. These stay close to it.
+    for (const body of Object.values(TOUR_QUEUE_BODY)) expect(body.length).toBeLessThanOrEqual(130);
+  });
+
+  it("answers a Duo Pop with I'm in, never Accept or Lock In", () => {
+    expect(TOUR_QUEUE_BODY.na).toContain("I'm in");
+    for (const body of Object.values(TOUR_QUEUE_BODY)) expect(body).not.toMatch(/\baccept|lock in\b/i);
+  });
+});
+
+describe("the example Duo Pop", () => {
+  it("is the push a Rocket League Kai would send, with I'm in", () => {
+    expect(tourPopPush(null)).toEqual({
+      title: "Duo Pop",
+      body: "A Rocket League player is queueing now. First to tap I'm in gets the duo.",
+    });
+  });
+
+  it("is the can-duo push for the League Kai, who shares the player's rank and so can always duo", () => {
+    expect(tourPopPush("Gold II")).toEqual({
+      title: "Duo Pop",
+      body: "A Gold II player who can duo with you (by rank) is queueing League of Legends now.",
+    });
+    expect(tourPopPush("Emerald IV").body).toBe(
+      "An Emerald IV player who can duo with you (by rank) is queueing League of Legends now.",
+    );
+    expect(tourPopPush("Iron I").body).toMatch(/^An Iron I player/);
+  });
+
+  it("names nobody, as the real push never does", () => {
+    for (const push of [tourPopPush(null), tourPopPush("Gold II")]) {
+      expect(push.body).not.toContain("Kai");
+      expect(push.title).not.toContain("Kai");
+    }
+  });
+
+  it("says who the notice is from and when, and is read out whole", () => {
+    expect(TOUR_POP).toEqual({ app: "DuoQueue", when: "now" });
+    expect(tourPopSpoken(tourPopPush(null))).toBe(
+      "Duo Pop: A Rocket League player is queueing now. First to tap I'm in gets the duo.",
+    );
+  });
+
+  // The server's own words (Group S's duoPopCopy.ts), imported by a computed path so the app's
+  // typecheck never reaches into the Deno function. A wording change on one side alone fails here.
+  const serverCopy = new URL("../../../../../supabase/functions/send-push-notification/duoPopCopy.ts", import.meta.url);
+  it.skipIf(!existsSync(serverCopy))("says exactly what the server's Duo Pop push says", async () => {
+    const specifier: string = serverCopy.href;
+    const server = (await import(/* @vite-ignore */ specifier)) as {
+      duoPopPush: (input: { gameName: string; rankText: string | null; canDuo: boolean; variant: number }) => {
+        title: string;
+        body: string;
+      };
+    };
+    expect(tourPopPush(null)).toEqual(
+      server.duoPopPush({ gameName: "Rocket League", rankText: null, canDuo: false, variant: 0 }),
+    );
+    for (const rank of ["Gold II", "Emerald IV", "Iron I"]) {
+      expect(tourPopPush(rank)).toEqual(
+        server.duoPopPush({ gameName: "League of Legends", rankText: rank, canDuo: true, variant: 0 }),
+      );
+    }
+  });
+});
+
+describe("the Duo Pops offer on the Queue up page", () => {
+  it("is made only to a player a Duo Pop can reach, with the setting known and off, not offered before", () => {
+    expect(tourOffersDuoPops({ region: "na_east", queuePop: false, seen: false })).toBe(true);
+    expect(tourOffersDuoPops({ region: "na_west", queuePop: false, seen: false })).toBe(true);
+    // Outside NA, or nowhere known: pops never reach them (0085's recipient rule).
+    expect(tourOffersDuoPops({ region: "eu", queuePop: false, seen: false })).toBe(false);
+    expect(tourOffersDuoPops({ region: null, queuePop: false, seen: false })).toBe(false);
+    // Already on, or the column not there (undefined): nothing to ask.
+    expect(tourOffersDuoPops({ region: "na_east", queuePop: true, seen: false })).toBe(false);
+    expect(tourOffersDuoPops({ region: "na_east", queuePop: undefined, seen: false })).toBe(false);
+    // Answered before on this phone, or the flag still loading: never twice, never on a guess.
+    expect(tourOffersDuoPops({ region: "na_east", queuePop: false, seen: true })).toBe(false);
+    expect(tourOffersDuoPops({ region: "na_east", queuePop: false, seen: undefined })).toBe(false);
+  });
+
+  it("is decided once the player settles on the page before it, while it is still off screen", () => {
+    // Five pages, Queue up at index 3: decided on Duo locked (2) or later, never on the first two.
+    expect(tourDecidesDuoPops(0, 3)).toBe(false);
+    expect(tourDecidesDuoPops(1, 3)).toBe(false);
+    expect(tourDecidesDuoPops(2, 3)).toBe(true);
+    expect(tourDecidesDuoPops(3, 3)).toBe(true);
+    expect(tourDecidesDuoPops(4, 3)).toBe(true);
+    // Four pages, Queue up at index 2: decided on Duo locked (1).
+    expect(tourDecidesDuoPops(0, 2)).toBe(false);
+    expect(tourDecidesDuoPops(1, 2)).toBe(true);
+    // No Queue up page: never.
+    expect(tourDecidesDuoPops(3, -1)).toBe(false);
+  });
+
+  it("gives way a step when it measures taller than its picture area: the Queue up control goes first", () => {
+    expect(tourQueueFit(0)).toBe(0);
+    expect(tourQueueFit(1)).toBe(1);
+    // Past compact the page scrolls.
+    expect(tourQueueFit(4)).toBe(1);
+    expect(tourQueueFit(-1)).toBe(0);
   });
 });
 
@@ -155,9 +306,16 @@ describe("tour copy", () => {
     expect(yourCardBody(null)).toBe(TOUR_COPY.yours.body);
   });
 
-  it("has no em or en dash, no price and no dating cue anywhere", () => {
+  it("has no em or en dash, no price, never beats and no dating cue anywhere", () => {
     const all = [
       ...Object.values(TOUR_COPY).flatMap((c) => [c.heading, c.title, c.body]),
+      ...Object.values(TOUR_QUEUE_BODY),
+      ...Object.values(TOUR_POP),
+      ...[tourPopPush(null), tourPopPush("Gold II"), tourPopPush("Emerald IV")].flatMap((p) => [
+        p.title,
+        p.body,
+        tourPopSpoken(p),
+      ]),
       ...Object.values(YOUR_CARD_BODY),
       ...Object.values(LOCKED_COPY),
       ...Object.values(TAP_HINT),
@@ -175,6 +333,9 @@ describe("tour copy", () => {
       expect(text).not.toMatch(/\$\d/);
       expect(text).not.toMatch(/swipe right/i);
       expect(text).not.toMatch(/interested in you/i);
+      expect(text, text).not.toMatch(/\bbeats?\b/i);
+      // The app's dating sweep (invite.test.ts, queueCopy.test.ts): 2.3.6 rejected it once.
+      expect(text, text).not.toMatch(/\bdates?\b|dating|singles|hookup|nearby|meet people|match with singles/i);
     }
   });
 });

@@ -4,7 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { formatLolRank, type LolRank } from "@duoqueue/shared-types";
+import { formatLolRank, type LolRank, type Region } from "@duoqueue/shared-types";
 
 import { Button } from "@/components/Button";
 import { GrainOverlay } from "@/components/GrainOverlay";
@@ -18,11 +18,23 @@ import { ownPictureState } from "@/features/profile/pictureStatus";
 import { useEditableProfileDetails } from "@/features/profile/useEditableProfileDetails";
 import { useOwnProfilePhotos } from "@/features/profile/useOwnProfilePhotos";
 import { useProfileCard } from "@/features/profile/useProfileCard";
-import { CanDuoTourPage, CardTourPage, LockedTourPage, TourHeading, YourCardTourPage } from "@/features/tour/TourPictures";
+import { useDuoPopsOfferSeen } from "@/features/queue/DuoPopsOptInCard";
+import { useDuoPopsSetting } from "@/features/queue/useDuoPopsSetting";
+import {
+  CanDuoTourPage,
+  CardTourPage,
+  LockedTourPage,
+  QueueTourPage,
+  TourHeading,
+  YourCardTourPage,
+} from "@/features/tour/TourPictures";
 import {
   TOUR_COPY,
   TOUR_FOOT,
   TOUR_OFFLINE,
+  queueTourBody,
+  tourDecidesDuoPops,
+  tourOffersDuoPops,
   tourPages,
   tourPictureHeight,
   tourRank,
@@ -49,6 +61,8 @@ interface TourFacts {
   pages: TourPage[];
   rank: LolRank | null;
   rankLabel: string | null;
+  /** Picks the Queue up page's sentence (Duo Pops reach North America only) and its offer. */
+  region: Region | null;
 }
 
 /** The session profile says setup is finished, so (tabs)/_layout will let the Deck open. */
@@ -146,10 +160,10 @@ function TourPageScroll({ topInset, children }: { topInset: number; children: Re
 }
 
 /**
- * The tour: four pages (three without a League rank in NA), once per account, right after profile
- * setup (discord.tsx replaces to here) and one tap before the first Deck. Swipe only, Skip on every
- * page, "Start swiping" on the last. The App Review demo account is already onboarded and never
- * comes here.
+ * The tour: five pages (four without a League rank in NA; Queue up is on every tour since build
+ * 22), once per account, right after profile setup (discord.tsx replaces to here) and one tap
+ * before the first Deck. Swipe only, Skip on every page, "Start swiping" on the last. The App
+ * Review demo account is already onboarded and never comes here.
  */
 export default function WelcomeScreen() {
   const { colors, radius, spacing } = useTheme();
@@ -173,21 +187,30 @@ export default function WelcomeScreen() {
   const ready = !skipTour && seen === false && factsReady;
 
   // Frozen the first time the tour can show: a read that fails and then succeeds while the tour is
-  // on screen (the card's retry on page 4's mount) must never add Can duo under the player's
-  // thumb, move the dots from 3 to 4, or take the last page's Start swiping away.
+  // on screen (the card's retry on the last page's mount) must never add Can duo under the
+  // player's thumb, move the dots from 4 to 5, or take the last page's Start swiping away.
   const games = details.data?.games ?? [];
-  const livePages = tourPages({ region: card.data?.region ?? null, games });
+  const liveRegion = card.data?.region ?? null;
+  const livePages = tourPages({ region: liveRegion, games });
   const liveRank = tourRank(games);
   if (ready && frozen === null) {
     setFrozen({
       pages: livePages,
       rank: liveRank,
       rankLabel: livePages.includes("canDuo") && liveRank ? formatLolRank(liveRank) : null,
+      region: liveRegion,
     });
   }
   const pages = frozen?.pages ?? livePages;
   const rank = frozen?.rank ?? null;
   const rankLabel = frozen?.rankLabel ?? null;
+  const region = frozen?.region ?? null;
+
+  // The Queue up page's "Get Duo Pops?" card: the deck's own opt-in, read from the one settings
+  // cache and the one seen flag the deck uses (useDuoPopsSetting, useDuoPopsOfferSeen).
+  const { queuePop } = useDuoPopsSetting();
+  const [duoPopsSeen] = useDuoPopsOfferSeen(userId);
+  const [offerDuoPops, setOfferDuoPops] = useState<boolean | null>(null);
 
   // The pager's height and each page's heading, measured: a larger text size wraps a body onto
   // more lines than the budget counts, and the picture then gives the tallest heading its room.
@@ -203,6 +226,13 @@ export default function WelcomeScreen() {
   // on the skeleton never flashes the pager because the facts arrived meanwhile.
   const showPager = leaving !== null ? leaving === "pager" && frozen !== null : ready && frozen !== null;
   const pager = usePager(pages.length, { peekReady: showPager });
+
+  // Decided once, when the pager settles on the page before Queue up, while that page is still off
+  // screen (tourDecidesDuoPops): whatever is not loaded by then means no card this time, never a
+  // card that turns up under the player's eyes. The deck's card still has its own chance.
+  if (showPager && offerDuoPops === null && tourDecidesDuoPops(pager.page, pages.indexOf("queue"))) {
+    setOfferDuoPops(tourOffersDuoPops({ region, queuePop, seen: duoPopsSeen }));
+  }
 
   useEffect(() => {
     hapticSuccess();
@@ -268,12 +298,15 @@ export default function WelcomeScreen() {
         return rank && rankLabel ? <CanDuoTourPage height={pictureHeight} rankLabel={rankLabel} line={tourRankLine(rank)} /> : null;
       case "locked":
         return <LockedTourPage height={pictureHeight} />;
+      case "queue":
+        return <QueueTourPage height={pictureHeight} rankLabel={rankLabel} offerDuoPops={offerDuoPops === true} />;
       case "yours":
         return <YourCardTourPage height={pictureHeight} profile={{ id: userId ?? "", is_active: isActive }} />;
     }
   }
 
   function copy(page: TourPage) {
+    if (page === "queue") return { ...TOUR_COPY.queue, body: queueTourBody(region) };
     if (page !== "yours") return TOUR_COPY[page];
     return { ...TOUR_COPY.yours, body: yourCardBody(photos ? ownPictureState(photos).tag : null) };
   }

@@ -54,8 +54,19 @@ import { useDuoPopsSetting } from "./useDuoPopsSetting";
  * exists (0085), never twice per account on a phone, never within a week of another ask, and
  * never over the open Queue Up sheet. It counts as seen on this phone the moment it shows, so
  * neither an answer nor a deck that took it away unanswered ever brings it back.
+ *
+ * A third surface, outside the deck:
+ *   "tour"   on the new-player tour's Queue up page (build 22), in the page's picture, under the
+ *            example Duo Pop. The tour decides whether to mount it (tourOffersDuoPops, the same
+ *            rule, decided once while the page is still off screen), so nothing here decides.
+ *            It is not the deck: it takes no deck slot and is not an interruption, so showing it
+ *            costs nothing. An ANSWER marks it seen (a Not now here is final, as on the deck), and
+ *            Turn on, which raises the iOS prompt, also counts toward the weekly cap, so the
+ *            deck's notification pre-ask does not ask again minutes later. A player who swipes past
+ *            without answering keeps the deck's own chance after their first like.
  */
-export function DuoPopsOptInCard({ surface, active = true }: { surface: "deck" | "empty"; active?: boolean }) {
+export function DuoPopsOptInCard({ surface, active = true }: { surface: "deck" | "empty" | "tour"; active?: boolean }) {
+  if (surface === "tour") return <TourDuoPopsCard />;
   return surface === "deck" ? <DeckDuoPopsCard active={active} /> : <EmptyDuoPopsCard />;
 }
 
@@ -80,7 +91,12 @@ function loadSeen(userId: string): Promise<boolean> {
   return load;
 }
 
-function useSeenFlag(userId: string | undefined): [boolean | undefined, () => void] {
+/**
+ * Whether this account was offered the card on this phone (undefined while the flag loads), and
+ * the way to mark it. Exported for the tour, which decides its own offer from it (welcome.tsx), so
+ * the tour and the deck read and write the one flag through the one cache.
+ */
+export function useDuoPopsOfferSeen(userId: string | undefined): [boolean | undefined, () => void] {
   const [seen, setSeen] = useState<boolean | undefined>(() => (userId ? seenByUser.get(userId) : undefined));
 
   useEffect(() => {
@@ -111,7 +127,7 @@ function useEligibility() {
   const onboarded = useSessionStore((s) => s.profile?.onboarding_completed === true);
   const inNa = useSessionStore((s) => isNaRegion(s.profile?.region));
   const { queuePop, enable } = useDuoPopsSetting();
-  const [seen, markSeen] = useSeenFlag(userId);
+  const [seen, markSeen] = useDuoPopsOfferSeen(userId);
   const wanted = duoPopsWanted({ onboarded, inNa, queuePop, seen });
   return { userId, wanted, enable, markSeen };
 }
@@ -345,6 +361,67 @@ function EmptyDuoPopsCard() {
           body={DUO_POPS_OPT_IN_COPY.body}
           primaryLabel={DUO_POPS_OPT_IN_COPY.primary}
           onPrimary={() => void actions.turnOn()}
+          primaryLoading={actions.busy}
+          secondaryLabel={DUO_POPS_OPT_IN_COPY.secondary}
+          onSecondary={actions.notNow}
+        />
+      </Animated.View>
+    </Animated.View>
+  );
+}
+
+/**
+ * The card on the tour's Queue up page: the same words, the same Turn on (the setting, then iOS
+ * through askForPush, the same toasts and the same failure line), the same Not now. Mounted only
+ * when the tour offers it, already decided, so it renders at once (a reveal, decided while the page
+ * is still off screen). Answered, it fades out and KEEPS ITS BOX, as the empty deck's does: the
+ * example notice above is centred in the room this card leaves, and must not jump under the
+ * thumb that just tapped.
+ */
+function TourDuoPopsCard() {
+  const { motion } = useTheme();
+  const userId = useSessionStore((s) => s.session?.user.id);
+  const { enable } = useDuoPopsSetting();
+  const [, markSeen] = useDuoPopsOfferSeen(userId);
+
+  const [dismissed, setDismissed] = useState(false);
+  const opacity = useSharedValue(1);
+  useEffect(() => {
+    if (dismissed) opacity.value = withTiming(0, { duration: motion.quick, reduceMotion: ReduceMotion.Never });
+  }, [dismissed, opacity, motion.quick]);
+  const fade = useAnimatedStyle(() => ({ opacity: opacity.value }));
+
+  const actions = useOptInActions({
+    userId,
+    enable,
+    onClose: () => {
+      markSeen();
+      setDismissed(true);
+    },
+  });
+
+  function turnOn() {
+    // Turn on raises the iOS prompt, which is a notification ask like any other: it starts the
+    // shared weekly cap, so the deck's pre-ask does not ask again after the first like. Not now
+    // raises nothing, so it leaves the cap alone.
+    if (!actions.busy) usePushAskStore.getState().markOffered(Date.now());
+    void actions.turnOn();
+  }
+
+  return (
+    <Animated.View
+      entering={revealEntering()}
+      pointerEvents={dismissed ? "none" : "auto"}
+      accessibilityElementsHidden={dismissed}
+      importantForAccessibility={dismissed ? "no-hide-descendants" : "auto"}
+      style={{ alignSelf: "stretch" }}
+    >
+      <Animated.View style={fade}>
+        <EdgeCard
+          title={DUO_POPS_OPT_IN_COPY.title}
+          body={DUO_POPS_OPT_IN_COPY.body}
+          primaryLabel={DUO_POPS_OPT_IN_COPY.primary}
+          onPrimary={turnOn}
           primaryLoading={actions.busy}
           secondaryLabel={DUO_POPS_OPT_IN_COPY.secondary}
           onSecondary={actions.notNow}

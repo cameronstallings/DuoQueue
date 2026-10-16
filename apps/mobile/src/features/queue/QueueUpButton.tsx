@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, { ReduceMotion, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
@@ -103,5 +103,38 @@ export function QueueUpButton() {
         </Animated.View>
       </Animated.View>
     </Pressable>
+  );
+}
+
+/**
+ * The control's idle face, standing still and touching nothing: the tour's Queue up page draws it
+ * (TourPictures.tsx) so a new player knows the control before their first deck. The same box,
+ * edge, icon and label as QueueUpButton's idle state above; change one, change both. Hidden from
+ * VoiceOver: it is a picture of a button, and the page's heading says the words.
+ */
+export function QueueUpFace() {
+  const { colors, radius, type } = useTheme();
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{
+        width: QUEUE_UP_PILL.width,
+        height: QUEUE_UP_PILL.height,
+        borderRadius: radius.button,
+        borderWidth: QUEUE_UP_PILL.border,
+        borderColor: colors.volt,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: QUEUE_UP_PILL.iconGap,
+        paddingHorizontal: QUEUE_UP_PILL.paddingX,
+      }}
+    >
+      <Ionicons name="radio-outline" size={QUEUE_UP_PILL.iconSize} color={colors.voltDim} />
+      <Text numberOfLines={1} maxFontSizeMultiplier={1} style={[type.chipText, { color: colors.volt }]}>
+        {queueUpButtonLabel({ kind: "idle" })}
+      </Text>
+    </View>
   );
 }

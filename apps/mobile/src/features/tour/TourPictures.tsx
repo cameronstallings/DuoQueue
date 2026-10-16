@@ -2,12 +2,15 @@ import { useState } from "react";
 import { Text, View } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
 
+import { Logo } from "@/components/Logo";
 import { LockBrackets } from "@/features/match/LockBrackets";
 import { BRACKET_SIDE, MATCH_MARK_W } from "@/features/match/matchMoment";
 import { RingsLock } from "@/features/match/RingsLock";
 import { REGION_LABELS } from "@/features/onboarding/profile-labels";
 import { usePagerHeadingRef } from "@/features/pager/Pager";
 import { OwnCard } from "@/features/profile/OwnCardSection";
+import { DuoPopsOptInCard } from "@/features/queue/DuoPopsOptInCard";
+import { QueueUpFace } from "@/features/queue/QueueUpButton";
 import { CARD_CELL_LABELS, CardFace } from "@/features/swipe/CardFace";
 import { cardCells, cardDetailsLine, cardPages, type CardPage } from "@/features/swipe/cardChips";
 import { LOGO_MARK_ASPECT } from "@/theme/logo-geometry";
@@ -22,11 +25,16 @@ import {
   TOUR_CAN_DUO_PICTURE_MIN,
   TOUR_CARD_NAME,
   TOUR_CARD_PICTURE_MIN,
+  TOUR_POP,
   exampleCard,
   tourChat,
   tourChatSpoken,
   tourLockedFit,
+  tourPopPush,
+  tourPopSpoken,
+  tourQueueFit,
   type TourCopy,
+  type TourPopPush,
   type TourRankLine,
 } from "./tourPages";
 
@@ -40,6 +48,10 @@ const LOCK_BOX_W = MATCH_MARK_W + BRACKET_SIDE * 2;
 const SHORT_MARK_W = 128;
 /** A measured page 3 taller than its picture area by more than this is short (layout rounding). */
 const OVERFLOW_SLOP = 0.5;
+/** The Queue up page's seam, from the control down to the notice it sends. */
+const QUEUE_SEAM_H = 20;
+/** The mark on the example notice, at an app icon's size in a list row. */
+const NOTICE_MARK_W = 20;
 
 function kaiPages(): CardPage[] {
   return [{ kind: "picture", url: KAI_PICTURE }, ...cardPages(null, KAI_PROMPTS)];
@@ -220,7 +232,86 @@ export function LockedTourPage({ height }: { height: number }) {
   );
 }
 
-/** Page 4: the player's own card through the Profile tab's code, tappable, with no age. */
+/**
+ * The example Duo Pop as the app draws a notice: a solid panel with its 1px seam (the Can duo rank
+ * panel's), the mark, who and when, then the push's own title and words (tourPopPush). One element
+ * for VoiceOver, read out whole.
+ */
+function PopNotice({ push }: { push: TourPopPush }) {
+  const { colors, radius, spacing, type } = useTheme();
+  return (
+    <View
+      accessible
+      accessibilityLabel={tourPopSpoken(push)}
+      style={{
+        alignSelf: "stretch",
+        padding: spacing.md,
+        gap: spacing.xs,
+        borderRadius: radius.card,
+        borderWidth: 1,
+        borderColor: colors.cardEdge,
+        backgroundColor: colors.cardPanel,
+      }}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+        <Logo width={NOTICE_MARK_W} />
+        <Text style={[type.label, { flex: 1, color: colors.textMuted }]}>{TOUR_POP.app}</Text>
+        <Text style={[type.label, { color: colors.textMuted }]}>{TOUR_POP.when}</Text>
+      </View>
+      <Text style={[type.bodyStrong, { color: colors.text }]}>{push.title}</Text>
+      <Text style={[type.body, { color: colors.textMuted }]}>{push.body}</Text>
+    </View>
+  );
+}
+
+/**
+ * The Queue up page: the deck header's Queue up control as it stands idle, a 1px seam down to the
+ * Duo Pop that a Queue up sends (Kai's, naming nobody, as the real push), centred in the room
+ * left; under them, for a player a pop can reach with Duo Pops off, the deck's own "Get Duo Pops?"
+ * card (decided once by welcome.tsx before the page is on screen). Nothing moves: no Riot art, no
+ * people, no motion to reduce but the card's reveal.
+ *
+ * At least `height` tall. When it measures taller (a short phone with the card, or a larger text
+ * size) it gives way once (tourQueueFit): the control and the seam go, the notice stays. Still too
+ * tall after that, the page scrolls.
+ */
+export function QueueTourPage({
+  height,
+  rankLabel,
+  offerDuoPops,
+}: {
+  height: number;
+  rankLabel: string | null;
+  offerDuoPops: boolean;
+}) {
+  const { colors, spacing } = useTheme();
+  // Steps only ever go up, as on page 3: a page that gave way never measures its way back.
+  const [steps, setSteps] = useState(0);
+  const fit = tourQueueFit(steps);
+  return (
+    <View
+      onLayout={(e) => {
+        if (fit === 1 || e.nativeEvent.layout.height <= height + OVERFLOW_SLOP) return;
+        const seen = steps;
+        setSteps((current) => (current === seen ? current + 1 : current));
+      }}
+      style={{ minHeight: height, gap: spacing.md }}
+    >
+      <View style={{ flexGrow: 1, alignItems: "center", justifyContent: "center" }}>
+        {fit === 0 ? (
+          <>
+            <QueueUpFace />
+            <View style={{ width: 1, height: QUEUE_SEAM_H, marginVertical: spacing.xs, backgroundColor: colors.cardEdge }} />
+          </>
+        ) : null}
+        <PopNotice push={tourPopPush(rankLabel)} />
+      </View>
+      {offerDuoPops ? <DuoPopsOptInCard surface="tour" /> : null}
+    </View>
+  );
+}
+
+/** The last page: the player's own card through the Profile tab's code, tappable, with no age. */
 export function YourCardTourPage({ height, profile }: { height: number; profile: { id: string; is_active: boolean } }) {
   return <OwnCard profile={profile} height={height} mode="tour" />;
 }
