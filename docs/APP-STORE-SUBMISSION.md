@@ -548,8 +548,9 @@ from Settings → Connections and confirm the badge appears.
 
 ### 2.6 What's New in This Version (4000 char max) — 1.0.2, use this:
 
-861 characters, one paragraph, measured by script on 15 Oct 2026 after the build 20 merge (also
-in `DuoQueue-listing-1.0.2.txt`; build 19's was 693). Build 20 added two sentences, true in the
+908 characters, one paragraph, measured by script on 15 Oct 2026 for build 22 (also
+in `DuoQueue-listing-1.0.2.txt`; build 19's was 693, build 20's 861). Build 22 adds "The welcome tour
+now shows how Queue up works." (the Queue up page in `tourPages.ts`). Build 20 added two sentences, true in the
 merged client and live server: "One duo per Queue up: the first to answer, by a Duo Pop or your
 code, is your duo." (0088; it replaces build 19's "and the first to tap I'm in is your duo", which
 the post's code can now get to first) and "A party of two can share an LFG post too: the first to join
@@ -557,7 +558,7 @@ with its code takes the last seat, and either of you can stop it." (0089, `Party
 PARTY MODE note in 2.5).
 
 ```
-Queue up when you're ready to play: you show up in Online Now, and your matches may get a heads-up that you're free. In North America, Queue up can also send a Duo Pop to up to 6 players in your game who turned them on. Every Queue up comes with an LFG post and your own code, ready to share where you look for teammates. One duo per Queue up: the first to answer, by a Duo Pop or your code, is your duo. A party of two can share an LFG post too: the first to join with its code takes the last seat, and either of you can stop it. Build your card before you make an account. Share your Discord, say you're free now or pick a time right from a chat. A badge on the Matches tab shows what's new. Forgot your password? Reset it with a code from your email. 10 free active chats instead of 5. Smoother motion throughout, with haptics you can switch off in Settings.
+Queue up when you're ready to play: you show up in Online Now, and your matches may get a heads-up that you're free. In North America, Queue up can also send a Duo Pop to up to 6 players in your game who turned them on. Every Queue up comes with an LFG post and your own code, ready to share where you look for teammates. One duo per Queue up: the first to answer, by a Duo Pop or your code, is your duo. A party of two can share an LFG post too: the first to join with its code takes the last seat, and either of you can stop it. Build your card before you make an account. The welcome tour now shows how Queue up works. Share your Discord, say you're free now or pick a time right from a chat. A badge on the Matches tab shows what's new. Forgot your password? Reset it with a code from your email. 10 free active chats instead of 5. Smoother motion throughout, with haptics you can switch off in Settings.
 ```
 
 It is the plan's R2 draft with these honesty fixes:
