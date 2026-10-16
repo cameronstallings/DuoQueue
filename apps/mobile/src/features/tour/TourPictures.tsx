@@ -26,6 +26,7 @@ import {
   TOUR_CARD_NAME,
   TOUR_CARD_PICTURE_MIN,
   TOUR_POP,
+  TOUR_QUEUED_MINUTES,
   exampleCard,
   tourChat,
   tourChatSpoken,
@@ -33,6 +34,7 @@ import {
   tourPopPush,
   tourPopSpoken,
   tourQueueFit,
+  type QueueTourKind,
   type TourCopy,
   type TourPopPush,
   type TourRankLine,
@@ -264,30 +266,54 @@ function PopNotice({ push }: { push: TourPopPush }) {
   );
 }
 
+/** The 1px seam from the Queue up control down to what it leads to. */
+function QueueSeam() {
+  const { colors, spacing } = useTheme();
+  return <View style={{ width: 1, height: QUEUE_SEAM_H, marginVertical: spacing.xs, backgroundColor: colors.cardEdge }} />;
+}
+
 /**
- * The Queue up page: the deck header's Queue up control as it stands idle, a 1px seam down to the
- * Duo Pop that a Queue up sends (Kai's, naming nobody, as the real push), centred in the room
- * left; under them, for a player a pop can reach with Duo Pops off, the deck's own "Get Duo Pops?"
- * card (decided once by welcome.tsx before the page is on screen). Nothing moves: no Riot art, no
- * people, no motion to reduce but the card's reveal.
+ * The Queue up page, by `kind` (queueTourKind, the same split as the body):
+ *   "na"     the deck header's Queue up control as it stands idle, a 1px seam down to the Duo Pop
+ *            that a Queue up sends (Kai's, naming nobody, as the real push), centred in the room
+ *            left; under them, for a player a pop can reach with Duo Pops off, the deck's own
+ *            "Get Duo Pops?" card (decided once by welcome.tsx before the page is on screen, and
+ *            counted as an ask once `duoPopsShown`, the pager settled on this page).
+ *   "other"  the idle control, the seam, and the control queued ("QUEUED 60M"): outside North
+ *            America a Queue up sends no Duo Pop and none can reach the player, so the notice would
+ *            be a promise the page cannot keep. What is true anywhere is the hour in Online Now.
+ * Nothing moves: no Riot art, no people, no motion to reduce but the card's reveal.
  *
- * At least `height` tall. When it measures taller (a short phone with the card, or a larger text
- * size) it gives way once (tourQueueFit): the control and the seam go, the notice stays. Still too
- * tall after that, the page scrolls.
+ * At least `height` tall. When the "na" page measures taller (a short phone with the card, or a
+ * larger text size) it gives way once (tourQueueFit): the control and the seam go, the notice
+ * stays. Still too tall after that, the page scrolls.
  */
 export function QueueTourPage({
   height,
+  kind,
   rankLabel,
   offerDuoPops,
+  duoPopsShown,
 }: {
   height: number;
+  kind: QueueTourKind;
   rankLabel: string | null;
   offerDuoPops: boolean;
+  duoPopsShown: boolean;
 }) {
-  const { colors, spacing } = useTheme();
+  const { spacing } = useTheme();
   // Steps only ever go up, as on page 3: a page that gave way never measures its way back.
   const [steps, setSteps] = useState(0);
   const fit = tourQueueFit(steps);
+  if (kind === "other") {
+    return (
+      <View style={{ minHeight: height, alignItems: "center", justifyContent: "center" }}>
+        <QueueUpFace />
+        <QueueSeam />
+        <QueueUpFace minutesLeft={TOUR_QUEUED_MINUTES} />
+      </View>
+    );
+  }
   return (
     <View
       onLayout={(e) => {
@@ -301,12 +327,12 @@ export function QueueTourPage({
         {fit === 0 ? (
           <>
             <QueueUpFace />
-            <View style={{ width: 1, height: QUEUE_SEAM_H, marginVertical: spacing.xs, backgroundColor: colors.cardEdge }} />
+            <QueueSeam />
           </>
         ) : null}
         <PopNotice push={tourPopPush(rankLabel)} />
       </View>
-      {offerDuoPops ? <DuoPopsOptInCard surface="tour" /> : null}
+      {offerDuoPops ? <DuoPopsOptInCard surface="tour" active={duoPopsShown} /> : null}
     </View>
   );
 }

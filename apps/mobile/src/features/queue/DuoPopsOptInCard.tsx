@@ -57,16 +57,18 @@ import { useDuoPopsSetting } from "./useDuoPopsSetting";
  *
  * A third surface, outside the deck:
  *   "tour"   on the new-player tour's Queue up page (build 22), in the page's picture, under the
- *            example Duo Pop. The tour decides whether to mount it (tourOffersDuoPops, the same
- *            rule, decided once while the page is still off screen), so nothing here decides.
- *            It is not the deck: it takes no deck slot and is not an interruption, so showing it
- *            costs nothing. An ANSWER marks it seen (a Not now here is final, as on the deck), and
- *            Turn on, which raises the iOS prompt, also counts toward the weekly cap, so the
- *            deck's notification pre-ask does not ask again minutes later. A player who swipes past
- *            without answering keeps the deck's own chance after their first like.
+ *            example Duo Pop. The tour decides whether to mount it (tourOffersDuoPops: the same
+ *            rule and the same weekly cap, decided once while the page is still off screen), so
+ *            nothing here decides. It takes no deck slot (it is not on the deck), but it is an ask
+ *            like the others: `active` is the pager settled on its page (tourShowsDuoPops), and
+ *            from that moment it is seen on this phone and starts the weekly cap, answered or
+ *            swiped past. So Start swiping never lands on the empty deck's copy of the same card,
+ *            and the deck's notification pre-ask does not ask again minutes later. Mounted off
+ *            screen it counts for nothing: a player who leaves from the page before keeps the
+ *            deck's chance.
  */
 export function DuoPopsOptInCard({ surface, active = true }: { surface: "deck" | "empty" | "tour"; active?: boolean }) {
-  if (surface === "tour") return <TourDuoPopsCard />;
+  if (surface === "tour") return <TourDuoPopsCard shown={active} />;
   return surface === "deck" ? <DeckDuoPopsCard active={active} /> : <EmptyDuoPopsCard />;
 }
 
@@ -378,11 +380,22 @@ function EmptyDuoPopsCard() {
  * example notice above is centred in the room this card leaves, and must not jump under the
  * thumb that just tapped.
  */
-function TourDuoPopsCard() {
+function TourDuoPopsCard({ shown }: { shown: boolean }) {
   const { motion } = useTheme();
   const userId = useSessionStore((s) => s.session?.user.id);
   const { enable } = useDuoPopsSetting();
   const [, markSeen] = useDuoPopsOfferSeen(userId);
+
+  // Shown (the pager settled on the page): counted once, as the deck counts its card the moment it
+  // shows. markOffered before the ask record has loaded is kept and merged by load() (the tour
+  // starts that load), so the cap holds either way.
+  const counted = useRef(false);
+  useEffect(() => {
+    if (!shown || counted.current) return;
+    counted.current = true;
+    usePushAskStore.getState().markOffered(Date.now());
+    markSeen();
+  }, [shown, markSeen]);
 
   const [dismissed, setDismissed] = useState(false);
   const opacity = useSharedValue(1);
@@ -400,14 +413,6 @@ function TourDuoPopsCard() {
     },
   });
 
-  function turnOn() {
-    // Turn on raises the iOS prompt, which is a notification ask like any other: it starts the
-    // shared weekly cap, so the deck's pre-ask does not ask again after the first like. Not now
-    // raises nothing, so it leaves the cap alone.
-    if (!actions.busy) usePushAskStore.getState().markOffered(Date.now());
-    void actions.turnOn();
-  }
-
   return (
     <Animated.View
       entering={revealEntering()}
@@ -421,7 +426,7 @@ function TourDuoPopsCard() {
           title={DUO_POPS_OPT_IN_COPY.title}
           body={DUO_POPS_OPT_IN_COPY.body}
           primaryLabel={DUO_POPS_OPT_IN_COPY.primary}
-          onPrimary={turnOn}
+          onPrimary={() => void actions.turnOn()}
           primaryLoading={actions.busy}
           secondaryLabel={DUO_POPS_OPT_IN_COPY.secondary}
           onSecondary={actions.notNow}

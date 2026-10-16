@@ -18,7 +18,9 @@ import { ownPictureState } from "@/features/profile/pictureStatus";
 import { useEditableProfileDetails } from "@/features/profile/useEditableProfileDetails";
 import { useOwnProfilePhotos } from "@/features/profile/useOwnProfilePhotos";
 import { useProfileCard } from "@/features/profile/useProfileCard";
+import { usePushAskStore } from "@/features/push/pushAskStore";
 import { useDuoPopsOfferSeen } from "@/features/queue/DuoPopsOptInCard";
+import { offeredWithinWeek } from "@/features/queue/duoPopsOptIn";
 import { useDuoPopsSetting } from "@/features/queue/useDuoPopsSetting";
 import {
   CanDuoTourPage,
@@ -33,10 +35,12 @@ import {
   TOUR_FOOT,
   TOUR_OFFLINE,
   queueTourBody,
+  queueTourKind,
   tourDecidesDuoPops,
   tourOffersDuoPops,
   tourPages,
   tourPictureHeight,
+  tourShowsDuoPops,
   tourRank,
   tourRankLine,
   yourCardBody,
@@ -207,9 +211,11 @@ export default function WelcomeScreen() {
   const region = frozen?.region ?? null;
 
   // The Queue up page's "Get Duo Pops?" card: the deck's own opt-in, read from the one settings
-  // cache and the one seen flag the deck uses (useDuoPopsSetting, useDuoPopsOfferSeen).
+  // cache, the one seen flag and the one weekly ask record the deck uses (useDuoPopsSetting,
+  // useDuoPopsOfferSeen, the push-ask store; undefined until that record has loaded).
   const { queuePop } = useDuoPopsSetting();
   const [duoPopsSeen] = useDuoPopsOfferSeen(userId);
+  const lastOfferedAt = usePushAskStore((s) => (s.loaded ? s.lastOfferedAt : undefined));
   const [offerDuoPops, setOfferDuoPops] = useState<boolean | null>(null);
 
   // The pager's height and each page's heading, measured: a larger text size wraps a body onto
@@ -230,12 +236,24 @@ export default function WelcomeScreen() {
   // Decided once, when the pager settles on the page before Queue up, while that page is still off
   // screen (tourDecidesDuoPops): whatever is not loaded by then means no card this time, never a
   // card that turns up under the player's eyes. The deck's card still has its own chance.
-  if (showPager && offerDuoPops === null && tourDecidesDuoPops(pager.page, pages.indexOf("queue"))) {
-    setOfferDuoPops(tourOffersDuoPops({ region, queuePop, seen: duoPopsSeen }));
+  const queueIndex = pages.indexOf("queue");
+  if (showPager && offerDuoPops === null && tourDecidesDuoPops(pager.page, queueIndex)) {
+    setOfferDuoPops(
+      tourOffersDuoPops({ region, queuePop, seen: duoPopsSeen, askedWithinWeek: offeredWithinWeek(lastOfferedAt, Date.now()) }),
+    );
   }
+  // Once the pager settles on Queue up with the card on it, the card has shown: it counts as an
+  // ask from then (seen, and the weekly cap), answered or not (tourShowsDuoPops).
+  const duoPopsShown = offerDuoPops === true && tourShowsDuoPops(pager.page, queueIndex);
 
   useEffect(() => {
     hapticSuccess();
+  }, []);
+
+  // The ask record the offer is decided on. The tab layout warms it too (usePushAskWarmup), but the
+  // tour comes before the tabs; load() reads it once per launch, wherever it is called first.
+  useEffect(() => {
+    void usePushAskStore.getState().load();
   }, []);
 
   // The wizard's submit set onboarding_completed on the server, but the session store still holds
@@ -299,7 +317,15 @@ export default function WelcomeScreen() {
       case "locked":
         return <LockedTourPage height={pictureHeight} />;
       case "queue":
-        return <QueueTourPage height={pictureHeight} rankLabel={rankLabel} offerDuoPops={offerDuoPops === true} />;
+        return (
+          <QueueTourPage
+            height={pictureHeight}
+            kind={queueTourKind(region)}
+            rankLabel={rankLabel}
+            offerDuoPops={offerDuoPops === true}
+            duoPopsShown={duoPopsShown}
+          />
+        );
       case "yours":
         return <YourCardTourPage height={pictureHeight} profile={{ id: userId ?? "", is_active: isActive }} />;
     }

@@ -107,13 +107,18 @@ export function QueueUpButton() {
 }
 
 /**
- * The control's idle face, standing still and touching nothing: the tour's Queue up page draws it
- * (TourPictures.tsx) so a new player knows the control before their first deck. The same box,
- * edge, icon and label as QueueUpButton's idle state above; change one, change both. Hidden from
+ * The control's face, standing still and touching nothing: the tour's Queue up page draws it
+ * (TourPictures.tsx) so a new player knows the control before their first deck. Idle by default;
+ * with `minutesLeft`, the queued face the control turns into once tapped ("QUEUED 60M"), which is
+ * the whole picture outside North America, where a Queue up sends no Duo Pop. The same box, edge,
+ * icon, fill and labels as QueueUpButton's two states above; change one, change both. Hidden from
  * VoiceOver: it is a picture of a button, and the page's heading says the words.
  */
-export function QueueUpFace() {
+export function QueueUpFace({ minutesLeft }: { minutesLeft?: number } = {}) {
   const { colors, radius, type } = useTheme();
+  const queued = minutesLeft !== undefined;
+  // The label reads only the minutes; a still picture has no expiry to count down to.
+  const label = queueUpButtonLabel(queued ? { kind: "queued", minutesLeft, untilMs: 0 } : { kind: "idle" });
   return (
     <View
       accessibilityElementsHidden
@@ -124,6 +129,7 @@ export function QueueUpFace() {
         borderRadius: radius.button,
         borderWidth: QUEUE_UP_PILL.border,
         borderColor: colors.volt,
+        backgroundColor: queued ? colors.volt : undefined,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
@@ -131,9 +137,9 @@ export function QueueUpFace() {
         paddingHorizontal: QUEUE_UP_PILL.paddingX,
       }}
     >
-      <Ionicons name="radio-outline" size={QUEUE_UP_PILL.iconSize} color={colors.voltDim} />
-      <Text numberOfLines={1} maxFontSizeMultiplier={1} style={[type.chipText, { color: colors.volt }]}>
-        {queueUpButtonLabel({ kind: "idle" })}
+      {queued ? null : <Ionicons name="radio-outline" size={QUEUE_UP_PILL.iconSize} color={colors.voltDim} />}
+      <Text numberOfLines={1} maxFontSizeMultiplier={1} style={[type.chipText, { color: queued ? colors.onVolt : colors.volt }]}>
+        {label}
       </Text>
     </View>
   );

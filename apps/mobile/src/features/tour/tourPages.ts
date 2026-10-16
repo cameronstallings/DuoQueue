@@ -141,24 +141,42 @@ const NBSP = String.fromCharCode(0xa0);
 /**
  * The Queue up page's body, by where the player is. Only true things, in the sheet's own words
  * (queueCopy.ts):
- *  - "na": a Duo Pop goes to players in your game who turned Duo Pops on (0085's recipient rule:
- *    the switch is opt-in and starts off), and the first to tap I'm in is the duo (0088, one duo
- *    per Queue up). Every Queue up also gets a call code, so the LFG post is always there.
+ *  - "na": true for the reader TODAY, minutes after setup. start_queue_up pings nobody for a
+ *    sender whose setup is less than 24 hours old (0085's `too_new`), so the pops start "a day
+ *    after you join", the sheet's own words for that case. Then it CAN ping, not does: "up to 6
+ *    players" (the sheet's hint; duo_pop_recipients' `limit 6`), and only ones who turned Duo Pops
+ *    on (opt-in, off by default), never between 01:00 and 09:59 on their clock, never past their
+ *    3-hour or 3-a-day limit, never without a push token. Every Queue up gets a call code, so the
+ *    LFG post works from the first minute.
  *  - "other": outside North America, and when the region is unknown, no pop is ever sent
  *    (0085's `outside_na`), so the page says what Queue up still does: Online Now for the hour,
  *    or until a duo is found ("up to an hour"), and the post with its code.
  * Neither promises a count or a time: how many hear depends on who is on.
  */
 export const TOUR_QUEUE_BODY = {
-  na: "Players in your game who turned on Duo Pops get a ping. The first to tap I'm in is your duo. Or share an LFG post with your code.",
+  na: "A day after you join, Queue up can ping up to 6 players in your game who turned on Duo Pops. Or share an LFG post with your code.",
   other:
     "You show in Online Now for up to an hour. Duo Pops reach North America for now. You can still share an LFG post with your code.",
 } as const;
 
+export type QueueTourKind = keyof typeof TOUR_QUEUE_BODY;
+
+/** Which Queue up page the player gets: "na" where a Duo Pop can reach them, "other" anywhere else
+ * or when the region is unknown. The body and the picture both follow it. */
+export function queueTourKind(region: Region | null): QueueTourKind {
+  return isNaRegion(region) ? "na" : "other";
+}
+
 /** The Queue up page's body for the player's region (frozen with the tour's pages). */
 export function queueTourBody(region: Region | null): string {
-  return isNaRegion(region) ? TOUR_QUEUE_BODY.na : TOUR_QUEUE_BODY.other;
+  return TOUR_QUEUE_BODY[queueTourKind(region)];
 }
+
+/**
+ * The minutes the "other" picture's queued control reads: a fresh Queue up's hour
+ * (start_queue_up's looking_until; queueState's clamp tops out at the same 60), "QUEUED 60M".
+ */
+export const TOUR_QUEUED_MINUTES = 60;
 
 /**
  * Titles on pages 2, 3 and Queue up keep a no-break space (NBSP) so they break well. Duo locked's
@@ -310,13 +328,18 @@ export function tourPopSpoken(push: TourPopPush): string {
  * path). The deck card's rule (duoPopsWanted), with `onboarded` true because the tour is reached
  * only from the end of setup: in North America (no pop reaches anyone else), the setting known and
  * off (undefined means the column is not there or not loaded, and is never guessed), and not
- * answered on this phone before.
+ * offered on this phone before. Shown, it is an ask like any other (tourShowsDuoPops), so it also
+ * keeps the shared weekly cap the deck's cards keep (pushAskStore.ts): never within a week of
+ * another notification ask on this phone, and never while that record is still loading
+ * (`askedWithinWeek` undefined), as the deck never guesses either.
  */
 export function tourOffersDuoPops(input: {
   region: Region | null;
   queuePop: boolean | undefined;
   seen: boolean | undefined;
+  askedWithinWeek: boolean | undefined;
 }): boolean {
+  if (input.askedWithinWeek !== false) return false;
   return duoPopsWanted({ onboarded: true, inNa: isNaRegion(input.region), queuePop: input.queuePop, seen: input.seen });
 }
 
@@ -331,10 +354,25 @@ export function tourDecidesDuoPops(settledPage: number, queueIndex: number): boo
 }
 
 /**
- * How far the Queue up page gives way to fit its picture area. 0: the Queue up control, the seam
- * down to the notice, and the notice. 1, compact: the notice alone (the heading below names Queue
- * up). The page starts at 0 and takes the step when it measures taller than its picture area (a
- * short phone with the Duo Pops card, or a larger text size). Past 1 the page scrolls.
+ * When an offered card counts as SHOWN: the pager has settled on the Queue up page (or past it,
+ * which it can only reach through it). From then it is an ask like the deck's, counted once
+ * (DuoPopsOptInCard's tour surface): seen on this phone, so neither the deck nor the empty deck
+ * ever offers it again (the empty deck would otherwise put the same card up the moment Start
+ * swiping lands on it), and the start of the shared weekly cap, so the deck's notification
+ * pre-ask does not follow it minutes later. Answered or swiped past makes no difference, as on the
+ * deck. Mounted earlier, while the page is still off screen, it counts for nothing: a player who
+ * leaves from the page before never saw it, and the deck keeps its chance.
+ */
+export function tourShowsDuoPops(settledPage: number, queueIndex: number): boolean {
+  return queueIndex >= 0 && settledPage >= queueIndex;
+}
+
+/**
+ * How far the "na" Queue up page gives way to fit its picture area. 0: the Queue up control, the
+ * seam down to the notice, and the notice. 1, compact: the notice alone (the heading below names
+ * Queue up). The page starts at 0 and takes the step when it measures taller than its picture area
+ * (a short phone with the Duo Pops card, or a larger text size). Past 1 the page scrolls. The
+ * "other" picture (two fixed-size controls and the seam) never needs it.
  */
 export type QueueFit = 0 | 1;
 

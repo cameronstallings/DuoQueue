@@ -6,6 +6,8 @@ import { describe, expect, it } from "vitest";
 
 import { PLATFORM_LABELS, PLAYSTYLE_LABELS, REGION_LABELS, SKILL_LABELS } from "../onboarding/profile-labels";
 import { PICTURE_TAG } from "../profile/pictureStatus";
+import { DUO_POPS_OPT_IN_COPY, QUEUE_COPY, outcomeLine } from "../queue/queueCopy";
+import { queueUpButtonLabel } from "../queue/queueState";
 import { cardCells, cardDetailsLine } from "../swipe/cardChips";
 import { FREE_DAILY_SWIPES } from "../swipe/deckStripCopy";
 import {
@@ -21,9 +23,11 @@ import {
   TOUR_OFFLINE,
   TOUR_POP,
   TOUR_QUEUE_BODY,
+  TOUR_QUEUED_MINUTES,
   YOUR_CARD_BODY,
   exampleCard,
   queueTourBody,
+  queueTourKind,
   showsCanDuoPage,
   tourChat,
   tourChatSpoken,
@@ -37,6 +41,7 @@ import {
   tourQueueFit,
   tourRank,
   tourRankLine,
+  tourShowsDuoPops,
   yourCardBody,
   type TourGame,
 } from "./tourPages";
@@ -104,7 +109,7 @@ describe("the Queue up page", () => {
 
   it("promises Duo Pops only where they go: between players in North America (0085)", () => {
     expect(TOUR_QUEUE_BODY.na).toBe(
-      "Players in your game who turned on Duo Pops get a ping. The first to tap I'm in is your duo. Or share an LFG post with your code.",
+      "A day after you join, Queue up can ping up to 6 players in your game who turned on Duo Pops. Or share an LFG post with your code.",
     );
     expect(TOUR_QUEUE_BODY.other).toBe(
       "You show in Online Now for up to an hour. Duo Pops reach North America for now. You can still share an LFG post with your code.",
@@ -118,15 +123,48 @@ describe("the Queue up page", () => {
     expect(queueTourBody(null)).toBe(TOUR_QUEUE_BODY.other);
   });
 
+  it("picks the picture by the same split as the body", () => {
+    expect(queueTourKind("na_east")).toBe("na");
+    expect(queueTourKind("na_west")).toBe("na");
+    for (const region of REGIONS.filter((r) => r !== "na_east" && r !== "na_west")) {
+      expect(queueTourKind(region)).toBe("other");
+    }
+    expect(queueTourKind(null)).toBe("other");
+    for (const region of [...REGIONS, null]) expect(queueTourBody(region)).toBe(TOUR_QUEUE_BODY[queueTourKind(region)]);
+  });
+
+  it("is true for the NA player reading it today, minutes after setup (0085)", () => {
+    // start_queue_up pings nobody for a sender under a day old (too_new): the sheet's own words.
+    expect(outcomeLine("too_new", { notified: 0, gameName: null, minutesLeft: 60 })).toContain("a day after you join");
+    expect(TOUR_QUEUE_BODY.na).toMatch(/^A day after you join, /);
+    // At most 6 (duo_pop_recipients' limit 6), as the sheet's hint says, and only "can": quiet
+    // hours, the 3-hour and 3-a-day limits and a missing push token all leave players out.
+    expect(QUEUE_COPY.pingHint).toContain("up to 6 players");
+    expect(TOUR_QUEUE_BODY.na).toContain("can ping up to 6 players");
+    // Opt-in: only players who turned Duo Pops on (queue_pop starts false).
+    expect(TOUR_QUEUE_BODY.na).toContain("who turned on Duo Pops");
+    // Every Queue up gets a call code, the first day too.
+    expect(TOUR_QUEUE_BODY.na).toContain("LFG post");
+    // Never the old promise that every opted-in player gets one.
+    expect(TOUR_QUEUE_BODY.na).not.toMatch(/\bget a ping\b/);
+  });
+
+  it("draws the control queued for the hour outside North America, the same label as the header", () => {
+    expect(TOUR_QUEUED_MINUTES).toBe(60);
+    expect(queueUpButtonLabel({ kind: "queued", minutesLeft: TOUR_QUEUED_MINUTES, untilMs: 0 })).toBe("Queued 60m");
+    expect(TOUR_QUEUE_BODY.other).toContain("up to an hour");
+  });
+
   it("keeps each body as short as the tour's other three-line bodies", () => {
     // The picture budget (TOUR_TEXT_LINES) counts a three-line body; page 1's 122 characters
     // render in three at 393pt. These stay close to it.
     for (const body of Object.values(TOUR_QUEUE_BODY)) expect(body.length).toBeLessThanOrEqual(130);
   });
 
-  it("answers a Duo Pop with I'm in, never Accept or Lock In", () => {
-    expect(TOUR_QUEUE_BODY.na).toContain("I'm in");
+  it("never says Accept or Lock In; I'm in is named by the page's card and the example push", () => {
     for (const body of Object.values(TOUR_QUEUE_BODY)) expect(body).not.toMatch(/\baccept|lock in\b/i);
+    expect(DUO_POPS_OPT_IN_COPY.body).toContain("I'm in");
+    expect(tourPopPush(null).body).toContain("I'm in");
   });
 });
 
@@ -186,18 +224,28 @@ describe("the example Duo Pop", () => {
 });
 
 describe("the Duo Pops offer on the Queue up page", () => {
+  const fresh = { askedWithinWeek: false } as const;
+
   it("is made only to a player a Duo Pop can reach, with the setting known and off, not offered before", () => {
-    expect(tourOffersDuoPops({ region: "na_east", queuePop: false, seen: false })).toBe(true);
-    expect(tourOffersDuoPops({ region: "na_west", queuePop: false, seen: false })).toBe(true);
+    expect(tourOffersDuoPops({ region: "na_east", queuePop: false, seen: false, ...fresh })).toBe(true);
+    expect(tourOffersDuoPops({ region: "na_west", queuePop: false, seen: false, ...fresh })).toBe(true);
     // Outside NA, or nowhere known: pops never reach them (0085's recipient rule).
-    expect(tourOffersDuoPops({ region: "eu", queuePop: false, seen: false })).toBe(false);
-    expect(tourOffersDuoPops({ region: null, queuePop: false, seen: false })).toBe(false);
+    expect(tourOffersDuoPops({ region: "eu", queuePop: false, seen: false, ...fresh })).toBe(false);
+    expect(tourOffersDuoPops({ region: null, queuePop: false, seen: false, ...fresh })).toBe(false);
     // Already on, or the column not there (undefined): nothing to ask.
-    expect(tourOffersDuoPops({ region: "na_east", queuePop: true, seen: false })).toBe(false);
-    expect(tourOffersDuoPops({ region: "na_east", queuePop: undefined, seen: false })).toBe(false);
-    // Answered before on this phone, or the flag still loading: never twice, never on a guess.
-    expect(tourOffersDuoPops({ region: "na_east", queuePop: false, seen: true })).toBe(false);
-    expect(tourOffersDuoPops({ region: "na_east", queuePop: false, seen: undefined })).toBe(false);
+    expect(tourOffersDuoPops({ region: "na_east", queuePop: true, seen: false, ...fresh })).toBe(false);
+    expect(tourOffersDuoPops({ region: "na_east", queuePop: undefined, seen: false, ...fresh })).toBe(false);
+    // Offered before on this phone, or the flag still loading: never twice, never on a guess.
+    expect(tourOffersDuoPops({ region: "na_east", queuePop: false, seen: true, ...fresh })).toBe(false);
+    expect(tourOffersDuoPops({ region: "na_east", queuePop: false, seen: undefined, ...fresh })).toBe(false);
+  });
+
+  it("keeps the weekly cap every notification ask shares, and never guesses it", () => {
+    const naOff = { region: "na_east", queuePop: false, seen: false } as const;
+    // Another ask on this phone within the week (a second account, say): not now.
+    expect(tourOffersDuoPops({ ...naOff, askedWithinWeek: true })).toBe(false);
+    // The ask record still loading: no card this time, as the deck never guesses either.
+    expect(tourOffersDuoPops({ ...naOff, askedWithinWeek: undefined })).toBe(false);
   });
 
   it("is decided once the player settles on the page before it, while it is still off screen", () => {
@@ -214,12 +262,63 @@ describe("the Duo Pops offer on the Queue up page", () => {
     expect(tourDecidesDuoPops(3, -1)).toBe(false);
   });
 
+  it("counts as shown once the pager settles on Queue up, never while it is still off screen", () => {
+    // Five pages, Queue up at index 3. Mounted on Duo locked (2), it has not shown: a player who
+    // leaves from there never saw it, and the deck keeps its chance.
+    expect(tourShowsDuoPops(2, 3)).toBe(false);
+    expect(tourShowsDuoPops(3, 3)).toBe(true);
+    // Past it (the last page) it has shown: the pager can only get there through it.
+    expect(tourShowsDuoPops(4, 3)).toBe(true);
+    expect(tourShowsDuoPops(1, 2)).toBe(false);
+    expect(tourShowsDuoPops(2, 2)).toBe(true);
+    expect(tourShowsDuoPops(3, -1)).toBe(false);
+    // Never shown before decided: the offer is always settled first.
+    for (const queueIndex of [2, 3]) {
+      for (let page = 0; page <= queueIndex + 1; page++) {
+        if (tourShowsDuoPops(page, queueIndex)) expect(tourDecidesDuoPops(page, queueIndex)).toBe(true);
+      }
+    }
+  });
+
   it("gives way a step when it measures taller than its picture area: the Queue up control goes first", () => {
     expect(tourQueueFit(0)).toBe(0);
     expect(tourQueueFit(1)).toBe(1);
     // Past compact the page scrolls.
     expect(tourQueueFit(4)).toBe(1);
     expect(tourQueueFit(-1)).toBe(0);
+  });
+});
+
+/**
+ * The tour card's rules that live in components, pinned in their source (pushAskWiring.test.ts's
+ * pattern): nothing else would notice them gone, and every gate would stay green.
+ */
+describe("the tour card's wiring", () => {
+  const card = source("../queue/DuoPopsOptInCard.tsx");
+  const welcome = source("../../../app/welcome.tsx");
+  const pictures = source("./TourPictures.tsx");
+  const tourCard = card.slice(card.indexOf("function TourDuoPopsCard("));
+
+  it("counts the card as an ask the moment it shows: seen on this phone, and the weekly cap", () => {
+    expect(card).toContain('if (surface === "tour") return <TourDuoPopsCard shown={active} />;');
+    const counting = tourCard.slice(tourCard.indexOf("useEffect(() => {"), tourCard.indexOf("}, [shown, markSeen]);"));
+    expect(counting).toContain("if (!shown || counted.current) return;");
+    expect(counting).toContain("usePushAskStore.getState().markOffered(Date.now());");
+    expect(counting).toContain("markSeen();");
+    // Counted on show only, never again on Turn on: a save that fails costs nothing more.
+    expect(tourCard.match(/markOffered\(/g)).toHaveLength(1);
+  });
+
+  it("tells the card it has shown only once the pager has settled on its page", () => {
+    expect(welcome).toContain("const duoPopsShown = offerDuoPops === true && tourShowsDuoPops(pager.page, queueIndex);");
+    expect(welcome).toContain("duoPopsShown={duoPopsShown}");
+    expect(pictures).toContain('<DuoPopsOptInCard surface="tour" active={duoPopsShown} />');
+  });
+
+  it("decides the offer on the weekly ask record, which the tour loads itself", () => {
+    expect(welcome).toContain("askedWithinWeek: offeredWithinWeek(lastOfferedAt, Date.now())");
+    expect(welcome).toContain("usePushAskStore((s) => (s.loaded ? s.lastOfferedAt : undefined))");
+    expect(welcome).toContain("void usePushAskStore.getState().load();");
   });
 });
 
