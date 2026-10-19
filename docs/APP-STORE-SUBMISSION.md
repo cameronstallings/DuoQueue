@@ -53,8 +53,8 @@ Part 5 is the pre-submit checklist. Do that checklist last, right before you tap
   notifications). `pnpm typecheck`, `pnpm lint`, and `pnpm audit:contrast` (76/76 WCAG pair-checks,
   both color schemes) all pass clean.
 - **No analytics SDK, no ad SDK, no crash-reporting SDK.** Confirmed via `package.json` in
-  both the root and `apps/mobile` — nothing to disclose as tracking, and the privacy table in
-  Part 3 doesn't need a Diagnostics row.
+  both the root and `apps/mobile` — nothing to disclose as tracking. (Since 16 Oct 2026 the Part 3 label does carry Other Diagnostic
+  Data, for the app-version stamp and the push delivery log, not crash data.)
 - **Auth is email and Sign in with Apple (from build 11).** Google stays off
   (`GOOGLE_SIGN_IN_ENABLED = false` in `apps/mobile/src/features/auth/socialSignIn.ts`, and the
   Google provider is off on the hosted project), so Guideline 4.8 is satisfied: the only
@@ -754,9 +754,12 @@ carried over from an earlier draft.
 | User ID (internal account identifier) | Yes | No | App Functionality (account system, RevenueCat purchase linkage) |
 | Purchase History | Yes | No | App Functionality (subscription/consumable entitlement) |
 | Reports & Blocks (who reported/blocked whom, and why) | Yes | No | App Functionality (Trust & Safety, abuse prevention) |
+| Other Diagnostic Data (the app-version stamp on push tokens; the push delivery log) | Yes | No | App Functionality (entered 16 Oct 2026) |
+| Product Interaction (swipes; Duo Pop and Queue up records; party LFG posts) | Yes | No | App Functionality (entered 16 Oct 2026) |
 
-**1.0.2 App Privacy: PROPOSAL FOR CAMERON, NOT A DECISION (plan Q23 and R2).** The table above
-is still the 1.0.1 label and nothing in it changes until you say yes. It does not cover four
+**1.0.2 App Privacy: DONE.** Cameron entered and published the two rows below on 16 Oct 2026,
+and privacy policy 1.6 went live on duoqueue.io on 19 Oct 2026, the day 1.0.2 was approved and
+released. The original proposal follows for the record. It does not cover four
 things that 1.0.2 and the 15 Oct server changes collect. Privacy policy 1.6 (the draft in
 `docs/legal/privacy-policy.md` on build-19, not published) already describes all four (the
 party LFG posts since the build 20 merge). The

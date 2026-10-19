@@ -64,11 +64,9 @@
   Cary, NC to Houston, TX. The address itself lives in supabase/functions/_shared/org.ts and
   is substituted at build time; nothing else in this policy changed.
 
-  VERSION STAMP, VERSION CHECK, DUO POPS, DUO CALLS AND PARTY LFG POSTS (version 1.6 DRAFT, committed
-  2026-10-15 on the build-19 branch, NOT published; publish it when app 1.0.2 is released,
-  not before, because it describes 1.0.2 behaviour). The Effective date line below still says
-  the day it was drafted: change it to the day it is published, in the same commit that
-  publishes it. Every paragraph is worded by app version, so it stays true while 1.0.1 is
+  VERSION STAMP, VERSION CHECK, DUO POPS, DUO CALLS AND PARTY LFG POSTS (version 1.6, drafted
+  2026-10-15 on the build-19 branch and PUBLISHED 2026-10-19, the day App Review approved app 1.0.2
+  and Cameron released it; effective date set to that day in the publishing commit). Every paragraph is worded by app version, so it stays true while 1.0.1 is
   still the version in the store:
   - Section 2, Device information, "Push notification token and app version": from 1.0.2,
     apps/mobile/src/lib/notifications.ts (savePushToken) claims the token for the signed-in
@@ -141,7 +139,7 @@
 -->
 # DuoQueue Privacy Policy
 
-**Effective date:** October 15, 2026
+**Effective date:** October 19, 2026
 **Version:** 1.6
 
 This policy explains what DuoQueue collects, why, who we share it with, and what control you have over it. It's written in plain language on purpose. If anything here is unclear, contact us using the details below.
